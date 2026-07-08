@@ -8,7 +8,7 @@ Two independent static front-ends. No backend, no build step, no `package.json`.
 | Έντυπα PWA | [`forms/`](../forms/) | custom · navy `#1C3457` | Internal paperwork app — see below |
 
 Live-listings data source (API vs. feed) is still **TBD**. Brand colours, logo
-files, and the brand-PDF vector workflow are in [brand.md](BRAND.md).
+files, and the brand-PDF vector workflow are in [brand.md](brand.md).
 
 ## Reference demos — keep them
 
