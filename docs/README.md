@@ -9,6 +9,7 @@ deeper, one topic per file:
 | [brand.md](brand.md) | Brand colours, logo files, brand-PDF vector-extraction workflow |
 | [preview.md](preview.md) | Run the site locally (zero-dependency preview server) |
 | [conventions.md](conventions.md) | Where customizations go, the theme build is off-limits, working with `nice-select` |
+| [partials.md](partials.md) | Shared header/footer: one source of truth stamped into pages by `tools/sync-partials.js` |
 | [localization.md](localization.md) | Greek rules: `lang="el"`, capitals without accents, currency format |
 | [environment.md](environment.md) | Windows / PowerShell / file-encoding gotchas |
 | [components/hero-search.md](components/hero-search.md) | Homepage search bar: fields, responsive layout, price swap |

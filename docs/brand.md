@@ -21,17 +21,37 @@ documented pink.
 | File | What |
 |------|------|
 | `fourwalls-brand.pdf` | Authoritative vector brand sheet |
-| `fourwalls_logo.svg` | **Header logo** — horizontal lockup, pink `#FF0062` icon + black `#000000` "FOURWALLS", `viewBox="0 0 1434 140"` |
+| `fourwalls_logo.svg` | **Header logo** — horizontal lockup, pink `#FF0062` icon ("cube") + black `#000000` "FOURWALLS", `viewBox="-23.08 -24.5 1048.06 189"` (~5.5:1) |
+| `fourwalls_logo_vertical.svg` | Stacked lockup (icon + wordmark + "REAL ESTATE" tagline) extracted from the brand PDF — used by the footer's optional `.footer-logo-vertical` |
 | `fourwalls_logo_light.png` | Old light variant (white wordmark) — currently unreferenced |
 
 The header logo is a **vector SVG**. It was rebuilt from the brand PDF to replace
 a raster PNG whose anti-aliased edges were white at low opacity — invisible on
 white, but a visible white fringe around every letter on dark/coloured
-backgrounds. It's referenced from the header (desktop + mobile logo) on
+backgrounds. It's referenced from the header (desktop + mobile logo) and footer on
 `index.html`, `about_us_01.html`, `contact.html`, `service_01.html`, and
-`service_details.html`. CSS sizes it by height only
-(`.logo img { height: 38px; width: auto }`), so keep the SVG's 1434×140 aspect
-ratio for a drop-in fit.
+`service_details.html`.
+
+### Lockup proportions & sizing
+At header size the raw lockup let the wordmark tower over the icon and the full
+~10:1 width ran off a phone's right edge. The SVG now wraps the two brand groups
+in outer `<g>` transforms to tune them independently (edit these, don't re-derive
+the inner path geometry):
+- **cube** — `scale(1.15)` about its centre `(63.5, 70)`;
+- **wordmark** — `scale(0.66)`, placed 40u right of the cube with its centre
+  pinned to `y=70` so both sit on one middle line.
+
+**Measure, don't guess.** Both brand groups are natively centred on `y=70`, and
+the cube's bbox is `y[0,140]` — its solid walls sit at `y[39,140]` but a thin
+lid/chevron reaches up to `y≈0`, so a viewBox cropped to the walls *clips the
+cube's top*. Get the real boxes with `inkscape --query-all` (give the groups
+`id`s first) and set the viewBox to their measured union + ~14u padding.
+
+Because the aspect changed from the old `1434×140`, CSS sizes it explicitly in
+[`../css/fourwalls.css`](../css/fourwalls.css) rather than the theme's `38px`:
+`.theme-main-menu .logo img { height: 40px }` (header + mobile menu) and
+`.footer-one .logo img { height: 50px }` (footer). Keep the ~5.5:1 aspect; if you
+re-tune the cube/text scales, re-measure the viewBox and re-check those heights.
 
 ### Recolouring
 - Wordmark to brand navy: change the wordmark group `fill="#000000"` → `#1C3457`.

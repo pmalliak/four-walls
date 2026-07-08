@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Reviewer avatar">
+	<defs>
+		<clipPath id="fw-avatar-clip"><circle cx="60" cy="60" r="60"/></clipPath>
+	</defs>
+	<circle cx="60" cy="60" r="60" fill="#e7ecf3"/>
+	<g clip-path="url(#fw-avatar-clip)" fill="#1c3457">
+		<circle cx="60" cy="47" r="21"/>
+		<rect x="22" y="76" width="76" height="56" rx="38"/>
+	</g>
+</svg>

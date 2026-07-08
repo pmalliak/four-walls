@@ -1,0 +1,224 @@
+/* =====================================================================
+   Four Walls — custom overrides
+   Loaded AFTER the theme stylesheets so it always wins.
+   Keep site-specific tweaks here instead of editing the minified build.
+   ===================================================================== */
+
+/* Brand pink (primary accent used across the .fw build) = #ff0062
+   Darker hover shade = #d1004f                                          */
+
+/* Current-page indicator --------------------------------------------- */
+/* js/fourwalls.js adds .current-page to the nav item matching the open
+   page; the page is highlighted in brand pink (no icon).                */
+.theme-main-menu .nav-item.current-page > .nav-link {
+  color: #ff0062;
+}
+.theme-main-menu .navbar-nav .dropdown-item.current-page > span {
+  color: #ff0062;
+  font-weight: 600;
+}
+
+/* Logo lockup sizing -------------------------------------------------- */
+/* fourwalls_logo.svg was rebalanced: bigger cube, smaller wordmark, both
+   centred on one middle line, viewBox measured tight to include the cube's
+   full top (~5.5:1). The .fw build sizes it at 38px (header) / 48px (footer)
+   against the OLD 1434x140 viewBox; re-height it here for the new aspect so
+   the cube reads larger (~34px header) and the wide "FOURWALLS" lockup no
+   longer runs off a phone's right edge.                                    */
+.theme-main-menu .logo img {
+  height: 40px;
+}
+.footer-one .logo img {
+  height: 50px;
+}
+
+/* Footer logo — vertical brand lockup ------------------------------- */
+/* Optional stacked icon + wordmark + "REAL ESTATE" tagline, sized larger. */
+.footer-one .footer-intro .logo img.footer-logo-vertical {
+  height: 130px;
+  width: auto;
+}
+
+/* "All pages" mega menu ---------------------------------------------- */
+/* Wider than the theme's default mega dropdown, pinned to the right and
+   kept within the viewport so a long link list never overflows.        */
+@media (min-width: 992px) {
+  .navbar .mega-dropdown-lg .dropdown-menu {
+    width: min(940px, calc(100vw - 40px));
+    min-width: 0;
+    left: auto;
+    right: 0;
+    padding: 12px 6px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+}
+
+.navbar .mega-dropdown-lg .menu-column + .menu-column {
+  margin-top: 18px;
+}
+
+/* Hero search dropdowns ---------------------------------------------- */
+/* Labels sit in narrow columns, so keep each on a single line.         */
+.hero-banner-one .search-wrapper-one .input-box-one .label {
+  white-space: nowrap;
+}
+/* The select popups hold long labels (e.g. price ranges) that are wider
+   than their column. The theme sets overflow-y:auto on the list, which
+   makes the browser promote overflow-x to auto too and adds a stray
+   horizontal scrollbar. Let the list grow to fit its content and drop
+   both scrollbars (our lists are short and curated).                   */
+.hero-banner-one .search-wrapper-one .nice-select .list {
+  max-height: none;
+  min-width: max-content;
+  overflow: visible;
+}
+/* The box fills its (narrow) column, so a long selected value — e.g. a
+   rent price range — would overflow to the right, over the dropdown
+   arrow and outside the box. Clip it with an ellipsis; the full label is
+   still readable in the open list above.                                */
+.hero-banner-one .search-wrapper-one .nice-select .current {
+  display: inline-block;
+  max-width: calc(100% - 6px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Tablet layout (iPad): the search collapses to three rows —
+   [ Ενδιαφέρομαι για... ] / [ Τύπος · Περιοχή · Εύρος τιμής ] / [ button ]
+   via col-12 / col-md-4 / col-12 on the fields. The theme only turns the
+   vertical dividers into underlines below 992px, so between 992–1199px the
+   full-width first field would show a stray right divider — drop it.      */
+@media (max-width: 1199px) {
+  .hero-banner-one .search-wrapper-one .row > div:first-child .input-box-one.border-left {
+    border-right: none;
+  }
+}
+
+/* Δημοφιλείς περιοχές — illustrated area cards ----------------------- */
+/* The neighbourhood maps are LIGHT (cream) artwork with navy/pink line
+   work, whereas .location-card-one is built for dark photos: a black
+   bottom scrim (mix-blend luminosity) + white label. Over the cream the
+   white label would vanish, so we swap the scrim for a solid navy
+   (#1C3457) gradient that only covers the lower strip — the centred
+   landmark stays clear and the label reads white on navy.               */
+.location-card-illustrated {
+  background-color: #f3f1e6; /* matches the artwork's paper, hides any edge */
+  background-position: center;
+}
+.location-card-illustrated:before {
+  background: linear-gradient(180deg, rgba(28, 52, 87, 0) 45%, rgba(28, 52, 87, 0.92) 100%);
+  mix-blend-mode: normal;
+}
+
+/* Listing sections — index «Νέες καταχωρήσεις» (.property-listing-one) and
+   the listings page (.property-listing-six) --------------------------- */
+/* Swap the section's cream .bg-pink-two (#f5ede8) for the same blue→navy
+   gradient the index hero uses (.hero-banner-one.bg-pink), and recolour
+   the teal "sale" tag (theme green #00b579) to brand navy so it reads as
+   blue. The "rent" tag already inherits brand pink (#ff0062) from the
+   .fw build.                                                            */
+.property-listing-one.bg-pink-two,
+.property-listing-six.bg-pink-two {
+  background: linear-gradient(180deg, #c4d4ec 0%, #1c3457 100%);
+}
+.property-listing-one .listing-card-one .img-gallery .tag.sale,
+.property-listing-six .listing-card-one .img-gallery .tag.sale {
+  background: #1c3457;
+}
+/* The tags are tiny 11px uppercase pills. Embolden + enlarge them a touch
+   and let the pill size to its (now Προς-less) label so «ΕΝΟΙΚΙΑΣΗ» /
+   «ΠΩΛΗΣΗ» read clearly over the busy listing photos.                   */
+.property-listing-one .listing-card-one .img-gallery .tag,
+.property-listing-six .listing-card-one .img-gallery .tag {
+  width: auto;
+  min-width: 80px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+/* The gradient darkens to navy at the foot of the section, where the
+   pagination sits — its default black text would vanish. Make it white,
+   with the active/hover pill in brand pink.                             */
+.property-listing-six .pagination-one li a {
+  color: #fff;
+}
+.property-listing-six .pagination-one li.active a,
+.property-listing-six .pagination-one li a:hover {
+  background: #ff0062;
+  color: #fff;
+}
+
+/* Reviews (index feedback slider) ----------------------------------- */
+/* The Google star rating is an SVG; cap its width so it doesn't stretch
+   to fill the column. The reviewer avatar keeps its own .avatar size.   */
+.feedback-block-one .col-md-3 img.lazy-img {
+  max-width: 132px;
+  height: auto;
+}
+
+/* About page — reviews block on a blue→navy gradient ----------------- */
+/* The "Τι λένε οι πελάτες" section keeps its white review cards
+   (.feedback-block-six) but sits on the brand blue gradient instead of the
+   cream .bg-pink-two. Only the heading and the slider dots land directly on
+   the blue, so those flip to white/pink; the card text stays dark on white. */
+.fw-reviews-blue {
+  background: linear-gradient(180deg, #2d5596 0%, #1c3457 100%);
+}
+.fw-reviews-blue .title-one h3,
+.fw-reviews-blue .title-one p {
+  color: #fff;
+}
+/* Slick dots: the theme's dark-bordered/grey dots vanish on navy — give
+   them a white ring, filled brand pink when active.                    */
+.fw-reviews-blue .slick-dots li button {
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: transparent;
+}
+.fw-reviews-blue .slick-dots li.slick-active button {
+  background: #ff0062;
+  border-color: #ff0062;
+}
+
+/* Contact page (contact.html) --------------------------------------- */
+/* The form + map block uses .bg-pink, which in the .fw build is the
+   blue→navy gradient. Per request, make it a solid brand navy so it reads
+   as one clean colour block. The form's default dark heading/labels and
+   the theme's reddish validation text (#ff4d44) would be illegible on
+   navy, so flip them to white.                                          */
+.contact-us .bg-pink {
+  background: #1c3457;
+}
+.contact-us .form-style-one h3 {
+  color: #fff;
+}
+.contact-us .form-style-one .input-group-meta label {
+  color: rgba(255, 255, 255, 0.85);
+}
+.contact-us .form-style-one .help-block,
+.contact-us .form-style-one .help-block.with-errors li {
+  color: #fff;
+}
+
+/* A Google-maps <iframe> embed can't have its tiles restyled without the
+   JS API + a key, so tint the whole frame toward brand pink with a CSS
+   duotone filter. Hovering reveals the true map so it stays usable.     */
+.contact-map-banner .gmap_iframe {
+  filter: grayscale(1) sepia(1) hue-rotate(300deg) saturate(1.8) brightness(0.96);
+  transition: filter 0.4s ease;
+}
+.contact-map-banner:hover .gmap_iframe {
+  filter: none;
+}
+
+/* Featured-property banner tag ("Επιλεγμένο ακίνητο του μήνα") ------- */
+/* The .fancy-banner-one card is white, but its tag is the same teal
+   (#00b579) as the listing "sale" tags — recolour to brand navy and
+   embolden so it matches the «ΠΩΛΗΣΗ» pills in the section above.       */
+.fancy-banner-one .property-item .tag {
+  background: #1c3457;
+  font-weight: 600;
+}

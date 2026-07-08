@@ -13,4 +13,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 /* Four Walls: hero background -> soft navy tint instead of pink */
 .hero-banner-one.bg-pink{background:linear-gradient(180deg,#C4D4EC 0%,#1C3457 100%)}
 
-.theme-main-menu .logo img,.footer-one .logo img{height:46px;width:auto;max-width:none}
+.theme-main-menu .logo img{height:38px;width:auto;max-width:none}.footer-one .logo img{height:48px;width:auto;max-width:none}
+/* Four Walls: Greek-friendly fonts */
+body{font-family:'Manrope',-apple-system,'Segoe UI',sans-serif !important}
+h1,h2,h3,h4,h5,h6,.hero-heading,.title,.main-title,.sec-title,.btn-one,.btn-two,.btn-three,.nav-link,blockquote{font-family:'Montserrat','Manrope',sans-serif !important}
+
+*{text-transform:none !important}
