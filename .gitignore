@@ -1,0 +1,7 @@
+# local secrets for wrangler dev
+.dev.vars
+# wrangler cache / local KV state
+.wrangler/
+node_modules/
+# generated listings feed (production copy lives in Workers KV)
+data/

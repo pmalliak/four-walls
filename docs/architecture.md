@@ -7,7 +7,9 @@ Two independent static front-ends. No backend, no build step, no `package.json`.
 | Marketing site | repo root (`index.html`, `listing_*`, `agent*`, `blog_*`, …) | "Homy" HTML template · pink `#ff0062` | Being translated/adapted to Greek |
 | Έντυπα PWA | [`forms/`](../forms/) | custom · navy `#1C3457` | Internal paperwork app — see below |
 
-Live-listings data source (API vs. feed) is still **TBD**. Brand colours, logo
+Live listings come from the **EstatePrime CRM** as a JSON feed served by the
+Cloudflare Worker that also hosts the site (webhook-triggered regeneration +
+nightly cron) — see [listings-feed.md](listings-feed.md). Brand colours, logo
 files, and the brand-PDF vector workflow are in [brand.md](brand.md).
 
 ## Reference demos — keep them
@@ -29,6 +31,8 @@ component; the theme usually already has it.
 | `images/` | Assets; custom ones carry a `.fw` suffix |
 | `forms/` | The Έντυπα PWA (separate app) |
 | `tools/preview-server.js` | Local preview server |
+| `worker/`, `wrangler.toml` | Cloudflare Worker: hosts the site + listings feed ([listings-feed.md](listings-feed.md)) |
+| `tools/build-listings.mjs` | Generates `data/listings.json` locally |
 | `docs/` | This documentation |
 
 ## The `forms/` PWA

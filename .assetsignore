@@ -1,0 +1,20 @@
+# Files in the repo root that must NOT be uploaded as static assets.
+# (gitignore syntax; read by wrangler from the assets directory)
+.git
+.gitignore
+.assetsignore
+.dev.vars
+.wrangler
+.claude
+node_modules
+wrangler.toml
+worker
+tools
+docs
+data
+partials
+inc
+CLAUDE.md
+index.html.orig
+# dev-only form autofill helper — never ship to production
+forms/_autofill.dev.js

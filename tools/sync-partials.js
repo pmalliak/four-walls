@@ -42,6 +42,8 @@ const PAGES = [
 	"about_us_01.html",
 	"contact.html",
 	"listing_01.html",
+	"listing_03.html",
+	"listing_details_01.html",
 ];
 
 /* One entry per reusable region. `source` is where the canonical markup

@@ -59,8 +59,11 @@
 }
 
 /* Hero search dropdowns ---------------------------------------------- */
+/* Same search bar is embedded in the listings-page banner
+   (.inner-banner-one, listing_03.html), so the fixes cover both.       */
 /* Labels sit in narrow columns, so keep each on a single line.         */
-.hero-banner-one .search-wrapper-one .input-box-one .label {
+.hero-banner-one .search-wrapper-one .input-box-one .label,
+.inner-banner-one .search-wrapper-one .input-box-one .label {
   white-space: nowrap;
 }
 /* The select popups hold long labels (e.g. price ranges) that are wider
@@ -68,7 +71,8 @@
    makes the browser promote overflow-x to auto too and adds a stray
    horizontal scrollbar. Let the list grow to fit its content and drop
    both scrollbars (our lists are short and curated).                   */
-.hero-banner-one .search-wrapper-one .nice-select .list {
+.hero-banner-one .search-wrapper-one .nice-select .list,
+.inner-banner-one .search-wrapper-one .nice-select .list {
   max-height: none;
   min-width: max-content;
   overflow: visible;
@@ -77,7 +81,8 @@
    rent price range — would overflow to the right, over the dropdown
    arrow and outside the box. Clip it with an ellipsis; the full label is
    still readable in the open list above.                                */
-.hero-banner-one .search-wrapper-one .nice-select .current {
+.hero-banner-one .search-wrapper-one .nice-select .current,
+.inner-banner-one .search-wrapper-one .nice-select .current {
   display: inline-block;
   max-width: calc(100% - 6px);
   overflow: hidden;
@@ -92,9 +97,19 @@
    vertical dividers into underlines below 992px, so between 992–1199px the
    full-width first field would show a stray right divider — drop it.      */
 @media (max-width: 1199px) {
-  .hero-banner-one .search-wrapper-one .row > div:first-child .input-box-one.border-left {
+  .hero-banner-one .search-wrapper-one .row > div:first-child .input-box-one.border-left,
+  .inner-banner-one .search-wrapper-one .row > div:first-child .input-box-one.border-left {
     border-right: none;
   }
+}
+
+/* The banner search pairs the sliders icon with the theme's search button
+   (width:90%, min-width:150px) in one flex row — at some widths their sum
+   is wider than the column and the button pokes out of the white box. Let
+   the button take exactly the space left next to the icon instead.        */
+.inner-banner-one .search-wrapper-one .search-btn {
+  width: 100%;
+  min-width: 0;
 }
 
 /* Δημοφιλείς περιοχές — illustrated area cards ----------------------- */
@@ -212,6 +227,62 @@
 }
 .contact-map-banner:hover .gmap_iframe {
   filter: none;
+}
+
+/* Listing details pages (listing_details_*) --------------------------- */
+/* The theme wraps the ENTIRE page content in one .bg-pink section, which
+   the .fw build turns into the blue→navy hero gradient. Stretched over a
+   ~10.000px page its lower half is solid navy, where the bare section
+   headings (Floor Plans, Location, Reviews…) that sit directly on the
+   background would drown. Keep the section on the light end of the brand
+   blue instead — the white content cards and dark text stay legible top
+   to bottom.                                                            */
+.listing-details-one.bg-pink {
+  background: linear-gradient(180deg, #c4d4ec 0%, #e3ebf7 100%);
+}
+/* The "FOR SELL/RENT" pill is plain black in the theme — recolour to
+   brand navy so it matches the «ΠΩΛΗΣΗ» tags on the listing cards.     */
+.theme-details-one .list-type {
+  background: #1c3457;
+  border-color: #1c3457;
+}
+
+/* Listings grid — white variant (listing_03.html) --------------------- */
+/* Chosen over the blue→navy gradient after an A/B: the grid sits on
+   plain white, with the property cards outlined in brand navy so they
+   still separate from the background. The outline joins the card-wide
+   pink hover below.                                                     */
+.property-listing-six.fw-listing-white {
+  background: #fff;
+}
+.fw-listing-white .listing-card-one {
+  border: 2px solid #1c3457;
+}
+.fw-listing-white .listing-card-one:hover {
+  border-color: #ff0062;
+}
+
+/* Property cards — the whole box is one link -------------------------- */
+/* The card title carries Bootstrap's .stretched-link, whose ::after
+   overlay (z-index:1) pins to the nearest positioned ancestor — make
+   that the card itself so clicks anywhere on the box open the listing.
+   Interactive bits inside keep working ABOVE the overlay: the photo
+   carousel dots are already z-index:2 in Bootstrap; the footer action
+   icons (details page) are lifted here.                                 */
+.listing-card-one {
+  position: relative;
+}
+.listing-card-one .action-icons {
+  position: relative;
+  z-index: 2;
+}
+/* Hovering anywhere on the card fires every element's pink state — not
+   just the element under the cursor — so the box reads as one control.  */
+.listing-card-one:hover .property-info .title {
+  color: #ff0062;
+}
+.listing-card-one:hover .btn-four {
+  background: #ff0062;
 }
 
 /* Featured-property banner tag ("Επιλεγμένο ακίνητο του μήνα") ------- */

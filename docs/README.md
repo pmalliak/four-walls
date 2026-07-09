@@ -12,6 +12,7 @@ deeper, one topic per file:
 | [partials.md](partials.md) | Shared header/footer: one source of truth stamped into pages by `tools/sync-partials.js` |
 | [localization.md](localization.md) | Greek rules: `lang="el"`, capitals without accents, currency format |
 | [environment.md](environment.md) | Windows / PowerShell / file-encoding gotchas |
+| [listings-feed.md](listings-feed.md) | Live listings: EstatePrime webhook → Cloudflare Worker → `/data/listings.json` |
 | [components/hero-search.md](components/hero-search.md) | Homepage search bar: fields, responsive layout, price swap |
 
 New component write-ups go under [components/](components/).

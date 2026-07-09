@@ -1,0 +1,40 @@
+# =====================================================================
+# Four Walls — Cloudflare Worker config
+# ---------------------------------------------------------------------
+# Deploys the static site + listings-feed Worker (worker/index.mjs).
+# Setup steps (KV namespace, secrets, custom domain, EstatePrime
+# webhook registration): docs/listings-feed.md.
+# =====================================================================
+
+name = "fourwalls-site"
+main = "worker/index.mjs"
+compatibility_date = "2026-06-01"
+
+# The whole repo root is the static site. .assetsignore excludes the
+# non-site files (worker/, tools/, docs/, config, dev helpers).
+[assets]
+directory = "./"
+binding = "ASSETS"
+# These paths must reach the Worker even though assets are served first.
+# Keep in sync with WEBHOOK_PATH below.
+run_worker_first = ["/webhooks/*", "/data/*"]
+
+[[kv_namespaces]]
+binding = "LISTINGS_KV"
+# TODO(deploy): replace with the real id from:
+#   npx wrangler kv namespace create LISTINGS_KV
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[triggers]
+# Nightly reconciliation rebuild — 03:15 UTC = 05:15/06:15 Θεσσαλονίκη.
+crons = ["15 3 * * *"]
+
+[vars]
+# "1" = feed from sample data; flip to "0" once the EstatePrime adapter
+# in worker/lib/estateprime.mjs is verified against their API docs.
+SAMPLE_DATA = "1"
+WEBHOOK_PATH = "/webhooks/estateprime"
+
+# Secrets (NOT here — set with `npx wrangler secret put <NAME>`):
+#   WEBHOOK_KEY           shared secret for the EstatePrime webhook
+#   ESTATEPRIME_API_KEY   EstatePrime CRM API key (needed when SAMPLE_DATA=0)

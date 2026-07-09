@@ -12,7 +12,9 @@ front-ends** (no backend, no build step, no `package.json`):
    signature pads and client-side PDF export. Brand accent: **navy `#1C3457`**.
    `forms/_autofill.dev.js` is a dev-only test helper (see its header).
 
-Data source (live listings via API vs. feed) is still **TBD**.
+Live listings: **EstatePrime CRM → Cloudflare Worker → `/data/listings.json`**
+(webhook-triggered + nightly cron; sample-data mode until CRM API access is
+verified). The same Worker hosts the site. See [docs/listings-feed.md](docs/listings-feed.md).
 
 ## Local preview
 
