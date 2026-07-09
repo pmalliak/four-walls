@@ -54,8 +54,7 @@ SAMPLE_DATA = "1"
 # Full webhook URL: https://webhooks.four-walls.gr/listings
 WEBHOOK_PATH = "/listings"
 # EstatePrime account subdomain: https://<this>.estateprime.gr/api
-# TODO: set to the real account subdomain before SAMPLE_DATA=0.
-ESTATEPRIME_SUBDOMAIN = ""
+ESTATEPRIME_SUBDOMAIN = "fourwalls"
 
 # Secrets (NOT here — set with `npx wrangler secret put <NAME>`):
 #   WEBHOOK_KEY              shared secret for the EstatePrime webhook

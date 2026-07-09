@@ -22,7 +22,7 @@
    Deploy/setup steps: docs/listings-feed.md.
    ===================================================================== */
 
-import { buildFeed } from "./lib/estateprime.mjs";
+import { buildFeed, fetchListingsPageRaw } from "./lib/estateprime.mjs";
 
 const FEED_KEY = "listings.json";
 const DEFAULT_WEBHOOK_PATH = "/listings"; // overridden by WEBHOOK_PATH var
@@ -46,6 +46,26 @@ export default {
 
 		if (pathname === webhookPath) {
 			return handleWebhook(request, env, ctx, url);
+		}
+		// TEMPORARY (key-protected): raw CRM page passthrough to verify the
+		// real Listing field names. Remove once mapListing() is confirmed.
+		if (pathname === "/debug/estateprime-raw") {
+			if (tokenFrom(request, url) !== env.WEBHOOK_KEY) {
+				return new Response("Forbidden", { status: 403 });
+			}
+			try {
+				const page = Number(url.searchParams.get("page") || "1") || 1;
+				const raw = await fetchListingsPageRaw(env, page);
+				return new Response(raw.body, {
+					status: raw.status,
+					headers: { "Content-Type": "application/json; charset=utf-8" },
+				});
+			} catch (err) {
+				return new Response(JSON.stringify({ error: err.message }), {
+					status: 500,
+					headers: { "Content-Type": "application/json; charset=utf-8" },
+				});
+			}
 		}
 		if (url.pathname === "/data/listings.json") {
 			return serveFeed(env);

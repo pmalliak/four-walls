@@ -40,20 +40,33 @@ export async function buildFeed(env) {
 	};
 }
 
+function apiConfig(env) {
+	const missing = ["ESTATEPRIME_SUBDOMAIN", "ESTATEPRIME_API_KEY", "ESTATEPRIME_API_SECRET"]
+		.filter((k) => !env[k]);
+	if (missing.length) throw new Error(`Missing config: ${missing.join(", ")}`);
+	return {
+		base: `https://${env.ESTATEPRIME_SUBDOMAIN}.estateprime.gr/api`,
+		headers: {
+			"Authorization": "Basic " + btoa(`${env.ESTATEPRIME_API_KEY}:${env.ESTATEPRIME_API_SECRET}`),
+			"Content-Type": "application/json",
+			"Accept": "application/json",
+		},
+	};
+}
+
+/* Raw single page, unmapped — used by the /debug/estateprime-raw route to
+   inspect the API's real field names. Remove once the mapping is verified. */
+export async function fetchListingsPageRaw(env, page = 1) {
+	const { base, headers } = apiConfig(env);
+	const res = await fetch(`${base}/listings?page=${page}`, { headers });
+	return { status: res.status, body: await res.text() };
+}
+
 /* Pull every listing from the EstatePrime API and keep the active ones.
    The webhook payload is deliberately ignored upstream — this full
    re-fetch is the source of truth, so regeneration is idempotent. */
 async function fetchAllListings(env) {
-	const missing = ["ESTATEPRIME_SUBDOMAIN", "ESTATEPRIME_API_KEY", "ESTATEPRIME_API_SECRET"]
-		.filter((k) => !env[k]);
-	if (missing.length) throw new Error(`Missing config: ${missing.join(", ")}`);
-
-	const base = `https://${env.ESTATEPRIME_SUBDOMAIN}.estateprime.gr/api`;
-	const headers = {
-		"Authorization": "Basic " + btoa(`${env.ESTATEPRIME_API_KEY}:${env.ESTATEPRIME_API_SECRET}`),
-		"Content-Type": "application/json",
-		"Accept": "application/json",
-	};
+	const { base, headers } = apiConfig(env);
 
 	const all = [];
 	let firstIdOfPrevPage = null;
