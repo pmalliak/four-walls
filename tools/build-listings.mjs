@@ -21,13 +21,16 @@ import { buildFeed } from "../worker/lib/estateprime.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-const apiKey = process.env.ESTATEPRIME_API_KEY || "";
+const { ESTATEPRIME_SUBDOMAIN, ESTATEPRIME_API_KEY, ESTATEPRIME_API_SECRET } = process.env;
+const live = ESTATEPRIME_SUBDOMAIN && ESTATEPRIME_API_KEY && ESTATEPRIME_API_SECRET;
 const env = {
-	SAMPLE_DATA: apiKey ? "0" : "1",
-	ESTATEPRIME_API_KEY: apiKey,
+	SAMPLE_DATA: live ? "0" : "1",
+	ESTATEPRIME_SUBDOMAIN,
+	ESTATEPRIME_API_KEY,
+	ESTATEPRIME_API_SECRET,
 };
-if (!apiKey) {
-	console.log("ESTATEPRIME_API_KEY not set — building from sample data.");
+if (!live) {
+	console.log("ESTATEPRIME_SUBDOMAIN / _API_KEY / _API_SECRET not all set — building from sample data.");
 }
 
 const feed = await buildFeed(env);
