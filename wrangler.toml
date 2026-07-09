@@ -16,9 +16,9 @@ compatibility_date = "2026-06-01"
 [assets]
 directory = "./"
 binding = "ASSETS"
-# These paths must reach the Worker even though assets are served first.
-# Keep in sync with WEBHOOK_PATH below.
-run_worker_first = ["/webhooks/*", "/data/*"]
+# Every request goes through the Worker (not just asset misses) so the
+# hostname guard in worker/index.mjs can make webhooks.* webhook-only.
+run_worker_first = true
 
 [[kv_namespaces]]
 binding = "LISTINGS_KV"

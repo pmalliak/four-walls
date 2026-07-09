@@ -31,6 +31,16 @@ export default {
 	async fetch(request, env, ctx) {
 		const url = new URL(request.url);
 
+		// A dedicated webhook hostname (webhooks.four-walls.gr) exposes ONLY
+		// the webhook endpoint — the site and feed are 404 there. On every
+		// other hostname (site domain, workers.dev) all routes work.
+		if (url.hostname.startsWith("webhooks.")) {
+			if (url.pathname === (env.WEBHOOK_PATH || DEFAULT_WEBHOOK_PATH)) {
+				return handleWebhook(request, env, ctx, url);
+			}
+			return new Response("Not Found", { status: 404 });
+		}
+
 		if (url.pathname === (env.WEBHOOK_PATH || DEFAULT_WEBHOOK_PATH)) {
 			return handleWebhook(request, env, ctx, url);
 		}
