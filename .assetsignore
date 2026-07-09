@@ -4,6 +4,7 @@
 .gitignore
 .assetsignore
 .dev.vars
+.webhook-key.local
 .wrangler
 .claude
 node_modules

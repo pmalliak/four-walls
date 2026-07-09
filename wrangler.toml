@@ -6,7 +6,8 @@
 # webhook registration): docs/listings-feed.md.
 # =====================================================================
 
-name = "fourwalls-site"
+# Must match the Worker name in the Cloudflare dashboard (Workers Builds).
+name = "four-walls"
 main = "worker/index.mjs"
 compatibility_date = "2026-06-01"
 
@@ -21,9 +22,7 @@ run_worker_first = ["/webhooks/*", "/data/*"]
 
 [[kv_namespaces]]
 binding = "LISTINGS_KV"
-# TODO(deploy): replace with the real id from:
-#   npx wrangler kv namespace create LISTINGS_KV
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "faf7d0b092d94eb1bdb974c764e3191a"
 
 [triggers]
 # Nightly reconciliation rebuild — 03:15 UTC = 05:15/06:15 Θεσσαλονίκη.

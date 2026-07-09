@@ -5,3 +5,5 @@
 node_modules/
 # generated listings feed (production copy lives in Workers KV)
 data/
+# webhook shared secret (copy into EstatePrime; never commit)
+.webhook-key.local
