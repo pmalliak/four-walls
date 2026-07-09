@@ -23,7 +23,9 @@
 	<meta name="apple-mobile-web-app-status-bar-style" content="#0D1A1C">
 	<title>Επικοινωνία · Four Walls Real Estate</title>
 	<!-- Favicon -->
-	<link rel="icon" type="image/png" sizes="56x56" href="images/fav-icon/icon.fw.png">
+	<link rel="icon" href="images/fav-icon/icon.fw.svg" type="image/svg+xml">
+	<link rel="icon" type="image/png" sizes="64x64" href="images/fav-icon/icon.fw.png">
+	<link rel="apple-touch-icon" href="images/fav-icon/apple-touch-icon.fw.png">
 	<!-- Bootstrap CSS -->
 	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" media="all">
 	<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
@@ -31,6 +33,8 @@
 	<link rel="stylesheet" type="text/css" href="css/style.fw.min.css" media="all">
 	<!-- responsive style sheet -->
 	<link rel="stylesheet" type="text/css" href="css/responsive.css" media="all">
+	<!-- MapLibre GL (branded contact map) -->
+	<link rel="stylesheet" type="text/css" href="css/maplibre-gl.css" media="all">
 	<!-- Four Walls custom overrides -->
 	<link rel="stylesheet" type="text/css" href="css/fourwalls.css" media="all">
 
@@ -181,6 +185,12 @@
 														<h6 class="mega-menu-title">Υπηρεσίες</h6>
 														<ul class="style-none mega-dropdown-list">
 															<li><a href="service_01.html" class="dropdown-item"><span>Υπηρεσίες</span></a></li>
+															<li><a href="service_agora.html" class="dropdown-item"><span>Αγορά ακινήτου</span></a></li>
+															<li><a href="service_enoikiasi.html" class="dropdown-item"><span>Ενοικίαση</span></a></li>
+															<li><a href="service_polisi.html" class="dropdown-item"><span>Πώληση</span></a></li>
+															<li><a href="service_ektimisi.html" class="dropdown-item"><span>Εκτίμηση</span></a></li>
+															<li><a href="service_anakainisi.html" class="dropdown-item"><span>Ανακαινίσεις</span></a></li>
+															<li><a href="service_diaxeirisi.html" class="dropdown-item"><span>Διαχείριση ακινήτων</span></a></li>
 															<li><a href="service_02.html" class="dropdown-item"><span>Services -2</span></a></li>
 															<li><a href="service_details.html" class="dropdown-item"><span>Λεπτομέρειες υπηρεσίας</span></a></li>
 														</ul>
@@ -346,8 +356,11 @@
                     </div>
                     <div class="col-xl-5 col-lg-6 d-flex order-lg-first">
                         <div class="contact-map-banner w-100">
-                            <div class="gmap_canvas h-100 w-100">
-                                <iframe class="gmap_iframe h-100 w-100" title="Four Walls — Φραγκίνη 9, Θεσσαλονίκη" loading="lazy" src="https://maps.google.com/maps?width=600&amp;height=400&amp;hl=el&amp;q=%CE%A6%CF%81%CE%B1%CE%B3%CE%BA%CE%AF%CE%BD%CE%B7%209%2C%2054624%20%CE%98%CE%B5%CF%83%CF%83%CE%B1%CE%BB%CE%BF%CE%BD%CE%AF%CE%BA%CE%B7&amp;t=&amp;z=16&amp;ie=UTF8&amp;iwloc=B&amp;output=embed"></iframe>
+                            <div id="fw-contact-map" class="fw-map h-100 w-100"
+                                data-lat="40.63468" data-lng="22.94070" data-zoom="16.3"
+                                data-title="Four Walls — Φραγκίνη 9, Θεσσαλονίκη"
+                                data-directions="https://maps.google.com/maps?hl=el&amp;q=%CE%A6%CF%81%CE%B1%CE%B3%CE%BA%CE%AF%CE%BD%CE%B7%209%2C%2054624%20%CE%98%CE%B5%CF%83%CF%83%CE%B1%CE%BB%CE%BF%CE%BD%CE%AF%CE%BA%CE%B7">
+                                <a class="fw-map-fallback" href="https://maps.google.com/maps?hl=el&amp;q=%CE%A6%CF%81%CE%B1%CE%B3%CE%BA%CE%AF%CE%BD%CE%B7%209%2C%2054624%20%CE%98%CE%B5%CF%83%CF%83%CE%B1%CE%BB%CE%BF%CE%BD%CE%AF%CE%BA%CE%B7" target="_blank" rel="noopener">Άνοιγμα του χάρτη στο Google Maps</a>
                             </div>
                         </div>
                     </div>
@@ -594,6 +607,9 @@
 		<script src="js/theme.js"></script>
 		<!-- Four Walls custom js -->
 		<script src="js/fourwalls.js"></script>
+		<!-- MapLibre GL + branded contact map -->
+		<script src="js/maplibre-gl.js"></script>
+		<script src="js/map.fw.js"></script>
 	</div> <!-- /.main-page-wrapper -->
 </body>
 

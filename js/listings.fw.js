@@ -245,8 +245,12 @@
 
 			var count = document.getElementById("fw-count");
 			if (count) {
-				count.innerHTML = "Εμφάνιση <span class=\"color-dark fw-500\">" + out.length +
-					"</span> από <span class=\"color-dark fw-500\">" + listings.length + "</span> ακίνητα";
+				/* no pagination — «X από Y» only makes sense when filters hide some */
+				var noun = listings.length === 1 ? " ακίνητο" : " ακίνητα";
+				count.innerHTML = out.length === listings.length
+					? "<span class=\"color-dark fw-500\">" + listings.length + "</span>" + noun
+					: "Εμφάνιση <span class=\"color-dark fw-500\">" + out.length +
+						"</span> από <span class=\"color-dark fw-500\">" + listings.length + "</span>" + noun;
 			}
 
 			/* keep the URL shareable */
@@ -344,10 +348,24 @@
 			if (window.jQuery) window.jQuery(controls[k]).on("change", onChange);
 			else controls[k].addEventListener("change", onChange);
 		});
+		/* «Αναζήτηση» should land the user on the results. While the filter
+		   modal is closing Bootstrap still locks body scrolling (and it drops
+		   .show before submit fires), so key off body.modal-open and wait for
+		   the modal's hidden event before scrolling. */
+		function scrollToResults(modal) {
+			var target = grid.closest(".property-listing-six") || grid;
+			var go = function () { target.scrollIntoView({ behavior: "smooth" }); };
+			if (modal && document.body.classList.contains("modal-open")) {
+				modal.addEventListener("hidden.bs.modal", go, { once: true });
+			} else {
+				go();
+			}
+		}
+
 		var form = document.getElementById("fw-filter-form");
-		if (form) form.addEventListener("submit", function (e) { e.preventDefault(); apply(); });
+		if (form) form.addEventListener("submit", function (e) { e.preventDefault(); apply(); scrollToResults(); });
 		var moreForm = document.getElementById("fw-filter-more-form");
-		if (moreForm) moreForm.addEventListener("submit", function (e) { e.preventDefault(); apply(); });
+		if (moreForm) moreForm.addEventListener("submit", function (e) { e.preventDefault(); apply(); scrollToResults(moreForm.closest(".modal")); });
 		var reset = document.getElementById("fw-filter-reset");
 		if (reset) reset.addEventListener("click", function (e) {
 			e.preventDefault();

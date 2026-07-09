@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="el">
 
 <head>
 	<meta charset="UTF-8">
@@ -23,7 +23,9 @@
 	<meta name="apple-mobile-web-app-status-bar-style" content="#0D1A1C">
 	<title>Υπηρεσίες · Four Walls Real Estate</title>
 	<!-- Favicon -->
-	<link rel="icon" type="image/png" sizes="56x56" href="images/fav-icon/icon.fw.png">
+	<link rel="icon" href="images/fav-icon/icon.fw.svg" type="image/svg+xml">
+	<link rel="icon" type="image/png" sizes="64x64" href="images/fav-icon/icon.fw.png">
+	<link rel="apple-touch-icon" href="images/fav-icon/apple-touch-icon.fw.png">
 	<!-- Bootstrap CSS -->
 	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" media="all">
 	<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
@@ -31,6 +33,8 @@
 	<link rel="stylesheet" type="text/css" href="css/style.fw.min.css" media="all">
 	<!-- responsive style sheet -->
 	<link rel="stylesheet" type="text/css" href="css/responsive.css" media="all">
+	<!-- Four Walls custom overrides -->
+	<link rel="stylesheet" type="text/css" href="css/fourwalls.css" media="all">
 
 	<!-- Fix Internet Explorer ______________________________________-->
 	<!--[if lt IE 9]>
@@ -179,6 +183,12 @@
 														<h6 class="mega-menu-title">Υπηρεσίες</h6>
 														<ul class="style-none mega-dropdown-list">
 															<li><a href="service_01.html" class="dropdown-item"><span>Υπηρεσίες</span></a></li>
+															<li><a href="service_agora.html" class="dropdown-item"><span>Αγορά ακινήτου</span></a></li>
+															<li><a href="service_enoikiasi.html" class="dropdown-item"><span>Ενοικίαση</span></a></li>
+															<li><a href="service_polisi.html" class="dropdown-item"><span>Πώληση</span></a></li>
+															<li><a href="service_ektimisi.html" class="dropdown-item"><span>Εκτίμηση</span></a></li>
+															<li><a href="service_anakainisi.html" class="dropdown-item"><span>Ανακαινίσεις</span></a></li>
+															<li><a href="service_diaxeirisi.html" class="dropdown-item"><span>Διαχείριση ακινήτων</span></a></li>
 															<li><a href="service_02.html" class="dropdown-item"><span>Services -2</span></a></li>
 															<li><a href="service_details.html" class="dropdown-item"><span>Λεπτομέρειες υπηρεσίας</span></a></li>
 														</ul>
@@ -253,62 +263,6 @@
 		
 
 
-		<!--
-		=====================================================
-			BLock Feature Eight
-		=====================================================
-		-->
-		<div class="block-feature-eight position-relative z-1 mt-170 xl-mt-120">
-			<div class="container">
-				<div class="position-relative">
-					<div class="row">
-						<div class="col-lg-6">
-							<div class="pe-xl-5 wow fadeInLeft">
-								<div class="row align-items-end">
-									<div class="col-6">
-										<div class="media-block position-relative z-1">
-                                            <img src="images/lazy.svg" data-src="images/assets/screen_11.png" alt="" class="lazy-img screen_03 mb-40">
-											<img src="images/lazy.svg" data-src="images/media/img_54.jpg" alt="" class="lazy-img main-img w-100">
-											<img src="images/lazy.svg" data-src="images/shape/shape_40.fw.svg" alt="" class="lazy-img shapes shape_01">
-										</div>
-										<!-- /.media-block -->
-									</div>
-									<div class="col-6">
-										<div class="media-block position-relative z-1">
-											<img src="images/lazy.svg" data-src="images/media/img_53.jpg" alt="" class="lazy-img main-img w-100">
-										</div>
-										<!-- /.media-block -->
-									</div>
-								</div>
-							</div>
-						</div>
-						<div class="col-lg-6">
-							<div class="block-two ms-xxl-5 wow fadeInRight">
-								<div class="bg-wrapper md-mt-60">
-                                    <div class="title-one m0">
-                                        <h3>120k+  <span>Πελάτες<img src="images/lazy.svg" data-src="images/shape/title_shape_05.fw.svg" alt="" class="lazy-img"></span> Εμπιστευτείτε τις υπηρεσίες μας.</h3>
-                                    </div>
-                                    <!-- /.title-one -->
-									<p class="fs-22 mt-45 mb-60 xl-mb-40 pe-xxl-5">Η Four Walls είναι μεσιτικό γραφείο στο κέντρο της Θεσσαλονίκης, με προσωπική επαφή και βαθιά γνώση της τοπικής αγοράς.</p>
-									<ul class="list-style-one fs-22 color-dark style-none">
-										<li>Ρεαλιστική εκτίμηση με στοιχεία αγοράς</li>
-										<li>Ενημερωμένες καταχωρήσεις σε κάθε βήμα</li>
-										<li>Προσωπική καθοδήγηση από τον Μάνο</li>
-									</ul>
-									<div class="mt-60 lg-mt-40">
-										<a href="contact.html" class="btn-two">Επικοινωνία</a>
-									</div>
-								</div>
-								<!-- /.bg-wrapper -->
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-		<!-- /.block-feature-eight-->
-
-
         <!--
 		=====================================================
 			BLock Feature One
@@ -337,7 +291,7 @@
 						<div class="card-style-one text-center wow fadeInUp mt-40" data-wow-delay="0.2s">
 							<img src="images/lazy.svg" data-src="images/icon/icon_03.fw.svg" alt="" class="lazy-img m-auto icon">
 							<div class="fs-16 text-uppercase fw-500 fs-text mt-35 mb-20">Πώληση ακινήτου</div>
-							<p class="fs-24 ps-xxl-4 pe-xxl-4">List, sell, thrive – with our top-notch real estate agency. It’s super easy & fun.</p>
+							<p class="fs-24 ps-xxl-4 pe-xxl-4">Αναθέστε μας το ακίνητό σας και πουλήστε έξυπνα, γρήγορα, στη σωστή τιμή.</p>
 						</div>
 						<!-- /.card-style-one -->
 					</div>
@@ -352,13 +306,13 @@
 			BLock Feature Seventeen
 		=====================================================
 		-->
-		<div class="block-feature-seventeen bg-pink-three position-relative z-1 pt-120 xl-pt-80 pb-140 xl-pb-80">
+		<div class="block-feature-seventeen fw-services-blue position-relative z-1 pt-120 xl-pt-80 pb-140 xl-pb-80">
 			<div class="container">
 				<div class="row">
 					<div class="col-xl-8 m-auto">
 						<div class="title-one text-center wow fadeInUp mb-40 lg-mb-20">
 							<h3>Βασικές <span>Υπηρεσίες<img src="images/lazy.svg" data-src="images/shape/title_shape_07.fw.svg" alt="" class="lazy-img"></span></h3>
-							<p class="fs-22 color-dark">Επιλεγμένα ακίνητα σε όλη τη Θεσσαλονίκη.</p>
+							<p class="fs-22">Ολοκληρωμένη υποστήριξη σε κάθε στάδιο — από την αναζήτηση μέχρι την υπογραφή.</p>
 						</div>
 						<!-- /.title-one -->
 					</div>
@@ -368,8 +322,8 @@
                         <div class="card-style-ten d-flex align-items-start flex-column w-100 h-100">
                             <div class="icon d-flex align-items-center justify-content-center rounded-circle tran3s"><img src="images/lazy.svg" data-src="images/icon/icon_69.svg" alt="" class="lazy-img"></div>
                             <h6>Αγορά ακινήτου</h6>
-                            <p>Σας βοηθάμε να βρείτε το ακίνητο που σας ταιριάζει, σε όλη τη Θεσσαλονίκη.</p>
-                            <a href="service_details.html" class="btn-twelve sm mt-auto">Αγορά</a>
+                            <p>Σας βοηθάμε να βρείτε το ακίνητο που πραγματικά σας ταιριάζει και σας συνοδεύουμε μέχρι το συμβόλαιο.</p>
+                            <a href="service_agora.html" class="btn-twelve sm mt-auto">Περισσότερα</a>
                         </div>
                         <!-- /.card-style-ten -->
                     </div>
@@ -377,8 +331,8 @@
                         <div class="card-style-ten d-flex align-items-start flex-column w-100 h-100">
                             <div class="icon d-flex align-items-center justify-content-center rounded-circle tran3s"><img src="images/lazy.svg" data-src="images/icon/icon_70.svg" alt="" class="lazy-img"></div>
                             <h6>Ενοικίαση</h6>
-                            <p>Το κατάλληλο ενοίκιο, με προσωπική καθοδήγηση.</p>
-                            <a href="service_details.html" class="btn-twelve sm mt-auto">Ενοικίαση</a>
+                            <p>Το κατάλληλο ενοίκιο για εσάς — ή ο αξιόπιστος ενοικιαστής για το ακίνητό σας.</p>
+                            <a href="service_enoikiasi.html" class="btn-twelve sm mt-auto">Περισσότερα</a>
                         </div>
                         <!-- /.card-style-ten -->
                     </div>
@@ -386,35 +340,35 @@
                         <div class="card-style-ten d-flex align-items-start flex-column w-100 h-100">
                             <div class="icon d-flex align-items-center justify-content-center rounded-circle tran3s"><img src="images/lazy.svg" data-src="images/icon/icon_71.svg" alt="" class="lazy-img"></div>
                             <h6>Πώληση</h6>
-                            <p>List, sell, thrive – with our top-notch real estate agency.</p>
-                            <a href="service_details.html" class="btn-twelve sm mt-auto">Πώληση</a>
+                            <p>Σωστή τιμή, προσεγμένη προβολή και διαπραγμάτευση από έμπειρα χέρια.</p>
+                            <a href="service_polisi.html" class="btn-twelve sm mt-auto">Περισσότερα</a>
                         </div>
                         <!-- /.card-style-ten -->
                     </div>
                     <div class="col-lg-4 col-md-6 d-flex mt-40 wow fadeInUp">
                         <div class="card-style-ten d-flex align-items-start flex-column w-100 h-100">
-                            <div class="icon d-flex align-items-center justify-content-center rounded-circle tran3s"><img src="images/lazy.svg" data-src="images/icon/icon_69.svg" alt="" class="lazy-img"></div>
+                            <div class="icon d-flex align-items-center justify-content-center rounded-circle tran3s"><img src="images/lazy.svg" data-src="images/icon/icon_77.svg" alt="" class="lazy-img"></div>
                             <h6>Εκτίμηση</h6>
-                            <p>Σας βοηθάμε να βρείτε το ακίνητο που σας ταιριάζει, σε όλη τη Θεσσαλονίκη.</p>
-                            <a href="service_details.html" class="btn-twelve sm mt-auto">Αγορά</a>
+                            <p>Ρεαλιστική εκτίμηση της αξίας του ακινήτου σας, με πραγματικά στοιχεία αγοράς.</p>
+                            <a href="service_ektimisi.html" class="btn-twelve sm mt-auto">Περισσότερα</a>
                         </div>
                         <!-- /.card-style-ten -->
                     </div>
                     <div class="col-lg-4 col-md-6 d-flex mt-40 wow fadeInUp" data-wow-delay="0.1s">
                         <div class="card-style-ten d-flex align-items-start flex-column w-100 h-100">
-                            <div class="icon d-flex align-items-center justify-content-center rounded-circle tran3s"><img src="images/lazy.svg" data-src="images/icon/icon_70.svg" alt="" class="lazy-img"></div>
-                            <h6>Συμβουλευτική</h6>
-                            <p>Το κατάλληλο ενοίκιο, με προσωπική καθοδήγηση.</p>
-                            <a href="service_details.html" class="btn-twelve sm mt-auto">Ενοικίαση</a>
+                            <div class="icon d-flex align-items-center justify-content-center rounded-circle tran3s"><img src="images/lazy.svg" data-src="images/icon/icon_76.svg" alt="" class="lazy-img"></div>
+                            <h6>Ανακαινίσεις</h6>
+                            <p>Ανανεώστε το ακίνητό σας και αυξήστε την αξία του, με συνεργεία που εμπιστευόμαστε.</p>
+                            <a href="service_anakainisi.html" class="btn-twelve sm mt-auto">Περισσότερα</a>
                         </div>
                         <!-- /.card-style-ten -->
                     </div>
                     <div class="col-lg-4 col-md-6 d-flex mt-40 wow fadeInUp" data-wow-delay="0.2s">
                         <div class="card-style-ten d-flex align-items-start flex-column w-100 h-100">
-                            <div class="icon d-flex align-items-center justify-content-center rounded-circle tran3s"><img src="images/lazy.svg" data-src="images/icon/icon_71.svg" alt="" class="lazy-img"></div>
+                            <div class="icon d-flex align-items-center justify-content-center rounded-circle tran3s"><img src="images/lazy.svg" data-src="images/icon/icon_78.svg" alt="" class="lazy-img"></div>
                             <h6>Διαχείριση ακινήτων</h6>
-                            <p>List, sell, thrive – with our top-notch real estate agency.</p>
-                            <a href="service_details.html" class="btn-twelve sm mt-auto">Πώληση</a>
+                            <p>Μισθώσεις, συντήρηση, εισπράξεις — αναλαμβάνουμε το ακίνητό σας από άκρη σε άκρη.</p>
+                            <a href="service_diaxeirisi.html" class="btn-twelve sm mt-auto">Περισσότερα</a>
                         </div>
                         <!-- /.card-style-ten -->
                     </div>
@@ -427,33 +381,9 @@
 
 
         <!--
-		=====================================================
-			Fancy Banner Two
-		=====================================================
-		-->
-		<div class="fancy-banner-two position-relative z-1 pt-90 lg-pt-70 pb-90 lg-pb-70">
-			<div class="container">
-				<div class="row align-items-center">
-					<div class="col-lg-8 m-auto text-center">
-						<div class="title-one mb-50 lg-mb-40">
-							<h2 class="text-white fs-lg">Ρεαλιστική εκτίμηση της αξίας του ακινήτου σας.</h2>
-                            <p class="fs-24 text-white">Μάθετε την πραγματική αξία, με στοιχεία αγοράς.</p>
-						</div>
-						<!-- /.title-one -->
-                        <a href="contact.html" class="btn-six">Ξεκινήστε</a>
-					</div>
-				</div>
-			</div>
-		</div>
-		<!-- /.fancy-banner-two -->
-
-
-
-
-        <!-- 
 		=============================================
 			Feedback Section One
-		============================================== 
+		==============================================
 		-->
 		<div class="feedback-section-one position-relative z-1 pt-70 md-pt-50 pb-80 md-pb-60">
 			<div class="main-content m-auto">
@@ -462,16 +392,16 @@
 						<div class="feedback-block-one text-center">
 							<div class="row align-items-center">
 								<div class="col-md-3">
-									<img src="images/media/img_01.jpg" alt="" class="rounded-circle m-auto avatar">
-									<h6 class="fs-20 m0 pt-10">Jonathan Harry</h6>
-									<span class="fs-16">Milan, Itlay</span>
+									<img src="images/avatar/reviewer-default.fw.svg" alt="" class="rounded-circle m-auto avatar">
+									<h6 class="fs-20 m0 pt-10">Θάνος Γιουβανούδης</h6>
+									<span class="fs-16">Τοπικός οδηγός · 19 κριτικές</span>
 								</div>
 								<div class="col-md-6">
-									<blockquote>Efficient, knowledgeable, & made our home search a smooth experience. Highly recommended agency!</blockquote>
+									<blockquote>Γνώστες του είδους και πολύ ευγενικοί, ξεχωρίζουν!</blockquote>
 								</div>
 								<div class="col-md-3">
-									<img src="images/lazy.svg" data-src="images/assets/rating_01.png" alt="" class="lazy-img m-auto">
-									<p class="text-center m0 pt-10"><span class="fw-500 color-dark">13k rating</span> (4.7 Rating)</p>
+									<img src="images/lazy.svg" data-src="images/assets/rating-stars.fw.svg" alt="" class="lazy-img m-auto">
+									<p class="text-center m0 pt-10">μία ημέρα πριν</p>
 								</div>
 							</div>
 						</div>
@@ -481,16 +411,16 @@
 						<div class="feedback-block-one text-center">
 							<div class="row align-items-center">
 								<div class="col-md-3">
-									<img src="images/media/img_02.jpg" alt="" class="rounded-circle m-auto avatar">
-									<h6 class="fs-20 m0 pt-10">Sofia Rena</h6>
-									<span class="fs-16">New York, USA</span>
+									<img src="images/avatar/reviewer-default.fw.svg" alt="" class="rounded-circle m-auto avatar">
+									<h6 class="fs-20 m0 pt-10">Πέτρος Τρύφων</h6>
+									<span class="fs-16">7 κριτικές</span>
 								</div>
 								<div class="col-md-6">
-									<blockquote>People who are sentinels are definitely the working very hard now, so that they can enjoy the fruits.</blockquote>
+									<blockquote>Εξαιρετικοί!!!</blockquote>
 								</div>
 								<div class="col-md-3">
-									<img src="images/lazy.svg" data-src="images/assets/rating_01.png" alt="" class="lazy-img m-auto">
-									<p class="text-center m0 pt-10"><span class="fw-500 color-dark">10k rating</span> (4.5 Rating)</p>
+									<img src="images/lazy.svg" data-src="images/assets/rating-stars.fw.svg" alt="" class="lazy-img m-auto">
+									<p class="text-center m0 pt-10">πριν από 8 μήνες</p>
 								</div>
 							</div>
 						</div>
@@ -500,16 +430,16 @@
 						<div class="feedback-block-one text-center">
 							<div class="row align-items-center">
 								<div class="col-md-3">
-									<img src="images/media/img_03.jpg" alt="" class="rounded-circle m-auto avatar">
-									<h6 class="fs-20 m0 pt-10">Rashed Kabir</h6>
-									<span class="fs-16">Dhaka, BD</span>
+									<img src="images/avatar/reviewer-default.fw.svg" alt="" class="rounded-circle m-auto avatar">
+									<h6 class="fs-20 m0 pt-10">Παναγιώτης Αθανασιάδης</h6>
+									<span class="fs-16">Τοπικός οδηγός · 24 κριτικές</span>
 								</div>
 								<div class="col-md-6">
-									<blockquote>They are very strict about themselves and their work, and do not have a carefree attitude to anything in life.</blockquote>
+									<blockquote>Πολύ ευγενικοί, πολύ σωστοί στη δουλειά τους και πάνω απ' όλα ακούν τις ανάγκες σου!</blockquote>
 								</div>
 								<div class="col-md-3">
-									<img src="images/lazy.svg" data-src="images/assets/rating_01.png" alt="" class="lazy-img m-auto">
-									<p class="text-center m0 pt-10"><span class="fw-500 color-dark">11k rating</span> (4.8 Rating)</p>
+									<img src="images/lazy.svg" data-src="images/assets/rating-stars.fw.svg" alt="" class="lazy-img m-auto">
+									<p class="text-center m0 pt-10">πριν από έναν χρόνο</p>
 								</div>
 							</div>
 						</div>
@@ -520,99 +450,6 @@
 			</div>
 		</div>
 		<!-- /.feedback-section-one -->
-
-
-        <!-- 
-		=============================================
-			BLock Feature Ten
-		============================================== 
-		-->
-		<div class="block-feature-ten mt-170 xl-mt-120 md-mt-100 mb-150 xl-mb-100">
-			<div class="container container-large">
-				<div class="row">
-					<div class="col-xxl-5 col-lg-6 ms-auto order-lg-last wow fadeInRight">
-						<div class="pt-40 xl-pt-20 pb-110 xl-pb-60">
-							<div class="title-one mb-45 lg-mb-20">
-								<h3>Βρείτε εύκολα αυτό που σας ταιριάζει.</h3>
-							</div>
-							<!-- /.title-one -->
-							<p class="fs-24 mb-45">Δείτε ακίνητα προς πώληση και ενοικίαση σε όλη τη Θεσσαλονίκη.</p>
-							<form action="#" class="email-form border-60 position-relative z-1">
-								<input type="email" placeholder="Your Email Address...">
-								<button class="btn-two">Αναζήτηση</button>
-							</form>
-							<p class="fs-16 mt-10">Για περισσότερα <a href="#" class="color-dark text-decoration-underline fst-italic">επικοινωνήστε μαζί μας</a></p>
-							<div class="counter-wrapper pt-15 pe-xl-5">
-								<div class="row">
-									<div class="col-xxl-6 col-sm-5">
-										<div class="counter-block-one mt-20">
-											<div class="main-count fw-500 color-dark"><span class="counter">1.2</span>x</div>
-											<span>Γρήγορη αναζήτηση</span>
-										</div>
-										<!-- /.counter-block-one -->
-									</div>
-									<div class="col-xxl-6 col-sm-7">
-										<div class="counter-block-one mt-20">
-											<div class="main-count fw-500 color-dark">$<span class="counter">1.3</span>b+</div>
-											<span>Ακίνητα που διαθέσαμε</span>
-										</div>
-										<!-- /.counter-block-one -->
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-					<div class="col-lg-6">
-						<div class="media-gallery position-relative z-1 h-100 wow fadeInLeft">
-							<div class="bg border-20" style="background-image: url(images/media/img_55.jpg);">
-								<div class="card-style-three border-20 p0">
-									<div class="bg-wrapper text-center">
-										<h3>07+</h3>
-										<p>Χρόνια εμπειρίας <br>με συνέπεια.</p>
-									</div>
-								</div>
-								<img src="images/lazy.svg" data-src="images/assets/screen_05.jpg" alt="" class="lazy-img border-20 screen_01">
-							</div>
-						</div>
-						<!-- /.media-gallery -->
-					</div>
-				</div>
-			</div>
-		</div>
-		<!-- /.block-feature-ten -->
-
-
-
-
-		<!--
-		=====================================================
-			Fancy Banner Two
-		=====================================================
-		-->
-		<div class="fancy-banner-two position-relative z-1 pt-90 lg-pt-50 pb-90 lg-pb-50">
-			<div class="container">
-				<div class="row align-items-center">
-					<div class="col-lg-6">
-						<div class="title-one text-center text-lg-start md-mb-40 pe-xl-5">
-							<h3 class="text-white m0">Ξεκινήστε το <span>ταξίδι σας<img src="images/lazy.svg" data-src="images/shape/title_shape_06.fw.svg" alt="" class="lazy-img"></span> μαζί μας.</h3>
-						</div>
-						<!-- /.title-one -->
-					</div>
-					<div class="col-lg-6">
-						<div class="form-wrapper me-auto ms-auto me-lg-0">
-							<form action="#">
-								<input type="email" placeholder="Email address">
-								<button>Ξεκινήστε</button>
-							</form>
-							<div class="fs-16 mt-10 text-white">Ιδιοκτήτης ακινήτου; </div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-		<!-- /.fancy-banner-two -->
-
-
 
 
 		<!-- FW:INCLUDE footer — generated by tools/sync-partials.js; edit partials/footer.html -->
@@ -849,6 +686,8 @@
 
 		<!-- Theme js -->
 		<script src="js/theme.js"></script>
+		<!-- Four Walls custom js -->
+		<script src="js/fourwalls.js"></script>
 	</div> <!-- /.main-page-wrapper -->
 </body>
 

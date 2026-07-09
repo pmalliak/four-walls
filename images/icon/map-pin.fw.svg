@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="124.6 45.6 43.7 48.2" width="43.7" height="48.2" role="img" aria-label="Four Walls">
+	<!-- Icon-only crop of images/logo/fourwalls_logo_vertical.svg (same brand-sheet
+	     coordinate space) for use as the contact-map pin. -->
+	<g fill="#FF0062">
+		<path d="m 0,0 v -16.441 l -14.74,-8.504 v 16.441 l 3.401,1.701 v -13.039 l 2.835,1.7 v 12.473 l 2.834,1.7 v -12.472 l 2.835,1.701 v 13.039 z" transform="matrix(1.3333333,0,0,-1.3333333,167.2108,59.472)"/>
+		<path d="m 0,0 v -16.441 l 14.74,-8.504 v 16.441 l -3.401,1.701 v -13.039 l -2.835,1.7 v 12.473 l -2.834,1.7 v -12.472 l -2.835,1.701 v 13.039 z" transform="matrix(1.3333333,0,0,-1.3333333,125.6352,59.472)"/>
+		<path d="m 0,0 2.834,1.701 13.04,-7.937 -2.835,-1.701 z" transform="matrix(1.3333333,0,0,-1.3333333,143.022,48.889333)"/>
+		<path d="m 0,0 11.339,-6.803 10.89,6.779 -2.698,1.915 -8.76,-5.292 -8.503,5.102 z" transform="matrix(1.3333333,0,0,-1.3333333,127.90347,57.2044)"/>
+	</g>
+</svg>

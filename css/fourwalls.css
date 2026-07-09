@@ -198,6 +198,34 @@
   border-color: #ff0062;
 }
 
+/* Services — «Βασικές Υπηρεσίες» grid on the brand blue --------------- */
+/* The theme paints .block-feature-seventeen with the peachy .bg-pink-three
+   (#faf1ec). The section sits on the same blue→navy gradient as the
+   about-page reviews instead. Only the heading/subtitle land directly on
+   the blue, so they flip to white — the white service cards stay as-is.
+   The template's pale line-art corner shapes would ghost on navy, so
+   they're hidden.                                                       */
+.fw-services-blue {
+  background: linear-gradient(180deg, #2d5596 0%, #1c3457 100%);
+}
+.fw-services-blue .title-one h3,
+.fw-services-blue .title-one p {
+  color: #fff;
+}
+.fw-services-blue > .shapes {
+  display: none;
+}
+
+/* Service pages — CTA banner on brand navy ---------------------------- */
+/* .fancy-banner-two ships with a photo background (a grey placeholder in
+   this build) darkened by a :before overlay — swap both for solid navy. */
+.fancy-banner-two.fw-banner-blue {
+  background: #1c3457;
+}
+.fancy-banner-two.fw-banner-blue:before {
+  display: none;
+}
+
 /* Contact page (contact.html) --------------------------------------- */
 /* The form + map block uses .bg-pink, which in the .fw build is the
    blue→navy gradient. Per request, make it a solid brand navy so it reads
@@ -218,15 +246,59 @@
   color: #fff;
 }
 
-/* A Google-maps <iframe> embed can't have its tiles restyled without the
-   JS API + a key, so tint the whole frame toward brand pink with a CSS
-   duotone filter. Hovering reveals the true map so it stays usable.     */
-.contact-map-banner .gmap_iframe {
-  filter: grayscale(1) sepia(1) hue-rotate(300deg) saturate(1.8) brightness(0.96);
-  transition: filter 0.4s ease;
+/* Branded contact map (MapLibre GL, see js/map.fw.js) ----------------- */
+.fw-map {
+  min-height: 450px;
+  border-radius: inherit;
 }
-.contact-map-banner:hover .gmap_iframe {
-  filter: none;
+/* Shown until JS runs, and permanently if MapLibre/WebGL is unavailable */
+.fw-map-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 450px;
+  color: #1c3457;
+  text-decoration: underline;
+}
+/* The pin: white disc with the brand icon, pink ring, diamond tail.
+   Sizing is coupled to the Marker offset in js/map.fw.js.              */
+.fw-map-pin {
+  display: block;
+  position: relative;
+  width: 54px;
+  height: 54px;
+  background: #fff;
+  border: 3px solid #ff0062;
+  border-radius: 50%;
+  box-shadow: 0 12px 24px rgba(28, 52, 87, 0.3);
+  cursor: pointer;
+}
+.fw-map-pin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 12px;
+  height: 12px;
+  background: #ff0062;
+  transform: translateX(-50%) rotate(45deg);
+}
+.fw-map-pin img {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 30px;
+  height: 33px;
+  z-index: 1;
+}
+/* MapLibre UI, nudged toward the brand */
+.fw-map .maplibregl-ctrl-group {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(28, 52, 87, 0.18);
+}
+.fw-map .maplibregl-ctrl-attrib {
+  font-size: 10px;
 }
 
 /* Listing details pages (listing_details_*) --------------------------- */
@@ -303,4 +375,50 @@
 #fw-grid .carousel-item img { aspect-ratio: 3 / 2; object-fit: cover; }
 #fw-similar .img-gallery img { aspect-ratio: 3 / 2; object-fit: cover; }
 #fw-gallery .carousel-item img { aspect-ratio: 16 / 10; object-fit: cover; }
+
+/* Sort pill («Ταξινόμηση») — the theme fixes it at 126px, which squeezes
+   the long Greek labels («Τιμή (αύξουσα)») right up against the arrow,
+   and its 1px black border aliases into a ragged edge on the 30px pill
+   radius. Let it size to the label, give the arrow breathing room, and
+   outline it in navy like the listing cards on the same page.           */
+.short-filter .nice-select {
+  width: auto;
+  min-width: 150px;
+  padding: 0 40px 0 18px;
+  border: 2px solid #1c3457;
+}
+.short-filter .nice-select:after {
+  right: 16px;
+}
+.short-filter .nice-select .current {
+  max-width: none;
+}
+
+/* Advance-filter modal: the theme renders the «Τετραγωνικά» min/max as
+   45px outlined boxes — taller than the neighbouring underlined fields
+   (so the row's shared bottom border drops lower than «Λέξη-κλειδί»'s)
+   and visually foreign to the modal. Restyle them as plain inputs so
+   the row matches the other fields; the spinner buttons go too.         */
+.advance-search-panel .main-bg .sqf-ranger input {
+  width: calc(50% - 33px);
+  height: 35px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+  font-size: 18px;
+}
+.advance-search-panel .main-bg .sqf-ranger input::placeholder {
+  color: #000;
+}
+.advance-search-panel .main-bg .sqf-ranger input::-webkit-outer-spin-button,
+.advance-search-panel .main-bg .sqf-ranger input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.advance-search-panel .main-bg .sqf-ranger input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
 #fw-thumbs img { aspect-ratio: 4 / 3; object-fit: cover; }

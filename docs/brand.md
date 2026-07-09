@@ -57,6 +57,22 @@ re-tune the cube/text scales, re-measure the viewBox and re-check those heights.
 - Wordmark to brand navy: change the wordmark group `fill="#000000"` → `#1C3457`.
 - Dark-background variant: wordmark `fill="#fff"`, icon stays `#FF0062`.
 
+## Favicons (`images/fav-icon/`)
+
+White brand cube on a pink `#FF0062` disc, generated from the cube paths in
+`fourwalls_logo_vertical.svg`:
+
+| File | What |
+|------|------|
+| `icon.fw.svg` | Vector favicon (64 viewBox) — pink disc + white cube |
+| `icon.fw.png` | 64×64 raster fallback (transparent outside the disc); also used as an avatar image on `akinito.html` |
+| `apple-touch-icon.fw.png` | 180×180 full-bleed pink square (iOS rounds the corners itself) |
+| `icon.png` | Homy template original — unreferenced, kept as-is |
+
+Every site page carries the same three `<link>` lines in `<head>` (SVG first,
+PNG fallback, apple-touch-icon). The Έντυπα PWA (`forms/`) has its own separate
+icon set (`forms/icon-*.png`, navy background) — don't mix the two.
+
 ## Working with the brand PDF (vector extraction)
 
 **Inkscape** (installed at `C:\Program Files\Inkscape\bin\inkscape.com`, v1.4.4)
