@@ -39,9 +39,15 @@ export async function buildFeed(env) {
    is deliberately ignored upstream — this full re-fetch is the source of
    truth, which makes regeneration idempotent and burst-safe. */
 async function fetchAllListings(env) {
-	if (!env.ESTATEPRIME_API_KEY) {
-		throw new Error("ESTATEPRIME_API_KEY is not set (wrangler secret put ESTATEPRIME_API_KEY)");
+	if (!env.ESTATEPRIME_API_KEY || !env.ESTATEPRIME_API_SECRET) {
+		throw new Error("ESTATEPRIME_API_KEY / ESTATEPRIME_API_SECRET not set (wrangler secret put …)");
 	}
+
+	// EstatePrime issues a public + secret key pair. Basic auth (public as
+	// username, secret as password) is the most common scheme for pairs.
+	// TODO(estateprime-docs): confirm — alternatives: X-Api-Key/X-Api-Secret
+	// headers, or HMAC request signing.
+	const basicAuth = "Basic " + btoa(`${env.ESTATEPRIME_API_KEY}:${env.ESTATEPRIME_API_SECRET}`);
 
 	const all = [];
 	for (let page = 1; page <= MAX_PAGES; page++) {
@@ -50,8 +56,7 @@ async function fetchAllListings(env) {
 		const url = `${API_BASE}/listings?page=${page}&per_page=${PAGE_SIZE}`;
 		const res = await fetch(url, {
 			headers: {
-				// TODO(estateprime-docs): confirm auth scheme (Bearer vs X-Api-Key).
-				"Authorization": `Bearer ${env.ESTATEPRIME_API_KEY}`,
+				"Authorization": basicAuth,
 				"Accept": "application/json",
 			},
 		});

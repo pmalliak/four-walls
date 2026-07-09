@@ -52,5 +52,6 @@ SAMPLE_DATA = "1"
 WEBHOOK_PATH = "/listings"
 
 # Secrets (NOT here — set with `npx wrangler secret put <NAME>`):
-#   WEBHOOK_KEY           shared secret for the EstatePrime webhook
-#   ESTATEPRIME_API_KEY   EstatePrime CRM API key (needed when SAMPLE_DATA=0)
+#   WEBHOOK_KEY              shared secret for the EstatePrime webhook
+#   ESTATEPRIME_API_KEY      EstatePrime public API key   (used when SAMPLE_DATA=0)
+#   ESTATEPRIME_API_SECRET   EstatePrime secret API key   (used when SAMPLE_DATA=0)
