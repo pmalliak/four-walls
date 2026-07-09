@@ -32,6 +32,12 @@ run_worker_first = true
 binding = "LISTINGS_KV"
 id = "faf7d0b092d94eb1bdb974c764e3191a"
 
+# Persistent logs in the dashboard (Worker → Observability tab). Console
+# output is kept queryable — no need for a live `wrangler tail`.
+[observability.logs]
+enabled = true
+invocation_logs = true
+
 [triggers]
 # Nightly reconciliation rebuild — 03:15 UTC = 05:15/06:15 Θεσσαλονίκη.
 crons = ["15 3 * * *"]
