@@ -280,7 +280,7 @@
 											</div>
 											<!-- /.input-box-one -->
 										</div>
-										<div class="col-md-4 col-xl-3">
+										<div class="col-md-4 col-xl-2">
 											<div class="input-box-one border-left">
 												<div class="label">Περιοχή</div>
 												<select id="fw-f-area" class="nice-select fw-filter-select">
@@ -298,14 +298,19 @@
 											</div>
 											<!-- /.input-box-one -->
 										</div>
-										<div class="col-12 col-xl-2">
+										<div class="col-12 col-xl-3">
 											<div class="input-box-one lg-mt-10">
-												<button class="fw-500 text-uppercase tran3s search-btn">Αναζήτηση</button>
+												<div class="d-flex align-items-center">
+													<a href="#" data-bs-toggle="modal" data-bs-target="#advanceFilterModal" class="search-modal-btn sm tran3s text-uppercase fw-500 d-inline-flex align-items-center me-3" aria-label="Επιπλέον φίλτρα">
+														<i class="fa-light fa-sliders-up"></i>
+													</a>
+													<button class="fw-500 text-uppercase tran3s search-btn">Αναζήτηση</button>
+												</div>
 											</div>
 											<!-- /.input-box-one -->
 										</div>
 									</div>
-								</form></form>
+								</form>
 							</div>
 						</div>
 						<!-- /.search-wrapper-one -->
@@ -455,6 +460,89 @@
 		</div> <!-- /.footer-four -->
 		<!-- /FW:INCLUDE footer -->
 
+
+		<!-- ################### Advance Filter Modal ####################### -->
+		<div class="modal fade" id="advanceFilterModal" tabindex="-1" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered">
+				<div class="container">
+					<div class="row">
+						<div class="col-xl-8 m-auto">
+							<div class="modal-content">
+								<button type="button" class="btn-close ms-auto mt-20 me-4" data-bs-dismiss="modal" aria-label="Close"><i class="fa-regular fa-xmark"></i></button>
+								<div class="advance-search-panel">
+									<div class="main-bg border-0">
+										<form action="#" id="fw-filter-more-form">
+											<div class="row gx-lg-5">
+												<div class="col-md-6">
+													<div class="input-box-one mb-35">
+														<div class="label">Υπνοδωμάτια</div>
+														<select id="fw-f-bedrooms" class="nice-select fw-normal fw-filter-select">
+															<option value="">Όλα</option>
+															<option value="1">1+</option>
+															<option value="2">2+</option>
+															<option value="3">3+</option>
+															<option value="4">4+</option>
+														</select>
+													</div>
+													<!-- /.input-box-one -->
+												</div>
+												<div class="col-md-6">
+													<div class="input-box-one mb-35">
+														<div class="label">Μπάνια</div>
+														<select id="fw-f-bathrooms" class="nice-select fw-normal fw-filter-select">
+															<option value="">Όλα</option>
+															<option value="1">1+</option>
+															<option value="2">2+</option>
+															<option value="3">3+</option>
+														</select>
+													</div>
+													<!-- /.input-box-one -->
+												</div>
+												<div class="col-md-6">
+													<div class="input-box-one mb-35">
+														<div class="label">Λέξη-κλειδί ή κωδικός</div>
+														<input type="text" id="fw-f-keyword" placeholder="π.χ. ρετιρέ, FW45203014" class="type-input">
+													</div>
+													<!-- /.input-box-one -->
+												</div>
+												<div class="col-md-6">
+													<div class="input-box-one mb-35">
+														<div class="label">Τετραγωνικά (τ.μ.)</div>
+														<div class="d-flex align-items-center sqf-ranger">
+															<input type="number" id="fw-f-area-min" min="0" placeholder="Ελάχ.">
+															<div class="divider"></div>
+															<input type="number" id="fw-f-area-max" min="0" placeholder="Μέγ.">
+														</div>
+													</div>
+													<!-- /.input-box-one -->
+												</div>
+												<div class="col-12">
+													<button class="fw-500 text-uppercase tran3s apply-search w-100 mt-40 mb-25" data-bs-dismiss="modal">
+														<i class="fa-light fa-magnifying-glass"></i>
+														<span>Αναζήτηση</span>
+													</button>
+												</div>
+												<div class="col-12">
+													<div class="d-flex justify-content-between form-widget">
+														<a href="#" class="tran3s" id="fw-filter-reset">
+															<i class="fa-regular fa-arrows-rotate"></i>
+															<span>Επαναφορά φίλτρων</span>
+														</a>
+													</div>
+												</div>
+											</div>
+										</form>
+									</div>
+									<!-- /.main-bg -->
+								</div>
+								<!-- /.advance-search-panel -->
+							</div>
+							<!-- /.modal-content -->
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
 
 		<!-- ################### Login Modal ####################### -->
         <!-- Modal -->

@@ -95,6 +95,16 @@
 		return node;
 	}
 
+	/* Direct src (not data-src): the theme's lazy loader only scans at boot,
+	   before these dynamic nodes exist. */
+	function icon(name, className) {
+		var img = document.createElement("img");
+		img.src = "images/icon/" + name + ".svg";
+		img.alt = "";
+		img.className = className || "icon";
+		return img;
+	}
+
 	function fmtNumber(n) {
 		return new Intl.NumberFormat("el-GR").format(n);
 	}
@@ -137,7 +147,13 @@
 			type: document.getElementById("fw-f-type"),
 			area: document.getElementById("fw-f-area"),
 			price: document.getElementById("fw-f-price"),
-			sort: document.getElementById("fw-sort")
+			sort: document.getElementById("fw-sort"),
+			/* extra filters (advanceFilterModal) */
+			bedrooms: document.getElementById("fw-f-bedrooms"),
+			bathrooms: document.getElementById("fw-f-bathrooms"),
+			areaMin: document.getElementById("fw-f-area-min"),
+			areaMax: document.getElementById("fw-f-area-max"),
+			keyword: document.getElementById("fw-f-keyword")
 		};
 
 		/* Areas straight from the feed, alphabetically (Greek collation). */
@@ -151,11 +167,15 @@
 		});
 
 		/* Preselect from URL (hero form / category links land here). */
-		["transaction", "type", "price", "sort"].forEach(function (key) {
+		["transaction", "type", "price", "sort", "bedrooms", "bathrooms"].forEach(function (key) {
 			var v = params.get(key);
 			if (v && controls[key] && controls[key].querySelector('option[value="' + v + '"]')) {
 				controls[key].value = v;
 			}
+		});
+		[["amin", "areaMin"], ["amax", "areaMax"], ["q", "keyword"]].forEach(function (pair) {
+			var v = params.get(pair[0]);
+			if (v && controls[pair[1]]) controls[pair[1]].value = v;
 		});
 		var areaParam = (params.get("area") || "").trim();
 		if (areaParam) {
@@ -174,7 +194,12 @@
 				type: controls.type.value,
 				area: controls.area.value || areaParam,
 				price: controls.price.value,
-				sort: controls.sort.value
+				sort: controls.sort.value,
+				bedrooms: controls.bedrooms ? controls.bedrooms.value : "",
+				bathrooms: controls.bathrooms ? controls.bathrooms.value : "",
+				amin: controls.areaMin ? controls.areaMin.value : "",
+				amax: controls.areaMax ? controls.areaMax.value : "",
+				q: controls.keyword ? controls.keyword.value.trim() : ""
 			};
 		}
 
@@ -193,6 +218,16 @@
 					var bands = PRICE_BANDS[f.transaction === "rent" ? "rent" : "sale"];
 					var band = bands[Number(f.price) - 1];
 					if (band && (l.price == null || l.price < band[0] || l.price >= band[1])) return false;
+				}
+				if (f.bedrooms && !(l.bedrooms >= Number(f.bedrooms))) return false;
+				if (f.bathrooms && !(l.bathrooms >= Number(f.bathrooms))) return false;
+				if (f.amin && !(l.area >= Number(f.amin))) return false;
+				if (f.amax && !(l.area <= Number(f.amax))) return false;
+				if (f.q) {
+					var text = [l.code, l.description, subcategoryLabel(l),
+						l.location.area, l.location.neighbourhood, l.location.city]
+						.filter(Boolean).join(" ").toLowerCase();
+					if (text.indexOf(f.q.toLowerCase()) === -1) return false;
 				}
 				return true;
 			});
@@ -278,12 +313,15 @@
 			col.querySelector(".title").textContent = subcategoryLabel(l) + (l.area ? " " + fmtNumber(l.area) + " τ.μ." : "");
 			col.querySelector(".address").textContent = shortAddress(l);
 			var feats = col.querySelector(".feature");
-			[[l.area != null, fmtNumber(l.area) + " τ.μ."],
-			 [l.bedrooms != null && l.bedrooms > 0, l.bedrooms + " υπν."],
-			 [l.bathrooms != null && l.bathrooms > 0, l.bathrooms + " μπάνι" + (l.bathrooms === 1 ? "ο" : "α")]]
-				.forEach(function (pair) {
-					if (!pair[0]) return;
-					feats.appendChild(el("li", "d-flex align-items-center fs-16", pair[1]));
+			[[l.area != null, "icon_04", fmtNumber(l.area) + " τ.μ."],
+			 [l.bedrooms != null && l.bedrooms > 0, "icon_05", l.bedrooms + " υπν."],
+			 [l.bathrooms != null && l.bathrooms > 0, "icon_06", l.bathrooms + " μπάνι" + (l.bathrooms === 1 ? "ο" : "α")]]
+				.forEach(function (row) {
+					if (!row[0]) return;
+					var li = el("li", "d-flex align-items-center");
+					li.appendChild(icon(row[1], "icon me-2"));
+					li.appendChild(el("span", "fs-16", row[2]));
+					feats.appendChild(li);
 				});
 			var price = col.querySelector(".price");
 			if (l.price != null && (l.transaction === "rent" || l.transaction === "shortterm")) {
@@ -295,15 +333,32 @@
 			return col;
 		}
 
-		/* filter events (nice-select proxies change to the real selects) */
+		/* filter events — nice-select re-emits change via jQuery .trigger(),
+		   which never reaches addEventListener handlers; bind through jQuery. */
 		Object.keys(controls).forEach(function (k) {
-			if (controls[k]) controls[k].addEventListener("change", function () {
+			if (!controls[k]) return;
+			var onChange = function () {
 				if (k === "transaction") swapPriceOptions(controls, true);
 				apply();
-			});
+			};
+			if (window.jQuery) window.jQuery(controls[k]).on("change", onChange);
+			else controls[k].addEventListener("change", onChange);
 		});
 		var form = document.getElementById("fw-filter-form");
 		if (form) form.addEventListener("submit", function (e) { e.preventDefault(); apply(); });
+		var moreForm = document.getElementById("fw-filter-more-form");
+		if (moreForm) moreForm.addEventListener("submit", function (e) { e.preventDefault(); apply(); });
+		var reset = document.getElementById("fw-filter-reset");
+		if (reset) reset.addEventListener("click", function (e) {
+			e.preventDefault();
+			areaParam = "";
+			Object.keys(controls).forEach(function (k) {
+				if (controls[k] && k !== "sort") controls[k].value = "";
+			});
+			swapPriceOptions(controls, true);
+			if (window.jQuery) window.jQuery(".fw-filter-select").niceSelect("update");
+			apply();
+		});
 
 		apply();
 	}
@@ -399,15 +454,16 @@
 		/* overview strip */
 		var ov = document.getElementById("fw-overview");
 		ov.textContent = "";
-		[[l.area != null, fmtNumber(l.area) + " τ.μ."],
-		 [l.bedrooms != null && l.bedrooms > 0, l.bedrooms + " υπνοδωμάτια"],
-		 [l.bathrooms != null && l.bathrooms > 0, l.bathrooms + " μπάνια"],
-		 [l.floor != null && l.floor !== "", "Όροφος: " + l.floor],
-		 [true, subcategoryLabel(l)]]
-			.forEach(function (pair) {
-				if (!pair[0]) return;
+		[[l.area != null, "icon_47", fmtNumber(l.area) + " τ.μ."],
+		 [l.bedrooms != null && l.bedrooms > 0, "icon_48", l.bedrooms + " υπνοδωμάτια"],
+		 [l.bathrooms != null && l.bathrooms > 0, "icon_49", l.bathrooms + " μπάνια"],
+		 [l.floor != null && l.floor !== "", "stairs.fw", "Όροφος: " + l.floor],
+		 [true, "icon_51", subcategoryLabel(l)]]
+			.forEach(function (row) {
+				if (!row[0]) return;
 				var li = document.createElement("li");
-				li.appendChild(el("span", "fs-20 color-dark", pair[1]));
+				li.appendChild(icon(row[1]));
+				li.appendChild(el("span", "fs-20 color-dark", row[2]));
 				ov.appendChild(li);
 			});
 
@@ -522,11 +578,35 @@
 
 	/* ---------------- boot ---------------- */
 
+	/* Hero form (index): replace the hardcoded area options with the feed's,
+	   keeping the static list as fallback while the feed loads. */
+	function fillHeroAreas(select, feed) {
+		var areas = Array.from(new Set(feed.listings.map(function (l) { return l.location.area; })
+			.filter(Boolean))).sort(function (a, b) { return a.localeCompare(b, "el"); });
+		if (!areas.length) return;
+		var keep = select.value;
+		select.textContent = "";
+		var any = document.createElement("option");
+		any.value = "";
+		any.textContent = "Όλες οι περιοχές";
+		select.appendChild(any);
+		areas.forEach(function (a) {
+			var opt = document.createElement("option");
+			opt.value = a;
+			opt.textContent = a;
+			select.appendChild(opt);
+		});
+		if (keep && areas.indexOf(keep) !== -1) select.value = keep;
+		if (window.jQuery) window.jQuery(select).niceSelect("update");
+	}
+
 	function boot() {
 		var isGrid = document.getElementById("fw-grid");
 		var isDetail = document.getElementById("fw-detail");
-		if (!isGrid && !isDetail) return;
+		var heroArea = document.getElementById("fw-hero-area");
+		if (!isGrid && !isDetail && !heroArea) return;
 		fetchFeed().then(function (feed) {
+			if (heroArea) fillHeroAreas(heroArea, feed);
 			if (isGrid) initGrid(feed);
 			if (isDetail) initDetail(feed);
 		}).catch(function (err) {

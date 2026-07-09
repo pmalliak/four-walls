@@ -67,6 +67,25 @@ export default {
 		if (pathname === webhookPath) {
 			return handleWebhook(request, env, ctx, url);
 		}
+		// TEMPORARY (key-protected) CRM lookup passthrough — remove after use.
+		if (pathname === "/debug/ep") {
+			if (tokenFrom(request, url) !== env.WEBHOOK_KEY) {
+				return new Response("Forbidden", { status: 403 });
+			}
+			const path = url.searchParams.get("path") || "";
+			if (!/^[a-z0-9/?&=_-]+$/i.test(path)) return new Response("bad path", { status: 400 });
+			const res = await fetch(`https://${env.ESTATEPRIME_SUBDOMAIN}.estateprime.gr/api/${path}`, {
+				headers: {
+					"Authorization": "Basic " + btoa(`${env.ESTATEPRIME_API_KEY}:${env.ESTATEPRIME_API_SECRET}`),
+					"Content-Type": "application/json",
+					"Accept": "application/json",
+				},
+			});
+			return new Response(await res.text(), {
+				status: res.status,
+				headers: { "Content-Type": "application/json; charset=utf-8" },
+			});
+		}
 		if (url.pathname === "/data/listings.json") {
 			return serveFeed(env);
 		}
