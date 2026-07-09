@@ -18,6 +18,9 @@ routes = [
 	{ pattern = "dev.four-walls.gr", custom_domain = true },
 	{ pattern = "webhooks.four-walls.gr", custom_domain = true },
 ]
+# Keep the workers.dev URL alive too (adding routes disables it by default).
+# It bypasses the zone's WAF/bot protection — useful for the CRM webhook.
+workers_dev = true
 
 # The whole repo root is the static site. .assetsignore excludes the
 # non-site files (worker/, tools/, docs/, config, dev helpers).
