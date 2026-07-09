@@ -22,7 +22,7 @@
    Deploy/setup steps: docs/listings-feed.md.
    ===================================================================== */
 
-import { buildFeed, fetchListingsPageRaw } from "./lib/estateprime.mjs";
+import { buildFeed } from "./lib/estateprime.mjs";
 
 const FEED_KEY = "listings.json";
 const DEFAULT_WEBHOOK_PATH = "/listings"; // overridden by WEBHOOK_PATH var
@@ -33,6 +33,26 @@ export default {
 		// Tolerate a trailing slash on the webhook path ("/listings/").
 		const pathname = url.pathname.replace(/\/+$/, "") || "/";
 		const webhookPath = env.WEBHOOK_PATH || DEFAULT_WEBHOOK_PATH;
+
+		// forms.four-walls.gr serves ONLY the Έντυπα PWA: the forms/ folder
+		// mapped to the domain root. The app uses root-absolute paths
+		// (/manifest.webmanifest, /icon-192.png, start_url "/"), so it only
+		// works as a PWA when forms/ IS the root — this rewrite does that.
+		if (url.hostname.startsWith("forms.")) {
+			const assetUrl = new URL(request.url);
+			assetUrl.pathname = "/forms" + url.pathname;
+			const res = await env.ASSETS.fetch(new Request(assetUrl, request));
+			// The assets layer canonicalizes paths with redirects (e.g.
+			// /forms/index.html -> /forms/); strip the internal /forms
+			// prefix from any Location so it stays on this hostname's root.
+			const loc = res.headers.get("Location");
+			if (loc && loc.startsWith("/forms")) {
+				const headers = new Headers(res.headers);
+				headers.set("Location", loc.slice("/forms".length) || "/");
+				return new Response(res.body, { status: res.status, headers });
+			}
+			return res;
+		}
 
 		// A dedicated webhook hostname (webhooks.four-walls.gr) exposes ONLY
 		// the webhook endpoint — the site and feed are 404 there. On every
@@ -46,26 +66,6 @@ export default {
 
 		if (pathname === webhookPath) {
 			return handleWebhook(request, env, ctx, url);
-		}
-		// TEMPORARY (key-protected): raw CRM page passthrough to verify the
-		// real Listing field names. Remove once mapListing() is confirmed.
-		if (pathname === "/debug/estateprime-raw") {
-			if (tokenFrom(request, url) !== env.WEBHOOK_KEY) {
-				return new Response("Forbidden", { status: 403 });
-			}
-			try {
-				const page = Number(url.searchParams.get("page") || "1") || 1;
-				const raw = await fetchListingsPageRaw(env, page);
-				return new Response(raw.body, {
-					status: raw.status,
-					headers: { "Content-Type": "application/json; charset=utf-8" },
-				});
-			} catch (err) {
-				return new Response(JSON.stringify({ error: err.message }), {
-					status: 500,
-					headers: { "Content-Type": "application/json; charset=utf-8" },
-				});
-			}
 		}
 		if (url.pathname === "/data/listings.json") {
 			return serveFeed(env);

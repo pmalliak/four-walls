@@ -9,19 +9,14 @@
      SAMPLE_DATA="1"  -> feed from worker/lib/sample-listings.mjs
      SAMPLE_DATA="0"  -> feed pulled live from the EstatePrime API
 
-   API facts (docs/estateprime-api.md, from the OpenAPI spec):
+   API facts (docs/estateprime-api.md, verified against the live API):
      base   https://{ESTATEPRIME_SUBDOMAIN}.estateprime.gr/api
      auth   Basic base64(publicKey:secretKey), JSON content type
      lists  { status, page, total_pages, results_per_page, data: [...] }
-
-   ⚠ The spec sends `page` + filters as a JSON body on GET, which fetch()
-   cannot do (spec-forbidden). We send ?page=N as a query param instead —
-   unverified against the live API; the loop is bounded by total_pages and
-   guarded against the param being ignored (repeated first id).
-
-   ⚠ The `Listing` schema is still missing from the truncated yaml —
-   mapListing() uses field names inferred from `ExternalListing` and is
-   marked TODO(listing-schema) until the real schema lands.
+     pages  ?page=N query param works (verified live 2026-07-09), even
+            though the spec documents `page` in a JSON body on GET, which
+            fetch() cannot send; the loop is still guarded against a
+            repeated page just in case.
    ===================================================================== */
 
 import { SAMPLE_LISTINGS } from "./sample-listings.mjs";
@@ -52,14 +47,6 @@ function apiConfig(env) {
 			"Accept": "application/json",
 		},
 	};
-}
-
-/* Raw single page, unmapped — used by the /debug/estateprime-raw route to
-   inspect the API's real field names. Remove once the mapping is verified. */
-export async function fetchListingsPageRaw(env, page = 1) {
-	const { base, headers } = apiConfig(env);
-	const res = await fetch(`${base}/listings?page=${page}`, { headers });
-	return { status: res.status, body: await res.text() };
 }
 
 /* Pull every listing from the EstatePrime API and keep the active ones.
@@ -95,33 +82,50 @@ async function fetchAllListings(env) {
 		.map(mapListing);
 }
 
+const LANG_EL = 1; // translations[].language_id — 1 = Greek, 2 = English
+
 /* Reshape one raw EstatePrime listing to the site's feed schema (see
-   docs/listings-feed.md). Keep the OUTPUT shape stable — the front-end
-   depends on it; adjust only the raw.* field names.
-   TODO(listing-schema): verify every raw.* below against the real
-   `Listing` schema (currently inferred from `ExternalListing`). */
-function mapListing(raw) {
+   docs/listings-feed.md). Field names verified against the live API
+   (2026-07-09). Keep the OUTPUT shape stable — the front-end depends on it.
+
+   Privacy rules the CRM encodes and the PUBLIC feed must respect:
+   - has_hidden_price  -> publish price as null
+   - display_address "fake" -> publish the fake_* coordinates/address,
+     never the real ones; mark the location as approximate. */
+export function mapListing(raw) {
+	const t = (raw.translations || []).find((x) => x.language_id === LANG_EL)
+		|| (raw.translations || [])[0] || {};
+	const loc = raw.location || {};
+	const useFake = loc.display_address === "fake";
 	return {
 		id: String(raw.id),
-		code: raw.code ?? raw.listing_code ?? null,
-		title: raw.title ?? null,
+		code: raw.code ?? null,
+		title: t.title ?? null,
+		description: t.description ?? null,
 		transaction: raw.availability ?? null, // sale | rent | auction | shortterm
-		category: raw.subcategory ?? raw.category ?? null,
-		price: numberOrNull(raw.price),
+		category: raw.category ?? null,        // residential | commercial | land | other
+		subcategory: raw.subcategory ?? null,  // apartment, maisonette, …
+		price: raw.has_hidden_price ? null : numberOrNull(raw.price),
 		area: numberOrNull(raw.size),
 		bedrooms: numberOrNull(raw.rooms),
 		bathrooms: numberOrNull(raw.bathrooms),
 		floor: raw.floor ?? null,
-		yearBuilt: numberOrNull(raw.construction_year ?? raw.year_built),
+		yearBuilt: numberOrNull(raw.year_built),
+		energyClass: raw.energy_class ?? null,
 		location: {
-			area: raw.area_level2_name ?? raw.area_name ?? null,
-			city: raw.area_level1_name ?? "Θεσσαλονίκη",
-			lat: numberOrNull(raw.latitude ?? raw.location?.latitude),
-			lng: numberOrNull(raw.longitude ?? raw.location?.longitude),
+			area: loc.area_level2?.name_el ?? null,
+			neighbourhood: loc.area_level3?.name_el ?? null,
+			city: loc.area_level1?.name_el ?? null,
+			address: (useFake ? loc.fake_address_el : loc.address_el) ?? null,
+			lat: numberOrNull(useFake ? loc.fake_latitude : loc.latitude),
+			lng: numberOrNull(useFake ? loc.fake_longitude : loc.longitude),
+			approximate: useFake || !!loc.show_circle_on_map,
 		},
-		images: Array.isArray(raw.images) ? raw.images.map((i) => i?.url ?? i) : [],
+		images: (raw.photos || [])
+			.filter((p) => p.is_public !== false)
+			.map((p) => p.watermark_image || p.original_image)
+			.filter(Boolean),
 		features: Array.isArray(raw.features) ? raw.features : [],
-		description: raw.description ?? null,
 		updatedAt: raw.date_updated ?? raw.date_created ?? null,
 	};
 }

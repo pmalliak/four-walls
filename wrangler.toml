@@ -17,6 +17,7 @@ compatibility_date = "2026-06-01"
 routes = [
 	{ pattern = "dev.four-walls.gr", custom_domain = true },
 	{ pattern = "webhooks.four-walls.gr", custom_domain = true },
+	{ pattern = "forms.four-walls.gr", custom_domain = true },
 ]
 # Keep the workers.dev URL alive too (adding routes disables it by default).
 # It bypasses the zone's WAF/bot protection — useful for the CRM webhook.
@@ -43,14 +44,18 @@ head_sampling_rate = 1
 invocation_logs = true
 persist = true
 
+[observability.traces]
+enabled = true
+head_sampling_rate = 1
+persist = true
+
 [triggers]
 # Nightly reconciliation rebuild — 03:15 UTC = 05:15/06:15 Θεσσαλονίκη.
 crons = ["15 3 * * *"]
 
 [vars]
-# "1" = feed from sample data; flip to "0" once the EstatePrime adapter
-# in worker/lib/estateprime.mjs is verified against their API docs.
-SAMPLE_DATA = "1"
+# "1" = feed from sample data (dev); "0" = live EstatePrime API.
+SAMPLE_DATA = "0"
 # Full webhook URL: https://webhooks.four-walls.gr/listings
 WEBHOOK_PATH = "/listings"
 # EstatePrime account subdomain: https://<this>.estateprime.gr/api

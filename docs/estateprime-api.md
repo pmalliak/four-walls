@@ -1,10 +1,10 @@
 # EstatePrime API — condensed reference (what the feed needs)
 
 Distilled from `estateprime-api-doc.yaml` (OpenAPI spec generated from
-<https://developers.estateprime.gr>, 2026-07-09) plus live observations.
-⚠️ The yaml is truncated at the `ExternalListing` schema — the internal
-**`Listing` schema is still missing** and the mapping in
-`worker/lib/estateprime.mjs` stays provisional until we have it.
+<https://developers.estateprime.gr>, 2026-07-09) plus **live verification
+against the fourwalls account** the same day. The yaml is truncated at the
+`ExternalListing` schema, but the real `Listing` shape below was captured
+from the live API, which beats the spec anyway.
 
 ## Basics
 
@@ -21,15 +21,14 @@ Distilled from `estateprime-api-doc.yaml` (OpenAPI spec generated from
 
 ## Listings (what we consume)
 
-- `GET /listings` — paginated. ⚠️ The spec puts `page` and all filters in a
-  **JSON request body on GET**, which `fetch()` in Workers/Node cannot send
-  (spec-forbidden). curl can (`curl -X GET --data`). The adapter sends
-  `?page=N` as a query param instead — **needs live verification**; it
-  paginates via `total_pages` and has a repeated-page guard in case the
-  param is ignored.
+- `GET /listings` — paginated; **`?page=N` as a query param works**
+  (verified live 2026-07-09; the spec documents `page` in a JSON body on
+  GET, which `fetch()` in Workers/Node cannot send — curl can). Paginate
+  until `total_pages`. `Content-Type: application/json` is required even
+  on GET (415 otherwise); auth errors use the documented envelope (401).
 - Filters (body per spec): `search`, `availability`, `category`,
-  `subcategory`, `subtype`, `status`, `date_created`. We filter for active
-  client-side until body filtering is confirmed.
+  `subcategory`, `subtype`, `status`, `date_created`. We fetch everything
+  and filter `status === "active"` client-side.
 - `GET /listings/{id}` — full single listing.
 - Lookups: `/listings/sources`, `/listings/tags`, `/listings/subtypes`
   (per-language `translations`), `/listings/custom-fields`.
@@ -48,14 +47,29 @@ Distilled from `estateprime-api-doc.yaml` (OpenAPI spec generated from
 - `ListingStatus`: `draft | pending | active | inactive | archived | deleted`
   → the feed keeps only **`active`**.
 
-## Likely Listing fields (inferred from `ExternalListing` — VERIFY)
+## Real `Listing` fields (captured from the live API 2026-07-09)
 
-`id, store_id, status, availability, category, subcategory, price,
-price_per_sqm, size, floor, levels, rooms, wcs, bathrooms, kitchens, …` plus
-flattened/nested location (`address, area_level1..3, latitude, longitude`).
-Unknown: listing code, title/description (possibly per-language
-`translations` like subtypes), images. **Do not trust until the real
-`Listing` schema lands.**
+Key scalars: `id, store_id, code, category, subcategory, subtype,
+availability, price, price_per_sqm, size, floor (number), levels, rooms,
+bathrooms, wcs, living_rooms, kitchens, year_built, year_renovated,
+energy_class, heating_type, heating_source, status, deal_status,
+date_created, date_updated, has_hidden_price, is_negotiable, is_rented,
+available_from, monthly_maintenance, orientation, youtube_url,
+virtual_tour_url, …` and arrays `features` / `view` / `flooring` /
+`positioning` (slug strings, e.g. `has_security_door`).
+
+- **`translations`**: `[{ language_id, title, description }]` —
+  `language_id` **1 = Greek, 2 = English**.
+- **`location`**: nested `area_level1..3` objects (`{id, name_el, name_en,
+  full_name_el, full_name_en}`), `postal_code`, `address_el`,
+  `latitude/longitude`, **`display_address` ("fake"|…), `fake_address_el`,
+  `fake_latitude/fake_longitude`, `show_circle_on_map`** — when
+  `display_address` is `"fake"`, only the fake coordinates/address may be
+  published (the feed enforces this).
+- **`photos`**: `[{ original_image, watermark_image, is_public }]` —
+  absolute URLs on `files.estateprime.gr`; publish `watermark_image ||
+  original_image`, only where `is_public`.
+- **`has_hidden_price`**: when true the feed publishes `price: null`.
 
 ## Webhook (live-observed 2026-07-09, not in the yaml)
 
