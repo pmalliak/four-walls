@@ -11,6 +11,14 @@ name = "four-walls"
 main = "worker/index.mjs"
 compatibility_date = "2026-06-01"
 
+# Custom domains (four-walls.gr zone is on Cloudflare). The root domain
+# still points at the old host — only these subdomains hit the Worker.
+# webhooks.* serves ONLY the webhook (guard in worker/index.mjs).
+routes = [
+	{ pattern = "dev.four-walls.gr", custom_domain = true },
+	{ pattern = "webhooks.four-walls.gr", custom_domain = true },
+]
+
 # The whole repo root is the static site. .assetsignore excludes the
 # non-site files (worker/, tools/, docs/, config, dev helpers).
 [assets]
