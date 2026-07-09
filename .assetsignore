@@ -17,5 +17,6 @@ partials
 inc
 CLAUDE.md
 index.html.orig
+estateprime-api-doc.yaml
 # dev-only form autofill helper — never ship to production
 forms/_autofill.dev.js

@@ -58,10 +58,13 @@ export default {
 	},
 };
 
-/* Pull the shared-secret token from wherever the caller put it. */
+/* Pull the shared-secret token from wherever the caller put it.
+   EstatePrime sends its webhook token in an `EstatePrime` header
+   (observed live 2026-07-09); the rest are generic fallbacks. */
 function tokenFrom(request, url) {
 	const auth = request.headers.get("Authorization") || "";
 	return (
+		request.headers.get("EstatePrime") ||
 		url.searchParams.get("key") ||
 		request.headers.get("X-Webhook-Token") ||
 		request.headers.get("X-Api-Key") ||
