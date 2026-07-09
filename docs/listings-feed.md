@@ -21,6 +21,10 @@ Design rules:
   signal; the Worker re-fetches the full listing set from the API (source of
   truth). Regeneration is idempotent, so webhook bursts are harmless.
 - **The nightly cron is the safety net** for missed webhook deliveries.
+- **Tag whitelist:** only listings carrying the EstatePrime tag named by the
+  `FILTER_TAG` var (currently `spitogatos`) are published. While that tag
+  does not exist in the CRM, all active listings are published (graceful
+  rollout — the filter arms itself the moment the tag is created).
 - The front-end fetches `/data/listings.json` — same origin, no CORS, no API
   key in the browser.
 

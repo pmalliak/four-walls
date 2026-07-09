@@ -77,9 +77,33 @@ async function fetchAllListings(env) {
 	}
 
 	// The feed only carries publicly visible stock.
-	return all
-		.filter((raw) => (raw.status ?? "active") === "active")
-		.map(mapListing);
+	let active = all.filter((raw) => (raw.status ?? "active") === "active");
+
+	// Whitelist by CRM tag (FILTER_TAG var, e.g. "spitogatos"): only tagged
+	// listings are published. Until the tag exists in EstatePrime, publish
+	// all active listings so the site never goes empty mid-rollout.
+	const tagId = await resolveFilterTagId(env, base, headers);
+	if (env.FILTER_TAG && tagId === null) {
+		console.warn(`estateprime: tag "${env.FILTER_TAG}" not found in CRM — publishing ALL active listings until it exists`);
+	} else if (tagId !== null) {
+		active = active.filter((raw) =>
+			(raw.tags || []).some((t) => (t?.id ?? t) === tagId));
+		console.log(`estateprime: tag "${env.FILTER_TAG}" (id ${tagId}) matched ${active.length} listings`);
+	}
+
+	return active.map(mapListing);
+}
+
+/* Resolve the FILTER_TAG name to its CRM tag id (case-insensitive), or
+   null when unset / not (yet) created in EstatePrime. */
+async function resolveFilterTagId(env, base, headers) {
+	if (!env.FILTER_TAG) return null;
+	const res = await fetch(`${base}/listings/tags`, { headers });
+	if (!res.ok) throw new Error(`EstatePrime API ${res.status} on /listings/tags`);
+	const body = await res.json();
+	const want = env.FILTER_TAG.trim().toLowerCase();
+	const tag = (body.data || []).find((t) => (t.name || "").trim().toLowerCase() === want);
+	return tag ? tag.id : null;
 }
 
 const LANG_EL = 1; // translations[].language_id — 1 = Greek, 2 = English

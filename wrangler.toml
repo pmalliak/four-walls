@@ -60,6 +60,9 @@ SAMPLE_DATA = "0"
 WEBHOOK_PATH = "/listings"
 # EstatePrime account subdomain: https://<this>.estateprime.gr/api
 ESTATEPRIME_SUBDOMAIN = "fourwalls"
+# Whitelist: only listings carrying this EstatePrime tag are published.
+# Until the tag exists in the CRM, all active listings are published.
+FILTER_TAG = "spitogatos"
 
 # Secrets (NOT here — set with `npx wrangler secret put <NAME>`):
 #   WEBHOOK_KEY              shared secret for the EstatePrime webhook
