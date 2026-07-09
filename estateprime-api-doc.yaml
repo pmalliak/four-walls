@@ -1,0 +1,1915 @@
+openapi: 3.0.3
+info:
+  title: EstatePrime API
+  description: >
+    API for interacting with EstatePrime, a real estate CRM. Supports reading,
+    inserting, updating and deleting properties, clients, tasks, financials and more.
+    Each account has a unique subdomain used as the base URL.
+    Support: tech@estateprime.gr
+  version: "1.0.0"
+  contact:
+    email: tech@estateprime.gr
+
+servers:
+  - url: https://{subdomain}.estateprime.gr/api
+    description: Per-account API base endpoint
+    variables:
+      subdomain:
+        default: test-account
+        description: The unique subdomain assigned to your EstatePrime account.
+
+security:
+  - basicAuth: []
+
+tags:
+  - name: Calendar
+  - name: Communication
+  - name: Contacts
+  - name: Contracts
+  - name: Expenses
+  - name: External Listings
+  - name: Files
+  - name: Incomes
+  - name: Knowledge Base
+  - name: Listings
+  - name: Locations
+  - name: Offers
+  - name: Reminders
+  - name: Requests
+  - name: Tasks
+  - name: Users
+  - name: Webmail
+
+paths:
+
+  # ---------------- CALENDAR ----------------
+  /calendar:
+    get:
+      tags: [Calendar]
+      summary: Get events
+      description: Fetch a paginated list of events.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page:
+                  type: integer
+                  default: 1
+                date_starting:
+                  $ref: '#/components/schemas/DateRange'
+      responses:
+        '200':
+          description: A paginated list of events.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Event' }
+    post:
+      tags: [Calendar]
+      summary: Create event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EventInput' }
+      responses:
+        '200':
+          description: Created event ID.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreatedResponse' }
+  /calendar/{id}:
+    get:
+      tags: [Calendar]
+      summary: Get single event
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: The event object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/Event' }
+    patch:
+      tags: [Calendar]
+      summary: Update event
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EventInput' }
+      responses:
+        '200':
+          description: The updated event object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/Event' }
+    delete:
+      tags: [Calendar]
+      summary: Delete event
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: Deleted event ID.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeletedResponse' }
+  /calendar/categories:
+    get:
+      tags: [Calendar]
+      summary: Get event categories
+      responses:
+        '200':
+          description: Available event categories.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /calendar/statuses:
+    get:
+      tags: [Calendar]
+      summary: Get event statuses
+      responses:
+        '200':
+          description: Available event statuses.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /calendar/tags:
+    get:
+      tags: [Calendar]
+      summary: Get event tags
+      responses:
+        '200':
+          description: Available event tags.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /calendar/custom-fields:
+    get:
+      tags: [Calendar]
+      summary: Get event custom fields
+      responses:
+        '200':
+          description: Available custom fields for events.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomFieldsResponse' }
+
+  # ---------------- COMMUNICATION ----------------
+  /communication:
+    get:
+      tags: [Communication]
+      summary: Get communications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer, default: 1 }
+                type: { type: string, enum: [incoming, outgoing] }
+                channel: { type: integer }
+                contact_id: { type: integer }
+                user_id: { type: integer }
+                date_created: { $ref: '#/components/schemas/DateRange' }
+                communication_date: { $ref: '#/components/schemas/DateRange' }
+      responses:
+        '200':
+          description: A paginated list of communications.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Communication' }
+    post:
+      tags: [Communication]
+      summary: Create communication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommunicationInput' }
+      responses:
+        '200':
+          description: Created communication ID.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreatedResponse' }
+  /communication/{id}:
+    get:
+      tags: [Communication]
+      summary: Get single communication
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: The communication object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/Communication' }
+    delete:
+      tags: [Communication]
+      summary: Delete communication
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: Deleted communication ID.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeletedResponse' }
+  /communication/channels:
+    get:
+      tags: [Communication]
+      summary: Get communication channels
+      responses:
+        '200':
+          description: Available channels.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        name: { type: string }
+                        type:
+                          type: string
+                          nullable: true
+                          enum: [phone, email, sms]
+  /communication/tags:
+    get:
+      tags: [Communication]
+      summary: Get communication tags
+      responses:
+        '200':
+          description: Available communication tags.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /communication/custom-fields:
+    get:
+      tags: [Communication]
+      summary: Get communication custom fields
+      responses:
+        '200':
+          description: Available custom fields for communications.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomFieldsResponse' }
+
+  # ---------------- CONTACTS ----------------
+  /contacts:
+    get:
+      tags: [Contacts]
+      summary: Get contacts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer, default: 1 }
+                date_created: { $ref: '#/components/schemas/DateRange' }
+      responses:
+        '200':
+          description: A paginated list of contacts.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Contact' }
+    post:
+      tags: [Contacts]
+      summary: Create contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ContactInput' }
+      responses:
+        '200':
+          description: Created contact ID.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreatedResponse' }
+  /contacts/{id}:
+    get:
+      tags: [Contacts]
+      summary: Get single contact
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: The contact object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/Contact' }
+    delete:
+      tags: [Contacts]
+      summary: Delete contact
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: Deleted contact ID.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeletedResponse' }
+  /contacts/sources:
+    get:
+      tags: [Contacts]
+      summary: Get contact sources
+      responses:
+        '200':
+          description: Available contact sources.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /contacts/tags:
+    get:
+      tags: [Contacts]
+      summary: Get contact tags
+      responses:
+        '200':
+          description: Available contact tags.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /contacts/custom-fields:
+    get:
+      tags: [Contacts]
+      summary: Get contact custom fields
+      responses:
+        '200':
+          description: Available custom fields for contacts.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomFieldsResponse' }
+
+  # ---------------- CONTRACTS ----------------
+  /contracts:
+    get:
+      tags: [Contracts]
+      summary: Get contracts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer, default: 1 }
+                status_id: { type: integer }
+                store_id: { type: integer }
+                offer_id: { type: integer }
+                listing_id: { type: integer }
+                request_id: { type: integer }
+                contact_id: { type: integer }
+                external_listing: { type: boolean }
+                external_contact: { type: boolean }
+                date_created: { $ref: '#/components/schemas/DateRange' }
+                status_date: { $ref: '#/components/schemas/DateRange' }
+      responses:
+        '200':
+          description: A paginated list of contracts.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Contract' }
+  /contracts/{id}:
+    get:
+      tags: [Contracts]
+      summary: Get single contract
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: The contract object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/Contract' }
+  /contracts/statuses:
+    get:
+      tags: [Contracts]
+      summary: Get contract statuses
+      responses:
+        '200':
+          description: Available contract statuses.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ContractStatus' }
+
+  # ---------------- EXPENSES ----------------
+  /expenses:
+    get:
+      tags: [Expenses]
+      summary: Get expenses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer, default: 1 }
+                category_id: { type: integer }
+                status: { type: string, enum: [pending, confirmed] }
+                partner_id: { type: integer }
+                linked_income_id: { type: integer }
+                auto_generated: { type: boolean }
+                contact_id: { type: integer }
+                date: { $ref: '#/components/schemas/DateRangeDateOnly' }
+                date_created: { $ref: '#/components/schemas/DateRange' }
+                amount: { $ref: '#/components/schemas/NumberRange' }
+      responses:
+        '200':
+          description: A paginated list of expenses.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Expense' }
+  /expenses/{id}:
+    get:
+      tags: [Expenses]
+      summary: Get single expense
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: The expense object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/Expense' }
+  /expenses/statuses:
+    get:
+      tags: [Expenses]
+      summary: Get expense statuses
+      responses:
+        '200':
+          description: Available expense statuses.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StringIdNamedListResponse' }
+  /expenses/categories:
+    get:
+      tags: [Expenses]
+      summary: Get expense categories
+      responses:
+        '200':
+          description: Available expense categories.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+
+  # ---------------- EXTERNAL LISTINGS ----------------
+  /external-listings:
+    get:
+      tags: [External Listings]
+      summary: Get external listings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer, default: 1 }
+                availability: { $ref: '#/components/schemas/Availability' }
+                category: { $ref: '#/components/schemas/Category' }
+                status: { type: integer }
+                store_id: { type: integer }
+                source_id: { type: integer }
+                price: { $ref: '#/components/schemas/NumberRange' }
+                size: { $ref: '#/components/schemas/NumberRange' }
+                area_level1: { type: integer }
+                area_level2: { type: integer }
+                date_created: { $ref: '#/components/schemas/DateRange' }
+                date_updated: { $ref: '#/components/schemas/DateRange' }
+      responses:
+        '200':
+          description: A paginated list of external listings (trimmed, flattened location fields).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/ExternalListing' }
+    post:
+      tags: [External Listings]
+      summary: Create external listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ExternalListingInput' }
+      responses:
+        '200':
+          description: The created external listing object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/ExternalListing' }
+  /external-listings/{id}:
+    get:
+      tags: [External Listings]
+      summary: Get single external listing
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: The full external listing object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/ExternalListing' }
+  /external-listings/statuses:
+    get:
+      tags: [External Listings]
+      summary: Get external listing statuses
+      responses:
+        '200':
+          description: Available statuses.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /external-listings/sources:
+    get:
+      tags: [External Listings]
+      summary: Get external listing sources
+      responses:
+        '200':
+          description: Available sources.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /external-listings/tags:
+    get:
+      tags: [External Listings]
+      summary: Get external listing tags
+      responses:
+        '200':
+          description: Available tags.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /external-listings/custom-fields:
+    get:
+      tags: [External Listings]
+      summary: Get external listing custom fields
+      responses:
+        '200':
+          description: Available custom fields for external listings.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomFieldsResponse' }
+
+  # ---------------- FILES ----------------
+  /files:
+    get:
+      tags: [Files]
+      summary: Get files
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer, default: 1 }
+                name: { type: string }
+                contact_id: { type: integer }
+                contact_ids: { type: array, items: { type: integer } }
+                listing_id: { type: integer }
+                listing_ids: { type: array, items: { type: integer } }
+                user_id: { type: integer }
+                folder_id: { type: integer }
+                date_created: { $ref: '#/components/schemas/DateRange' }
+                size: { $ref: '#/components/schemas/NumberRange' }
+      responses:
+        '200':
+          description: A paginated list of files.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/File' }
+  /files/folders:
+    get:
+      tags: [Files]
+      summary: Get folders
+      responses:
+        '200':
+          description: A flat list of active folders.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Folder' }
+  /files/folders/{id}:
+    get:
+      tags: [Files]
+      summary: Get single folder
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: The folder object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/Folder' }
+
+  # ---------------- INCOMES ----------------
+  /incomes:
+    get:
+      tags: [Incomes]
+      summary: Get incomes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer, default: 1 }
+                category: { type: string, enum: [contract, valuation, referral, other] }
+                status: { type: string, enum: [pending, confirmed] }
+                contract_id: { type: integer }
+                contact_id: { type: integer }
+                date: { $ref: '#/components/schemas/DateRangeDateOnly' }
+                date_created: { $ref: '#/components/schemas/DateRange' }
+                total_amount: { $ref: '#/components/schemas/NumberRange' }
+      responses:
+        '200':
+          description: A paginated list of incomes.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Income' }
+  /incomes/{id}:
+    get:
+      tags: [Incomes]
+      summary: Get single income
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: The income object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/Income' }
+  /incomes/statuses:
+    get:
+      tags: [Incomes]
+      summary: Get income statuses
+      responses:
+        '200':
+          description: Available income statuses.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StringIdNamedListResponse' }
+  /incomes/categories:
+    get:
+      tags: [Incomes]
+      summary: Get income categories
+      responses:
+        '200':
+          description: Available income categories.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StringIdNamedListResponse' }
+  /incomes/other-categories:
+    get:
+      tags: [Incomes]
+      summary: Get income other categories
+      responses:
+        '200':
+          description: Custom "other" income subcategories.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /incomes/expense-categories:
+    get:
+      tags: [Incomes]
+      summary: Get expense categories (linked to incomes)
+      responses:
+        '200':
+          description: Available expense categories.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+
+  # ---------------- KNOWLEDGE BASE ----------------
+  /knowledge-base/articles:
+    get:
+      tags: [Knowledge Base]
+      summary: Get articles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer, default: 1 }
+                category_id: { type: integer }
+                search: { type: string }
+                date_created: { $ref: '#/components/schemas/DateRange' }
+      responses:
+        '200':
+          description: A paginated list of articles (trimmed).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/ArticleListItem' }
+  /knowledge-base/articles/{id}:
+    get:
+      tags: [Knowledge Base]
+      summary: Get single article
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: The full article object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/Article' }
+  /knowledge-base/categories:
+    get:
+      tags: [Knowledge Base]
+      summary: Get categories
+      responses:
+        '200':
+          description: Active knowledge base categories.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/KbCategory' }
+  /knowledge-base/categories/{id}:
+    get:
+      tags: [Knowledge Base]
+      summary: Get single category
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: The category object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/KbCategory' }
+
+  # ---------------- LISTINGS ----------------
+  /listings:
+    get:
+      tags: [Listings]
+      summary: Get listings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer, default: 1 }
+                search: { type: string }
+                availability:
+                  oneOf:
+                    - { $ref: '#/components/schemas/Availability' }
+                    - { type: array, items: { $ref: '#/components/schemas/Availability' } }
+                category:
+                  oneOf:
+                    - { $ref: '#/components/schemas/Category' }
+                    - { type: array, items: { $ref: '#/components/schemas/Category' } }
+                subcategory:
+                  oneOf:
+                    - { $ref: '#/components/schemas/Subcategory' }
+                    - { type: array, items: { $ref: '#/components/schemas/Subcategory' } }
+                subtype:
+                  oneOf:
+                    - { type: integer }
+                    - { type: array, items: { type: integer } }
+                status:
+                  oneOf:
+                    - { $ref: '#/components/schemas/ListingStatus' }
+                    - { type: array, items: { $ref: '#/components/schemas/ListingStatus' } }
+                date_created: { $ref: '#/components/schemas/DateRange' }
+      responses:
+        '200':
+          description: A paginated list of listings.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Listing' }
+  /listings/{id}:
+    get:
+      tags: [Listings]
+      summary: Get single listing
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: The listing object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/Listing' }
+  /listings/sources:
+    get:
+      tags: [Listings]
+      summary: Get listing sources
+      responses:
+        '200':
+          description: Available listing sources.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /listings/tags:
+    get:
+      tags: [Listings]
+      summary: Get listing tags
+      responses:
+        '200':
+          description: Available listing tags.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /listings/subtypes:
+    get:
+      tags: [Listings]
+      summary: Get listing subtypes
+      responses:
+        '200':
+          description: Available listing subtypes.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        subcategory: { $ref: '#/components/schemas/Subcategory' }
+                        translations:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              language_id: { type: integer }
+                              name: { type: string }
+  /listings/custom-fields:
+    get:
+      tags: [Listings]
+      summary: Get listing custom fields
+      responses:
+        '200':
+          description: Available custom fields for listings.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomFieldsResponse' }
+
+# ---------------- LOCATIONS ----------------
+  /locations:
+    get:
+      tags: [Locations]
+      summary: Get locations
+      description: Fetch a paginated list of locations (up to 100 per page).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer, default: 1 }
+                search: { type: string }
+                id: { type: integer }
+                level: { type: integer, enum: [1, 2, 3] }
+                parent_id: { type: integer }
+      responses:
+        '200':
+          description: A paginated list of locations.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Location' }
+  /locations/{id}:
+    get:
+      tags: [Locations]
+      summary: Get single location
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: The location object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/Location' }
+        '404':
+          description: No location exists with the given ID.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 404 }
+                  error_message: { type: string, example: "Location not found." }
+
+  # ---------------- OFFERS ----------------
+  /offers:
+    get:
+      tags: [Offers]
+      summary: Get offers
+      description: List response does not include the rounds array.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer, default: 1 }
+                status: { $ref: '#/components/schemas/OfferStatus' }
+                is_active: { type: boolean }
+                listing_id: { type: integer }
+                request_id: { type: integer }
+                store_id: { type: integer }
+                created_by: { type: integer }
+                contact_id: { type: integer }
+                date_created: { $ref: '#/components/schemas/DateRange' }
+                date_updated: { $ref: '#/components/schemas/DateRange' }
+      responses:
+        '200':
+          description: A paginated list of offers (without rounds).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/OfferListItem' }
+  /offers/{id}:
+    get:
+      tags: [Offers]
+      summary: Get single offer
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: The full offer object including negotiation rounds.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/Offer' }
+
+  # ---------------- REMINDERS ----------------
+  /reminders:
+    post:
+      tags: [Reminders]
+      summary: Create reminder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, title, datetime]
+              properties:
+                user_id: { type: integer, description: Active user who receives the alert. }
+                title: { type: string }
+                datetime:
+                  type: string
+                  description: Future date/time; stored in Europe/Athens timezone.
+                  example: "2025-03-20 10:00:00"
+                contact_id: { type: integer, description: Optional linked contact. }
+      responses:
+        '200':
+          description: Created reminder ID.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  id: { type: integer, example: 14 }
+        '400':
+          description: >
+            Validation error. Possible messages: "Missing user_id", "Missing title",
+            "Missing datetime", "Invalid datetime format", "Datetime must be in the future",
+            "User not found".
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          description: Contact not found (no contact exists with the given contact_id).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  # ---------------- REQUESTS ----------------
+  /requests:
+    get:
+      tags: [Requests]
+      summary: Get requests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer, default: 1 }
+                status: { type: integer }
+                availability: { $ref: '#/components/schemas/Availability' }
+                category: { $ref: '#/components/schemas/Category' }
+                store_id: { type: integer }
+                contact_id: { type: integer }
+                user_id: { type: integer }
+                date_created: { $ref: '#/components/schemas/DateRange' }
+                date_updated: { $ref: '#/components/schemas/DateRange' }
+      responses:
+        '200':
+          description: A paginated list of requests.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Request' }
+  /requests/{id}:
+    get:
+      tags: [Requests]
+      summary: Get single request
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: The request object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/Request' }
+    delete:
+      tags: [Requests]
+      summary: Delete request
+      description: Soft-delete. Excluded from all future list and single-fetch responses.
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: Deleted request ID.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeletedResponse' }
+  /requests/statuses:
+    get:
+      tags: [Requests]
+      summary: Get request statuses
+      responses:
+        '200':
+          description: Available request statuses.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /requests/sources:
+    get:
+      tags: [Requests]
+      summary: Get request sources
+      responses:
+        '200':
+          description: Available request sources.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /requests/tags:
+    get:
+      tags: [Requests]
+      summary: Get request tags
+      responses:
+        '200':
+          description: Available request tags.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /requests/custom-fields:
+    get:
+      tags: [Requests]
+      summary: Get request custom fields
+      responses:
+        '200':
+          description: Available custom fields for requests.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomFieldsResponse' }
+
+  # ---------------- TASKS ----------------
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: Get tasks
+      description: Deleted tasks are always excluded.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer, default: 1 }
+                status_id: { type: integer }
+                category_id: { type: integer }
+                priority: { type: integer, enum: [1, 2, 3], description: "1=low, 2=normal, 3=high" }
+                due_date: { $ref: '#/components/schemas/DateRangeDateOnly' }
+                date_created: { $ref: '#/components/schemas/DateRange' }
+      responses:
+        '200':
+          description: A paginated list of tasks.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Task' }
+    post:
+      tags: [Tasks]
+      summary: Create task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaskInput' }
+      responses:
+        '200':
+          description: Created task ID.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreatedResponse' }
+  /tasks/{id}:
+    get:
+      tags: [Tasks]
+      summary: Get single task
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: The task object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/Task' }
+    delete:
+      tags: [Tasks]
+      summary: Delete task
+      description: Soft-delete. Excluded from all future list and single-fetch responses.
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: Deleted task ID.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeletedResponse' }
+  /tasks/statuses:
+    get:
+      tags: [Tasks]
+      summary: Get task statuses
+      responses:
+        '200':
+          description: Available task statuses.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /tasks/categories:
+    get:
+      tags: [Tasks]
+      summary: Get task categories
+      responses:
+        '200':
+          description: Available task categories.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /tasks/tags:
+    get:
+      tags: [Tasks]
+      summary: Get task tags
+      responses:
+        '200':
+          description: Available task tags.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+  /tasks/custom-fields:
+    get:
+      tags: [Tasks]
+      summary: Get task custom fields
+      responses:
+        '200':
+          description: Available custom fields for tasks.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomFieldsResponse' }
+
+  # ---------------- USERS ----------------
+  /users:
+    get:
+      tags: [Users]
+      summary: Get users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer, default: 1 }
+      responses:
+        '200':
+          description: A paginated list of users.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/User' }
+  /users/usergroups:
+    get:
+      tags: [Users]
+      summary: Get usergroups
+      responses:
+        '200':
+          description: All usergroups.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedListResponse' }
+
+  # ---------------- WEBMAIL ----------------
+  /webmail:
+    get:
+      tags: [Webmail]
+      summary: Get mailboxes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer, default: 1 }
+      responses:
+        '200':
+          description: A paginated list of mailboxes.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Mailbox' }
+  /webmail/{id}:
+    get:
+      tags: [Webmail]
+      summary: Get single mailbox
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses:
+        '200':
+          description: The mailbox object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/Mailbox' }
+  /webmail/{mailbox_id}/emails:
+    get:
+      tags: [Webmail]
+      summary: Get emails
+      parameters:
+        - name: mailbox_id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: { type: integer, default: 1 }
+                date: { $ref: '#/components/schemas/DateRange' }
+                from_address: { type: string }
+                subject_contains: { type: string }
+                subject_equals: { type: string }
+                to_address: { type: string }
+      responses:
+        '200':
+          description: A paginated list of emails.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Email' }
+  /webmail/{mailbox_id}/emails/{id}:
+    get:
+      tags: [Webmail]
+      summary: Get single email
+      parameters:
+        - name: mailbox_id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: The email object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: integer, example: 200 }
+                  data: { $ref: '#/components/schemas/Email' }
+
+components:
+
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: >
+        Basic Authentication. Combine publicKey:secretKey and Base64-encode it,
+        then send as "Authorization: Basic <encoded>". Content-Type must be application/json.
+
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+
+  schemas:
+
+    # ----- Shared / generic -----
+    PaginatedResponse:
+      type: object
+      properties:
+        status: { type: integer, example: 200 }
+        page: { type: integer, example: 1 }
+        total_pages: { type: integer, example: 9 }
+        results_per_page: { type: integer, example: 50 }
+        total_results: { type: integer, example: 428 }
+
+    CreatedResponse:
+      type: object
+      properties:
+        status: { type: integer, example: 200 }
+        created_id: { type: integer, example: 789 }
+
+    DeletedResponse:
+      type: object
+      properties:
+        status: { type: integer, example: 200 }
+        deleted_id: { type: integer, example: 789 }
+
+    ErrorResponse:
+      type: object
+      properties:
+        status: { type: integer }
+        error_message: { type: string }
+
+    NamedListResponse:
+      type: object
+      properties:
+        status: { type: integer, example: 200 }
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              name: { type: string }
+
+    StringIdNamedListResponse:
+      type: object
+      description: List where ids are strings (e.g. statuses/categories keyed by string).
+      properties:
+        status: { type: integer, example: 200 }
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+
+    DateRange:
+      type: object
+      description: Datetime range in YYYY-MM-DD HH:MM:SS format.
+      properties:
+        min: { type: string, nullable: true, example: "2025-01-01 00:00:00" }
+        max: { type: string, nullable: true }
+
+    DateRangeDateOnly:
+      type: object
+      description: Date range in YYYY-MM-DD format.
+      properties:
+        min: { type: string, nullable: true, example: "2025-01-01" }
+        max: { type: string, nullable: true }
+
+    NumberRange:
+      type: object
+      properties:
+        min: { type: number, nullable: true }
+        max: { type: number, nullable: true }
+
+    CustomFieldsResponse:
+      type: object
+      properties:
+        status: { type: integer, example: 200 }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/CustomField' }
+
+    CustomField:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        type: { $ref: '#/components/schemas/CustomFieldType' }
+        options:
+          type: array
+          description: Present for select / select_multi types.
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              name: { type: string }
+
+    CustomFieldType:
+      type: string
+      enum:
+        - text
+        - textarea
+        - wysiwyg
+        - number
+        - formatted_number
+        - select
+        - select_multi
+        - checkbox
+        - file
+        - file_multi
+        - image
+        - image_multi
+        - address
+        - url
+        - date
+        - datetime
+        - currency
+        - user
+        - user_multi
+        - contact
+        - contact_multi
+
+    # ----- Common enums -----
+    Availability:
+      type: string
+      enum: [sale, rent, auction, shortterm]
+    Category:
+      type: string
+      enum: [residential, commercial, land, other]
+    Subcategory:
+      type: string
+      enum:
+        - apartment
+        - maisonette
+        - detached
+        - villa
+        - loft
+        - residential_building
+        - apartment_complex
+        - farmhouse
+        - houseboat
+        - other_residential
+        - office
+        - store
+        - warehouse
+        - hotel
+        - commercial_building
+        - hall
+        - industrial_space
+        - craft_space
+        - other_commercial
+        - plot
+        - parcel
+        - island
+        - parking
+        - business
+        - air
+        - other
+    ListingStatus:
+      type: string
+      enum: [draft, pending, active, inactive, archived, deleted]
+    OfferStatus:
+      type: string
+      enum: [draft, submitted, under_negotiation, accepted, rejected, withdrawn]
+
+    # ----- Calendar -----
+    RemoteMeeting:
+      type: object
+      nullable: true
+      properties:
+        type: { type: string, enum: [Google Meet, Zoom, Other] }
+        meeting_url: { type: string }
+        meeting_id: { type: string }
+    Event:
+      type: object
+      properties:
+        id: { type: integer }
+        full_day: { type: boolean }
+        date_starting: { type: string }
+        date_ending: { type: string }
+        date_created: { type: string }
+        created_by: { type: integer }
+        status_id: { type: integer }
+        category_id: { type: integer }
+        contacts: { type: array, items: { type: integer } }
+        users: { type: array, items: { type: integer } }
+        title: { type: string }
+        description: { type: string }
+        is_public: { type: boolean }
+        is_online: { type: boolean }
+        tags: { type: array, items: { type: integer } }
+        remote_meeting: { $ref: '#/components/schemas/RemoteMeeting' }
+    EventInput:
+      type: object
+      properties:
+        full_day: { type: boolean }
+        date_starting: { type: string }
+        date_ending: { type: string }
+        created_by: { type: integer }
+        status_id: { type: integer }
+        category_id: { type: integer }
+        contacts: { type: array, items: { type: integer } }
+        users: { type: array, items: { type: integer } }
+        title: { type: string }
+        description: { type: string }
+        is_public: { type: boolean }
+        is_online: { type: boolean }
+        tags: { type: array, items: { type: integer }, nullable: true }
+
+    # ----- Communication -----
+    Communication:
+      type: object
+      properties:
+        id: { type: integer }
+        date_created: { type: string }
+        communication_date: { type: string }
+        user_id: { type: integer }
+        store_id: { type: integer }
+        type: { type: string, enum: [incoming, outgoing] }
+        channel: { type: integer }
+        contact_id: { type: integer }
+        request_id: { type: integer, nullable: true }
+        comments: { type: string, nullable: true }
+        tags: { type: array, items: { type: integer } }
+        listings: { type: array, items: { type: integer } }
+    CommunicationInput:
+      type: object
+      required: [channel, user_id, contact_id, store_id, type, communication_date]
+      properties:
+        channel: { type: integer }
+        user_id: { type: integer }
+        contact_id: { type: integer }
+        store_id: { type: integer }
+        type: { type: string, enum: [incoming, outgoing] }
+        communication_date: { type: string }
+        request_id: { type: integer, nullable: true }
+        comments: { type: string }
+        tags: { type: array, items: { type: integer } }
+        listings: { type: array, items: { type: integer } }
+
+    # ----- Contacts -----
+    Phone:
+      type: object
+      properties:
+        type: { type: string }
+        number: { type: string }
+        notes: { type: string }
+    ContactEmail:
+      type: object
+      properties:
+        type: { type: string }
+        email_address: { type: string }
+        notes: { type: string }
+    ContactDetail:
+      type: object
+      properties:
+        first_name: { type: string }
+        last_name: { type: string }
+        mobile: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        notes: { type: string }
+    ContactCustomFieldValue:
+      type: object
+      properties:
+        custom_field_id: { type: integer }
+        value:
+          description: Value type varies by custom field type.
+          oneOf:
+            - { type: string }
+            - { type: number }
+            - { type: boolean }
+            - { type: array, items: {} }
+    Contact:
+      type: object
+      properties:
+        id: { type: integer }
+        first_name: { type: string }
+        last_name: { type: string }
+        source_id: { type: integer }
+        is_lead: { type: boolean }
+        is_company: { type: boolean }
+        company_name: { type: string, nullable: true }
+        phones: { type: array, items: { $ref: '#/components/schemas/Phone' } }
+        emails: { type: array, items: { $ref: '#/components/schemas/ContactEmail' } }
+        notes: { type: string }
+        custom_fields: { type: array, items: { $ref: '#/components/schemas/ContactCustomFieldValue' } }
+        contact_details: { type: array, items: { $ref: '#/components/schemas/ContactDetail' } }
+        tags: { type: array, items: { type: integer } }
+        date_created: { type: string }
+        created_by: { type: integer }
+        users: { type: array, items: { type: integer } }
+        date_updated: { type: string }
+        date_converted_to_client: { type: string, nullable: true }
+    ContactInput:
+      type: object
+      properties:
+        first_name: { type: string }
+        last_name: { type: string }
+        source_id: { type: integer }
+        is_lead: { type: boolean }
+        is_company: { type: boolean }
+        company_name: { type: string, nullable: true }
+        phones: { type: array, items: { $ref: '#/components/schemas/Phone' } }
+        emails: { type: array, items: { $ref: '#/components/schemas/ContactEmail' } }
+        notes: { type: string }
+        custom_fields: { type: array, items: { $ref: '#/components/schemas/ContactCustomFieldValue' } }
+        contact_details: { type: array, items: { $ref: '#/components/schemas/ContactDetail' } }
+        tags: { type: array, items: { type: integer } }
+        users: { type: array, items: { type: integer } }
+
+    # ----- Contracts -----
+    ExternalListingSnapshot:
+      type: object
+      properties:
+        external: { type: boolean, example: true }
+        address: { type: string, nullable: true }
+        price: { type: integer, nullable: true }
+        owner_name: { type: string, nullable: true }
+        listing_code: { type: string, nullable: true }
+        availability: { $ref: '#/components/schemas/Availability' }
+        category: { $ref: '#/components/schemas/Category' }
+        subcategory: { type: string, nullable: true }
+        size: { type: string, nullable: true }
+        area_level1: { type: integer, nullable: true }
+        area_level2: { type: integer, nullable: true }
+        area_level3: { type: integer, nullable: true }
+        listing_link: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+    InternalListingRef:
+      type: object
+      properties:
+        external: { type: boolean, example: false }
+        listing_id: { type: integer }
+    ListingRef:
+      oneOf:
+        - { $ref: '#/components/schemas/InternalListingRef' }
+        - { $ref: '#/components/schemas/ExternalListingSnapshot' }
+    Contract:
+      type: object
+      properties:
+        id: { type: integer }
+        offer_id: { type: integer }
+        request_id: { type: integer, nullable: true }
+        store_id: { type: integer }
+        status_id: { type: integer }
+        created_by: { type: integer }
+        date_created: { type: string }
+        date_updated: { type: string }
+        status_date: { type: string, nullable: true }
+        currency: { type: string }
+        loan_percentage: { type: integer }
+        initial_property_price: { type: integer, nullable: true }
+        final_property_price: { type: integer, nullable: true }
+        deposit_amount: { type: integer, nullable: true }
+        deposit_date: { type: string, nullable: true }
+        notary_contact_id: { type: integer, nullable: true }
+        notes: { type: string, nullable: true }
+        external_contact: { type: boolean }
+        listing: { $ref: '#/components/schemas/ListingRef' }
+        contacts: { type: array, items: { type: integer } }
+    ContractStatus:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        is_completed: { type: boolean }
+        is_cancelled: { type: boolean }
+        bg_color: { type: string }
+        text_color: { type: string }
+
+    # ----- Expenses -----
+    Expense:
+      type: object
+      properties:
+        id: { type: integer }
+        category_id: { type: integer }
+        category_name: { type: string }
+        partner_id: { type: integer, nullable: true }
+        linked_income_id: { type: integer, nullable: true }
+        linked_income_commission_id: { type: integer, nullable: true }
+        auto_generated: { type: boolean }
+        amount: { type: string }
+        date: { type: string }
+        title: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+        status: { type: string, enum: [pending, confirmed] }
+        created_by: { type: integer }
+        date_created: { type: string }
+        date_updated: { type: string, nullable: true }
+        contacts: { type: array, items: { type: integer } }
+
+    # ----- External Listings -----
+    ExternalListingLocation:
+      type: object
+      properties:
+        address: { type: string, nullable: true }
+        area_level1: { type: integer, nullable: true }
+        area_level2: { type: integer, nullable: true }
+        area_level3: { type: integer, nullable: true }
+        latitude: { type: number, nullable: true }
+        longitude: { type: number, nullable: true }
+    ExternalListing:
+      type: object
+      properties:
+        id: { type: integer }
+        store_id: { type: integer }
+        source_id: { type: integer, nullable: true }
+        status: { type: integer, nullable: true }
+        external_url: { type: string, nullable: true }
+        availability: { $ref: '#/components/schemas/Availability' }
+        category: { $ref: '#/components/schemas/Category' }
+        subcategory: { $ref: '#/components/schemas/Subcategory' }
+        price: { type: integer, nullable: true }
+        price_per_sqm: { type: number, nullable: true }
+        size: { type: integer, nullable: true }
+        floor: { type: number, nullable: true }
+        levels: { type: integer, nullable: true }
+        rooms: { type: integer, nullable: true }
+        wcs: { type: integer, nullable: true }
+        bathrooms: { type: integer, nullable: true }
+        kitchens: { type

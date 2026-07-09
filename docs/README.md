@@ -13,6 +13,7 @@ deeper, one topic per file:
 | [localization.md](localization.md) | Greek rules: `lang="el"`, capitals without accents, currency format |
 | [environment.md](environment.md) | Windows / PowerShell / file-encoding gotchas |
 | [listings-feed.md](listings-feed.md) | Live listings: EstatePrime webhook → Cloudflare Worker → `/data/listings.json` |
+| [estateprime-api.md](estateprime-api.md) | EstatePrime CRM API: auth, listings endpoint, enums, webhook behaviour |
 | [components/hero-search.md](components/hero-search.md) | Homepage search bar: fields, responsive layout, price swap |
 
 New component write-ups go under [components/](components/).

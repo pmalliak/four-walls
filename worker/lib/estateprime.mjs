@@ -9,19 +9,24 @@
      SAMPLE_DATA="1"  -> feed from worker/lib/sample-listings.mjs
      SAMPLE_DATA="0"  -> feed pulled live from the EstatePrime API
 
-   !! The EstatePrime-specific parts below (API_BASE, endpoint path,
-   !! auth header, pagination, field mapping) are an UNVERIFIED adapter:
-   !! the docs at https://developers.estateprime.gr require a login we
-   !! don't have yet. Every guess is marked TODO(estateprime-docs).
-   !! Flip SAMPLE_DATA to "0" only after confirming them.
+   API facts (docs/estateprime-api.md, from the OpenAPI spec):
+     base   https://{ESTATEPRIME_SUBDOMAIN}.estateprime.gr/api
+     auth   Basic base64(publicKey:secretKey), JSON content type
+     lists  { status, page, total_pages, results_per_page, data: [...] }
+
+   ⚠ The spec sends `page` + filters as a JSON body on GET, which fetch()
+   cannot do (spec-forbidden). We send ?page=N as a query param instead —
+   unverified against the live API; the loop is bounded by total_pages and
+   guarded against the param being ignored (repeated first id).
+
+   ⚠ The `Listing` schema is still missing from the truncated yaml —
+   mapListing() uses field names inferred from `ExternalListing` and is
+   marked TODO(listing-schema) until the real schema lands.
    ===================================================================== */
 
 import { SAMPLE_LISTINGS } from "./sample-listings.mjs";
 
-// TODO(estateprime-docs): confirm base URL + version prefix.
-const API_BASE = "https://api.estateprime.gr";
-const PAGE_SIZE = 100;
-const MAX_PAGES = 100; // safety valve against a pagination bug looping forever
+const MAX_PAGES = 200; // hard stop against pagination bugs
 
 /* Build the complete feed object that gets stored in KV / data/listings.json. */
 export async function buildFeed(env) {
@@ -35,71 +40,76 @@ export async function buildFeed(env) {
 	};
 }
 
-/* Pull every ACTIVE listing from the EstatePrime API. The webhook payload
-   is deliberately ignored upstream — this full re-fetch is the source of
-   truth, which makes regeneration idempotent and burst-safe. */
+/* Pull every listing from the EstatePrime API and keep the active ones.
+   The webhook payload is deliberately ignored upstream — this full
+   re-fetch is the source of truth, so regeneration is idempotent. */
 async function fetchAllListings(env) {
-	if (!env.ESTATEPRIME_API_KEY || !env.ESTATEPRIME_API_SECRET) {
-		throw new Error("ESTATEPRIME_API_KEY / ESTATEPRIME_API_SECRET not set (wrangler secret put …)");
-	}
+	const missing = ["ESTATEPRIME_SUBDOMAIN", "ESTATEPRIME_API_KEY", "ESTATEPRIME_API_SECRET"]
+		.filter((k) => !env[k]);
+	if (missing.length) throw new Error(`Missing config: ${missing.join(", ")}`);
 
-	// EstatePrime issues a public + secret key pair. Basic auth (public as
-	// username, secret as password) is the most common scheme for pairs.
-	// TODO(estateprime-docs): confirm — alternatives: X-Api-Key/X-Api-Secret
-	// headers, or HMAC request signing.
-	const basicAuth = "Basic " + btoa(`${env.ESTATEPRIME_API_KEY}:${env.ESTATEPRIME_API_SECRET}`);
+	const base = `https://${env.ESTATEPRIME_SUBDOMAIN}.estateprime.gr/api`;
+	const headers = {
+		"Authorization": "Basic " + btoa(`${env.ESTATEPRIME_API_KEY}:${env.ESTATEPRIME_API_SECRET}`),
+		"Content-Type": "application/json",
+		"Accept": "application/json",
+	};
 
 	const all = [];
+	let firstIdOfPrevPage = null;
 	for (let page = 1; page <= MAX_PAGES; page++) {
-		// TODO(estateprime-docs): confirm endpoint path, pagination params
-		// (page/limit vs offset vs cursor) and any status=active filter.
-		const url = `${API_BASE}/listings?page=${page}&per_page=${PAGE_SIZE}`;
-		const res = await fetch(url, {
-			headers: {
-				"Authorization": basicAuth,
-				"Accept": "application/json",
-			},
-		});
-		if (!res.ok) {
-			throw new Error(`EstatePrime API ${res.status} on ${url}`);
-		}
+		const res = await fetch(`${base}/listings?page=${page}`, { headers });
+		if (!res.ok) throw new Error(`EstatePrime API ${res.status} on /listings?page=${page}`);
 		const body = await res.json();
-		// TODO(estateprime-docs): confirm envelope — items may live at
-		// body.data, body.listings, or be the top-level array itself.
-		const items = Array.isArray(body) ? body : (body.data ?? body.listings ?? []);
-		all.push(...items.map(mapListing));
-		if (items.length < PAGE_SIZE) break; // last page
+		const items = body.data ?? [];
+		if (!items.length) break;
+
+		// If the API ignores the ?page= query param (spec wants it in a GET
+		// body), every request returns page 1 — detect and stop.
+		if (items[0]?.id != null && items[0].id === firstIdOfPrevPage) {
+			console.warn("estateprime: ?page= param seems ignored; got a repeated page — stopping");
+			break;
+		}
+		firstIdOfPrevPage = items[0]?.id ?? null;
+
+		all.push(...items);
+		if (body.total_pages && page >= body.total_pages) break;
 	}
-	return all;
+
+	// The feed only carries publicly visible stock.
+	return all
+		.filter((raw) => (raw.status ?? "active") === "active")
+		.map(mapListing);
 }
 
-/* Reshape one raw EstatePrime record to the site's feed schema (see
+/* Reshape one raw EstatePrime listing to the site's feed schema (see
    docs/listings-feed.md). Keep the OUTPUT shape stable — the front-end
-   depends on it; adjust only the raw.* field names to match the API. */
+   depends on it; adjust only the raw.* field names.
+   TODO(listing-schema): verify every raw.* below against the real
+   `Listing` schema (currently inferred from `ExternalListing`). */
 function mapListing(raw) {
-	// TODO(estateprime-docs): every raw.* access below is a guess.
 	return {
 		id: String(raw.id),
-		code: raw.code ?? raw.reference ?? null,
+		code: raw.code ?? raw.listing_code ?? null,
 		title: raw.title ?? null,
-		transaction: raw.transaction ?? raw.purpose ?? null, // "sale" | "rent"
-		category: raw.category ?? raw.type ?? null,
+		transaction: raw.availability ?? null, // sale | rent | auction | shortterm
+		category: raw.subcategory ?? raw.category ?? null,
 		price: numberOrNull(raw.price),
-		area: numberOrNull(raw.area ?? raw.sqm),
-		bedrooms: numberOrNull(raw.bedrooms),
+		area: numberOrNull(raw.size),
+		bedrooms: numberOrNull(raw.rooms),
 		bathrooms: numberOrNull(raw.bathrooms),
 		floor: raw.floor ?? null,
-		yearBuilt: numberOrNull(raw.year_built ?? raw.construction_year),
+		yearBuilt: numberOrNull(raw.construction_year ?? raw.year_built),
 		location: {
-			area: raw.area_name ?? raw.neighborhood ?? null,
-			city: raw.city ?? "Θεσσαλονίκη",
-			lat: numberOrNull(raw.lat ?? raw.latitude),
-			lng: numberOrNull(raw.lng ?? raw.longitude),
+			area: raw.area_level2_name ?? raw.area_name ?? null,
+			city: raw.area_level1_name ?? "Θεσσαλονίκη",
+			lat: numberOrNull(raw.latitude ?? raw.location?.latitude),
+			lng: numberOrNull(raw.longitude ?? raw.location?.longitude),
 		},
-		images: Array.isArray(raw.images) ? raw.images.map((i) => i.url ?? i) : [],
+		images: Array.isArray(raw.images) ? raw.images.map((i) => i?.url ?? i) : [],
 		features: Array.isArray(raw.features) ? raw.features : [],
 		description: raw.description ?? null,
-		updatedAt: raw.updated_at ?? null,
+		updatedAt: raw.date_updated ?? raw.date_created ?? null,
 	};
 }
 
