@@ -46,7 +46,8 @@ crons = ["15 3 * * *"]
 # "1" = feed from sample data; flip to "0" once the EstatePrime adapter
 # in worker/lib/estateprime.mjs is verified against their API docs.
 SAMPLE_DATA = "1"
-WEBHOOK_PATH = "/webhooks/estateprime"
+# Full webhook URL: https://webhooks.four-walls.gr/listings
+WEBHOOK_PATH = "/listings"
 
 # Secrets (NOT here — set with `npx wrangler secret put <NAME>`):
 #   WEBHOOK_KEY           shared secret for the EstatePrime webhook

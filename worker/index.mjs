@@ -25,7 +25,7 @@
 import { buildFeed } from "./lib/estateprime.mjs";
 
 const FEED_KEY = "listings.json";
-const DEFAULT_WEBHOOK_PATH = "/webhooks/estateprime";
+const DEFAULT_WEBHOOK_PATH = "/listings"; // overridden by WEBHOOK_PATH var
 
 export default {
 	async fetch(request, env, ctx) {
@@ -75,9 +75,13 @@ async function handleWebhook(request, env, ctx, url) {
 		return new Response("Webhook not configured", { status: 500 });
 	}
 	if (tokenFrom(request, url) !== env.WEBHOOK_KEY) {
-		// Header NAMES only — helps identify EstatePrime's token mechanism
-		// from `wrangler tail` without ever logging secret values.
-		console.warn("webhook: rejected call; headers present:", [...request.headers.keys()].join(", "));
+		// Header NAMES and body FIELD NAMES only (never values) — enough to
+		// identify EstatePrime's token mechanism from the logs.
+		let bodyKeys = "(not JSON)";
+		try {
+			bodyKeys = Object.keys(JSON.parse(await request.text())).join(", ") || "(empty)";
+		} catch { /* non-JSON or empty body */ }
+		console.warn(`webhook: rejected call; headers: ${[...request.headers.keys()].join(", ")}; body keys: ${bodyKeys}`);
 		return new Response("Forbidden", { status: 403 });
 	}
 
