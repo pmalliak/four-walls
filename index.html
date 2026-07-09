@@ -89,6 +89,9 @@
 										<a class="nav-link" href="index.html">Αρχική</a>
 									</li>
 									<li class="nav-item">
+										<a class="nav-link" href="akinita.html">Ακίνητα</a>
+									</li>
+									<li class="nav-item">
 										<a class="nav-link" href="service_01.html">Υπηρεσίες</a>
 									</li>
 									<li class="nav-item">
@@ -248,13 +251,13 @@
 					<div class="col-xxl-10 m-auto">
 						<div class="search-wrapper-one layout-one bg position-relative">
 							<div class="bg-wrapper">
-								<form action="listing_01.html">
+								<form action="akinita.html" method="get">
 									<div class="row gx-0 align-items-center">
 										<div class="col-12 col-xl-2">
 											<div class="input-box-one border-left">
 												<div class="label">Ενδιαφέρομαι για...</div>
-												<select id="fw-deal" class="nice-select">
-													<option value="buy">Αγορά</option>
+												<select id="fw-deal" name="transaction" class="nice-select">
+													<option value="sale">Αγορά</option>
 													<option value="rent">Ενοικίαση</option>
 												</select>
 											</div>
@@ -263,7 +266,7 @@
 										<div class="col-md-4 col-xl-3">
 											<div class="input-box-one border-left">
 												<div class="label">Τύπος ακινήτου</div>
-												<select class="nice-select">
+												<select name="type" class="nice-select">
 													<option value="apartment">Διαμέρισμα</option>
 													<option value="maisonette">Μεζονέτα</option>
 													<option value="house">Μονοκατοικία</option>
@@ -276,14 +279,15 @@
 										<div class="col-md-4 col-xl-2">
 											<div class="input-box-one border-left">
 												<div class="label">Περιοχή</div>
-												<select class="nice-select location">
-													<option value="1">Κέντρο</option>
-													<option value="2">Καλαμαριά</option>
-													<option value="3">Τούμπα</option>
-													<option value="4">Πανόραμα</option>
-													<option value="5">Ωραιόκαστρο</option>
-													<option value="6">Εύοσμος </option>
-													<option value="7">Αμπελόκηποι</option>
+												<select name="area" class="nice-select location">
+													<option value="">Όλες οι περιοχές</option>
+													<option value="Κέντρο">Κέντρο</option>
+													<option value="Καλαμαριά">Καλαμαριά</option>
+													<option value="Τούμπα">Τούμπα</option>
+													<option value="Πανόραμα">Πανόραμα</option>
+													<option value="Ωραιόκαστρο">Ωραιόκαστρο</option>
+													<option value="Εύοσμος">Εύοσμος</option>
+													<option value="Αμπελόκηποι">Αμπελόκηποι</option>
 												</select>
 											</div>
 											<!-- /.input-box-one -->
@@ -291,7 +295,7 @@
 										<div class="col-md-4 col-xl-3">
 											<div class="input-box-one border-left border-lg-0">
 												<div class="label">Εύρος τιμής</div>
-												<select id="fw-price" class="nice-select">
+												<select id="fw-price" name="price" class="nice-select">
 													<option value="1">Έως €100.000</option>
 													<option value="2">€100.000-200.000</option>
 													<option value="3">€200.000-300.000</option>
@@ -529,7 +533,7 @@
 									<h5 class="text-white fw-normal">Κέντρο</h5>
 									<p class="text-white fw-light">Ακίνητα</p>
 								</div>
-								<a href="listing_01.html" class="stretched-link"></a>
+								<a href="akinita.html?area=Κέντρο" class="stretched-link"></a>
 							</div>
 							<!-- /.location-card-one -->
 						</div>
@@ -539,7 +543,7 @@
 									<h5 class="text-white fw-normal">Καλαμαριά</h5>
 									<p class="text-white fw-light">Ακίνητα</p>
 								</div>
-								<a href="listing_01.html" class="stretched-link"></a>
+								<a href="akinita.html?area=Καλαμαριά" class="stretched-link"></a>
 							</div>
 							<!-- /.location-card-one -->
 						</div>
@@ -549,7 +553,7 @@
 									<h5 class="text-white fw-normal">Πανόραμα</h5>
 									<p class="text-white fw-light">Ακίνητα</p>
 								</div>
-								<a href="listing_01.html" class="stretched-link"></a>
+								<a href="akinita.html?area=Πανόραμα" class="stretched-link"></a>
 							</div>
 							<!-- /.location-card-one -->
 						</div>
@@ -559,7 +563,7 @@
 									<h5 class="text-white fw-normal">Αμπελόκηποι</h5>
 									<p class="text-white fw-light">Ακίνητα</p>
 								</div>
-								<a href="listing_01.html" class="stretched-link"></a>
+								<a href="akinita.html?area=Αμπελόκηποι" class="stretched-link"></a>
 							</div>
 							<!-- /.location-card-one -->
 						</div>
@@ -569,7 +573,7 @@
 									<h5 class="text-white fw-normal">Τούμπα</h5>
 									<p class="text-white fw-light">Ακίνητα</p>
 								</div>
-								<a href="listing_01.html" class="stretched-link"></a>
+								<a href="akinita.html?area=Τούμπα" class="stretched-link"></a>
 							</div>
 							<!-- /.location-card-one -->
 						</div>
@@ -579,7 +583,7 @@
 									<h5 class="text-white fw-normal">Εύοσμος</h5>
 									<p class="text-white fw-light">Ακίνητα</p>
 								</div>
-								<a href="listing_01.html" class="stretched-link"></a>
+								<a href="akinita.html?area=Εύοσμος" class="stretched-link"></a>
 							</div>
 							<!-- /.location-card-one -->
 						</div>
@@ -589,7 +593,7 @@
 									<h5 class="text-white fw-normal">Ωραιόκαστρο</h5>
 									<p class="text-white fw-light">Ακίνητα</p>
 								</div>
-								<a href="listing_01.html" class="stretched-link"></a>
+								<a href="akinita.html?area=Ωραιόκαστρο" class="stretched-link"></a>
 							</div>
 							<!-- /.location-card-one -->
 						</div>
@@ -1161,7 +1165,7 @@
 								<h5 class="footer-title">Σύνδεσμοι</h5>
 								<ul class="footer-nav-link style-none">
 									<li><a href="index.html">Αρχική</a></li>
-									<li><a href="listing_01.html">Ακίνητα</a></li>
+									<li><a href="akinita.html">Ακίνητα</a></li>
 									<li><a href="about_us_01.html">Σχετικά με εμάς</a></li>
 									<li><a href="blog_01.html">Άρθρα</a></li>
 									<li><a href="blog_02.html">Πώς δουλεύουμε</a></li>
@@ -1184,12 +1188,12 @@
 							<div class="footer-nav">
 								<h5 class="footer-title">Κατηγορίες</h5>
 								<ul class="footer-nav-link style-none">
-									<li><a href="listing_01.html">Διαμερίσματα</a></li>
-									<li><a href="listing_02.html">Μεζονέτες</a></li>
-									<li><a href="listing_03.html">Γκαρσονιέρες</a></li>
-									<li><a href="listing_04.html">Επαγγελματικά</a></li>
-									<li><a href="listing_05.html">Οικόπεδα</a></li>
-									<li><a href="listing_06.html">Επαγγελματικά</a></li>
+									<li><a href="akinita.html?type=apartment">Διαμερίσματα</a></li>
+									<li><a href="akinita.html?type=maisonette">Μεζονέτες</a></li>
+									<li><a href="akinita.html?type=house">Μονοκατοικίες</a></li>
+									<li><a href="akinita.html?type=commercial">Επαγγελματικά</a></li>
+									<li><a href="akinita.html?type=land">Οικόπεδα</a></li>
+									<li><a href="akinita.html?transaction=rent">Ενοικιάσεις</a></li>
 								</ul>
 							</div>
 						</div>

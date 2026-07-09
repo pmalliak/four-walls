@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="el">
 
 <head>
 	<meta charset="UTF-8">
 	<meta name="keywords" content="Real estate, Property sale, Property buy">
-	<meta name="description" content="Homy is a beautiful website template designed for Real Estate Agency.">
+	<meta name="description" content="Λεπτομέρειες ακινήτου — Four Walls, Θεσσαλονίκη.">
     <meta property="og:site_name" content="Homy">
     <meta property="og:url" content="https://creativegigstf.com">
     <meta property="og:type" content="website">
     <meta property="og:title" content="Homy-Real Estate HTML5 Template & Dashboard">
-	<meta name='og:image' content='images/assets/ogg.fw.png'>
+	<meta name='og:image' content='images/assets/ogg.png'>
 	<!-- For IE -->
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<!-- For Resposive Device -->
@@ -21,17 +21,17 @@
 	<meta name="msapplication-navbutton-color" content="#0D1A1C">
 	<!-- iOS Safari -->
 	<meta name="apple-mobile-web-app-status-bar-style" content="#0D1A1C">
-	<title>Σχετικά με εμάς · Four Walls Real Estate</title>
+	<title>Ακίνητο | Four Walls</title>
 	<!-- Favicon -->
 	<link rel="icon" type="image/png" sizes="56x56" href="images/fav-icon/icon.fw.png">
 	<!-- Bootstrap CSS -->
 	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" media="all">
 	<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
-	<!-- Main style sheet -->
+	<!-- Main style sheet (Four Walls brand build) -->
 	<link rel="stylesheet" type="text/css" href="css/style.fw.min.css" media="all">
 	<!-- responsive style sheet -->
 	<link rel="stylesheet" type="text/css" href="css/responsive.css" media="all">
-	<!-- Four Walls custom overrides -->
+	<!-- Four Walls custom overrides (loaded last so they win) -->
 	<link rel="stylesheet" type="text/css" href="css/fourwalls.css" media="all">
 
 	<!-- Fix Internet Explorer ______________________________________-->
@@ -234,196 +234,244 @@
 
 
 
-		<!-- 
+		<!--
 		=============================================
 			Inner Banner
-		============================================== 
+		==============================================
 		-->
 		<div class="inner-banner-one inner-banner bg-pink text-center z-1 pt-160 lg-pt-130 pb-160 xl-pb-120 md-pb-80 position-relative">
 			<div class="container">
-                <h3 class="mb-35 xl-mb-20 pt-15">Το γραφείο μας</h3>
-                <ul class="theme-breadcrumb style-none d-inline-flex align-items-center justify-content-center position-relative z-1 bottom-line">
-                    <li><a href="index.html">Αρχική</a></li>
-                    <li>/</li>
-                    <li> Ποιοί είμαστε</li>
-                </ul>
+				<h3 class="mb-35 xl-mb-20 pt-15">Λεπτομέρειες ακινήτου</h3>
+				<ul class="theme-breadcrumb style-none d-inline-flex align-items-center justify-content-center position-relative z-1 bottom-line">
+					<li><a href="index.html">Αρχική</a></li>
+					<li>/</li>
+					<li><a href="akinita.html">Ακίνητα</a></li>
+					<li>/</li>
+					<li>Λεπτομέρειες</li>
+				</ul>
 			</div>
 			<img src="images/lazy.svg" data-src="images/assets/ils_07.fw.svg" alt="" class="lazy-img shapes w-100 illustration">
 		</div>
 		<!-- /.inner-banner-one -->
 
-		
 
 
 		<!--
 		=====================================================
-			BLock Feature Two
+			Property Listing Details
 		=====================================================
 		-->
-		<div class="block-feature-two mt-150 xl-mt-100">
+		<div id="fw-detail" class="listing-details-one theme-details-one bg-pink pt-110 md-pt-80 pb-150 xl-pb-120">
 			<div class="container">
-				<div class="row gx-xl-5">
-					<div class="col-lg-6 wow fadeInLeft">
-						<div class="me-xxl-4">
-                            <div class="title-one mb-60 lg-mb-40">
-                                <h3>Το επόμενο <span>σπίτι<img src="images/lazy.svg" data-src="images/shape/title_shape_06.fw.svg" alt="" class="lazy-img"></span> σας.</h3>
-                                <p class="fs-22">Η Four Walls είναι μεσιτικό γραφείο στο κέντρο της Θεσσαλονίκης, με προσωπική επαφή και βαθιά γνώση της τοπικής αγοράς.</p>
-                            </div>
-                            <!-- /.title-one -->
-                            <a href="contact.html" class="btn-two">Επικοινωνία</a>
+				<div class="row">
+                    <div class="col-lg-7">
+                        <h3 class="property-titlee" id="fw-title">Φόρτωση…</h3>
+                        <div class="d-flex flex-wrap mt-10">
+                            <div class="list-type text-uppercase border-20 mt-15 me-3" id="fw-tag"></div>
+                            <div class="address mt-15"><i class="bi bi-geo-alt"></i><span id="fw-address"></span></div>
                         </div>
-					</div>
-					<div class="col-lg-6 wow fadeInRight">
-						<div class="block-two md-mt-40">
-							<div class="bg-wrapper">
-								<h5>Ποιοι είμαστε</h5>
-								<p class="fs-22 lh-lg mt-20">Ξεκινήσαμε με μια απλή ιδέα: σοβαρή μεσιτική δουλειά, με διαφάνεια και προσωπική επαφή. Γνωρίζουμε σε βάθος το Κέντρο, το Ωραιόκαστρο και την ευρύτερη αγορά της Θεσσαλονίκης, και δίνουμε εκτιμήσεις με βάση πραγματικά δεδομένα γειτονιάς.</p>
-								<h5 class="top-line">Η αποστολή μας </h5>
-								<p class="fs-22 lh-lg mt-20">Να αξιοποιούμε κάθε ακίνητο με τον καλύτερο δυνατό τρόπο: με διαφάνεια, χωρίς κρυφά κόστη και χωρίς περιττή ταλαιπωρία. </p>
-							</div>
-							<!-- /.bg-wrapper -->
+                        <div class="fs-16 mt-15" id="fw-code"></div>
+                    </div>
+                    <div class="col-lg-5 text-lg-end">
+                        <div class="d-inline-block md-mt-40 fw-when-found">
+                            <div class="price color-dark fw-500" id="fw-price"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="media-gallery mt-100 xl-mt-80 lg-mt-60 fw-when-found">
+                    <div id="media_slider" class="carousel slide row">
+                        <div class="col-lg-10">
+                            <div class="bg-white shadow4 border-20 p-30 md-mb-20">
+                                <div class="position-relative z-1 overflow-hidden border-20">
+                                    <div class="img-fancy-btn border-10 fw-500 fs-16 color-dark" id="fw-photos-btn"></div>
+                                    <div class="carousel-inner" id="fw-gallery"></div>
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#media_slider" data-bs-slide="prev">
+                                        <i class="bi bi-chevron-left"></i>
+                                        <span class="visually-hidden">Προηγούμενη</span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#media_slider" data-bs-slide="next">
+                                        <i class="bi bi-chevron-right"></i>
+                                        <span class="visually-hidden">Επόμενη</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-2">
+                            <div class="carousel-indicators position-relative border-15 bg-white shadow4 p-15 w-100 h-100" id="fw-thumbs"></div>
+                        </div>
+                    </div>
+                </div>
+				<!-- /.media-gallery -->
+				<div class="property-feature-list bg-white shadow4 border-20 p-40 mt-50 mb-60 fw-when-found">
+					<h4 class="sub-title-one mb-40 lg-mb-20">Με μια ματιά</h4>
+					<ul class="style-none d-flex flex-wrap align-items-center justify-content-between" id="fw-overview"></ul>
+				</div>
+				<!-- /.property-feature-list -->
+				<div class="row">
+					<div class="col-xl-8">
+						<div class="property-overview bg-white shadow4 border-20 p-40 mb-50 fw-when-found">
+							<h4 class="mb-20">Περιγραφή</h4>
+							<p class="fs-20 lh-lg fw-pre-line" id="fw-description"></p>
 						</div>
-						<!-- /.block-two -->
+						<!-- /.property-overview -->
+						<div class="property-feature-accordion bg-white shadow4 border-20 p-40 mb-50 fw-when-found">
+							<h4 class="mb-20">Στοιχεία ακινήτου</h4>
+							<div class="accordion-style-two mt-25">
+								<div class="accordion" id="accordionTwo">
+									<div class="accordion-item">
+										<h2 class="accordion-header">
+											<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOneA" aria-expanded="false" aria-controls="collapseOneA">
+												Αναλυτικά στοιχεία
+											</button>
+										</h2>
+										<div id="collapseOneA" class="accordion-collapse collapse show" data-bs-parent="#accordionTwo">
+											<div class="accordion-body">
+												<div class="feature-list-two">
+													<ul class="style-none d-flex flex-wrap justify-content-between" id="fw-details-list"></ul>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<!-- /.property-feature-accordion -->
+						<div class="property-amenities bg-white shadow4 border-20 p-40 mb-50 fw-when-found" id="fw-amenities-block">
+							<h4 class="mb-20">Παροχές & χαρακτηριστικά</h4>
+							<ul class="style-none d-flex flex-wrap justify-content-between list-style-two" id="fw-amenities"></ul>
+						</div>
+						<!-- /.property-amenities -->
+
+						<div class="property-video-tour mb-50" id="fw-video-block" style="display:none;">
+							<h4 class="mb-40">Βίντεο</h4>
+							<div class="bg-white shadow4 border-20 p-15">
+								<div class="position-relative border-15 image-bg overflow-hidden z-1">
+									<img src="images/lazy.svg" alt="" class="w-100" id="fw-video-poster">
+									<a class="video-icon tran3s rounded-circle d-flex align-items-center justify-content-center" data-fancybox href="" id="fw-video-link">
+										<i class="fa-thin fa-play"></i>
+									</a>
+								</div>
+							</div>
+						</div>
+						<!-- /.property-video-tour -->
+
+						<!-- /.property-floor-plan -->
+
+						<!-- /.property-nearby -->
+
+						<div class="similar-property fw-when-found" id="fw-similar-block">
+							<h4 class="mb-40">Παρόμοια ακίνητα</h4>
+							<div class="row" id="fw-similar"></div>
+						</div>
+						<!-- /.similar-property -->
+
+						<!-- /.property-score -->
+
+						<div class="property-location mb-50 fw-when-found" id="fw-map-block">
+							<h4 class="mb-10">Τοποθεσία</h4>
+							<p class="fs-16 pb-20 m0">Η θέση στον χάρτη είναι κατά προσέγγιση.</p>
+							<div class="bg-white shadow4 border-20 p-30">
+								<div class="map-banner overflow-hidden border-15">
+									<div class="gmap_canvas h-100 w-100">
+										<iframe id="fw-map" src="" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="w-100 h-100"></iframe>
+									</div>
+								</div>
+							</div>
+						</div>
+						<!-- /.property-location -->
+
+						<!-- /.review-panel-one -->
+
+						<!-- /.review-form -->
+					</div>
+					<div class="col-xl-4 col-lg-8 me-auto ms-auto">
+						<div class="theme-sidebar-one dot-bg p-30 ms-xxl-3 lg-mt-80 fw-when-found">
+							<div class="agent-info bg-white border-20 p-30 mb-40">
+								<img src="images/fav-icon/icon.fw.png" alt="Four Walls" class="rounded-circle ms-auto me-auto mt-3 avatar">
+								<div class="text-center mt-25">
+									<h6 class="name">Four Walls</h6>
+									<p class="fs-16">Μεσιτικό γραφείο · Θεσσαλονίκη</p>
+									<ul class="style-none d-flex align-items-center justify-content-center social-icon">
+										<li><a href="https://www.facebook.com/profile.php?id=100080116216895" target="_blank" rel="noopener"><i class="fa-brands fa-facebook-f"></i></a></li>
+										<li><a href="https://www.instagram.com/fourwalls_skg/" target="_blank" rel="noopener"><i class="fa-brands fa-instagram"></i></a></li>
+									</ul>
+								</div>
+								<div class="divider-line mt-40 mb-45 pt-20">
+									<ul class="style-none">
+										<li>Διεύθυνση: <span>Φραγκίνη 9, Θεσσαλονίκη</span></li>
+										<li>Email: <span><a href="mailto:info@four-walls.gr">info@four-walls.gr</a></span></li>
+									</ul>
+								</div>
+								<a href="contact.html" class="btn-nine text-uppercase rounded-3 w-100 mb-10">Επικοινωνια</a>
+							</div>
+							<!-- /.agent-info -->
+
+							<div class="tour-schedule bg-white border-20 p-30">
+								<h5 class="mb-40">Ενδιαφέρομαι για το ακίνητο</h5>
+								<form action="#">
+									<div class="input-box-three mb-25">
+										<div class="label">Ονοματεπώνυμο*</div>
+										<input type="text" placeholder="Το όνομά σας" class="type-input">
+									</div>
+									<!-- /.input-box-three -->
+									<div class="input-box-three mb-25">
+										<div class="label">Email*</div>
+										<input type="email" placeholder="Το email σας" class="type-input">
+									</div>
+									<!-- /.input-box-three -->
+									<div class="input-box-three mb-25">
+										<div class="label">Τηλέφωνο*</div>
+										<input type="tel" placeholder="Το τηλέφωνό σας" class="type-input">
+									</div>
+									<!-- /.input-box-three -->
+									<div class="input-box-three mb-15">
+										<div class="label">Μήνυμα*</div>
+										<textarea id="fw-inquiry-msg"></textarea>
+									</div>
+									<!-- /.input-box-three -->
+									<button class="btn-nine text-uppercase rounded-3 w-100 mb-10">Αποστολη</button>
+								</form>
+							</div>
+							<!-- /.tour-schedule -->
+						</div>
+						<!-- /.theme-sidebar-one -->
 					</div>
 				</div>
 			</div>
-			<!-- /.wrapper -->
 		</div>
-		<!-- /.block-feature-two -->
+		<!-- /.listing-details-one -->
 
 
-        <!--
+
+		<!--
 		=====================================================
-			BLock Feature Five
+			Fancy Banner Two
 		=====================================================
 		-->
-		<div class="block-feature-five position-relative z-1 pt-170 xl-pt-120 pb-130 xl-pb-100 lg-pb-80">
+		<div class="fancy-banner-two position-relative z-1 pt-90 lg-pt-50 pb-90 lg-pb-50">
 			<div class="container">
-				<div class="row">
-					<div class="col-xl-8 m-auto">
-						<div class="title-one text-center mb-35 lg-mb-20">
-							<h3>Είμαστε εδώ για να <br> βρείτε το <span>σπίτι σας<img src="images/lazy.svg" data-src="images/shape/title_shape_07.fw.svg" alt="" class="lazy-img"></span></h3>
-							<p class="fs-24 color-dark">Ξεκινήστε μαζί μας σε λίγα απλά βήματα.</p>
+				<div class="row align-items-center">
+					<div class="col-lg-6">
+						<div class="title-one text-center text-lg-start md-mb-40 pe-xl-5">
+							<h3 class="text-white m0">Ξεκινήστε το <span>ταξίδι σας<img src="images/lazy.svg" data-src="images/shape/title_shape_06.fw.svg" alt="" class="lazy-img"></span> μαζί μας.</h3>
 						</div>
 						<!-- /.title-one -->
 					</div>
-				</div>
-				<div class="row justify-content-between">
-					<div class="col-xxl-11 m-auto">
-						<div class="row gx-xl-5 justify-content-center">
-							<div class="col-lg-4 col-sm-6">
-								<div class="card-style-one text-center wow fadeInUp mt-40">
-									<img src="images/lazy.svg" data-src="images/icon/icon_07.fw.svg" alt="" class="lazy-img m-auto icon">
-									<h5 class="mt-50 lg-mt-30 mb-15">Επικοινωνία</h5>
-									<p class="pe-xxl-4 ps-xxl-4">Πείτε μας τι ψάχνετε ή τι θέλετε να διαθέσετε.</p>
-								</div>
-								<!-- /.card-style-one -->
-							</div>
-							<div class="col-lg-4 col-sm-6">
-								<div class="card-style-one text-center wow fadeInUp mt-40 arrow position-relative" data-wow-delay="0.1s">
-									<img src="images/lazy.svg" data-src="images/icon/icon_08.fw.svg" alt="" class="lazy-img m-auto icon">
-									<h5 class="mt-50 lg-mt-30 mb-15">Επιλογή & επίσκεψη</h5>
-									<p class="pe-xxl-4 ps-xxl-4">Σας προτείνουμε ακίνητα και οργανώνουμε τις επισκέψεις.</p>
-								</div>
-								<!-- /.card-style-one -->
-							</div>
-							<div class="col-lg-4 col-sm-6">
-								<div class="card-style-one text-center wow fadeInUp mt-40" data-wow-delay="0.2s">
-									<img src="images/lazy.svg" data-src="images/icon/icon_09.fw.svg" alt="" class="lazy-img m-auto icon">
-									<h5 class="mt-50 lg-mt-30 mb-15">Ολοκλήρωση</h5>
-									<p class="pe-xxl-4 ps-xxl-4">Διαπραγμάτευση, νομικός έλεγχος και υπογραφή, με υποστήριξη σε κάθε βήμα.</p>
-								</div>
-								<!-- /.card-style-one -->
-							</div>
+					<div class="col-lg-6">
+						<div class="form-wrapper me-auto ms-auto me-lg-0">
+							<form action="#">
+								<input type="email" placeholder="Το email σας">
+								<button>Ξεκινήστε</button>
+							</form>
+							<div class="fs-16 mt-10 text-white">Είστε ιδιοκτήτης; <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal">Συνδεθείτε.</a></div>
 						</div>
 					</div>
 				</div>
 			</div>
-			<img src="images/lazy.svg" data-src="images/shape/shape_07.fw.svg" alt="" class="lazy-img shapes shape_01">
-			<img src="images/lazy.svg" data-src="images/shape/shape_08.fw.svg" alt="" class="lazy-img shapes shape_02">
 		</div>
-		<!-- /.block-feature-five -->
+		<!-- /.fancy-banner-two -->
 
 
-
-
-		<!--
-		=====================================================
-			Feedback Section Six (blue gradient) — real reviews from index
-		=====================================================
-		-->
-		<div class="feedback-section-six fw-reviews-blue position-relative z-1 pt-110 xl-pt-80 pb-100 xl-pb-80">
-			<div class="container">
-				<div class="title-one text-center mb-80 xl-mb-50 md-mb-30">
-					<h3>Τι λένε οι πελάτες</h3>
-					<p class="fs-20 mt-xs">Η ικανοποίηση των πελατών μας τα λέει όλα.</p>
-				</div>
-				<!-- /.title-one -->
-				<div class="feedback-slider-three">
-					<div class="item">
-						<div class="feedback-block-six rounded-4">
-							<div class="d-flex justify-content-between align-items-center">
-								<ul class="rating style-none d-flex">
-									<li><i class="fa-sharp fa-solid fa-star"></i></li>
-									<li><i class="fa-sharp fa-solid fa-star"></i></li>
-									<li><i class="fa-sharp fa-solid fa-star"></i></li>
-									<li><i class="fa-sharp fa-solid fa-star"></i></li>
-									<li><i class="fa-sharp fa-solid fa-star"></i></li>
-								</ul>
-								<img src="images/icon/icon_29.svg" alt="" class="icon">
-							</div>
-							<blockquote>Γνώστες του είδους και πολύ ευγενικοί, ξεχωρίζουν!</blockquote>
-							<div class="d-flex align-items-center justify-content-between">
-								<h6 class="fs-20 m0">Θάνος Γιουβανούδης, <span class="fw-normal opacity-50">Τοπικός οδηγός · 19 κριτικές</span></h6>
-								<img src="images/avatar/reviewer-default.fw.svg" alt="" class="rounded-circle avatar">
-							</div>
-						</div>
-						<!-- /.feedback-block-six -->
-					</div>
-					<div class="item">
-						<div class="feedback-block-six rounded-4">
-							<div class="d-flex justify-content-between align-items-center">
-								<ul class="rating style-none d-flex">
-									<li><i class="fa-sharp fa-solid fa-star"></i></li>
-									<li><i class="fa-sharp fa-solid fa-star"></i></li>
-									<li><i class="fa-sharp fa-solid fa-star"></i></li>
-									<li><i class="fa-sharp fa-solid fa-star"></i></li>
-									<li><i class="fa-sharp fa-solid fa-star"></i></li>
-								</ul>
-								<img src="images/icon/icon_29.svg" alt="" class="icon">
-							</div>
-							<blockquote>Εξαιρετικοί!!!</blockquote>
-							<div class="d-flex align-items-center justify-content-between">
-								<h6 class="fs-20 m0">Πέτρος Τρύφων, <span class="fw-normal opacity-50">7 κριτικές</span></h6>
-								<img src="images/avatar/reviewer-default.fw.svg" alt="" class="rounded-circle avatar">
-							</div>
-						</div>
-						<!-- /.feedback-block-six -->
-					</div>
-					<div class="item">
-						<div class="feedback-block-six rounded-4">
-							<div class="d-flex justify-content-between align-items-center">
-								<ul class="rating style-none d-flex">
-									<li><i class="fa-sharp fa-solid fa-star"></i></li>
-									<li><i class="fa-sharp fa-solid fa-star"></i></li>
-									<li><i class="fa-sharp fa-solid fa-star"></i></li>
-									<li><i class="fa-sharp fa-solid fa-star"></i></li>
-									<li><i class="fa-sharp fa-solid fa-star"></i></li>
-								</ul>
-								<img src="images/icon/icon_29.svg" alt="" class="icon">
-							</div>
-							<blockquote>Πολύ ευγενικοί, πολύ σωστοί στη δουλειά τους και πάνω απ' όλα ακούν τις ανάγκες σου!</blockquote>
-							<div class="d-flex align-items-center justify-content-between">
-								<h6 class="fs-20 m0">Παναγιώτης Αθανασιάδης, <span class="fw-normal opacity-50">Τοπικός οδηγός · 24 κριτικές</span></h6>
-								<img src="images/avatar/reviewer-default.fw.svg" alt="" class="rounded-circle avatar">
-							</div>
-						</div>
-						<!-- /.feedback-block-six -->
-					</div>
-				</div>
-			</div>
-		</div>
-		<!-- /.feedback-section-six -->
 
 
 		<!-- FW:INCLUDE footer — generated by tools/sync-partials.js; edit partials/footer.html -->
@@ -511,17 +559,17 @@
 						<div class="form-wrapper m-auto">
 							<ul class="nav nav-tabs w-100" role="tablist">
 								<li class="nav-item" role="presentation">
-									<button class="nav-link active" data-bs-toggle="tab" data-bs-target="#fc1" role="tab"></button>
+									<button class="nav-link active" data-bs-toggle="tab" data-bs-target="#fc1" role="tab">Login</button>
 								</li>
 								<li class="nav-item" role="presentation">
-									<button class="nav-link" data-bs-toggle="tab" data-bs-target="#fc2" role="tab">Εγγραφή</button>
+									<button class="nav-link" data-bs-toggle="tab" data-bs-target="#fc2" role="tab">Signup</button>
 								</li>
 							</ul>
 							<div class="tab-content mt-30">
 								<div class="tab-pane show active" role="tabpanel" id="fc1">
 									<div class="text-center mb-20">
-										<h2>Καλώς ήρθατε!</h2>
-										<p class="fs-20 color-dark">Δεν έχετε λογαριασμό; <a href="#">Εγγραφή</a></p>
+										<h2>Welcome Back!</h2>
+										<p class="fs-20 color-dark">Still don't have an account? <a href="#">Sign up</a></p>
 									</div>
 									<form action="#">
 										<div class="row">
@@ -533,7 +581,7 @@
 											</div>
 											<div class="col-12">
 												<div class="input-group-meta position-relative mb-20">
-													<label>Κωδικός*</label>
+													<label>Password*</label>
 													<input type="password" placeholder="Enter Password" class="pass_log_id">
 													<span class="placeholder_icon"><span class="passVicon"><img src="images/icon/icon_68.svg" alt=""></span></span>
 												</div>
@@ -542,13 +590,13 @@
 												<div class="agreement-checkbox d-flex justify-content-between align-items-center">
 													<div>
 														<input type="checkbox" id="remember">
-														<label for="remember">Να παραμένω συνδεδεμένος</label>
+														<label for="remember">Keep me logged in</label>
 													</div>
-													<a href="#">Ξεχάσατε τον κωδικό;</a>
+													<a href="#">Forget Password?</a>
 												</div> <!-- /.agreement-checkbox -->
 											</div>
 											<div class="col-12">
-												<button class="btn-two w-100 text-uppercase d-block mt-20"></button>
+												<button class="btn-two w-100 text-uppercase d-block mt-20">Login</button>
 											</div>
 										</div>
 									</form>
@@ -556,14 +604,14 @@
 								<!-- /.tab-pane -->
 								<div class="tab-pane" role="tabpanel" id="fc2">
 									<div class="text-center mb-20">
-										<h2>Εγγραφή</h2>
-										<p class="fs-20 color-dark">Έχετε ήδη λογαριασμό; <a href="#"></a></p>
+										<h2>Register</h2>
+										<p class="fs-20 color-dark">Already have an account? <a href="#">Login</a></p>
 									</div>
 									<form action="#">
 										<div class="row">
 											<div class="col-12">
 												<div class="input-group-meta position-relative mb-25">
-													<label>Όνομα*</label>
+													<label>Name*</label>
 													<input type="text" placeholder="Zubayer Hasan">
 												</div>
 											</div>
@@ -575,7 +623,7 @@
 											</div>
 											<div class="col-12">
 												<div class="input-group-meta position-relative mb-20">
-													<label>Κωδικός*</label>
+													<label>Password*</label>
 													<input type="password" placeholder="Enter Password" class="pass_log_id">
 													<span class="placeholder_icon"><span class="passVicon"><img src="images/icon/icon_68.svg" alt=""></span></span>
 												</div>
@@ -584,12 +632,12 @@
 												<div class="agreement-checkbox d-flex justify-content-between align-items-center">
 													<div>
 														<input type="checkbox" id="remember2">
-														<label for="remember2">Με την εγγραφή αποδέχεστε τους <a href="#">Όρους χρήσης</a> & <a href="#">Πολιτική απορρήτου</a></label>
+														<label for="remember2">By hitting the "Register" button, you agree to the <a href="#">Terms conditions</a> & <a href="#">Privacy Policy</a></label>
 													</div>
 												</div> <!-- /.agreement-checkbox -->
 											</div>
 											<div class="col-12">
-												<button class="btn-two w-100 text-uppercase d-block mt-20">Εγγραφή</button>
+												<button class="btn-two w-100 text-uppercase d-block mt-20">Sign Up</button>
 											</div>
 										</div>
 									</form>
@@ -599,20 +647,20 @@
 							
 							<div class="d-flex align-items-center mt-30 mb-10">
 								<div class="line"></div>
-								<span class="pe-3 ps-3 fs-6">Ή</span>
+								<span class="pe-3 ps-3 fs-6">OR</span>
 								<div class="line"></div>
 							</div>
 							<div class="row">
 								<div class="col-sm-6">
 									<a href="#" class="social-use-btn d-flex align-items-center justify-content-center tran3s w-100 mt-10">
 										<img src="images/icon/google.png" alt="">
-										<span class="ps-3">Συνέχεια με Google</span>
+										<span class="ps-3">Signup with Google</span>
 									</a>
 								</div>
 								<div class="col-sm-6">
 									<a href="#" class="social-use-btn d-flex align-items-center justify-content-center tran3s w-100 mt-10">
 										<img src="images/icon/facebook.png" alt="">
-										<span class="ps-3">Συνέχεια με Facebook</span>
+										<span class="ps-3">Signup with Facebook</span>
 									</a>
 								</div>
 							</div>
@@ -662,6 +710,8 @@
 		<script src="js/theme.js"></script>
 		<!-- Four Walls custom js -->
 		<script src="js/fourwalls.js"></script>
+		<!-- Listings feed renderer -->
+		<script src="js/listings.fw.js"></script>
 	</div> <!-- /.main-page-wrapper -->
 </body>
 

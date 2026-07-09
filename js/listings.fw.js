@@ -1,0 +1,544 @@
+/* =====================================================================
+   Four Walls — listings renderer (grid + detail)
+   ---------------------------------------------------------------------
+   Renders real listings from the feed at data/listings.json (built by
+   the Cloudflare Worker from the EstatePrime CRM — docs/listings-feed.md).
+
+   Pages:
+     akinita.html  — grid + filters. Activates when #fw-grid exists.
+                     Reads initial filters from the URL (?transaction=
+                     sale|rent, type=apartment|maisonette|house|commercial|
+                     land, area=<text>, price=1..5, sort=...).
+     akinito.html  — single listing. Activates when #fw-detail exists.
+                     Reads ?id=<listing id>.
+
+   No pagination by design — the stock is a few dozen listings.
+   ===================================================================== */
+(function () {
+	"use strict";
+
+	var FEED_URL = "data/listings.json";
+
+	/* ---------------- Greek labels for CRM slugs ---------------- */
+
+	var SUBCATEGORY = {
+		apartment: "Διαμέρισμα", maisonette: "Μεζονέτα", detached: "Μονοκατοικία",
+		villa: "Βίλα", loft: "Loft", residential_building: "Κτίριο κατοικιών",
+		apartment_complex: "Συγκρότημα διαμερισμάτων", farmhouse: "Αγροικία",
+		houseboat: "Πλωτή κατοικία", other_residential: "Άλλη κατοικία",
+		office: "Γραφείο", store: "Κατάστημα", warehouse: "Αποθήκη",
+		hotel: "Ξενοδοχείο", commercial_building: "Επαγγελματικό κτίριο",
+		hall: "Αίθουσα", industrial_space: "Βιομηχανικός χώρος",
+		craft_space: "Βιοτεχνικός χώρος", other_commercial: "Άλλο επαγγελματικό",
+		plot: "Οικόπεδο", parcel: "Αγροτεμάχιο", island: "Νησί",
+		parking: "Πάρκινγκ", business: "Επιχείρηση", air: "Αέρας", other: "Άλλο"
+	};
+
+	var TRANSACTION = {
+		sale: "Πώληση", rent: "Ενοικίαση",
+		auction: "Πλειστηριασμός", shortterm: "Βραχυχρόνια"
+	};
+
+	var FEATURES = {
+		has_security_door: "Πόρτα ασφαλείας", has_storage_room: "Αποθήκη",
+		has_elevator: "Ασανσέρ", has_attic: "Σοφίτα", has_screens: "Σίτες",
+		has_fireplace: "Τζάκι", has_internal_stairs: "Εσωτερική σκάλα",
+		is_furnished: "Επιπλωμένο", has_alarm: "Συναγερμός",
+		pets_allowed: "Δεκτά κατοικίδια", is_penthouse: "Ρετιρέ",
+		has_awnings: "Τέντες", is_painted: "Βαμμένο", has_fiber: "Οπτική ίνα",
+		has_night_electricity: "Νυχτερινό ρεύμα", has_private_pool: "Ιδιωτική πισίνα",
+		/* view */ mountain: "Θέα βουνό", openspace: "Ανοιχτωσιά", sea: "Θέα θάλασσα",
+		/* positioning */ is_front_facing: "Προσόψεως", is_corner: "Γωνιακό",
+		is_interior: "Εσωτερικό",
+		/* flooring */ marble: "Δάπεδο: μάρμαρο", ceramic_tile: "Δάπεδο: πλακάκι",
+		wood: "Δάπεδο: ξύλο", mosaic: "Δάπεδο: μωσαϊκό"
+	};
+
+	var HEATING = {
+		individual: "Ατομική", autonomous: "Αυτόνομη",
+		central: "Κεντρική", none: "Χωρίς θέρμανση"
+	};
+
+	var CONDITION = {
+		new: "Νεόδμητο", good: "Καλή κατάσταση", renovated: "Ανακαινισμένο",
+		needs_renovation: "Χρήζει ανακαίνισης", under_construction: "Υπό κατασκευή"
+	};
+
+	var ENERGY = {
+		ap: "Α+", a: "Α", bp: "Β+", b: "Β", c: "Γ",
+		d: "Δ", e: "Ε", f: "Ζ", g: "Η"
+	};
+
+	/* Type filter groups (option value -> CRM subcategories) */
+	var TYPE_GROUPS = {
+		apartment: ["apartment", "loft"],
+		maisonette: ["maisonette"],
+		house: ["detached", "villa", "farmhouse", "residential_building",
+			"apartment_complex", "houseboat", "other_residential"],
+		commercial: ["office", "store", "warehouse", "hotel", "commercial_building",
+			"hall", "industrial_space", "craft_space", "other_commercial", "business"],
+		land: ["plot", "parcel", "island"]
+	};
+
+	/* Price bands per transaction (value 1..5, aligned with js/fourwalls.js) */
+	var PRICE_BANDS = {
+		sale: [[0, 100000], [100000, 200000], [200000, 300000], [300000, 500000], [500000, Infinity]],
+		rent: [[0, 400], [400, 600], [600, 900], [900, 1500], [1500, Infinity]]
+	};
+
+	/* ---------------- helpers ---------------- */
+
+	function el(tag, className, text) {
+		var node = document.createElement(tag);
+		if (className) node.className = className;
+		if (text != null) node.textContent = text;
+		return node;
+	}
+
+	function fmtNumber(n) {
+		return new Intl.NumberFormat("el-GR").format(n);
+	}
+
+	function fmtPrice(listing) {
+		if (listing.price == null) return "Κατόπιν επικοινωνίας";
+		var out = "€" + fmtNumber(listing.price);
+		if (listing.transaction === "rent" || listing.transaction === "shortterm") out += "/μήνα";
+		return out;
+	}
+
+	function subcategoryLabel(l) {
+		return SUBCATEGORY[l.subcategory] || SUBCATEGORY[l.category] || l.subcategory || "";
+	}
+
+	function shortAddress(l) {
+		var parts = [];
+		if (l.location.neighbourhood && l.location.neighbourhood !== l.location.area) parts.push(l.location.neighbourhood);
+		if (l.location.area) parts.push(l.location.area);
+		if (!parts.length && l.location.city) parts.push(l.location.city);
+		return parts.join(", ");
+	}
+
+	function fetchFeed() {
+		return fetch(FEED_URL).then(function (res) {
+			if (!res.ok) throw new Error("feed " + res.status);
+			return res.json();
+		});
+	}
+
+	/* ---------------- grid page (akinita.html) ---------------- */
+
+	function initGrid(feed) {
+		var grid = document.getElementById("fw-grid");
+		var listings = feed.listings;
+		var params = new URLSearchParams(window.location.search);
+
+		var controls = {
+			transaction: document.getElementById("fw-f-transaction"),
+			type: document.getElementById("fw-f-type"),
+			area: document.getElementById("fw-f-area"),
+			price: document.getElementById("fw-f-price"),
+			sort: document.getElementById("fw-sort")
+		};
+
+		/* Areas straight from the feed, alphabetically (Greek collation). */
+		var areas = Array.from(new Set(listings.map(function (l) { return l.location.area; })
+			.filter(Boolean))).sort(function (a, b) { return a.localeCompare(b, "el"); });
+		areas.forEach(function (a) {
+			var opt = document.createElement("option");
+			opt.value = a;
+			opt.textContent = a;
+			controls.area.appendChild(opt);
+		});
+
+		/* Preselect from URL (hero form / category links land here). */
+		["transaction", "type", "price", "sort"].forEach(function (key) {
+			var v = params.get(key);
+			if (v && controls[key] && controls[key].querySelector('option[value="' + v + '"]')) {
+				controls[key].value = v;
+			}
+		});
+		var areaParam = (params.get("area") || "").trim();
+		if (areaParam) {
+			/* exact option if it exists, otherwise keep as free-text match */
+			var exact = areas.find(function (a) { return a.toLowerCase() === areaParam.toLowerCase(); });
+			if (exact) controls.area.value = exact;
+		}
+		swapPriceOptions(controls, false);
+
+		/* nice-select has already wrapped the selects — refresh them. */
+		if (window.jQuery) window.jQuery(".fw-filter-select").niceSelect("update");
+
+		function currentFilters() {
+			return {
+				transaction: controls.transaction.value,
+				type: controls.type.value,
+				area: controls.area.value || areaParam,
+				price: controls.price.value,
+				sort: controls.sort.value
+			};
+		}
+
+		function apply() {
+			var f = currentFilters();
+			var out = listings.filter(function (l) {
+				if (f.transaction && l.transaction !== f.transaction) return false;
+				if (f.type && TYPE_GROUPS[f.type] &&
+					TYPE_GROUPS[f.type].indexOf(l.subcategory) === -1) return false;
+				if (f.area) {
+					var hay = [l.location.area, l.location.neighbourhood, l.location.city]
+						.filter(Boolean).join(" ").toLowerCase();
+					if (hay.indexOf(f.area.toLowerCase()) === -1) return false;
+				}
+				if (f.price) {
+					var bands = PRICE_BANDS[f.transaction === "rent" ? "rent" : "sale"];
+					var band = bands[Number(f.price) - 1];
+					if (band && (l.price == null || l.price < band[0] || l.price >= band[1])) return false;
+				}
+				return true;
+			});
+
+			out.sort(function (a, b) {
+				switch (f.sort) {
+					case "price-asc": return (a.price ?? Infinity) - (b.price ?? Infinity);
+					case "price-desc": return (b.price ?? -1) - (a.price ?? -1);
+					case "area-desc": return (b.area ?? 0) - (a.area ?? 0);
+					default: return (b.updatedAt || "").localeCompare(a.updatedAt || "");
+				}
+			});
+
+			render(out);
+
+			var count = document.getElementById("fw-count");
+			if (count) {
+				count.innerHTML = "Εμφάνιση <span class=\"color-dark fw-500\">" + out.length +
+					"</span> από <span class=\"color-dark fw-500\">" + listings.length + "</span> ακίνητα";
+			}
+
+			/* keep the URL shareable */
+			var qs = new URLSearchParams();
+			Object.keys(f).forEach(function (k) { if (f[k]) qs.set(k, f[k]); });
+			var q = qs.toString();
+			history.replaceState(null, "", window.location.pathname + (q ? "?" + q : ""));
+		}
+
+		function render(items) {
+			grid.textContent = "";
+			if (!items.length) {
+				var empty = el("div", "col-12 text-center pt-40 pb-40");
+				empty.appendChild(el("p", "fs-20", "Δεν βρέθηκαν ακίνητα με αυτά τα κριτήρια."));
+				var reset = el("a", "fw-500", "Καθαρισμός φίλτρων");
+				reset.href = window.location.pathname;
+				empty.appendChild(reset);
+				grid.appendChild(empty);
+				return;
+			}
+			items.forEach(function (l) { grid.appendChild(card(l)); });
+		}
+
+		function card(l) {
+			var col = el("div", "col-lg-4 col-md-6 d-flex mb-50");
+			var photos = l.images.slice(0, 3);
+			if (!photos.length) photos = ["images/lazy.svg"];
+			var cid = "fwc-" + l.id;
+			var href = "akinito.html?id=" + encodeURIComponent(l.id);
+
+			var indicators = photos.map(function (_, i) {
+				return '<button type="button" data-bs-target="#' + cid + '" data-bs-slide-to="' + i + '"' +
+					(i === 0 ? ' class="active" aria-current="true"' : '') + ' aria-label="Φωτογραφία ' + (i + 1) + '"></button>';
+			}).join("");
+			var slides = photos.map(function (src, i) {
+				return '<div class="carousel-item' + (i === 0 ? " active" : "") + '">' +
+					'<a href="' + href + '" class="d-block"><img src="' + encodeURI(src) + '" class="w-100" loading="lazy" alt=""></a></div>';
+			}).join("");
+
+			col.innerHTML =
+				'<div class="listing-card-one border-25 h-100 w-100">' +
+					'<div class="img-gallery p-15">' +
+						'<div class="position-relative border-25 overflow-hidden">' +
+							'<div class="tag border-25' + (l.transaction === "sale" ? " sale" : "") + '"></div>' +
+							'<div id="' + cid + '" class="carousel slide">' +
+								(photos.length > 1 ? '<div class="carousel-indicators">' + indicators + '</div>' : '') +
+								'<div class="carousel-inner">' + slides + '</div>' +
+							'</div>' +
+						'</div>' +
+					'</div>' +
+					'<div class="property-info p-25">' +
+						'<a href="' + href + '" class="title tran3s stretched-link"></a>' +
+						'<div class="address"></div>' +
+						'<ul class="style-none feature d-flex flex-wrap align-items-center justify-content-between"></ul>' +
+						'<div class="pl-footer top-border d-flex align-items-center justify-content-between">' +
+							'<strong class="price fw-500 color-dark"></strong>' +
+							'<a href="' + href + '" class="btn-four rounded-circle"><i class="bi bi-arrow-up-right"></i></a>' +
+						'</div>' +
+					'</div>' +
+				'</div>';
+
+			/* Text via textContent — CRM strings must never parse as HTML. */
+			col.querySelector(".tag").textContent = TRANSACTION[l.transaction] || l.transaction || "";
+			col.querySelector(".title").textContent = subcategoryLabel(l) + (l.area ? " " + fmtNumber(l.area) + " τ.μ." : "");
+			col.querySelector(".address").textContent = shortAddress(l);
+			var feats = col.querySelector(".feature");
+			[[l.area != null, fmtNumber(l.area) + " τ.μ."],
+			 [l.bedrooms != null && l.bedrooms > 0, l.bedrooms + " υπν."],
+			 [l.bathrooms != null && l.bathrooms > 0, l.bathrooms + " μπάνι" + (l.bathrooms === 1 ? "ο" : "α")]]
+				.forEach(function (pair) {
+					if (!pair[0]) return;
+					feats.appendChild(el("li", "d-flex align-items-center fs-16", pair[1]));
+				});
+			var price = col.querySelector(".price");
+			if (l.price != null && (l.transaction === "rent" || l.transaction === "shortterm")) {
+				price.textContent = "€" + fmtNumber(l.price) + "/";
+				price.appendChild(el("sub", null, "μήνα"));
+			} else {
+				price.textContent = fmtPrice(l);
+			}
+			return col;
+		}
+
+		/* filter events (nice-select proxies change to the real selects) */
+		Object.keys(controls).forEach(function (k) {
+			if (controls[k]) controls[k].addEventListener("change", function () {
+				if (k === "transaction") swapPriceOptions(controls, true);
+				apply();
+			});
+		});
+		var form = document.getElementById("fw-filter-form");
+		if (form) form.addEventListener("submit", function (e) { e.preventDefault(); apply(); });
+
+		apply();
+	}
+
+	/* Rent and sale price scales differ — rebuild the price options. */
+	function swapPriceOptions(controls, refresh) {
+		var rent = controls.transaction.value === "rent";
+		var labels = rent
+			? ["Έως €400/μήνα", "€400-600/μήνα", "€600-900/μήνα", "€900-1.500/μήνα", "€1.500+/μήνα"]
+			: ["Έως €100.000", "€100.000-200.000", "€200.000-300.000", "€300.000-500.000", "€500.000+"];
+		var keep = controls.price.value;
+		controls.price.textContent = "";
+		var any = document.createElement("option");
+		any.value = "";
+		any.textContent = "Οποιαδήποτε τιμή";
+		controls.price.appendChild(any);
+		labels.forEach(function (label, i) {
+			var opt = document.createElement("option");
+			opt.value = String(i + 1);
+			opt.textContent = label;
+			controls.price.appendChild(opt);
+		});
+		controls.price.value = keep || "";
+		if (refresh && window.jQuery) window.jQuery(controls.price).niceSelect("update");
+	}
+
+	/* ---------------- detail page (akinito.html) ---------------- */
+
+	function initDetail(feed) {
+		var id = new URLSearchParams(window.location.search).get("id");
+		var l = feed.listings.find(function (x) { return x.id === id; });
+		if (!l) {
+			document.getElementById("fw-title").textContent = "Το ακίνητο δεν βρέθηκε";
+			document.getElementById("fw-detail").querySelectorAll(".fw-when-found")
+				.forEach(function (n) { n.style.display = "none"; });
+			return;
+		}
+
+		var title = subcategoryLabel(l) + (l.area ? " " + fmtNumber(l.area) + " τ.μ." : "") +
+			(l.location.area ? ", " + l.location.area : "");
+		document.title = title + " | Four Walls";
+		setText("fw-title", title);
+		setText("fw-tag", TRANSACTION[l.transaction] || l.transaction || "");
+		setText("fw-address", " " + [shortAddress(l), l.location.city].filter(Boolean).join(", "));
+		setText("fw-code", l.code ? "Κωδικός: " + l.code : "");
+		setText("fw-price", "Τιμή: " + fmtPrice(l));
+
+		/* gallery */
+		var photos = l.images.length ? l.images : ["images/lazy.svg"];
+		var inner = document.getElementById("fw-gallery");
+		inner.textContent = "";
+		photos.slice(0, 8).forEach(function (src, i) {
+			var item = el("div", "carousel-item" + (i === 0 ? " active" : ""));
+			var img = document.createElement("img");
+			img.src = src;
+			img.alt = "";
+			img.className = "border-20 w-100";
+			if (i > 0) img.loading = "lazy";
+			item.appendChild(img);
+			inner.appendChild(item);
+		});
+		var thumbs = document.getElementById("fw-thumbs");
+		thumbs.textContent = "";
+		photos.slice(0, 4).forEach(function (src, i) {
+			var b = document.createElement("button");
+			b.type = "button";
+			b.setAttribute("data-bs-target", "#media_slider");
+			b.setAttribute("data-bs-slide-to", String(i));
+			if (i === 0) { b.className = "active"; b.setAttribute("aria-current", "true"); }
+			b.setAttribute("aria-label", "Φωτογραφία " + (i + 1));
+			var img = document.createElement("img");
+			img.src = src;
+			img.alt = "";
+			img.className = "border-10 w-100";
+			img.loading = "lazy";
+			b.appendChild(img);
+			thumbs.appendChild(b);
+		});
+		var photosBtn = document.getElementById("fw-photos-btn");
+		photosBtn.textContent = "";
+		if (photos.length > 1 && photos[0] !== "images/lazy.svg") {
+			photosBtn.appendChild(document.createTextNode("Δείτε και τις " + photos.length + " φωτογραφίες"));
+			photos.forEach(function (src) {
+				var a = document.createElement("a");
+				a.href = src;
+				a.className = "d-block";
+				a.setAttribute("data-fancybox", "mainImg");
+				a.setAttribute("data-caption", title);
+				photosBtn.appendChild(a);
+			});
+		}
+
+		/* overview strip */
+		var ov = document.getElementById("fw-overview");
+		ov.textContent = "";
+		[[l.area != null, fmtNumber(l.area) + " τ.μ."],
+		 [l.bedrooms != null && l.bedrooms > 0, l.bedrooms + " υπνοδωμάτια"],
+		 [l.bathrooms != null && l.bathrooms > 0, l.bathrooms + " μπάνια"],
+		 [l.floor != null && l.floor !== "", "Όροφος: " + l.floor],
+		 [true, subcategoryLabel(l)]]
+			.forEach(function (pair) {
+				if (!pair[0]) return;
+				var li = document.createElement("li");
+				li.appendChild(el("span", "fs-20 color-dark", pair[1]));
+				ov.appendChild(li);
+			});
+
+		/* description */
+		setText("fw-description", l.description || "");
+
+		/* details list */
+		var det = document.getElementById("fw-details-list");
+		det.textContent = "";
+		[["Κωδικός", l.code],
+		 ["Τύπος", subcategoryLabel(l)],
+		 ["Εμβαδόν", l.area != null ? fmtNumber(l.area) + " τ.μ." : null],
+		 ["Υπνοδωμάτια", l.bedrooms],
+		 ["Μπάνια", l.bathrooms],
+		 ["WC", l.wc],
+		 ["Κουζίνες", l.kitchens],
+		 ["Σαλόνια", l.livingRooms],
+		 ["Όροφος", l.floor],
+		 ["Θέσεις στάθμευσης", l.parking],
+		 ["Έτος κατασκευής", l.yearBuilt],
+		 ["Έτος ανακαίνισης", l.yearRenovated],
+		 ["Κατάσταση", CONDITION[l.condition]],
+		 ["Θέρμανση", HEATING[l.heating]],
+		 ["Ενεργειακή κλάση", ENERGY[l.energyClass]],
+		 ["Κοινόχρηστα", l.monthlyMaintenance != null ? "€" + fmtNumber(l.monthlyMaintenance) + "/μήνα" : null]]
+			.forEach(function (pair) {
+				if (pair[1] == null || pair[1] === "") return;
+				var li = document.createElement("li");
+				li.appendChild(el("span", null, pair[0] + ": "));
+				li.appendChild(el("span", "fw-500 color-dark", String(pair[1])));
+				det.appendChild(li);
+			});
+
+		/* amenities (features + view + positioning + flooring) */
+		var slugs = [].concat(l.features || [], l.view || [], l.positioning || [], l.flooring || []);
+		var am = document.getElementById("fw-amenities");
+		am.textContent = "";
+		slugs.forEach(function (slug) {
+			am.appendChild(el("li", null, FEATURES[slug] || slug.replace(/^(has|is)_/, "").replace(/_/g, " ")));
+		});
+		if (!slugs.length) hide("fw-amenities-block");
+
+		/* video tour */
+		if (l.youtubeUrl) {
+			document.getElementById("fw-video-link").href = l.youtubeUrl;
+			var poster = document.getElementById("fw-video-poster");
+			if (poster && photos[0] !== "images/lazy.svg") poster.src = photos[0];
+			show("fw-video-block");
+		}
+
+		/* map (approximate coordinates by design — privacy) */
+		if (l.location.lat != null && l.location.lng != null) {
+			document.getElementById("fw-map").src =
+				"https://maps.google.com/maps?q=" + l.location.lat + "," + l.location.lng +
+				"&z=15&hl=el&output=embed";
+		} else {
+			hide("fw-map-block");
+		}
+
+		/* inquiry message prefill */
+		var msg = document.getElementById("fw-inquiry-msg");
+		if (msg) msg.placeholder = "Γεια σας, ενδιαφέρομαι για το ακίνητο " + (l.code || title) + ".";
+
+		/* similar listings: same transaction + category, closest price */
+		var similar = feed.listings.filter(function (x) {
+			return x.id !== l.id && x.transaction === l.transaction && x.category === l.category;
+		}).sort(function (a, b) {
+			return Math.abs((a.price ?? 0) - (l.price ?? 0)) - Math.abs((b.price ?? 0) - (l.price ?? 0));
+		}).slice(0, 3);
+		var simRow = document.getElementById("fw-similar");
+		simRow.textContent = "";
+		if (!similar.length) hide("fw-similar-block");
+		similar.forEach(function (s) {
+			var col = el("div", "col-md-4 d-flex mb-30");
+			var href = "akinito.html?id=" + encodeURIComponent(s.id);
+			col.innerHTML =
+				'<div class="listing-card-one shadow4 style-three border-30 h-100 w-100">' +
+					'<div class="img-gallery p-15">' +
+						'<div class="position-relative border-20 overflow-hidden">' +
+							'<div class="tag bg-white text-dark fw-500 border-20"></div>' +
+							'<img src="' + encodeURI(s.images[0] || "images/lazy.svg") + '" class="w-100 border-20" loading="lazy" alt="">' +
+						'</div>' +
+					'</div>' +
+					'<div class="property-info pe-4 ps-4 pb-4">' +
+						'<a href="' + href + '" class="title tran3s stretched-link"></a>' +
+						'<div class="address m0 pb-5"></div>' +
+						'<div class="pl-footer m0 d-flex align-items-center justify-content-between">' +
+							'<strong class="price fw-500 color-dark"></strong>' +
+						'</div>' +
+					'</div>' +
+				'</div>';
+			col.querySelector(".tag").textContent = TRANSACTION[s.transaction] || "";
+			col.querySelector(".title").textContent = subcategoryLabel(s) + (s.area ? " " + fmtNumber(s.area) + " τ.μ." : "");
+			col.querySelector(".address").textContent = shortAddress(s);
+			col.querySelector(".price").textContent = fmtPrice(s);
+			simRow.appendChild(col);
+		});
+	}
+
+	function setText(id, text) {
+		var n = document.getElementById(id);
+		if (n) n.textContent = text;
+	}
+	function hide(id) {
+		var n = document.getElementById(id);
+		if (n) n.style.display = "none";
+	}
+	function show(id) {
+		var n = document.getElementById(id);
+		if (n) n.style.display = "";
+	}
+
+	/* ---------------- boot ---------------- */
+
+	function boot() {
+		var isGrid = document.getElementById("fw-grid");
+		var isDetail = document.getElementById("fw-detail");
+		if (!isGrid && !isDetail) return;
+		fetchFeed().then(function (feed) {
+			if (isGrid) initGrid(feed);
+			if (isDetail) initDetail(feed);
+		}).catch(function (err) {
+			var target = isGrid || document.getElementById("fw-title");
+			if (target) target.textContent = "Τα ακίνητα δεν είναι διαθέσιμα αυτή τη στιγμή. Δοκιμάστε ξανά σε λίγο.";
+			console.error("listings feed:", err);
+		});
+	}
+
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", boot);
+	} else {
+		boot();
+	}
+})();

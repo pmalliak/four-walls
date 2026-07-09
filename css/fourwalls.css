@@ -293,3 +293,14 @@
   background: #1c3457;
   font-weight: 600;
 }
+
+/* =====================================================================
+   Listings feed pages (akinita.html / akinito.html)
+   ===================================================================== */
+/* CRM descriptions keep their line breaks without needing <br> tags */
+.fw-pre-line { white-space: pre-line; }
+/* CRM photos come in arbitrary aspect ratios — normalize the frames */
+#fw-grid .carousel-item img { aspect-ratio: 3 / 2; object-fit: cover; }
+#fw-similar .img-gallery img { aspect-ratio: 3 / 2; object-fit: cover; }
+#fw-gallery .carousel-item img { aspect-ratio: 16 / 10; object-fit: cover; }
+#fw-thumbs img { aspect-ratio: 4 / 3; object-fit: cover; }
