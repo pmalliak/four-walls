@@ -88,7 +88,11 @@ const server = http.createServer((req, res) => {
       }
       if (st.isDirectory()) filePath = path.join(filePath, "index.html");
       const ext = path.extname(filePath).toLowerCase();
-      res.writeHead(200, { "Content-Type": TYPES[ext] || "application/octet-stream" });
+      res.writeHead(200, {
+        "Content-Type": TYPES[ext] || "application/octet-stream",
+        // Dev server: never let the browser cache, so edits show on plain reload.
+        "Cache-Control": "no-store",
+      });
       fs.createReadStream(filePath).pipe(res);
     });
   } catch (e) {

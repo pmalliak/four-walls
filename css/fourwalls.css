@@ -200,15 +200,19 @@
     min-width: 0;
     max-width: 175px;
   }
+  /* Keep caption + price inside the artwork's white strip — the map pin's
+     head pokes up into it, so the text must stay above the pin.          */
   .block-feature-four .img-gallery .card-one .text {
-    padding: 12px 8px 0;
+    padding: 8px 4px 0;
   }
   .block-feature-four .img-gallery .card-one .text h6 {
-    font-size: 12px;
+    font-size: 11px;
     letter-spacing: 0;
+    margin-bottom: 2px;
   }
   .block-feature-four .img-gallery .card-one .text h3 {
     font-size: 20px;
+    line-height: 1.2;
   }
 }
 
@@ -305,6 +309,17 @@
 }
 .fancy-banner-two.fw-banner-blue:before {
   display: none;
+}
+/* Services sidebar menu — the theme circles each row's arrow in black
+   and fills it peach (#ffc8b1) on hover/active; use brand pink instead. */
+.service-category ul a:after {
+  color: #ff0062;
+  border-color: #ff0062;
+}
+.service-category ul a:hover:after,
+.service-details .service-sidebar .service-category ul a.active:after {
+  background: #ff0062;
+  color: #fff;
 }
 /* Grey callout quote on service pages — the theme only styles
    .quote-wrapper inside blog details, so restate the look here.        */
@@ -438,6 +453,14 @@
    icons (details page) are lifted here.                                 */
 .listing-card-one {
   position: relative;
+}
+/* At its Bootstrap z-index:1 the overlay ties with the search banner
+   above (.z-1) and wins on DOM order, so an open filter dropdown
+   (nice-select .list) reaching into the first card row had its clicks
+   stolen by the card. 0 keeps it above the card's static content but
+   below the banner and its dropdowns.                                   */
+.listing-card-one .stretched-link::after {
+  z-index: 0;
 }
 .listing-card-one .action-icons {
   position: relative;
