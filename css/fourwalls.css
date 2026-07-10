@@ -168,15 +168,21 @@
 }
 
 /* Εκτίμηση ακινήτου — doodle illustration (index) -------------------- */
-/* The valuation doodle is a square drawing on cream paper, but the
-   theme's .img-bg pane is taller than wide, so `cover` crops its sides
-   off. Fit the whole drawing inside with some breathing room and let
-   the matching paper tone fill the rest of the pane.                   */
+/* The valuation doodle is a square white drawing with its own hand-drawn
+   navy frame, but the theme's .img-bg pane is taller than wide, so
+   `cover` would crop its sides off. Fit the whole drawing inside with
+   some breathing room on a white pane.                                 */
 .block-feature-four .img-gallery .img-bg {
-  background-color: #fbf3e5;
+  background-color: #fff;
   background-size: contain;
   background-origin: content-box;
   padding: 24px;
+}
+/* The theme's striped backdrop (.img-gallery:before, shape_06.svg) was
+   meant to peek out behind a full-bleed photo pane; behind the floating
+   framed sketch it just juts out oddly — drop it.                      */
+.block-feature-four .img-gallery:before {
+  display: none;
 }
 
 /* Reviews (index feedback slider) ----------------------------------- */
@@ -427,7 +433,6 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   grid-auto-rows: 1fr;
-  gap: 4px;
   overflow: hidden;
 }
 .fw-feat-collage img {
@@ -444,11 +449,12 @@
     display: none;
   }
 }
-/* Replace the theme's sideways black gradient with a white veil so the
-   photos read faint (αχνές) — the section copy is dark text now, so the
-   index.html markup drops the .text-white classes in this section.      */
+/* Replace the theme's sideways black gradient with a white veil at ~50%
+   (about the strength of the theme's original scrim) so the photos stay
+   clearly visible — the section copy is dark text now, so the index.html
+   markup drops the .text-white classes in this section.                 */
 #fw-featured:before {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.86) 100%);
+  background: rgba(255, 255, 255, 0.5);
 }
 /* The arrow button carries .stretched-link, so the whole box is one link
    to the featured listing. Mirror the listing-card hover wherever the
@@ -457,14 +463,6 @@
 .fancy-banner-one .property-item {
   transition: box-shadow 0.3s ease, transform 0.3s ease;
   box-shadow: 0 15px 35px rgba(28, 52, 87, 0.12);
-}
-/* The theme's stacked-card ghost layers are white rgba — invisible on
-   the white veil — so tint them navy to keep the layered effect.        */
-.fancy-banner-one .property-item:before {
-  background: rgba(28, 52, 87, 0.08);
-}
-.fancy-banner-one .property-item:after {
-  background: rgba(28, 52, 87, 0.04);
 }
 .fancy-banner-one .property-item:hover {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);

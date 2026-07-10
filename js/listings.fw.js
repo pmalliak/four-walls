@@ -10,9 +10,10 @@
                      sale|rent, type=apartment|maisonette|house|commercial|
                      land, area=<text>, price=1..5, sort=...).
      akinito.html  — single listing. Activates when #fw-detail exists.
-                     Served at /akinito/<code> (the listing's public
+                     Served at /akinita/<code> (the listing's public
                      «Κωδικός»; Worker + preview-server rewrite); ?id=
-                     still works as a fallback and accepts id or code.
+                     still works as a fallback and accepts id or code,
+                     and old /akinito/<code> links 301 to /akinita/.
      index.html    — «Νέες καταχωρήσεις» row: the 3 newest listings
                      (#fw-latest), and the «Επιλεγμένο ακίνητο» banner
                      (#fw-featured, see FEATURED_ID).
@@ -140,12 +141,12 @@
 	}
 
 	/* Detail-page URL — path style with the listing's public code, the
-	   «Κωδικός» shown on the listing (/akinito/2341241). The Worker (and
+	   «Κωδικός» shown on the listing (/akinita/2341241). The Worker (and
 	   tools/preview-server.js locally) rewrites these paths to
 	   akinito.html; root-absolute so it resolves the same from every
 	   page, including the detail page itself. */
 	function detailUrl(l) {
-		return "/akinito/" + encodeURIComponent(l.code || l.id);
+		return "/akinita/" + encodeURIComponent(l.code || l.id);
 	}
 
 	/* Look a listing up by what a URL may carry — the public code
@@ -503,9 +504,10 @@
 	/* ---------------- detail page (akinito.html) ---------------- */
 
 	function initDetail(feed) {
-		/* /akinito/<code> path (canonical), with ?id= kept as fallback for
-		   older links; the key may be a public code or an internal id. */
-		var m = window.location.pathname.match(/\/akinito\/([^\/]+?)\/?$/);
+		/* /akinita/<code> path (canonical; old /akinito/ still matched —
+		   the Worker 301s it, but Live-Server-style setups don't), with
+		   ?id= kept as fallback; the key may be a public code or id. */
+		var m = window.location.pathname.match(/\/akinit[ao]\/([^\/]+?)\/?$/);
 		var key = m ? decodeURIComponent(m[1]) : new URLSearchParams(window.location.search).get("id");
 		var l = findByKey(feed, key);
 		if (!l) {
