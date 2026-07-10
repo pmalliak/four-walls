@@ -216,14 +216,34 @@
   display: none;
 }
 
-/* Service pages — CTA banner on brand navy ---------------------------- */
+/* CTA banner («Ξεκινήστε το ταξίδι σας μαζί μας») ---------------------- */
 /* .fancy-banner-two ships with a photo background (a grey placeholder in
-   this build) darkened by a :before overlay — swap both for solid navy. */
-.fancy-banner-two.fw-banner-blue {
-  background: #1c3457;
+   this build) darkened by a 55% black :before overlay. Swap in the
+   Thessaloniki street map (OSM data rendered via city-roads, brand navy +
+   pink) and soften the overlay to a navy tint so the map shows through.
+   The shorthand also drops the theme's background-attachment:fixed, which
+   is unreliable on iOS Safari. */
+.fancy-banner-two {
+  background: #1c3457 url(../images/media/thessaloniki-map.fw.png) no-repeat center 60%;
+  background-size: cover;
 }
-.fancy-banner-two.fw-banner-blue:before {
-  display: none;
+.fancy-banner-two:before {
+  background: rgba(18, 28, 52, 0.35);
+}
+/* On small screens the heading sits over the dense city centre — darken. */
+@media (max-width: 991px) {
+  .fancy-banner-two:before {
+    background: rgba(18, 28, 52, 0.5);
+  }
+}
+/* Grey callout quote on service pages — the theme only styles
+   .quote-wrapper inside blog details, so restate the look here.        */
+.service-details .quote-wrapper {
+  text-align: center;
+  background: #f3f3f3;
+  border-radius: 20px;
+  margin: 55px 0 50px;
+  padding: 40px 30px 45px;
 }
 
 /* Contact page (contact.html) --------------------------------------- */
@@ -319,15 +339,20 @@
   border-color: #1c3457;
 }
 
-/* Listings grid — white variant (listing_03.html) --------------------- */
-/* Chosen over the blue→navy gradient after an A/B: the grid sits on
-   plain white, with the property cards outlined in brand navy so they
-   still separate from the background. The outline joins the card-wide
-   pink hover below.                                                     */
-.property-listing-six.fw-listing-white {
+/* Listings grid & details — white variant (listing_03 / akinita /
+   akinito) ------------------------------------------------------------ */
+/* Chosen over the blue→navy gradient after an A/B: the section sits on
+   plain white, with the white cards outlined in brand navy so they
+   still separate from the background. On the details page (akinito) the
+   same outline goes on every white content card — :not(.tag) skips the
+   small white «ΠΩΛΗΣΗ» pills inside the similar-property cards. The
+   outline joins the card-wide pink hover below.                         */
+.property-listing-six.fw-listing-white,
+.listing-details-one.fw-listing-white {
   background: #fff;
 }
-.fw-listing-white .listing-card-one {
+.fw-listing-white .listing-card-one,
+.listing-details-one.fw-listing-white .bg-white:not(.tag) {
   border: 2px solid #1c3457;
 }
 .fw-listing-white .listing-card-one:hover {
@@ -364,6 +389,27 @@
 .fancy-banner-one .property-item .tag {
   background: #1c3457;
   font-weight: 600;
+}
+/* The arrow button carries .stretched-link, so the whole box is one link
+   to the featured listing. Mirror the listing-card hover wherever the
+   cursor is over the box: lift with a shadow, title to brand pink, and
+   light up the arrow button.                                            */
+.fancy-banner-one .property-item {
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.fancy-banner-one .property-item:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  transform: translateY(-4px);
+}
+.fancy-banner-one .property-item .fw-feat-title {
+  transition: color 0.3s ease;
+}
+.fancy-banner-one .property-item:hover .fw-feat-title {
+  color: #ff0062;
+}
+.fancy-banner-one .property-item:hover .btn-four {
+  background: #ff0062;
+  color: #fff;
 }
 
 /* =====================================================================
@@ -422,3 +468,128 @@
   appearance: textfield;
 }
 #fw-thumbs img { aspect-ratio: 4 / 3; object-fit: cover; }
+
+/* Empty search results — CTA panel («Δεν βρήκατε αυτό που ψάχνετε;») --- */
+/* A failed search is a lead: the navy card (matching the service-page CTA
+   banners) offers to search on the visitor's behalf — the pink button
+   opens contact.html with their criteria pre-filled (?msg=) — plus a
+   free-valuation link for owners scouting prices in their area.         */
+.fw-empty-cta {
+  max-width: 620px;
+  margin-top: 50px;
+  padding: 45px 35px 40px;
+  background: #1c3457;
+}
+.fw-empty-cta h4 {
+  color: #fff;
+  font-size: 28px;
+  margin-bottom: 12px;
+}
+.fw-empty-cta p {
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 25px;
+}
+.fw-cta-btn {
+  display: inline-block;
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  color: #fff;
+  background: #ff0062;
+  line-height: 55px;
+  padding: 0 40px;
+  border-radius: 30px;
+  transition: all 0.3s ease-in-out;
+}
+.fw-cta-btn:hover,
+.fw-cta-btn:focus {
+  background: #d1004f;
+  color: #fff;
+}
+.fw-empty-cta .fw-cta-alt {
+  font-size: 16px;
+  margin: 25px 0 0;
+}
+.fw-empty-cta .fw-cta-alt a {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.fw-empty-cta .fw-cta-alt a:hover {
+  color: #ff8ab5;
+}
+@media (max-width: 575px) {
+  .fw-empty-cta {
+    padding: 35px 22px 32px;
+  }
+}
+
+/* «Ποιοι είμαστε» stats strip: numbers removed, two text labels remain —
+   draw a vertical separator line between them.                          */
+.counter-wrapper .fw-stat-divider {
+  border-left: 1px solid #e4e4e4;
+}
+
+/* =====================================================================
+   Νομικές σελίδες (oroi_xrisis / politiki_aporritou / cookies)
+   ===================================================================== */
+/* Plain-prose pages built outside the theme's blocks: a readable text
+   measure, consistent heading rhythm and real bullets (the theme only
+   styles lists opted into its own classes).                             */
+.fw-legal {
+  max-width: 800px;
+}
+.fw-legal .fw-updated {
+  font-size: 15px;
+  color: #979797;
+  margin-bottom: 40px;
+}
+.fw-legal h2 {
+  font-size: 26px;
+  margin: 45px 0 18px;
+  color: #1c3457;
+}
+.fw-legal p,
+.fw-legal li {
+  font-size: 17px;
+  line-height: 1.9;
+}
+.fw-legal p {
+  margin-bottom: 18px;
+}
+.fw-legal ul {
+  list-style: disc;
+  padding-left: 22px;
+  margin-bottom: 22px;
+}
+.fw-legal li {
+  margin-bottom: 8px;
+}
+.fw-legal a {
+  color: #ff0062;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.fw-legal a:hover {
+  color: #1c3457;
+}
+/* Cookies page: the small category table */
+.fw-legal .fw-cookie-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0 25px;
+  font-size: 16px;
+}
+.fw-legal .fw-cookie-table th,
+.fw-legal .fw-cookie-table td {
+  border: 1px solid #e4e4e4;
+  padding: 12px 16px;
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.7;
+}
+.fw-legal .fw-cookie-table th {
+  background: #f6f8fb;
+  font-weight: 600;
+  color: #1c3457;
+}

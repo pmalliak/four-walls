@@ -70,6 +70,14 @@ export default {
 		if (url.pathname === "/data/listings.json") {
 			return serveFeed(env);
 		}
+		// Pretty listing URLs: /akinito/<crm id> serves the static detail
+		// page; js/listings.fw.js reads the id from the path. Fetch the
+		// CANONICAL asset path (/akinito, not /akinito.html) — the assets
+		// layer's default html_handling would 308 the .html form, sending
+		// the browser to /akinito and losing the id.
+		if (/^\/akinito\/[^/]+$/.test(pathname)) {
+			return env.ASSETS.fetch(new Request(new URL("/akinito", url), request));
+		}
 		return env.ASSETS.fetch(request);
 	},
 

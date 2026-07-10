@@ -51,6 +51,8 @@ const server = http.createServer((req, res) => {
   try {
     let urlPath = decodeURIComponent(req.url.split("?")[0].split("#")[0]);
     if (urlPath === "/") urlPath = "/index.html";
+    // Pretty listing URLs (mirrors the Worker): /akinito/<id> -> akinito.html
+    if (/^\/akinito\/[^/]+$/.test(urlPath)) urlPath = "/akinito.html";
     // block path traversal
     const safe = path.normalize(urlPath).replace(/^(\.\.[\/\\])+/, "");
     let filePath = path.join(ROOT, safe);

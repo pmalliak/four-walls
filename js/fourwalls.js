@@ -105,3 +105,24 @@
     applyRanges($deal.val());
   });
 })();
+
+/* Contact form: pre-fill the message from ?msg= ----------------------- *
+ * The listings page's empty-results CTA links to contact.html with the
+ * visitor's search criteria encoded in the URL, so the message arrives
+ * pre-written (see emptyCta() in js/listings.fw.js).                    */
+(function () {
+  "use strict";
+
+  function prefillContactMessage() {
+    var box = document.querySelector("#contact-form textarea[name='message']");
+    if (!box || box.value) return;
+    var msg = new URLSearchParams(window.location.search).get("msg");
+    if (msg) box.value = msg;
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", prefillContactMessage);
+  } else {
+    prefillContactMessage();
+  }
+})();

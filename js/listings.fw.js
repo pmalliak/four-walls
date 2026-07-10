@@ -10,7 +10,11 @@
                      sale|rent, type=apartment|maisonette|house|commercial|
                      land, area=<text>, price=1..5, sort=...).
      akinito.html  — single listing. Activates when #fw-detail exists.
-                     Reads ?id=<listing id>.
+                     Served at /akinito/<crm id> (Worker + preview-server
+                     rewrite); ?id=<crm id> still works as a fallback.
+     index.html    — «Νέες καταχωρήσεις» row: the 3 newest listings
+                     (#fw-latest), and the «Επιλεγμένο ακίνητο» banner
+                     (#fw-featured, see FEATURED_ID).
 
    No pagination by design — the stock is a few dozen listings.
    ===================================================================== */
@@ -19,10 +23,16 @@
 
 	var FEED_URL = "data/listings.json";
 
+	/* «Επιλεγμένο ακίνητο του μήνα» (index) — the CRM listing id to feature.
+	   Falls back to the newest listing while this id is not in the feed
+	   (e.g. sample-data mode). */
+	var FEATURED_ID = "2341241";
+
 	/* ---------------- Greek labels for CRM slugs ---------------- */
 
 	var SUBCATEGORY = {
 		apartment: "Διαμέρισμα", maisonette: "Μεζονέτα", detached: "Μονοκατοικία",
+		house: "Μονοκατοικία", studio: "Στούντιο",
 		villa: "Βίλα", loft: "Loft", residential_building: "Κτίριο κατοικιών",
 		apartment_complex: "Συγκρότημα διαμερισμάτων", farmhouse: "Αγροικία",
 		houseboat: "Πλωτή κατοικία", other_residential: "Άλλη κατοικία",
@@ -128,11 +138,83 @@
 		return parts.join(", ");
 	}
 
+	/* Detail-page URL — path style with the CRM id (/akinito/2341241).
+	   The Worker (and tools/preview-server.js locally) rewrites these
+	   paths to akinito.html; root-absolute so it resolves the same from
+	   every page, including the detail page itself. */
+	function detailUrl(id) {
+		return "/akinito/" + encodeURIComponent(id);
+	}
+
 	function fetchFeed() {
 		return fetch(FEED_URL).then(function (res) {
 			if (!res.ok) throw new Error("feed " + res.status);
 			return res.json();
 		});
+	}
+
+	/* Shared listing card — used by the akinita grid and the index home row. */
+	function listingCard(l, colClass) {
+		var col = el("div", colClass);
+		var photos = l.images.slice(0, 3);
+		if (!photos.length) photos = ["images/lazy.svg"];
+		var cid = "fwc-" + l.id;
+		var href = detailUrl(l.id);
+
+		var indicators = photos.map(function (_, i) {
+			return '<button type="button" data-bs-target="#' + cid + '" data-bs-slide-to="' + i + '"' +
+				(i === 0 ? ' class="active" aria-current="true"' : '') + ' aria-label="Φωτογραφία ' + (i + 1) + '"></button>';
+		}).join("");
+		var slides = photos.map(function (src, i) {
+			return '<div class="carousel-item' + (i === 0 ? " active" : "") + '">' +
+				'<a href="' + href + '" class="d-block"><img src="' + encodeURI(src) + '" class="w-100" loading="lazy" alt=""></a></div>';
+		}).join("");
+
+		col.innerHTML =
+			'<div class="listing-card-one border-25 h-100 w-100">' +
+				'<div class="img-gallery p-15">' +
+					'<div class="position-relative border-25 overflow-hidden">' +
+						'<div class="tag border-25' + (l.transaction === "sale" ? " sale" : "") + '"></div>' +
+						'<div id="' + cid + '" class="carousel slide">' +
+							(photos.length > 1 ? '<div class="carousel-indicators">' + indicators + '</div>' : '') +
+							'<div class="carousel-inner">' + slides + '</div>' +
+						'</div>' +
+					'</div>' +
+				'</div>' +
+				'<div class="property-info p-25">' +
+					'<a href="' + href + '" class="title tran3s stretched-link"></a>' +
+					'<div class="address"></div>' +
+					'<ul class="style-none feature d-flex flex-wrap align-items-center justify-content-between"></ul>' +
+					'<div class="pl-footer top-border d-flex align-items-center justify-content-between">' +
+						'<strong class="price fw-500 color-dark"></strong>' +
+						'<a href="' + href + '" class="btn-four rounded-circle"><i class="bi bi-arrow-up-right"></i></a>' +
+					'</div>' +
+				'</div>' +
+			'</div>';
+
+		/* Text via textContent — CRM strings must never parse as HTML. */
+		col.querySelector(".tag").textContent = TRANSACTION[l.transaction] || l.transaction || "";
+		col.querySelector(".title").textContent = subcategoryLabel(l) + (l.area ? " " + fmtNumber(l.area) + " τ.μ." : "");
+		col.querySelector(".address").textContent = shortAddress(l);
+		var feats = col.querySelector(".feature");
+		[[l.area != null, "icon_04", fmtNumber(l.area) + " τ.μ."],
+		 [l.bedrooms != null && l.bedrooms > 0, "icon_05", l.bedrooms + " υπν."],
+		 [l.bathrooms != null && l.bathrooms > 0, "icon_06", l.bathrooms + " μπάνι" + (l.bathrooms === 1 ? "ο" : "α")]]
+			.forEach(function (row) {
+				if (!row[0]) return;
+				var li = el("li", "d-flex align-items-center");
+				li.appendChild(icon(row[1], "icon me-2"));
+				li.appendChild(el("span", "fs-16", row[2]));
+				feats.appendChild(li);
+			});
+		var price = col.querySelector(".price");
+		if (l.price != null && (l.transaction === "rent" || l.transaction === "shortterm")) {
+			price.textContent = "€" + fmtNumber(l.price) + "/";
+			price.appendChild(el("sub", null, "μήνα"));
+		} else {
+			price.textContent = fmtPrice(l);
+		}
+		return col;
 	}
 
 	/* ---------------- grid page (akinita.html) ---------------- */
@@ -167,7 +249,7 @@
 		});
 
 		/* Preselect from URL (hero form / category links land here). */
-		["transaction", "type", "price", "sort", "bedrooms", "bathrooms"].forEach(function (key) {
+		["transaction", "type", "sort", "bedrooms", "bathrooms"].forEach(function (key) {
 			var v = params.get(key);
 			if (v && controls[key] && controls[key].querySelector('option[value="' + v + '"]')) {
 				controls[key].value = v;
@@ -183,7 +265,14 @@
 			var exact = areas.find(function (a) { return a.toLowerCase() === areaParam.toLowerCase(); });
 			if (exact) controls.area.value = exact;
 		}
+		/* Price is preselected AFTER swapPriceOptions: the static markup only
+		   holds the placeholder option, so ?price=N has nothing to match until
+		   the bands (which depend on the transaction above) are built. */
 		swapPriceOptions(controls, false);
+		var priceParam = params.get("price");
+		if (priceParam && controls.price.querySelector('option[value="' + priceParam + '"]')) {
+			controls.price.value = priceParam;
+		}
 
 		/* nice-select has already wrapped the selects — refresh them. */
 		if (window.jQuery) window.jQuery(".fw-filter-select").niceSelect("update");
@@ -260,6 +349,55 @@
 			history.replaceState(null, "", window.location.pathname + (q ? "?" + q : ""));
 		}
 
+		/* Empty results are a lead, not a dead end: offer to search on the
+		   visitor's behalf — the contact message arrives pre-written with
+		   their criteria (?msg=, read by js/fourwalls.js) — plus a free
+		   valuation link for owners gauging prices in their own area. */
+		function selectedLabel(control) {
+			if (!control || !control.value) return "";
+			var opt = control.options[control.selectedIndex];
+			return opt ? opt.textContent : "";
+		}
+
+		function searchSummary() {
+			var f = currentFilters();
+			var parts = [];
+			var type = selectedLabel(controls.type);
+			if (type) parts.push(type.toLowerCase());
+			if (f.transaction) parts.push(f.transaction === "rent" ? "για ενοικίαση" : "για αγορά");
+			if (f.area) parts.push("περιοχή " + f.area);
+			var price = selectedLabel(controls.price);
+			if (price) parts.push("τιμή " + price.toLowerCase());
+			if (f.bedrooms) parts.push(f.bedrooms + "+ υπνοδωμάτια");
+			if (f.bathrooms) parts.push(f.bathrooms + "+ μπάνια");
+			if (f.amin) parts.push("από " + f.amin + " τ.μ.");
+			if (f.amax) parts.push("έως " + f.amax + " τ.μ.");
+			if (f.q) parts.push("«" + f.q + "»");
+			return parts.join(", ");
+		}
+
+		function emptyCta() {
+			var summary = searchSummary();
+			var msg = "Γεια σας, αναζητώ " + (summary ? "ακίνητο: " + summary : "ακίνητο") +
+				". Θα ήθελα να με ενημερώσετε αν προκύψει κάτι αντίστοιχο.";
+
+			var box = el("div", "fw-empty-cta border-25 m-auto text-center");
+			box.appendChild(el("h4", null, "Δεν βρήκατε αυτό που ψάχνετε;"));
+			box.appendChild(el("p", null,
+				"Πείτε μας τι ζητάτε και θα σας ενημερώσουμε μόλις βρεθεί το κατάλληλο ακίνητο."));
+			var btn = el("a", "fw-cta-btn", "Πείτε μας τι ψάχνετε");
+			btn.href = "contact.html?msg=" + encodeURIComponent(msg) + "#contact-form";
+			box.appendChild(btn);
+			var owner = el("p", "fw-cta-alt");
+			owner.appendChild(document.createTextNode("Έχετε δικό σας ακίνητο; "));
+			var est = el("a", null, "Ζητήστε δωρεάν εκτίμηση");
+			est.href = "service_ektimisi.html";
+			owner.appendChild(est);
+			owner.appendChild(document.createTextNode("."));
+			box.appendChild(owner);
+			return box;
+		}
+
 		function render(items) {
 			grid.textContent = "";
 			if (!items.length) {
@@ -268,73 +406,11 @@
 				var reset = el("a", "fw-500", "Καθαρισμός φίλτρων");
 				reset.href = window.location.pathname;
 				empty.appendChild(reset);
+				empty.appendChild(emptyCta());
 				grid.appendChild(empty);
 				return;
 			}
-			items.forEach(function (l) { grid.appendChild(card(l)); });
-		}
-
-		function card(l) {
-			var col = el("div", "col-lg-4 col-md-6 d-flex mb-50");
-			var photos = l.images.slice(0, 3);
-			if (!photos.length) photos = ["images/lazy.svg"];
-			var cid = "fwc-" + l.id;
-			var href = "akinito.html?id=" + encodeURIComponent(l.id);
-
-			var indicators = photos.map(function (_, i) {
-				return '<button type="button" data-bs-target="#' + cid + '" data-bs-slide-to="' + i + '"' +
-					(i === 0 ? ' class="active" aria-current="true"' : '') + ' aria-label="Φωτογραφία ' + (i + 1) + '"></button>';
-			}).join("");
-			var slides = photos.map(function (src, i) {
-				return '<div class="carousel-item' + (i === 0 ? " active" : "") + '">' +
-					'<a href="' + href + '" class="d-block"><img src="' + encodeURI(src) + '" class="w-100" loading="lazy" alt=""></a></div>';
-			}).join("");
-
-			col.innerHTML =
-				'<div class="listing-card-one border-25 h-100 w-100">' +
-					'<div class="img-gallery p-15">' +
-						'<div class="position-relative border-25 overflow-hidden">' +
-							'<div class="tag border-25' + (l.transaction === "sale" ? " sale" : "") + '"></div>' +
-							'<div id="' + cid + '" class="carousel slide">' +
-								(photos.length > 1 ? '<div class="carousel-indicators">' + indicators + '</div>' : '') +
-								'<div class="carousel-inner">' + slides + '</div>' +
-							'</div>' +
-						'</div>' +
-					'</div>' +
-					'<div class="property-info p-25">' +
-						'<a href="' + href + '" class="title tran3s stretched-link"></a>' +
-						'<div class="address"></div>' +
-						'<ul class="style-none feature d-flex flex-wrap align-items-center justify-content-between"></ul>' +
-						'<div class="pl-footer top-border d-flex align-items-center justify-content-between">' +
-							'<strong class="price fw-500 color-dark"></strong>' +
-							'<a href="' + href + '" class="btn-four rounded-circle"><i class="bi bi-arrow-up-right"></i></a>' +
-						'</div>' +
-					'</div>' +
-				'</div>';
-
-			/* Text via textContent — CRM strings must never parse as HTML. */
-			col.querySelector(".tag").textContent = TRANSACTION[l.transaction] || l.transaction || "";
-			col.querySelector(".title").textContent = subcategoryLabel(l) + (l.area ? " " + fmtNumber(l.area) + " τ.μ." : "");
-			col.querySelector(".address").textContent = shortAddress(l);
-			var feats = col.querySelector(".feature");
-			[[l.area != null, "icon_04", fmtNumber(l.area) + " τ.μ."],
-			 [l.bedrooms != null && l.bedrooms > 0, "icon_05", l.bedrooms + " υπν."],
-			 [l.bathrooms != null && l.bathrooms > 0, "icon_06", l.bathrooms + " μπάνι" + (l.bathrooms === 1 ? "ο" : "α")]]
-				.forEach(function (row) {
-					if (!row[0]) return;
-					var li = el("li", "d-flex align-items-center");
-					li.appendChild(icon(row[1], "icon me-2"));
-					li.appendChild(el("span", "fs-16", row[2]));
-					feats.appendChild(li);
-				});
-			var price = col.querySelector(".price");
-			if (l.price != null && (l.transaction === "rent" || l.transaction === "shortterm")) {
-				price.textContent = "€" + fmtNumber(l.price) + "/";
-				price.appendChild(el("sub", null, "μήνα"));
-			} else {
-				price.textContent = fmtPrice(l);
-			}
-			return col;
+			items.forEach(function (l) { grid.appendChild(listingCard(l, "col-lg-4 col-md-6 d-flex mb-50")); });
 		}
 
 		/* filter events — nice-select re-emits change via jQuery .trigger(),
@@ -406,7 +482,10 @@
 	/* ---------------- detail page (akinito.html) ---------------- */
 
 	function initDetail(feed) {
-		var id = new URLSearchParams(window.location.search).get("id");
+		/* /akinito/<id> path (canonical), with ?id= kept as fallback for
+		   older links. */
+		var m = window.location.pathname.match(/\/akinito\/([^\/]+?)\/?$/);
+		var id = m ? decodeURIComponent(m[1]) : new URLSearchParams(window.location.search).get("id");
 		var l = feed.listings.find(function (x) { return x.id === id; });
 		if (!l) {
 			document.getElementById("fw-title").textContent = "Το ακίνητο δεν βρέθηκε";
@@ -556,7 +635,7 @@
 		if (!similar.length) hide("fw-similar-block");
 		similar.forEach(function (s) {
 			var col = el("div", "col-md-4 d-flex mb-30");
-			var href = "akinito.html?id=" + encodeURIComponent(s.id);
+			var href = detailUrl(s.id);
 			col.innerHTML =
 				'<div class="listing-card-one shadow4 style-three border-30 h-100 w-100">' +
 					'<div class="img-gallery p-15">' +
@@ -594,6 +673,55 @@
 		if (n) n.style.display = "";
 	}
 
+	/* ---------------- home page (index.html) ---------------- */
+
+	function byNewest(a, b) {
+		return (b.updatedAt || "").localeCompare(a.updatedAt || "");
+	}
+
+	function initHome(feed) {
+		/* «Νέες καταχωρήσεις» — one row, the 3 newest listings */
+		var row = document.getElementById("fw-latest");
+		if (row) {
+			row.textContent = "";
+			feed.listings.slice().sort(byNewest).slice(0, 3).forEach(function (l) {
+				row.appendChild(listingCard(l, "col-lg-4 col-md-6 d-flex mt-40"));
+			});
+		}
+
+		/* «Επιλεγμένο ακίνητο του μήνα» banner */
+		var banner = document.getElementById("fw-featured");
+		if (!banner) return;
+		var l = feed.listings.find(function (x) { return x.id === FEATURED_ID; }) ||
+			feed.listings.slice().sort(byNewest)[0];
+		if (!l) {
+			banner.style.display = "none";
+			return;
+		}
+		var href = detailUrl(l.id);
+		banner.querySelectorAll("a.fw-feat-link").forEach(function (a) { a.href = href; });
+		setBannerText(banner, ".fw-feat-tag", TRANSACTION[l.transaction] || l.transaction || "");
+		setBannerText(banner, ".fw-feat-title",
+			subcategoryLabel(l) + (l.area ? " " + fmtNumber(l.area) + " τ.μ." : "") +
+			(l.location.area ? ", " + l.location.area : ""));
+		setBannerText(banner, ".fw-feat-address", [shortAddress(l), l.location.city].filter(Boolean).join(", "));
+		setBannerText(banner, ".fw-feat-price", fmtPrice(l));
+		[[".fw-feat-sqm", l.area != null ? fmtNumber(l.area) : null],
+		 [".fw-feat-bed", l.bedrooms > 0 ? String(l.bedrooms) : null],
+		 [".fw-feat-bath", l.bathrooms > 0 ? String(l.bathrooms) : null]]
+			.forEach(function (pair) {
+				var li = banner.querySelector(pair[0]);
+				if (!li) return;
+				if (pair[1] == null) { li.style.display = "none"; return; }
+				li.querySelector("strong").textContent = pair[1];
+			});
+	}
+
+	function setBannerText(root, selector, text) {
+		var n = root.querySelector(selector);
+		if (n) n.textContent = text;
+	}
+
 	/* ---------------- boot ---------------- */
 
 	/* Hero form (index): replace the hardcoded area options with the feed's,
@@ -622,14 +750,25 @@
 		var isGrid = document.getElementById("fw-grid");
 		var isDetail = document.getElementById("fw-detail");
 		var heroArea = document.getElementById("fw-hero-area");
-		if (!isGrid && !isDetail && !heroArea) return;
+		var isHome = document.getElementById("fw-latest") || document.getElementById("fw-featured");
+		if (!isGrid && !isDetail && !heroArea && !isHome) return;
 		fetchFeed().then(function (feed) {
 			if (heroArea) fillHeroAreas(heroArea, feed);
 			if (isGrid) initGrid(feed);
 			if (isDetail) initDetail(feed);
+			if (isHome) initHome(feed);
 		}).catch(function (err) {
 			var target = isGrid || document.getElementById("fw-title");
 			if (target) target.textContent = "Τα ακίνητα δεν είναι διαθέσιμα αυτή τη στιγμή. Δοκιμάστε ξανά σε λίγο.";
+			var latest = document.getElementById("fw-latest");
+			if (latest) {
+				latest.textContent = "";
+				var msg = el("div", "col-12 text-center mt-40");
+				msg.appendChild(el("p", "fs-20 m0", "Τα ακίνητα δεν είναι διαθέσιμα αυτή τη στιγμή. Δοκιμάστε ξανά σε λίγο."));
+				latest.appendChild(msg);
+			}
+			var banner = document.getElementById("fw-featured");
+			if (banner) banner.style.display = "none";
 			console.error("listings feed:", err);
 		});
 	}
