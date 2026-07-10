@@ -185,23 +185,30 @@
   display: none;
 }
 /* On phones the theme forces the floating price card to min-width 280px,
-   which makes it as wide as the doodle pane itself. Let the card shrink
-   and scale its type with it, and give the doodle more of the pane.    */
+   which makes it as wide as the doodle pane itself. Cap it well below the
+   drawing and scale its type with it. The gallery's 25px inset existed
+   for the striped backdrop we dropped above — zero it so the doodle gets
+   the full column width.                                                */
 @media (max-width: 575px) {
+  .block-feature-four .img-gallery {
+    padding: 0;
+  }
   .block-feature-four .img-gallery .img-bg {
-    padding: 12px;
+    padding: 8px;
   }
   .block-feature-four .img-gallery .card-one {
-    min-width: 205px;
+    min-width: 0;
+    max-width: 175px;
   }
   .block-feature-four .img-gallery .card-one .text {
-    padding: 16px 10px 0;
+    padding: 12px 8px 0;
   }
   .block-feature-four .img-gallery .card-one .text h6 {
-    font-size: 15px;
+    font-size: 12px;
+    letter-spacing: 0;
   }
   .block-feature-four .img-gallery .card-one .text h3 {
-    font-size: 24px;
+    font-size: 20px;
   }
 }
 
