@@ -62,6 +62,10 @@ const server = http.createServer((req, res) => {
     // block path traversal
     const safe = path.normalize(urlPath).replace(/^(\.\.[\/\\])+/, "");
     let filePath = path.join(ROOT, safe);
+    // Clean URLs (mirrors the Worker assets layer): /akinita -> akinita.html
+    if (!path.extname(filePath) && fs.existsSync(filePath + ".html")) {
+      filePath += ".html";
+    }
     if (!filePath.startsWith(ROOT)) {
       res.writeHead(403);
       res.end("Forbidden");

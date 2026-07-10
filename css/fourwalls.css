@@ -184,6 +184,38 @@
 .block-feature-four .img-gallery:before {
   display: none;
 }
+/* On phones the theme forces the floating price card to min-width 280px,
+   which makes it as wide as the doodle pane itself. Let the card shrink
+   and scale its type with it, and give the doodle more of the pane.    */
+@media (max-width: 575px) {
+  .block-feature-four .img-gallery .img-bg {
+    padding: 12px;
+  }
+  .block-feature-four .img-gallery .card-one {
+    min-width: 205px;
+  }
+  .block-feature-four .img-gallery .card-one .text {
+    padding: 16px 10px 0;
+  }
+  .block-feature-four .img-gallery .card-one .text h6 {
+    font-size: 15px;
+  }
+  .block-feature-four .img-gallery .card-one .text h3 {
+    font-size: 24px;
+  }
+}
+
+/* Ποιοι είμαστε — office doodle (index) ------------------------------ */
+/* Swap the theme's stock photo for the hand-drawn office doodle. The
+   drawing is square on solid white, so `cover` would crop it: pin it to
+   the right edge with `contain` and let the heading sit on the white
+   left half. A navy border keeps the white pane from melting into the
+   page background.                                                     */
+.block-feature-two .block-one {
+  background: #fff url(../images/media/office_doodle_01.fw.jpg) no-repeat right center;
+  background-size: contain;
+  border: 2px solid #1C3457;
+}
 
 /* Reviews (index feedback slider) ----------------------------------- */
 /* The Google star rating is an SVG; cap its width so it doesn't stretch
@@ -426,8 +458,8 @@
    every photo keeps its aspect ratio instead of stretching to the
    section height. It sits between the section background (z -2) and
    the veil below (z -1).
-   The collage overshoots the section by 80px top and bottom: the
-   parallax in js/fourwalls.js translates it up to ±70px as the page
+   The collage overshoots the section by 220px top and bottom: the
+   parallax in js/fourwalls.js translates it up to ±210px as the page
    scrolls, and the overshoot keeps the section edges covered. The
    section clips the overshoot.                                          */
 #fw-featured {
@@ -435,7 +467,7 @@
 }
 .fw-feat-collage {
   position: absolute;
-  inset: -80px 0;
+  inset: -220px 0;
   z-index: -2;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -448,6 +480,12 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+/* A single-photo listing gets one img spanning the whole grid (see
+   listings.fw.js), so it covers the section and still rides the
+   parallax.                                                             */
+.fw-feat-collage img:only-child {
+  grid-column: 1 / -1;
 }
 @media (max-width: 767px) {
   .fw-feat-collage {
@@ -697,4 +735,42 @@
 }
 .fw-error-alt a:hover {
   color: #1c3457;
+}
+
+/* =====================================================================
+   SEO headings (site-wide)
+   =====================================================================
+   Every sub-page's banner title is the page <h1> (was a theme <h3> —
+   search engines need exactly one h1 per page). These rules reproduce
+   the theme's h3 scale (css/style.css + css/responsive.css) so the
+   change is visually a no-op. h1.property-titlee is the listing title
+   on akinito.html; .error-section h1 is the 404 heading.               */
+.inner-banner h1,
+h1.property-titlee {
+  font-size: 64px;
+  line-height: 1.25em;
+}
+.inner-banner h1 {
+  letter-spacing: -1px;
+}
+.error-section h1 {
+  font-size: 82px;
+}
+@media (min-width: 992px) and (max-width: 1399px) {
+  .inner-banner h1,
+  h1.property-titlee {
+    font-size: 48px;
+  }
+  .error-section h1 {
+    font-size: 50px;
+  }
+}
+@media (max-width: 991px) {
+  .inner-banner h1,
+  h1.property-titlee {
+    font-size: 38px;
+  }
+  .error-section h1 {
+    font-size: 40px;
+  }
 }

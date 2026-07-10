@@ -204,9 +204,14 @@
 			'</div>';
 
 		/* Text via textContent — CRM strings must never parse as HTML. */
+		var cardTitle = subcategoryLabel(l) + (l.area ? " " + fmtNumber(l.area) + " τ.μ." : "");
 		col.querySelector(".tag").textContent = TRANSACTION[l.transaction] || l.transaction || "";
-		col.querySelector(".title").textContent = subcategoryLabel(l) + (l.area ? " " + fmtNumber(l.area) + " τ.μ." : "");
+		col.querySelector(".title").textContent = cardTitle;
 		col.querySelector(".address").textContent = shortAddress(l);
+		/* alt via property assignment (never innerHTML) for the same reason. */
+		col.querySelectorAll(".carousel-item img").forEach(function (img, i) {
+			img.alt = cardTitle + (shortAddress(l) ? ", " + shortAddress(l) : "") + " — φωτογραφία " + (i + 1);
+		});
 		var feats = col.querySelector(".feature");
 		[[l.area != null, "icon_04", fmtNumber(l.area) + " τ.μ."],
 		 [l.bedrooms != null && l.bedrooms > 0, "icon_05", l.bedrooms + " υπν."],
@@ -408,12 +413,12 @@
 			box.appendChild(el("p", "fs-20 mb-40",
 				"Πείτε μας τι ζητάτε και θα σας ενημερώσουμε μόλις βρεθεί το κατάλληλο ακίνητο."));
 			var btn = el("a", "btn-five text-uppercase", "Πείτε μας τι ψάχνετε");
-			btn.href = "contact.html?msg=" + encodeURIComponent(msg) + "#contact-form";
+			btn.href = "/contact?msg=" + encodeURIComponent(msg) + "#contact-form";
 			box.appendChild(btn);
 			var owner = el("p", "fw-cta-alt mt-30");
 			owner.appendChild(document.createTextNode("Έχετε δικό σας ακίνητο; "));
 			var est = el("a", null, "Ζητήστε δωρεάν εκτίμηση");
-			est.href = "service_ektimisi.html";
+			est.href = "/service_ektimisi";
 			owner.appendChild(est);
 			owner.appendChild(document.createTextNode("."));
 			box.appendChild(owner);
@@ -538,7 +543,7 @@
 			var item = el("div", "carousel-item" + (i === 0 ? " active" : ""));
 			var img = document.createElement("img");
 			img.src = src;
-			img.alt = "";
+			img.alt = title + " — φωτογραφία " + (i + 1);
 			img.className = "border-20 w-100";
 			if (i > 0) img.loading = "lazy";
 			item.appendChild(img);
@@ -679,10 +684,12 @@
 						'</div>' +
 					'</div>' +
 				'</div>';
+			var simTitle = subcategoryLabel(s) + (s.area ? " " + fmtNumber(s.area) + " τ.μ." : "");
 			col.querySelector(".tag").textContent = TRANSACTION[s.transaction] || "";
-			col.querySelector(".title").textContent = subcategoryLabel(s) + (s.area ? " " + fmtNumber(s.area) + " τ.μ." : "");
+			col.querySelector(".title").textContent = simTitle;
 			col.querySelector(".address").textContent = shortAddress(s);
 			col.querySelector(".price").textContent = fmtPrice(s);
+			col.querySelector(".img-gallery img").alt = simTitle + (shortAddress(s) ? ", " + shortAddress(s) : "");
 			simRow.appendChild(col);
 		});
 	}
@@ -729,12 +736,13 @@
 		/* The listing's own photos become the section background — a
 		   multi-row collage (.fw-feat-collage) of cover-cropped tiles,
 		   so no photo is ever stretched, and #fw-featured:before veils
-		   it white so it reads faint. A single-photo listing skips the
-		   collage and covers the section instead. */
+		   it white so it reads faint. A single-photo listing fills the
+		   collage with that one photo spanning the whole grid (CSS
+		   img:only-child), so it rides the parallax too. */
 		var collage = banner.querySelector(".fw-feat-collage");
 		var imgs = l.images || [];
-		if (collage && imgs.length > 1) {
-			var tiles = 12; /* 4×3 on desktop; CSS trims to 2×3 on phones */
+		if (collage && imgs.length) {
+			var tiles = imgs.length > 1 ? 12 : 1; /* 4×3 on desktop; CSS trims to 2×3 on phones */
 			collage.textContent = "";
 			for (var i = 0; i < tiles; i++) {
 				var tile = document.createElement("img");

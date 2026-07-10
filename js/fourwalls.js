@@ -13,11 +13,15 @@
     // strip query/hash, take last path segment (no default — "#"/"" => "")
     var clean = href.split("#")[0].split("?")[0];
     if (!clean) return "";
-    return (clean.split("/").pop() || "").toLowerCase();
+    var last = (clean.split("/").pop() || "").toLowerCase();
+    // Clean URLs and .html forms are the same page (/akinita ≡ akinita.html);
+    // a path ending in "/" is the home page.
+    if (last.slice(-5) === ".html") last = last.slice(0, -5);
+    return last || (clean.charAt(clean.length - 1) === "/" ? "index" : "");
   }
 
   function markCurrentPage() {
-    var here = fileFromHref(window.location.pathname) || "index.html";
+    var here = fileFromHref(window.location.pathname) || "index";
 
     var links = document.querySelectorAll(
       ".theme-main-menu .navbar-nav .nav-link[href], " +
@@ -130,13 +134,13 @@
 /* Featured-banner parallax -------------------------------------------- *
  * The photo collage behind «Επιλεγμένο ακίνητο του μήνα» (#fw-featured)
  * scrolls slower than the page: as the section crosses the viewport the
- * collage is translated up to ±70px (it overshoots the section by 80px
+ * collage is translated up to ±210px (it overshoots the section by 220px
  * each way in fourwalls.css, so no edge is ever exposed). Skipped for
  * visitors who prefer reduced motion.                                   */
 (function () {
   "use strict";
 
-  var MAX_SHIFT = 70;
+  var MAX_SHIFT = 210;
 
   function init() {
     var banner = document.getElementById("fw-featured");

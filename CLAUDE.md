@@ -51,6 +51,12 @@ localization, environment, and per-component notes).
   [partials/](partials/), stamped into pages between `<!-- FW:INCLUDE … -->`
   markers by `node tools/sync-partials.js`. Edit the **partial**, then re-run the
   sync — never hand-edit the marked block inside a page (see [docs/partials.md](docs/partials.md)).
+- **SEO heads are generated too:** each page's title/description/canonical/OG
+  block sits between `<!-- FW:HEAD … -->` markers, stamped by the same sync from
+  [worker/lib/pages-meta.mjs](worker/lib/pages-meta.mjs) — edit **that registry**,
+  not the markers. Listing detail pages get their head injected per-request by
+  the Worker. Internal links use clean root-absolute URLs (`/akinita`, never
+  `akinita.html`) and each page has exactly one `<h1>`. See [docs/seo.md](docs/seo.md).
 
 ## Windows / editing gotchas
 

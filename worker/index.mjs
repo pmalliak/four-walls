@@ -1,13 +1,17 @@
 /* =====================================================================
    Four Walls — Cloudflare Worker (site hosting + listings feed)
    ---------------------------------------------------------------------
-   One Worker does three jobs:
+   One Worker does four jobs:
 
      1. Serves the static site (assets binding -> repo root).
      2. POST <WEBHOOK_PATH>   — EstatePrime change webhook. Re-fetches
         all listings from the CRM API and stores the feed in KV. The
         webhook payload is ignored on purpose (signal, not data).
      3. GET /data/listings.json — serves the feed from KV.
+     4. SEO (worker/lib/seo.mjs): /akinita/<code> serves the detail
+        shell with per-listing title/meta/OG/JSON-LD injected (social
+        scrapers don't run JS); /sitemap.xml and /robots.txt are
+        generated; non-production hosts answer Disallow-all + noindex.
 
    A nightly cron (see wrangler.toml [triggers]) rebuilds the feed as
    reconciliation for any webhook deliveries that were missed.
@@ -23,6 +27,7 @@
    ===================================================================== */
 
 import { buildFeed } from "./lib/estateprime.mjs";
+import { robotsResponse, sitemapResponse, serveListingPage, isProdHost } from "./lib/seo.mjs";
 
 const FEED_KEY = "listings.json";
 const DEFAULT_WEBHOOK_PATH = "/listings"; // overridden by WEBHOOK_PATH var
@@ -33,6 +38,12 @@ export default {
 		// Tolerate a trailing slash on the webhook path ("/listings/").
 		const pathname = url.pathname.replace(/\/+$/, "") || "/";
 		const webhookPath = env.WEBHOOK_PATH || DEFAULT_WEBHOOK_PATH;
+
+		// Host-aware robots.txt on EVERY hostname (before the forms rewrite,
+		// so forms.* answers Disallow-all instead of serving a form asset).
+		if (pathname === "/robots.txt") {
+			return robotsResponse(url);
+		}
 
 		// forms.four-walls.gr serves ONLY the Έντυπα PWA: the forms/ folder
 		// mapped to the domain root. The app uses root-absolute paths
@@ -49,9 +60,9 @@ export default {
 			if (loc && loc.startsWith("/forms")) {
 				const headers = new Headers(res.headers);
 				headers.set("Location", loc.slice("/forms".length) || "/");
-				return new Response(res.body, { status: res.status, headers });
+				return devNoindex(new Response(res.body, { status: res.status, headers }), url);
 			}
-			return res;
+			return devNoindex(res, url);
 		}
 
 		// A dedicated webhook hostname (webhooks.four-walls.gr) exposes ONLY
@@ -70,27 +81,51 @@ export default {
 		if (url.pathname === "/data/listings.json") {
 			return serveFeed(env);
 		}
-		// Pretty listing URLs: /akinita/<crm id> serves the static detail
-		// page; js/listings.fw.js reads the id from the path. Fetch the
-		// CANONICAL asset path (/akinito, not /akinito.html) — the assets
-		// layer's default html_handling would 308 the .html form, sending
-		// the browser to /akinito and losing the id.
-		if (/^\/akinita\/[^/]+$/.test(pathname)) {
-			return env.ASSETS.fetch(new Request(new URL("/akinito", url), request));
+		if (pathname === "/sitemap.xml") {
+			return sitemapResponse(env);
 		}
-		// Old-style detail URLs (/akinito/<id>) — permanent redirect.
+		// Pretty listing URLs: /akinita/<public code> serves the detail
+		// shell with the per-listing SEO head injected (worker/lib/seo.mjs);
+		// js/listings.fw.js reads the key from the path and renders the
+		// visible page client-side. Unknown key -> real 404.
+		if (/^\/akinita\/[^/]+$/.test(pathname)) {
+			const key = decodeURIComponent(pathname.slice("/akinita/".length));
+			return devNoindex(await serveListingPage(key, url, env), url);
+		}
+		// Old-style detail URLs (/akinito/<id>, /akinito?id=<id>) —
+		// permanent redirect to the canonical /akinita/<key> form; bare
+		// /akinito goes to the grid.
 		if (/^\/akinito\/[^/]+$/.test(pathname)) {
 			const to = new URL(url);
 			to.pathname = "/akinita" + pathname.slice("/akinito".length);
 			return Response.redirect(to, 301);
 		}
-		return env.ASSETS.fetch(request);
+		if (pathname === "/akinito") {
+			const id = url.searchParams.get("id");
+			const to = new URL(url);
+			to.search = "";
+			to.pathname = id ? "/akinita/" + encodeURIComponent(id) : "/akinita";
+			return Response.redirect(to, 301);
+		}
+		return devNoindex(await env.ASSETS.fetch(request), url);
 	},
 
 	async scheduled(_event, env, ctx) {
 		ctx.waitUntil(regenerate(env, "cron"));
 	},
 };
+
+/* Keep non-production hosts (dev.*, *.workers.dev, forms.*) out of
+   search indexes even when a page is linked externally — robots.txt
+   alone blocks crawling but doesn't deindex. */
+function devNoindex(res, url) {
+	if (isProdHost(url.hostname)) return res;
+	const ct = res.headers.get("Content-Type") || "";
+	if (!ct.includes("text/html")) return res;
+	const headers = new Headers(res.headers);
+	headers.set("X-Robots-Tag", "noindex");
+	return new Response(res.body, { status: res.status, headers });
+}
 
 /* Pull the shared-secret token from wherever the caller put it.
    EstatePrime sends its webhook token in an `EstatePrime` header
