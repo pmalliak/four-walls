@@ -63,8 +63,17 @@ const server = http.createServer((req, res) => {
     }
     fs.stat(filePath, (err, st) => {
       if (err) {
-        res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-        res.end("404 Not Found: " + safe);
+        // Mirror production (wrangler.toml `not_found_handling = "404-page"`):
+        // unknown paths serve the branded 404.html with a 404 status.
+        fs.readFile(path.join(ROOT, "404.html"), (pageErr, page) => {
+          if (pageErr) {
+            res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+            res.end("404 Not Found: " + safe);
+            return;
+          }
+          res.writeHead(404, { "Content-Type": TYPES[".html"] });
+          res.end(page);
+        });
         return;
       }
       if (st.isDirectory()) filePath = path.join(filePath, "index.html");

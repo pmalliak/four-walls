@@ -721,19 +721,28 @@
 			banner.style.display = "none";
 			return;
 		}
-		/* The listing's own photos become the section background — the
-		   theme already renders it parallax (background-attachment:
-		   fixed) and #fw-featured:before veils it navy so it reads faint.
-		   3+ photos become a three-strip collage, otherwise the first
-		   photo covers. */
-		var bg = l.images.slice(0, 3);
-		if (bg.length >= 3) {
-			banner.style.backgroundImage = bg.map(function (p) { return 'url("' + encodeURI(p) + '")'; }).join(", ");
-			banner.style.backgroundSize = "34% 100%, 34% 100%, 34% 100%";
-			banner.style.backgroundPosition = "0 0, 50% 0, 100% 0";
-			banner.style.backgroundRepeat = "no-repeat";
-		} else if (bg[0]) {
-			banner.style.backgroundImage = 'url("' + encodeURI(bg[0]) + '")';
+		/* The listing's own photos become the section background — a
+		   multi-row collage (.fw-feat-collage) of cover-cropped tiles,
+		   so no photo is ever stretched, and #fw-featured:before veils
+		   it white so it reads faint. A single-photo listing skips the
+		   collage and covers the section instead. */
+		var collage = banner.querySelector(".fw-feat-collage");
+		var imgs = l.images || [];
+		if (collage && imgs.length > 1) {
+			var tiles = 12; /* 4×3 on desktop; CSS trims to 2×3 on phones */
+			collage.textContent = "";
+			for (var i = 0; i < tiles; i++) {
+				var tile = document.createElement("img");
+				/* Shift each row by one so a short photo list never
+				   stacks the same shot in a column. */
+				tile.src = imgs.length >= tiles ? imgs[i] : imgs[(i + Math.floor(i / 4)) % imgs.length];
+				tile.alt = "";
+				tile.loading = "lazy";
+				collage.appendChild(tile);
+			}
+			banner.style.backgroundImage = "none";
+		} else if (imgs[0]) {
+			banner.style.backgroundImage = 'url("' + encodeURI(imgs[0]) + '")';
 		}
 		var href = detailUrl(l);
 		banner.querySelectorAll("a.fw-feat-link").forEach(function (a) { a.href = href; });

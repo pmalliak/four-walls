@@ -403,13 +403,40 @@
   background: #1c3457;
   font-weight: 600;
 }
-/* js/listings.fw.js swaps the section background for the featured
-   listing's own photo(s) — the theme already renders it parallax via
-   background-attachment: fixed. Replace the theme's sideways black
-   gradient with a heavier navy veil so the photos read faint (αχνές)
-   behind the white card and the title stays legible.                    */
+/* js/listings.fw.js fills .fw-feat-collage with the featured listing's
+   photos — a grid of cover-cropped tiles (4×3 desktop, 2×3 phones), so
+   every photo keeps its aspect ratio instead of stretching to the
+   section height. It sits between the section background (z -2) and
+   the veil below (z -1).                                                */
+.fw-feat-collage {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 4px;
+  overflow: hidden;
+}
+.fw-feat-collage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@media (max-width: 767px) {
+  .fw-feat-collage {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .fw-feat-collage img:nth-child(n + 7) {
+    display: none;
+  }
+}
+/* Replace the theme's sideways black gradient with a white veil so the
+   photos read faint (αχνές) — the section copy is dark text now, so the
+   index.html markup drops the .text-white classes in this section.      */
 #fw-featured:before {
-  background: linear-gradient(180deg, rgba(28, 52, 87, 0.9) 0%, rgba(28, 52, 87, 0.82) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.86) 100%);
 }
 /* The arrow button carries .stretched-link, so the whole box is one link
    to the featured listing. Mirror the listing-card hover wherever the
@@ -417,6 +444,15 @@
    light up the arrow button.                                            */
 .fancy-banner-one .property-item {
   transition: box-shadow 0.3s ease, transform 0.3s ease;
+  box-shadow: 0 15px 35px rgba(28, 52, 87, 0.12);
+}
+/* The theme's stacked-card ghost layers are white rgba — invisible on
+   the white veil — so tint them navy to keep the layered effect.        */
+.fancy-banner-one .property-item:before {
+  background: rgba(28, 52, 87, 0.08);
+}
+.fancy-banner-one .property-item:after {
+  background: rgba(28, 52, 87, 0.04);
 }
 .fancy-banner-one .property-item:hover {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
@@ -621,5 +657,26 @@
 .fw-legal .fw-cookie-table th {
   background: #f6f8fb;
   font-weight: 600;
+  color: #1c3457;
+}
+
+/* =====================================================================
+   404 (404.html)
+   ===================================================================== */
+/* The theme's error page is a footer-less full-viewport section; the .fw
+   build adds the shared footer below it, so drop the 100vh minimum and
+   let the blue→navy .bg-pink band size to its content instead.          */
+.error-section {
+  min-height: auto;
+  padding: 250px 0 150px;
+}
+/* Secondary way out under the main button — same underlined-pink link
+   treatment as the empty-search CTA on akinita.html (.fw-cta-alt).      */
+.fw-error-alt a {
+  color: #ff0062;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.fw-error-alt a:hover {
   color: #1c3457;
 }

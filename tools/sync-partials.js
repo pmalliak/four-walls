@@ -56,6 +56,7 @@ const PAGES = [
 	"oroi_xrisis.html",
 	"politiki_aporritou.html",
 	"cookies.html",
+	"404.html",
 ];
 
 /* One entry per reusable region. `source` is where the canonical markup

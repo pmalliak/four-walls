@@ -31,6 +31,8 @@ binding = "ASSETS"
 # Every request goes through the Worker (not just asset misses) so the
 # hostname guard in worker/index.mjs can make webhooks.* webhook-only.
 run_worker_first = true
+# Any path with no matching asset serves the branded 404.html (status 404).
+not_found_handling = "404-page"
 
 [[kv_namespaces]]
 binding = "LISTINGS_KV"
