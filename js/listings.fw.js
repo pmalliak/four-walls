@@ -25,10 +25,12 @@
 
 	var FEED_URL = "data/listings.json";
 
-	/* «Επιλεγμένο ακίνητο του μήνα» (index) — the listing's public code
-	   (the «Κωδικός» shown on the listing). Falls back to the newest
-	   listing while this code is not in the feed (e.g. sample-data mode). */
-	var FEATURED_ID = "2341241";
+	/* «Επιλεγμένο ακίνητο του μήνα» (index) — normally driven by the CRM:
+	   the listing tagged FEATURED_TAG in EstatePrime arrives in the feed
+	   with featured:true (see worker/lib/estateprime.mjs). This code (the
+	   listing's public «Κωδικός») is the fallback while nothing is tagged;
+	   last resort is the newest listing (e.g. sample-data mode). */
+	var FEATURED_ID = "210694";
 
 	/* ---------------- Greek labels for CRM slugs ---------------- */
 
@@ -717,7 +719,8 @@
 		/* «Επιλεγμένο ακίνητο του μήνα» banner */
 		var banner = document.getElementById("fw-featured");
 		if (!banner) return;
-		var l = findByKey(feed, FEATURED_ID) ||
+		var l = feed.listings.filter(function (x) { return x.featured; }).sort(byNewest)[0] ||
+			findByKey(feed, FEATURED_ID) ||
 			feed.listings.slice().sort(byNewest)[0];
 		if (!l) {
 			banner.style.display = "none";

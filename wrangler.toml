@@ -65,6 +65,10 @@ ESTATEPRIME_SUBDOMAIN = "fourwalls"
 # Whitelist: only listings carrying this EstatePrime tag are published.
 # Until the tag exists in the CRM, all active listings are published.
 FILTER_TAG = "spitogatos"
+# «Ακίνητο του μήνα»: the listing carrying this EstatePrime tag gets
+# featured:true in the feed and fills the home-page banner. Tag missing
+# or nothing tagged -> front-end falls back (FEATURED_ID, then newest).
+FEATURED_TAG = "website-featured"
 
 # Secrets (NOT here — set with `npx wrangler secret put <NAME>`):
 #   WEBHOOK_KEY              shared secret for the EstatePrime webhook

@@ -79,31 +79,54 @@ async function fetchAllListings(env) {
 	// The feed only carries publicly visible stock.
 	let active = all.filter((raw) => (raw.status ?? "active") === "active");
 
+	const tags = (env.FILTER_TAG || env.FEATURED_TAG)
+		? await fetchTags(base, headers) : [];
+
 	// Whitelist by CRM tag (FILTER_TAG var, e.g. "spitogatos"): only tagged
 	// listings are published. Until the tag exists in EstatePrime, publish
 	// all active listings so the site never goes empty mid-rollout.
-	const tagId = await resolveFilterTagId(env, base, headers);
+	const tagId = resolveTagId(tags, env.FILTER_TAG);
 	if (env.FILTER_TAG && tagId === null) {
 		console.warn(`estateprime: tag "${env.FILTER_TAG}" not found in CRM — publishing ALL active listings until it exists`);
 	} else if (tagId !== null) {
-		active = active.filter((raw) =>
-			(raw.tags || []).some((t) => (t?.id ?? t) === tagId));
+		active = active.filter((raw) => hasTag(raw, tagId));
 		console.log(`estateprime: tag "${env.FILTER_TAG}" (id ${tagId}) matched ${active.length} listings`);
 	}
 
-	return active.map(mapListing);
+	// «Ακίνητο του μήνα» (FEATURED_TAG var): the tagged listing is published
+	// with featured:true and the home page shows it in the index banner.
+	// Missing tag / nothing tagged -> the front-end falls back on its own.
+	const featuredTagId = resolveTagId(tags, env.FEATURED_TAG);
+	if (env.FEATURED_TAG && featuredTagId === null) {
+		console.warn(`estateprime: tag "${env.FEATURED_TAG}" not found in CRM — no listing marked featured`);
+	}
+
+	return active.map((raw) => {
+		const listing = mapListing(raw);
+		if (featuredTagId !== null && hasTag(raw, featuredTagId)) listing.featured = true;
+		return listing;
+	});
 }
 
-/* Resolve the FILTER_TAG name to its CRM tag id (case-insensitive), or
-   null when unset / not (yet) created in EstatePrime. */
-async function resolveFilterTagId(env, base, headers) {
-	if (!env.FILTER_TAG) return null;
+/* The CRM's tag list: [{ id, name }, …]. */
+async function fetchTags(base, headers) {
 	const res = await fetch(`${base}/listings/tags`, { headers });
 	if (!res.ok) throw new Error(`EstatePrime API ${res.status} on /listings/tags`);
 	const body = await res.json();
-	const want = env.FILTER_TAG.trim().toLowerCase();
-	const tag = (body.data || []).find((t) => (t.name || "").trim().toLowerCase() === want);
+	return body.data || [];
+}
+
+/* Resolve a tag name to its CRM tag id (case-insensitive), or null when
+   unset / not (yet) created in EstatePrime. */
+function resolveTagId(tags, name) {
+	if (!name) return null;
+	const want = name.trim().toLowerCase();
+	const tag = tags.find((t) => (t.name || "").trim().toLowerCase() === want);
 	return tag ? tag.id : null;
+}
+
+function hasTag(raw, tagId) {
+	return (raw.tags || []).some((t) => (t?.id ?? t) === tagId);
 }
 
 const LANG_EL = 1; // translations[].language_id — 1 = Greek, 2 = English

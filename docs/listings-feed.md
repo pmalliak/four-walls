@@ -25,6 +25,13 @@ Design rules:
   `FILTER_TAG` var (currently `spitogatos`) are published. While that tag
   does not exist in the CRM, all active listings are published (graceful
   rollout — the filter arms itself the moment the tag is created).
+- **«Ακίνητο του μήνα» tag:** the listing carrying the EstatePrime tag named
+  by the `FEATURED_TAG` var (currently `website-featured`) is published with
+  `featured: true` and fills the home-page banner — so the pick is made in
+  the CRM, no deploy needed. If several listings carry the tag, the most
+  recently updated wins. Tag missing or nothing tagged → the front-end
+  falls back to the hardcoded `FEATURED_ID` in `js/listings.fw.js`, then
+  to the newest listing.
 - The front-end fetches `/data/listings.json` — same origin, no CORS, no API
   key in the browser.
 
@@ -56,10 +63,14 @@ Design rules:
 		"floor": "2ος", "yearBuilt": 1998,
 		"location": { "area": "Καλαμαριά", "city": "Θεσσαλονίκη", "lat": 0, "lng": 0 },
 		"images": ["…"], "features": ["…"], "description": "…",
+		"featured": true,
 		"updatedAt": "2026-07-01T09:00:00Z"
 	}]
 }
 ```
+
+`featured` appears only on the listing(s) tagged `FEATURED_TAG` in the CRM
+(home-page banner); all other listings omit the key.
 
 Prices are raw numbers — € formatting with `.` thousands separators happens at
 render time (see [localization.md](localization.md)).
