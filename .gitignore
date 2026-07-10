@@ -7,3 +7,5 @@ node_modules/
 data/
 # webhook shared secret (copy into EstatePrime; never commit)
 .webhook-key.local
+# disposable EstatePrime test keys
+.estateprime-test.local

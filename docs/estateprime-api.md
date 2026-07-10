@@ -29,6 +29,11 @@ from the live API, which beats the spec anyway.
 - Filters (body per spec): `search`, `availability`, `category`,
   `subcategory`, `subtype`, `status`, `date_created`. We fetch everything
   and filter `status === "active"` client-side.
+- **`?search=` query param** (undocumented, confirmed by EstatePrime
+  support 2026-07-10): works at least on `GET /api/contacts?search=…` —
+  matches contact details (phone/email) and full name. E.g.
+  `GET /api/contacts?search=6985478`. Used by the Make Spitogatos scenario
+  for contact dedupe. Likely works on other list endpoints too (untested).
 - `GET /listings/{id}` — full single listing.
 - Lookups: `/listings/sources`, `/listings/tags`, `/listings/subtypes`
   (per-language `translations`), `/listings/custom-fields`.

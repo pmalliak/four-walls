@@ -5,6 +5,7 @@
 .assetsignore
 .dev.vars
 .webhook-key.local
+.estateprime-test.local
 .wrangler
 .claude
 node_modules
