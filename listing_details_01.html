@@ -69,7 +69,7 @@
 					<div class="d-flex align-items-center justify-content-between">
 						<div class="logo order-lg-0">
 							<a href="index.html" class="d-flex align-items-center">
-								<img src="images/logo/fourwalls_logo.svg" alt="">
+								<img src="images/logo/fourwalls_logo.svg" alt="Four Walls Real Estate">
 							</a>
 						</div>
 						<!-- logo -->
@@ -85,7 +85,7 @@
 							</button>
 							<div class="collapse navbar-collapse" id="navbarNav">
 								<ul class="navbar-nav align-items-lg-center">
-									<li class="d-block d-lg-none"><div class="logo"><a href="index.html" class="d-block"><img src="images/logo/fourwalls_logo.svg" alt=""></a></div></li>
+									<li class="d-block d-lg-none"><div class="logo"><a href="index.html" class="d-block"><img src="images/logo/fourwalls_logo.svg" alt="Four Walls Real Estate"></a></div></li>
 									<!-- Main navigation -->
 									<li class="nav-item">
 										<a class="nav-link" href="index.html">Αρχική</a>
@@ -1027,7 +1027,7 @@
 							<div class="footer-intro">
 								<div class="logo mb-20">
 									<a href="index.html">
-										<img src="images/logo/fourwalls_logo.svg" alt="">
+										<img src="images/logo/fourwalls_logo.svg" alt="Four Walls Real Estate">
 									</a>
 								</div> 
 								<!-- logo -->
@@ -1084,6 +1084,46 @@
 					<p class="m0 text-center fs-16">© 2026 Four Walls. Με επιφύλαξη κάθε δικαιώματος.</p>
 				</div>
 			</div>
+			<!-- Organization structured data (schema.org) — keep in sync with the visible NAP above -->
+			<script type="application/ld+json">
+			{
+				"@context": "https://schema.org",
+				"@type": "RealEstateAgent",
+				"@id": "https://four-walls.gr/#organization",
+				"name": "Four Walls Real Estate",
+				"url": "https://four-walls.gr/",
+				"logo": "https://four-walls.gr/images/logo/fourwalls_logo.svg",
+				"image": "https://four-walls.gr/images/assets/ogg.fw.png",
+				"telephone": "+306907483463",
+				"email": "info@four-walls.gr",
+				"address": {
+					"@type": "PostalAddress",
+					"streetAddress": "Φραγκίνη 9",
+					"postalCode": "54624",
+					"addressLocality": "Θεσσαλονίκη",
+					"addressCountry": "GR"
+				},
+				"geo": {
+					"@type": "GeoCoordinates",
+					"latitude": 40.63468,
+					"longitude": 22.9407
+				},
+				"openingHoursSpecification": [{
+					"@type": "OpeningHoursSpecification",
+					"dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+					"opens": "10:00",
+					"closes": "18:00"
+				}],
+				"areaServed": {
+					"@type": "City",
+					"name": "Θεσσαλονίκη"
+				},
+				"sameAs": [
+					"https://www.facebook.com/profile.php?id=100080116216895",
+					"https://www.instagram.com/fourwalls_skg/"
+				]
+			}
+			</script>
 			<img src="images/lazy.svg" data-src="images/assets/ils_06.svg" alt="" class="lazy-img shapes shape_01">
 		</div> <!-- /.footer-four -->
 		<!-- /FW:INCLUDE footer -->

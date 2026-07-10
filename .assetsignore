@@ -22,6 +22,10 @@ estateprime-api-doc.yaml
 # dev-only form autofill helper — never ship to production
 forms/_autofill.dev.js
 # unadapted template demo pages — kept in repo as raw material, never served
+listing_01.html
+listing_03.html
+listing_details_01.html
+service_details.html
 index-2.html
 index-3.html
 index-4.html

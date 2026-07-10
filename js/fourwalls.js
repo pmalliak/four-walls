@@ -126,3 +126,57 @@
     prefillContactMessage();
   }
 })();
+
+/* Featured-banner parallax -------------------------------------------- *
+ * The photo collage behind «Επιλεγμένο ακίνητο του μήνα» (#fw-featured)
+ * scrolls slower than the page: as the section crosses the viewport the
+ * collage is translated up to ±70px (it overshoots the section by 80px
+ * each way in fourwalls.css, so no edge is ever exposed). Skipped for
+ * visitors who prefer reduced motion.                                   */
+(function () {
+  "use strict";
+
+  var MAX_SHIFT = 70;
+
+  function init() {
+    var banner = document.getElementById("fw-featured");
+    if (!banner) return;
+    var collage = banner.querySelector(".fw-feat-collage");
+    if (!collage) return;
+
+    var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    var ticking = false;
+
+    function update() {
+      ticking = false;
+      if (reduceMotion.matches) {
+        collage.style.transform = "";
+        return;
+      }
+      var rect = banner.getBoundingClientRect();
+      var vh = window.innerHeight;
+      if (rect.bottom < 0 || rect.top > vh) return;
+      // 0 → section entering from below, 1 → section leaving at the top
+      var progress = (vh - rect.top) / (vh + rect.height);
+      var shift = (progress - 0.5) * 2 * MAX_SHIFT;
+      collage.style.transform = "translateY(" + shift.toFixed(1) + "px)";
+    }
+
+    function requestUpdate() {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(update);
+    }
+
+    window.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("resize", requestUpdate, { passive: true });
+    reduceMotion.addEventListener("change", requestUpdate);
+    update();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
