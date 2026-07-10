@@ -167,6 +167,18 @@
   color: #fff;
 }
 
+/* Εκτίμηση ακινήτου — doodle illustration (index) -------------------- */
+/* The valuation doodle is a square drawing on cream paper, but the
+   theme's .img-bg pane is taller than wide, so `cover` crops its sides
+   off. Fit the whole drawing inside with some breathing room and let
+   the matching paper tone fill the rest of the pane.                   */
+.block-feature-four .img-gallery .img-bg {
+  background-color: #fbf3e5;
+  background-size: contain;
+  background-origin: content-box;
+  padding: 24px;
+}
+
 /* Reviews (index feedback slider) ----------------------------------- */
 /* The Google star rating is an SVG; cap its width so it doesn't stretch
    to fill the column. The reviewer avatar keeps its own .avatar size.   */
