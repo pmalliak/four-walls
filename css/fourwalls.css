@@ -221,11 +221,17 @@
    this build) darkened by a 55% black :before overlay. Swap in the
    Thessaloniki street map (OSM data rendered via city-roads, brand navy +
    pink) and soften the overlay to a navy tint so the map shows through.
-   The shorthand also drops the theme's background-attachment:fixed, which
-   is unreliable on iOS Safari. */
+   Keep the theme's fixed-attachment parallax on desktop; touch devices
+   fall back to scroll because iOS Safari breaks fixed backgrounds. */
 .fancy-banner-two {
   background: #1c3457 url(../images/media/thessaloniki-map.fw.png) no-repeat center 60%;
   background-size: cover;
+  background-attachment: fixed;
+}
+@media (hover: none) and (pointer: coarse) {
+  .fancy-banner-two {
+    background-attachment: scroll;
+  }
 }
 .fancy-banner-two:before {
   background: rgba(18, 28, 52, 0.35);
@@ -235,6 +241,13 @@
   .fancy-banner-two:before {
     background: rgba(18, 28, 52, 0.5);
   }
+}
+/* Solid-navy variant used on the diaxeirisi/polisi service pages. */
+.fancy-banner-two.fw-banner-blue {
+  background: #1c3457;
+}
+.fancy-banner-two.fw-banner-blue:before {
+  display: none;
 }
 /* Grey callout quote on service pages — the theme only styles
    .quote-wrapper inside blog details, so restate the look here.        */
@@ -390,6 +403,14 @@
   background: #1c3457;
   font-weight: 600;
 }
+/* js/listings.fw.js swaps the section background for the featured
+   listing's own photo(s) — the theme already renders it parallax via
+   background-attachment: fixed. Replace the theme's sideways black
+   gradient with a heavier navy veil so the photos read faint (αχνές)
+   behind the white card and the title stays legible.                    */
+#fw-featured:before {
+  background: linear-gradient(180deg, rgba(28, 52, 87, 0.9) 0%, rgba(28, 52, 87, 0.82) 100%);
+}
 /* The arrow button carries .stretched-link, so the whole box is one link
    to the featured listing. Mirror the listing-card hover wherever the
    cursor is over the box: lift with a shadow, title to brand pink, and
@@ -418,7 +439,8 @@
 /* CRM descriptions keep their line breaks without needing <br> tags */
 .fw-pre-line { white-space: pre-line; }
 /* CRM photos come in arbitrary aspect ratios — normalize the frames */
-#fw-grid .carousel-item img { aspect-ratio: 3 / 2; object-fit: cover; }
+#fw-grid .carousel-item img,
+#fw-latest .carousel-item img { aspect-ratio: 3 / 2; object-fit: cover; }
 #fw-similar .img-gallery img { aspect-ratio: 3 / 2; object-fit: cover; }
 #fw-gallery .carousel-item img { aspect-ratio: 16 / 10; object-fit: cover; }
 
@@ -469,65 +491,73 @@
 }
 #fw-thumbs img { aspect-ratio: 4 / 3; object-fit: cover; }
 
-/* Empty search results — CTA panel («Δεν βρήκατε αυτό που ψάχνετε;») --- */
-/* A failed search is a lead: the navy card (matching the service-page CTA
-   banners) offers to search on the visitor's behalf — the pink button
-   opens contact.html with their criteria pre-filled (?msg=) — plus a
-   free-valuation link for owners scouting prices in their area.         */
+/* Empty search results — «Δεν βρήκατε αυτό που ψάχνετε;» CTA ---------- */
+/* A failed search is a lead: offer to search on the visitor's behalf —
+   the button opens contact.html with their criteria pre-filled (?msg=) —
+   plus a free-valuation link for owners scouting prices in their area.
+   Reuses the index CTA look (fancy-banner-three: title-one heading with
+   the pink swash + btn-five), sized down to sit inside the grid.        */
 .fw-empty-cta {
-  max-width: 620px;
-  margin-top: 50px;
-  padding: 45px 35px 40px;
-  background: #1c3457;
+  max-width: 640px;
+  margin: 70px auto 0;
 }
-.fw-empty-cta h4 {
-  color: #fff;
-  font-size: 28px;
-  margin-bottom: 12px;
+.fw-empty-cta .title-one h3 {
+  font-size: 42px;
+  line-height: 1.25em;
 }
-.fw-empty-cta p {
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 25px;
-}
-.fw-cta-btn {
-  display: inline-block;
-  font-weight: 500;
-  font-size: 16px;
-  letter-spacing: 0.5px;
-  color: #fff;
-  background: #ff0062;
-  line-height: 55px;
-  padding: 0 40px;
-  border-radius: 30px;
-  transition: all 0.3s ease-in-out;
-}
-.fw-cta-btn:hover,
-.fw-cta-btn:focus {
-  background: #d1004f;
-  color: #fff;
+/* The swash ships at its index-hero width (327px); scale it to the words
+   it underlines and drop it below the baseline — at this smaller heading
+   the theme's bottom:-2% lands mid-letter and reads as a strikethrough. */
+.fw-empty-cta .title-one span img {
+  width: 100%;
+  max-width: 327px;
+  bottom: -14px;
 }
 .fw-empty-cta .fw-cta-alt {
   font-size: 16px;
-  margin: 25px 0 0;
+  margin-bottom: 0;
 }
 .fw-empty-cta .fw-cta-alt a {
-  color: #fff;
+  color: #ff0062;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 .fw-empty-cta .fw-cta-alt a:hover {
-  color: #ff8ab5;
+  color: #1c3457;
+}
+/* Below ~768px the heading wraps to two lines, which collapses the span
+   and leaves the swash as a stray squiggle — drop it there.             */
+@media (max-width: 767px) {
+  .fw-empty-cta .title-one span img {
+    display: none;
+  }
 }
 @media (max-width: 575px) {
-  .fw-empty-cta {
-    padding: 35px 22px 32px;
+  .fw-empty-cta .title-one h3 {
+    font-size: 32px;
   }
 }
 
-/* «Ποιοι είμαστε» stats strip: numbers removed, two text labels remain —
-   draw a vertical separator line between them.                          */
-.counter-wrapper .fw-stat-divider {
-  border-left: 1px solid #e4e4e4;
+/* «Καθαρισμός φίλτρων» — outlined navy pill with a refresh icon, echoing
+   the sort pill styled above (.short-filter .nice-select) on the page.  */
+.fw-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 15px;
+  border: 2px solid #1c3457;
+  border-radius: 30px;
+  line-height: 40px;
+  padding: 0 24px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1c3457;
+  transition: all 0.3s ease-in-out;
+}
+.fw-reset-btn:hover {
+  border-color: #ff0062;
+  background: #ff0062;
+  color: #fff;
 }
 
 /* =====================================================================

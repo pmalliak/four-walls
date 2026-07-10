@@ -10,8 +10,9 @@
                      sale|rent, type=apartment|maisonette|house|commercial|
                      land, area=<text>, price=1..5, sort=...).
      akinito.html  — single listing. Activates when #fw-detail exists.
-                     Served at /akinito/<crm id> (Worker + preview-server
-                     rewrite); ?id=<crm id> still works as a fallback.
+                     Served at /akinito/<code> (the listing's public
+                     «Κωδικός»; Worker + preview-server rewrite); ?id=
+                     still works as a fallback and accepts id or code.
      index.html    — «Νέες καταχωρήσεις» row: the 3 newest listings
                      (#fw-latest), and the «Επιλεγμένο ακίνητο» banner
                      (#fw-featured, see FEATURED_ID).
@@ -23,9 +24,9 @@
 
 	var FEED_URL = "data/listings.json";
 
-	/* «Επιλεγμένο ακίνητο του μήνα» (index) — the CRM listing id to feature.
-	   Falls back to the newest listing while this id is not in the feed
-	   (e.g. sample-data mode). */
+	/* «Επιλεγμένο ακίνητο του μήνα» (index) — the listing's public code
+	   (the «Κωδικός» shown on the listing). Falls back to the newest
+	   listing while this code is not in the feed (e.g. sample-data mode). */
 	var FEATURED_ID = "2341241";
 
 	/* ---------------- Greek labels for CRM slugs ---------------- */
@@ -138,12 +139,19 @@
 		return parts.join(", ");
 	}
 
-	/* Detail-page URL — path style with the CRM id (/akinito/2341241).
-	   The Worker (and tools/preview-server.js locally) rewrites these
-	   paths to akinito.html; root-absolute so it resolves the same from
-	   every page, including the detail page itself. */
-	function detailUrl(id) {
-		return "/akinito/" + encodeURIComponent(id);
+	/* Detail-page URL — path style with the listing's public code, the
+	   «Κωδικός» shown on the listing (/akinito/2341241). The Worker (and
+	   tools/preview-server.js locally) rewrites these paths to
+	   akinito.html; root-absolute so it resolves the same from every
+	   page, including the detail page itself. */
+	function detailUrl(l) {
+		return "/akinito/" + encodeURIComponent(l.code || l.id);
+	}
+
+	/* Look a listing up by what a URL may carry — the public code
+	   (canonical) or the internal id (older links). */
+	function findByKey(feed, key) {
+		return feed.listings.find(function (x) { return x.code === key || x.id === key; });
 	}
 
 	function fetchFeed() {
@@ -159,7 +167,7 @@
 		var photos = l.images.slice(0, 3);
 		if (!photos.length) photos = ["images/lazy.svg"];
 		var cid = "fwc-" + l.id;
-		var href = detailUrl(l.id);
+		var href = detailUrl(l);
 
 		var indicators = photos.map(function (_, i) {
 			return '<button type="button" data-bs-target="#' + cid + '" data-bs-slide-to="' + i + '"' +
@@ -376,19 +384,30 @@
 			return parts.join(", ");
 		}
 
+		/* Same look as the index CTA (fancy-banner-three): title-one heading
+		   with the pink swash underline + the theme's btn-five pill. */
 		function emptyCta() {
 			var summary = searchSummary();
 			var msg = "Γεια σας, αναζητώ " + (summary ? "ακίνητο: " + summary : "ακίνητο") +
 				". Θα ήθελα να με ενημερώσετε αν προκύψει κάτι αντίστοιχο.";
 
-			var box = el("div", "fw-empty-cta border-25 m-auto text-center");
-			box.appendChild(el("h4", null, "Δεν βρήκατε αυτό που ψάχνετε;"));
-			box.appendChild(el("p", null,
+			var box = el("div", "fw-empty-cta");
+			var title = el("div", "title-one mb-35");
+			var h = el("h3", null, "Δεν βρήκατε ");
+			var accent = el("span", null, "αυτό που ψάχνετε;");
+			var swash = document.createElement("img");
+			swash.src = "images/shape/title_shape_08.fw.svg";
+			swash.alt = "";
+			accent.appendChild(swash);
+			h.appendChild(accent);
+			title.appendChild(h);
+			box.appendChild(title);
+			box.appendChild(el("p", "fs-20 mb-40",
 				"Πείτε μας τι ζητάτε και θα σας ενημερώσουμε μόλις βρεθεί το κατάλληλο ακίνητο."));
-			var btn = el("a", "fw-cta-btn", "Πείτε μας τι ψάχνετε");
+			var btn = el("a", "btn-five text-uppercase", "Πείτε μας τι ψάχνετε");
 			btn.href = "contact.html?msg=" + encodeURIComponent(msg) + "#contact-form";
 			box.appendChild(btn);
-			var owner = el("p", "fw-cta-alt");
+			var owner = el("p", "fw-cta-alt mt-30");
 			owner.appendChild(document.createTextNode("Έχετε δικό σας ακίνητο; "));
 			var est = el("a", null, "Ζητήστε δωρεάν εκτίμηση");
 			est.href = "service_ektimisi.html";
@@ -403,7 +422,9 @@
 			if (!items.length) {
 				var empty = el("div", "col-12 text-center pt-40 pb-40");
 				empty.appendChild(el("p", "fs-20", "Δεν βρέθηκαν ακίνητα με αυτά τα κριτήρια."));
-				var reset = el("a", "fw-500", "Καθαρισμός φίλτρων");
+				var reset = el("a", "fw-reset-btn");
+				reset.appendChild(el("i", "bi bi-arrow-repeat"));
+				reset.appendChild(document.createTextNode("Καθαρισμός φίλτρων"));
 				reset.href = window.location.pathname;
 				empty.appendChild(reset);
 				empty.appendChild(emptyCta());
@@ -482,11 +503,11 @@
 	/* ---------------- detail page (akinito.html) ---------------- */
 
 	function initDetail(feed) {
-		/* /akinito/<id> path (canonical), with ?id= kept as fallback for
-		   older links. */
+		/* /akinito/<code> path (canonical), with ?id= kept as fallback for
+		   older links; the key may be a public code or an internal id. */
 		var m = window.location.pathname.match(/\/akinito\/([^\/]+?)\/?$/);
-		var id = m ? decodeURIComponent(m[1]) : new URLSearchParams(window.location.search).get("id");
-		var l = feed.listings.find(function (x) { return x.id === id; });
+		var key = m ? decodeURIComponent(m[1]) : new URLSearchParams(window.location.search).get("id");
+		var l = findByKey(feed, key);
 		if (!l) {
 			document.getElementById("fw-title").textContent = "Το ακίνητο δεν βρέθηκε";
 			document.getElementById("fw-detail").querySelectorAll(".fw-when-found")
@@ -494,10 +515,12 @@
 			return;
 		}
 
-		var title = subcategoryLabel(l) + (l.area ? " " + fmtNumber(l.area) + " τ.μ." : "") +
-			(l.location.area ? ", " + l.location.area : "");
+		/* Heading without the area — the address right below carries it;
+		   the browser-tab title keeps it for context. */
+		var heading = subcategoryLabel(l) + (l.area ? " " + fmtNumber(l.area) + " τ.μ." : "");
+		var title = heading + (l.location.area ? ", " + l.location.area : "");
 		document.title = title + " | Four Walls";
-		setText("fw-title", title);
+		setText("fw-title", heading);
 		setText("fw-tag", TRANSACTION[l.transaction] || l.transaction || "");
 		setText("fw-address", " " + [shortAddress(l), l.location.city].filter(Boolean).join(", "));
 		setText("fw-code", l.code ? "Κωδικός: " + l.code : "");
@@ -635,7 +658,7 @@
 		if (!similar.length) hide("fw-similar-block");
 		similar.forEach(function (s) {
 			var col = el("div", "col-md-4 d-flex mb-30");
-			var href = detailUrl(s.id);
+			var href = detailUrl(s);
 			col.innerHTML =
 				'<div class="listing-card-one shadow4 style-three border-30 h-100 w-100">' +
 					'<div class="img-gallery p-15">' +
@@ -692,18 +715,32 @@
 		/* «Επιλεγμένο ακίνητο του μήνα» banner */
 		var banner = document.getElementById("fw-featured");
 		if (!banner) return;
-		var l = feed.listings.find(function (x) { return x.id === FEATURED_ID; }) ||
+		var l = findByKey(feed, FEATURED_ID) ||
 			feed.listings.slice().sort(byNewest)[0];
 		if (!l) {
 			banner.style.display = "none";
 			return;
 		}
-		var href = detailUrl(l.id);
+		/* The listing's own photos become the section background — the
+		   theme already renders it parallax (background-attachment:
+		   fixed) and #fw-featured:before veils it navy so it reads faint.
+		   3+ photos become a three-strip collage, otherwise the first
+		   photo covers. */
+		var bg = l.images.slice(0, 3);
+		if (bg.length >= 3) {
+			banner.style.backgroundImage = bg.map(function (p) { return 'url("' + encodeURI(p) + '")'; }).join(", ");
+			banner.style.backgroundSize = "34% 100%, 34% 100%, 34% 100%";
+			banner.style.backgroundPosition = "0 0, 50% 0, 100% 0";
+			banner.style.backgroundRepeat = "no-repeat";
+		} else if (bg[0]) {
+			banner.style.backgroundImage = 'url("' + encodeURI(bg[0]) + '")';
+		}
+		var href = detailUrl(l);
 		banner.querySelectorAll("a.fw-feat-link").forEach(function (a) { a.href = href; });
 		setBannerText(banner, ".fw-feat-tag", TRANSACTION[l.transaction] || l.transaction || "");
+		/* No area in the title — the address line next to it carries it. */
 		setBannerText(banner, ".fw-feat-title",
-			subcategoryLabel(l) + (l.area ? " " + fmtNumber(l.area) + " τ.μ." : "") +
-			(l.location.area ? ", " + l.location.area : ""));
+			subcategoryLabel(l) + (l.area ? " " + fmtNumber(l.area) + " τ.μ." : ""));
 		setBannerText(banner, ".fw-feat-address", [shortAddress(l), l.location.city].filter(Boolean).join(", "));
 		setBannerText(banner, ".fw-feat-price", fmtPrice(l));
 		[[".fw-feat-sqm", l.area != null ? fmtNumber(l.area) : null],
