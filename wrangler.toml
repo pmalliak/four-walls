@@ -11,10 +11,14 @@ name = "four-walls"
 main = "worker/index.mjs"
 compatibility_date = "2026-06-01"
 
-# Custom domains (four-walls.gr zone is on Cloudflare). The root domain
-# still points at the old host — only these subdomains hit the Worker.
+# Custom domains (four-walls.gr zone is on Cloudflare). The apex is the
+# canonical production host; www 301s to it (worker/index.mjs). Deploying
+# with these routes creates the DNS records — the zone must NOT already
+# have A/AAAA/CNAME records for @ or www (delete the old-host ones first).
 # webhooks.* serves ONLY the webhook (guard in worker/index.mjs).
 routes = [
+	{ pattern = "four-walls.gr", custom_domain = true },
+	{ pattern = "www.four-walls.gr", custom_domain = true },
 	{ pattern = "dev.four-walls.gr", custom_domain = true },
 	{ pattern = "webhooks.four-walls.gr", custom_domain = true },
 	{ pattern = "forms.four-walls.gr", custom_domain = true },

@@ -44,6 +44,14 @@ export default {
 		const pathname = url.pathname.replace(/\/+$/, "") || "/";
 		const webhookPath = env.WEBHOOK_PATH || DEFAULT_WEBHOOK_PATH;
 
+		// www is only an alias — permanent redirect to the apex, the
+		// canonical origin everywhere (docs/seo.md).
+		if (url.hostname === "www.four-walls.gr") {
+			const to = new URL(url);
+			to.hostname = "four-walls.gr";
+			return Response.redirect(to, 301);
+		}
+
 		// Host-aware robots.txt on EVERY hostname (before the forms rewrite,
 		// so forms.* answers Disallow-all instead of serving a form asset).
 		if (pathname === "/robots.txt") {
