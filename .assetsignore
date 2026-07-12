@@ -77,6 +77,9 @@ banner-preview.fw.html
 scss
 css/*.map
 css/style.css
+# unused by any page (icons load via style.fw.min.css -> fonts/bootstrap-icons-1.11.1)
+css/bootstrap-icons.css
+css/bootstrap-icons.min.css
 # unreferenced leftovers / internal assets
 images/fav-icon/icon.png
 images/logo/fourwalls-brand.pdf

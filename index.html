@@ -46,7 +46,6 @@
 
 	<!-- Fix Internet Explorer ______________________________________-->
 	<!--[if lt IE 9]>
-			<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
 			<script src="vendor/html5shiv.js"></script>
 			<script src="vendor/respond.js"></script>
 		<![endif]-->
@@ -576,11 +575,12 @@
 								<p class="fs-24 color-dark">Μάθετε την πραγματική αξία του ακινήτου σας, με στοιχεία της γειτονιάς και εμπειρία στην αγορά της Θεσσαλονίκης.</p>
 							</div>
 							<!-- /.title-one -->
-							<form action="#" class="me-xl-4">
-								<input type="email" placeholder="Your Email Address...">
-								<button>Υπολογισμός</button>
+							<form action="/contact" method="get" class="me-xl-4">
+								<input type="hidden" name="msg" value="Θα ήθελα μια εκτίμηση για το ακίνητό μου.">
+								<input type="email" name="email" placeholder="Το email σας...">
+								<button>Ζητήστε εκτίμηση</button>
 							</form>
-							<div class="fs-16 mt-10 opacity-75">*Για ακριβή εκτίμηση <a href="/contact" class="fst-italic color-dark text-decoration-underline">επικοινωνήστε μαζί μας.</a></div>
+							<div class="fs-16 mt-10 opacity-75">*Θα επικοινωνήσουμε μαζί σας για να κανονίσουμε την εκτίμηση.</div>
 						</div>
 					</div>
 					<div class="col-lg-6 d-flex">

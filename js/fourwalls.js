@@ -110,18 +110,22 @@
   });
 })();
 
-/* Contact form: pre-fill the message from ?msg= ----------------------- *
+/* Contact form: pre-fill from ?msg= and ?email= ------------------------ *
  * The listings page's empty-results CTA links to contact.html with the
- * visitor's search criteria encoded in the URL, so the message arrives
- * pre-written (see emptyCta() in js/listings.fw.js).                    */
+ * visitor's search criteria encoded in the URL (see emptyCta() in
+ * js/listings.fw.js), and the homepage valuation form submits here with
+ * the visitor's email — so the form arrives pre-written.                 */
 (function () {
   "use strict";
 
   function prefillContactMessage() {
+    var params = new URLSearchParams(window.location.search);
     var box = document.querySelector("#contact-form textarea[name='message']");
-    if (!box || box.value) return;
-    var msg = new URLSearchParams(window.location.search).get("msg");
-    if (msg) box.value = msg;
+    var msg = params.get("msg");
+    if (box && !box.value && msg) box.value = msg;
+    var email = document.querySelector("#contact-form input[name='email']");
+    var addr = params.get("email");
+    if (email && !email.value && addr) email.value = addr;
   }
 
   if (document.readyState === "loading") {
@@ -129,6 +133,122 @@
   } else {
     prefillContactMessage();
   }
+})();
+
+/* Contact form: submit + confirmation popup ---------------------------- *
+ * The theme wires #contact-form to inc/contact.php via AJAX, but PHP
+ * never runs on the Cloudflare Worker host, so in production the call
+ * dies silently — no email, no feedback. We unbind that handler and take
+ * over: the fields POST as JSON to a Make webhook (scenario «Site -
+ * Φόρμα επικοινωνίας», which emails panos@four-walls.gr), and on success
+ * the .fw-popup confirmation appears. On localhost (preview server)
+ * success is simulated so the popup can be seen while editing without
+ * sending real emails.                                                  */
+(function () {
+  "use strict";
+  var $ = window.jQuery;
+  if (!$) return;
+
+  var ENDPOINT = "https://hook.eu1.make.com/oh4zdr9kcp30fgvlk6x5idjjucrslagg";
+  var IS_LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+  var ERROR_HTML =
+    "Το μήνυμα δεν στάλθηκε — δοκιμάστε ξανά σε λίγο, ή επικοινωνήστε " +
+    'μαζί μας απευθείας στο <a href="mailto:info@four-walls.gr">info@four-walls.gr</a> ' +
+    'ή στο <a href="tel:+306907483463">+30 6907 483 463</a>.';
+
+  var overlay = null;
+  var lastFocus = null;
+
+  function buildPopup() {
+    var el = document.createElement("div");
+    el.className = "fw-popup-overlay";
+    el.innerHTML =
+      '<div class="fw-popup" role="dialog" aria-modal="true" aria-labelledby="fw-popup-title">' +
+        '<span class="fw-popup-check" aria-hidden="true">' +
+          '<svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        "</span>" +
+        '<h3 id="fw-popup-title">Το μήνυμά σας εστάλη!</h3>' +
+        "<p>Σας ευχαριστούμε που επικοινωνήσατε με τη Four Walls. Θα σας απαντήσουμε το συντομότερο δυνατό.</p>" +
+        '<button type="button" class="btn-nine text-uppercase rounded-3 fw-normal">Εντάξει</button>' +
+      "</div>";
+    el.querySelector("button").addEventListener("click", closePopup);
+    el.addEventListener("click", function (e) {
+      if (e.target === el) closePopup();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && el.classList.contains("is-open")) closePopup();
+    });
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function openPopup() {
+    if (!overlay) overlay = buildPopup();
+    lastFocus = document.activeElement;
+    document.body.classList.add("fw-popup-lock");
+    overlay.classList.add("is-open");
+    overlay.querySelector("button").focus();
+  }
+
+  function closePopup() {
+    overlay.classList.remove("is-open");
+    document.body.classList.remove("fw-popup-lock");
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  $(function () {
+    var $form = $("#contact-form");
+    if (!$form.length) return;
+
+    // Drop the theme's contact.php handler. .off("submit") also removes
+    // the validator's listener, so tear the validator down first and
+    // re-init after — the inline Greek error messages keep working.
+    if ($.fn.validator) $form.validator("destroy");
+    $form.off("submit");
+    if ($.fn.validator) $form.validator();
+
+    $form.on("submit", function (e) {
+      if (e.isDefaultPrevented()) return; // the validator found errors
+      e.preventDefault();
+
+      var form = this;
+      var $btn = $form.find("button").last();
+      var btnLabel = $btn.text();
+      $btn.prop("disabled", true).text("Αποστολή...");
+
+      var payload = {
+        name: form.name.value.trim(),
+        email: form.email.value.trim(),
+        message: form.message.value.trim(),
+        page: window.location.pathname
+      };
+
+      var send = IS_LOCAL
+        ? new Promise(function (resolve) {
+            setTimeout(function () { resolve({ ok: true }); }, 500);
+          })
+        : fetch(ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+      send
+        .then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          form.reset();
+          $form.find(".messages").empty();
+          $btn.prop("disabled", false).text(btnLabel);
+          openPopup();
+        })
+        .catch(function () {
+          $btn.prop("disabled", false).text(btnLabel);
+          $form.find(".messages").html(
+            '<div class="alert alert-danger">' + ERROR_HTML + "</div>"
+          );
+        });
+    });
+  });
 })();
 
 /* Featured-banner parallax -------------------------------------------- *

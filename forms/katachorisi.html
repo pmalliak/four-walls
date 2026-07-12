@@ -776,6 +776,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.querySelectorAll(".scrim").forEach(sc=>sc.addEventListener("click",e=>{ if(e.target===sc) closeScrim(sc); }));
 });
 </script>
-<!-- DEV AUTOFILL: remove this line + _autofill.dev.js to disable --><script src="_autofill.dev.js"></script>
+<!-- DEV AUTOFILL: dev-only test helper, loads only on localhost (see _autofill.dev.js) --><script>if(/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname))document.body.appendChild(Object.assign(document.createElement("script"),{src:"_autofill.dev.js"}));</script>
 </body>
 </html>
