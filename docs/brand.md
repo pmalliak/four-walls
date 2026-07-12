@@ -65,7 +65,7 @@ White brand cube on a pink `#FF0062` disc, generated from the cube paths in
 | File | What |
 |------|------|
 | `icon.fw.svg` | Vector favicon (64 viewBox) — pink disc + white cube |
-| `icon.fw.png` | 64×64 raster fallback (transparent outside the disc); also used as an avatar image on `akinito.html` |
+| `icon.fw.png` | 64×64 raster fallback (transparent outside the disc); also used as an avatar image on `property.html` |
 | `apple-touch-icon.fw.png` | 180×180 full-bleed pink square (iOS rounds the corners itself) |
 | `icon.png` | Homy template original — unreferenced, kept as-is |
 

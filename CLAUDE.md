@@ -55,8 +55,8 @@ localization, environment, and per-component notes).
   block sits between `<!-- FW:HEAD … -->` markers, stamped by the same sync from
   [worker/lib/pages-meta.mjs](worker/lib/pages-meta.mjs) — edit **that registry**,
   not the markers. Listing detail pages get their head injected per-request by
-  the Worker. Internal links use clean root-absolute URLs (`/akinita`, never
-  `akinita.html`) and each page has exactly one `<h1>`. See [docs/seo.md](docs/seo.md).
+  the Worker. Internal links use clean root-absolute URLs (`/properties`, never
+  `properties.html`) and each page has exactly one `<h1>`. See [docs/seo.md](docs/seo.md).
 
 ## Windows / editing gotchas
 

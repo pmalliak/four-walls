@@ -51,18 +51,31 @@ const server = http.createServer((req, res) => {
   try {
     let urlPath = decodeURIComponent(req.url.split("?")[0].split("#")[0]);
     if (urlPath === "/") urlPath = "/index.html";
-    // Pretty listing URLs (mirrors the Worker): /akinita/<id> -> akinito.html
-    if (/^\/akinita\/[^/]+$/.test(urlPath)) urlPath = "/akinito.html";
-    // Old-style detail URLs — 301 to /akinita/<id>, like the Worker.
-    if (/^\/akinito\/[^/]+$/.test(urlPath)) {
-      res.writeHead(301, { Location: "/akinita" + urlPath.slice("/akinito".length) });
+    // Pretty listing URLs (mirrors the Worker): /properties/<id> -> property.html
+    if (/^\/properties\/[^/]+$/.test(urlPath)) urlPath = "/property.html";
+    // Old Greek detail URLs — 301 to /properties/<id>, like the Worker.
+    if (/^\/akinit[ao]\/[^/]+$/.test(urlPath)) {
+      res.writeHead(301, { Location: "/properties/" + urlPath.split("/")[2] });
+      res.end();
+      return;
+    }
+    // Old Greek page URLs — 301 to the English ones, like the Worker.
+    const renamed = {
+      "/akinita": "/properties", "/akinito": "/properties",
+      "/service_agora": "/services/buying", "/service_polisi": "/services/selling",
+      "/service_enoikiasi": "/services/renting", "/service_ektimisi": "/services/valuation",
+      "/service_anakainisi": "/services/renovation", "/service_diaxeirisi": "/services/property-management",
+      "/oroi_xrisis": "/terms-of-use", "/politiki_aporritou": "/privacy-policy",
+    };
+    if (renamed[urlPath]) {
+      res.writeHead(301, { Location: renamed[urlPath] });
       res.end();
       return;
     }
     // block path traversal
     const safe = path.normalize(urlPath).replace(/^(\.\.[\/\\])+/, "");
     let filePath = path.join(ROOT, safe);
-    // Clean URLs (mirrors the Worker assets layer): /akinita -> akinita.html
+    // Clean URLs (mirrors the Worker assets layer): /properties -> properties.html
     if (!path.extname(filePath) && fs.existsSync(filePath + ".html")) {
       filePath += ".html";
     }

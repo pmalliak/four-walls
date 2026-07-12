@@ -14,7 +14,7 @@
     var clean = href.split("#")[0].split("?")[0];
     if (!clean) return "";
     var last = (clean.split("/").pop() || "").toLowerCase();
-    // Clean URLs and .html forms are the same page (/akinita ≡ akinita.html);
+    // Clean URLs and .html forms are the same page (/properties ≡ properties.html);
     // a path ending in "/" is the home page.
     if (last.slice(-5) === ".html") last = last.slice(0, -5);
     return last || (clean.charAt(clean.length - 1) === "/" ? "index" : "");

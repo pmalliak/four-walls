@@ -9,7 +9,7 @@
 
    Per-page fields:
      path           canonical path on the production origin ("/" for the
-                    home page, "/akinita", …). null = never canonical
+                    home page, "/properties", …). null = never canonical
                     (404 page).
      title          exact <title> / og:title text.
      description    meta + og description (aim for 120–160 chars, Greek).
@@ -33,13 +33,13 @@ export const PAGES_META = {
 		title: "Four Walls Real Estate · Μεσιτικό γραφείο Θεσσαλονίκης",
 		description: "Four Walls Real Estate — Μεσιτικό γραφείο στη Θεσσαλονίκη. Αγορά, πώληση, ενοικίαση, εκτίμηση και διαχείριση ακινήτων.",
 	},
-	"akinita.html": {
-		path: "/akinita",
+	"properties.html": {
+		path: "/properties",
 		title: "Ακίνητα προς πώληση & ενοικίαση | Four Walls",
 		description: "Όλα τα διαθέσιμα ακίνητα της Four Walls στη Θεσσαλονίκη — διαμερίσματα, μονοκατοικίες, επαγγελματικοί χώροι και οικόπεδα, για αγορά ή ενοικίαση.",
 	},
-	"akinito.html": {
-		path: "/akinito",
+	"property.html": {
+		path: "/property",
 		title: "Ακίνητο | Four Walls",
 		description: "Λεπτομέρειες ακινήτου — Four Walls, Θεσσαλονίκη.",
 		workerManaged: true,
@@ -50,33 +50,33 @@ export const PAGES_META = {
 		title: "Υπηρεσίες · Four Walls Real Estate",
 		description: "Οι υπηρεσίες της Four Walls στη Θεσσαλονίκη: αγορά, πώληση, ενοικίαση, εκτίμηση, ανακαίνιση και διαχείριση ακινήτων — δίπλα σας σε κάθε βήμα.",
 	},
-	"service_agora.html": {
-		path: "/service_agora",
+	"services/buying.html": {
+		path: "/services/buying",
 		title: "Αγορά ακινήτου · Four Walls Real Estate",
 		description: "Αγορά ακινήτου στη Θεσσαλονίκη με τη Four Walls — προσωπική αναζήτηση, υποδείξεις, διαπραγμάτευση και υποστήριξη μέχρι το συμβόλαιο.",
 	},
-	"service_polisi.html": {
-		path: "/service_polisi",
+	"services/selling.html": {
+		path: "/services/selling",
 		title: "Πώληση ακινήτου · Four Walls Real Estate",
 		description: "Πώληση ακινήτου στη Θεσσαλονίκη με τη Four Walls — σωστή τιμή, προσεγμένη προβολή και διαπραγμάτευση μέχρι το συμβόλαιο.",
 	},
-	"service_enoikiasi.html": {
-		path: "/service_enoikiasi",
+	"services/renting.html": {
+		path: "/services/renting",
 		title: "Ενοικίαση · Four Walls Real Estate",
 		description: "Ενοικίαση ακινήτου στη Θεσσαλονίκη με τη Four Walls — το σωστό ενοίκιο για εσάς ή ο αξιόπιστος ενοικιαστής για το ακίνητό σας.",
 	},
-	"service_ektimisi.html": {
-		path: "/service_ektimisi",
+	"services/valuation.html": {
+		path: "/services/valuation",
 		title: "Εκτίμηση ακινήτου · Four Walls Real Estate",
 		description: "Εκτίμηση αξίας ακινήτου στη Θεσσαλονίκη από τη Four Walls — τεκμηριωμένη πρόταση τιμής με πραγματικά στοιχεία αγοράς.",
 	},
-	"service_anakainisi.html": {
-		path: "/service_anakainisi",
+	"services/renovation.html": {
+		path: "/services/renovation",
 		title: "Ανακαινίσεις · Four Walls Real Estate",
 		description: "Ανακαινίσεις ακινήτων στη Θεσσαλονίκη από τη Four Walls — μερική ή ολική ανακαίνιση και ενεργειακή αναβάθμιση, με συνεργεία που εμπιστευόμαστε.",
 	},
-	"service_diaxeirisi.html": {
-		path: "/service_diaxeirisi",
+	"services/property-management.html": {
+		path: "/services/property-management",
 		title: "Διαχείριση ακινήτων · Four Walls Real Estate",
 		description: "Διαχείριση ακινήτων στη Θεσσαλονίκη από τη Four Walls — μισθώσεις, συντήρηση και εισπράξεις, χωρίς κανέναν πονοκέφαλο για εσάς.",
 	},
@@ -95,13 +95,13 @@ export const PAGES_META = {
 		title: "Συχνές ερωτήσεις · Four Walls Real Estate",
 		description: "Απαντήσεις στις πιο συχνές ερωτήσεις για αγορά, πώληση, ενοικίαση και εκτίμηση ακινήτων στη Θεσσαλονίκη από τη Four Walls.",
 	},
-	"oroi_xrisis.html": {
-		path: "/oroi_xrisis",
+	"terms-of-use.html": {
+		path: "/terms-of-use",
 		title: "Όροι χρήσης · Four Walls Real Estate",
 		description: "Οι όροι χρήσης του ιστότοπου της Four Walls — μεσιτικό γραφείο στη Θεσσαλονίκη.",
 	},
-	"politiki_aporritou.html": {
-		path: "/politiki_aporritou",
+	"privacy-policy.html": {
+		path: "/privacy-policy",
 		title: "Πολιτική απορρήτου · Four Walls Real Estate",
 		description: "Πώς η Four Walls συλλέγει και προστατεύει τα προσωπικά σας δεδομένα, σύμφωνα με τον ΓΚΠΔ (GDPR).",
 	},

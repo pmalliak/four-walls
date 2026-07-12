@@ -8,7 +8,7 @@
         all listings from the CRM API and stores the feed in KV. The
         webhook payload is ignored on purpose (signal, not data).
      3. GET /data/listings.json — serves the feed from KV.
-     4. SEO (worker/lib/seo.mjs): /akinita/<code> serves the detail
+     4. SEO (worker/lib/seo.mjs): /properties/<code> serves the detail
         shell with per-listing title/meta/OG/JSON-LD injected (social
         scrapers don't run JS); /sitemap.xml and /robots.txt are
         generated; non-production hosts answer Disallow-all + noindex.
@@ -92,37 +92,58 @@ export default {
 		if (pathname === "/sitemap.xml") {
 			return sitemapResponse(env);
 		}
-		// Pretty listing URLs: /akinita/<public code> serves the detail
+		// Pretty listing URLs: /properties/<public code> serves the detail
 		// shell with the per-listing SEO head injected (worker/lib/seo.mjs);
 		// js/listings.fw.js reads the key from the path and renders the
 		// visible page client-side. Unknown key -> real 404.
-		if (/^\/akinita\/[^/]+$/.test(pathname)) {
-			const key = decodeURIComponent(pathname.slice("/akinita/".length));
+		if (/^\/properties\/[^/]+$/.test(pathname)) {
+			const key = decodeURIComponent(pathname.slice("/properties/".length));
 			return devNoindex(await serveListingPage(key, url, env), url);
 		}
-		// Old-style detail URLs (/akinito/<id>, /akinito?id=<id>) —
-		// permanent redirect to the canonical /akinita/<key> form; bare
-		// /akinito goes to the grid.
-		if (/^\/akinito\/[^/]+$/.test(pathname)) {
+		// Old Greek detail URLs (/akinita/<key>, /akinito/<id>,
+		// /akinito?id=<id>) — permanent redirect to the canonical
+		// /properties/<key> form; bare /akinito and the /property shell
+		// go to the grid.
+		if (/^\/akinit[ao]\/[^/]+$/.test(pathname)) {
 			const to = new URL(url);
-			to.pathname = "/akinita" + pathname.slice("/akinito".length);
+			to.pathname = "/properties/" + pathname.split("/")[2];
 			return Response.redirect(to, 301);
 		}
-		if (pathname === "/akinito") {
+		if (pathname === "/akinito" || pathname === "/property") {
 			const id = url.searchParams.get("id");
 			const to = new URL(url);
 			to.search = "";
-			to.pathname = id ? "/akinita/" + encodeURIComponent(id) : "/akinita";
+			to.pathname = id ? "/properties/" + encodeURIComponent(id) : "/properties";
 			return Response.redirect(to, 301);
 		}
-		// Renamed pages (2026-07): template file names dropped in favour of
-		// clean ones — permanent redirects so old links/bookmarks keep working.
+		// Renamed pages (2026-07): template file names, then the Greek
+		// transliterated paths, dropped in favour of clean English ones —
+		// permanent redirects so old links/bookmarks keep working.
 		{
 			const renamed = {
 				"/about_us_01": "/about",
 				"/about_us_01.html": "/about",
 				"/service_01": "/services",
 				"/service_01.html": "/services",
+				"/akinita": "/properties",
+				"/akinita.html": "/properties",
+				"/akinito.html": "/properties",
+				"/service_agora": "/services/buying",
+				"/service_agora.html": "/services/buying",
+				"/service_polisi": "/services/selling",
+				"/service_polisi.html": "/services/selling",
+				"/service_enoikiasi": "/services/renting",
+				"/service_enoikiasi.html": "/services/renting",
+				"/service_ektimisi": "/services/valuation",
+				"/service_ektimisi.html": "/services/valuation",
+				"/service_anakainisi": "/services/renovation",
+				"/service_anakainisi.html": "/services/renovation",
+				"/service_diaxeirisi": "/services/property-management",
+				"/service_diaxeirisi.html": "/services/property-management",
+				"/oroi_xrisis": "/terms-of-use",
+				"/oroi_xrisis.html": "/terms-of-use",
+				"/politiki_aporritou": "/privacy-policy",
+				"/politiki_aporritou.html": "/privacy-policy",
 			};
 			if (renamed[pathname]) {
 				const to = new URL(url);

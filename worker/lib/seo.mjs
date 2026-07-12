@@ -3,10 +3,10 @@
    robots)
    ---------------------------------------------------------------------
    Listing pages are client-rendered (js/listings.fw.js), so without
-   this module every /akinita/<code> URL serves the same generic head:
+   this module every /properties/<code> URL serves the same generic head:
    social scrapers (Facebook/Instagram/Viber/WhatsApp) never execute JS
    and would show no preview at all, and search engines would see only
-   the shell. serveListingPage() rewrites the akinito.html shell per
+   the shell. serveListingPage() rewrites the property.html shell per
    listing with <title>, meta description, canonical, Open Graph /
    Twitter tags and schema.org JSON-LD — the client JS then renders the
    visible page as before (its document.title write is a same-string
@@ -80,7 +80,7 @@ function listingKey(l) {
 }
 
 function canonicalUrl(l) {
-	return SITE.origin + "/akinita/" + encodeURIComponent(listingKey(l));
+	return SITE.origin + "/properties/" + encodeURIComponent(listingKey(l));
 }
 
 /* Byte-identical to the client's document.title (js/listings.fw.js
@@ -133,7 +133,7 @@ async function loadFeed(env) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Listing detail page: /akinita/<code>                                */
+/* Listing detail page: /properties/<code>                             */
 /* ------------------------------------------------------------------ */
 
 export async function serveListingPage(key, url, env) {
@@ -147,7 +147,7 @@ export async function serveListingPage(key, url, env) {
 	// Fetch the shell WITHOUT the browser's conditional headers — a 304
 	// has no body to rewrite. The asset ETag is dropped for the same
 	// reason (it identifies the un-rewritten shell).
-	const shell = await env.ASSETS.fetch(new URL("/akinito", url));
+	const shell = await env.ASSETS.fetch(new URL("/property", url));
 	if (!feed || !Array.isArray(feed.listings)) return shell;
 
 	const l = feed.listings.find((x) => x.code === key || x.id === key);
@@ -183,7 +183,7 @@ export async function serveListingPage(key, url, env) {
 }
 
 /* Canonical + OG/Twitter + JSON-LD, appended to the shell's <head>.
-   The static FW:HEAD block of akinito.html deliberately carries only
+   The static FW:HEAD block of property.html deliberately carries only
    title + description (workerManaged in pages-meta.mjs), so nothing
    here is emitted twice. */
 function seoBlock(l) {
@@ -288,7 +288,7 @@ export function listingJsonLd(l, canonical, title, desc) {
 		"@type": "BreadcrumbList",
 		itemListElement: [
 			{ "@type": "ListItem", position: 1, name: "Αρχική", item: SITE.origin + "/" },
-			{ "@type": "ListItem", position: 2, name: "Ακίνητα", item: SITE.origin + "/akinita" },
+			{ "@type": "ListItem", position: 2, name: "Ακίνητα", item: SITE.origin + "/properties" },
 			{ "@type": "ListItem", position: 3, name: title },
 		],
 	});

@@ -21,7 +21,7 @@ header/footer partials.
 - New page? Add it to `PAGES` in the sync tool *and* to `PAGES_META`; the
   markers self-install on first run (the old hand-written head lines are
   removed automatically).
-- `akinito.html` is `workerManaged: true`: its static block carries only
+- `property.html` is `workerManaged: true`: its static block carries only
   title + description because the Worker injects the rest per listing
   (layer 2) — this is what prevents duplicated OG tags.
 - The obsolete `meta keywords` was dropped site-wide on purpose.
@@ -34,8 +34,8 @@ social profiles). Keep it in sync with the visible footer/contact NAP.
 
 Listing pages are client-rendered, and social/messenger scrapers
 (Facebook, Instagram, Viber, WhatsApp) never execute JS. So for
-`GET /akinita/<code>` the Worker looks the listing up in the KV feed
-(edge-cached 5 min) and rewrites the `akinito.html` shell via
+`GET /properties/<code>` the Worker looks the listing up in the KV feed
+(edge-cached 5 min) and rewrites the `property.html` shell via
 HTMLRewriter:
 
 - `<title>` — **byte-identical** to the client's `document.title` format
@@ -51,8 +51,11 @@ HTMLRewriter:
   clean entity data.
 - Unknown code ⇒ the branded 404 page with a **real 404 status** (no
   soft-404s). Feed missing ⇒ plain shell, never a 5xx.
-- Legacy URLs 301 to the canonical form: `/akinito/<x>` and
-  `/akinito?id=<x>` → `/akinita/<x>`; bare `/akinito` → `/akinita`.
+- Legacy URLs 301 to the canonical form: `/akinita/<x>`, `/akinito/<x>`
+  and `/akinito?id=<x>` → `/properties/<x>`; bare `/akinito`, `/property`
+  and `/akinita` → `/properties`. The old Greek page paths
+  (`/service_*`, `/oroi_xrisis`, `/politiki_aporritou`, ± `.html`) 301 to
+  their English forms via the `renamed` map in `worker/index.mjs`.
 
 ### 3. Discovery — sitemap.xml + robots.txt (Worker routes)
 
@@ -69,7 +72,7 @@ HTMLRewriter:
 - **Exactly one `<h1>` per page** — the banner title (was a theme `<h3>`;
   `css/fourwalls.css` "SEO headings" section reproduces the h3 scale so it
   renders identically). Keep new pages to one h1.
-- **Internal links use clean root-absolute URLs** (`/akinita`, `/contact`,
+- **Internal links use clean root-absolute URLs** (`/properties`, `/contact`,
   `/` for home) — never `x.html`, which costs a redirect hop. The preview
   server resolves extensionless paths to `.html` like production does.
 - Listing images get descriptive Greek `alt` text at render time
@@ -85,8 +88,8 @@ HTMLRewriter:
 npx wrangler dev --var SAMPLE_DATA:1          # then seed the feed:
 curl -X POST "localhost:8787/listings?key=dev-local-key"
 
-curl -s localhost:8787/akinita/4W-101 | grep -E 'canonical|og:title|ld\+json'
-curl -s -o /dev/null -w '%{http_code}' localhost:8787/akinita/nope   # 404
+curl -s localhost:8787/properties/4W-101 | grep -E 'canonical|og:title|ld\+json'
+curl -s -o /dev/null -w '%{http_code}' localhost:8787/properties/nope   # 404
 curl -s localhost:8787/sitemap.xml | xmllint --noout -
 ```
 
@@ -101,7 +104,7 @@ Facebook Sharing Debugger on a dev listing URL (FB ignores robots.txt).
    domains to the Worker, move DNS off the old host, redirect www → apex.
 2. **Google Search Console** — verify the domain property (DNS TXT),
    submit `https://four-walls.gr/sitemap.xml`, URL-inspect `/` and one
-   `/akinita/<code>` and request indexing.
+   `/properties/<code>` and request indexing.
 3. Re-run the Rich Results Test in URL mode against the apex.
 4. **Google Business Profile** with the exact footer NAP (Φραγκίνη 9,
    54624 Θεσσαλονίκη, +30 6907 483 463) — the single highest-impact
@@ -111,4 +114,4 @@ Facebook Sharing Debugger on a dev listing URL (FB ignores robots.txt).
    `https://four-walls.gr/` (closes the schema `sameAs` loop).
 7. Confirm `images/assets/ogg.fw.png` is a branded 1200×630 social image.
 8. Weeks 1–2: watch GSC Coverage (soft-404s, duplicates) and Worker logs
-   for `/akinita/*` 404 volume.
+   for `/properties/*` 404 volume.

@@ -46,10 +46,9 @@ needs no per-page edits.
 ## Which pages are covered
 
 The `PAGES` array at the top of [`tools/sync-partials.js`](../tools/sync-partials.js)
-lists them. Currently the Greek-adapted root pages:
-
-`index.html`, `services.html`, `service_details.html`, `about.html`,
-`contact.html`.
+lists them — all the Greek-adapted pages (`index.html`, `services.html`,
+`services/*.html`, `properties.html`, `property.html`, `about.html`,
+`contact.html`, the legal pages, `404.html`, …).
 
 **To add a page:** put its filename in `PAGES` and run the sync — the tool finds
 the page's existing `<header class="theme-main-menu …">` / `<div class="footer-…">`
@@ -57,8 +56,10 @@ region, wraps it in markers, and replaces it with the canonical partial.
 
 Notes / limits:
 
-- All covered pages are at the repo root, so the partials' relative links
-  (`index.html`, `images/logo/…`) resolve correctly. A page in a subfolder
-  (e.g. `dashboard/`) would need path-adjusted partials — not handled yet.
+- The partials' internal links are root-absolute and their asset paths
+  relative (`images/logo/…`), so pages at the repo root resolve them as-is.
+  A page in a subfolder (e.g. `services/*.html`, or the `property.html`
+  shell served at `/properties/<code>`) carries `<base href="/">` in its
+  `<head>` so those relative asset paths still resolve from the site root.
 - First run bootstraps the two partials from their source pages; it **never**
   overwrites a partial that already exists.

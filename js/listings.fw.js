@@ -5,15 +5,15 @@
    the Cloudflare Worker from the EstatePrime CRM — docs/listings-feed.md).
 
    Pages:
-     akinita.html  — grid + filters. Activates when #fw-grid exists.
+     properties.html — grid + filters. Activates when #fw-grid exists.
                      Reads initial filters from the URL (?transaction=
                      sale|rent, type=apartment|maisonette|house|commercial|
                      land, area=<text>, price=1..5, sort=...).
-     akinito.html  — single listing. Activates when #fw-detail exists.
-                     Served at /akinita/<code> (the listing's public
+     property.html — single listing. Activates when #fw-detail exists.
+                     Served at /properties/<code> (the listing's public
                      «Κωδικός»; Worker + preview-server rewrite); ?id=
                      still works as a fallback and accepts id or code,
-                     and old /akinito/<code> links 301 to /akinita/.
+                     and old /akinit[ao]/<code> links 301 to /properties/.
      index.html    — «Νέες καταχωρήσεις» row: the 3 newest listings
                      (#fw-latest), and the «Επιλεγμένο ακίνητο» banner
                      (#fw-featured, see FEATURED_ID).
@@ -143,12 +143,12 @@
 	}
 
 	/* Detail-page URL — path style with the listing's public code, the
-	   «Κωδικός» shown on the listing (/akinita/2341241). The Worker (and
-	   tools/preview-server.js locally) rewrites these paths to
-	   akinito.html; root-absolute so it resolves the same from every
+	   «Κωδικός» shown on the listing (/properties/2341241). The Worker
+	   (and tools/preview-server.js locally) rewrites these paths to
+	   property.html; root-absolute so it resolves the same from every
 	   page, including the detail page itself. */
 	function detailUrl(l) {
-		return "/akinita/" + encodeURIComponent(l.code || l.id);
+		return "/properties/" + encodeURIComponent(l.code || l.id);
 	}
 
 	/* Look a listing up by what a URL may carry — the public code
@@ -164,7 +164,7 @@
 		});
 	}
 
-	/* Shared listing card — used by the akinita grid and the index home row. */
+	/* Shared listing card — used by the properties grid and the index home row. */
 	function listingCard(l, colClass) {
 		var col = el("div", colClass);
 		var photos = l.images.slice(0, 3);
@@ -233,7 +233,7 @@
 		return col;
 	}
 
-	/* ---------------- grid page (akinita.html) ---------------- */
+	/* ---------------- grid page (properties.html) ---------------- */
 
 	function initGrid(feed) {
 		var grid = document.getElementById("fw-grid");
@@ -418,7 +418,7 @@
 			var owner = el("p", "fw-cta-alt mt-30");
 			owner.appendChild(document.createTextNode("Έχετε δικό σας ακίνητο; "));
 			var est = el("a", null, "Ζητήστε δωρεάν εκτίμηση");
-			est.href = "/service_ektimisi";
+			est.href = "/services/valuation";
 			owner.appendChild(est);
 			owner.appendChild(document.createTextNode("."));
 			box.appendChild(owner);
@@ -508,13 +508,14 @@
 		if (refresh && window.jQuery) window.jQuery(controls.price).niceSelect("update");
 	}
 
-	/* ---------------- detail page (akinito.html) ---------------- */
+	/* ---------------- detail page (property.html) ---------------- */
 
 	function initDetail(feed) {
-		/* /akinita/<code> path (canonical; old /akinito/ still matched —
-		   the Worker 301s it, but Live-Server-style setups don't), with
-		   ?id= kept as fallback; the key may be a public code or id. */
-		var m = window.location.pathname.match(/\/akinit[ao]\/([^\/]+?)\/?$/);
+		/* /properties/<code> path (canonical; old Greek /akinit[ao]/ still
+		   matched — the Worker 301s them, but Live-Server-style setups
+		   don't), with ?id= kept as fallback; the key may be a public code
+		   or id. */
+		var m = window.location.pathname.match(/\/(?:properties|akinit[ao])\/([^\/]+?)\/?$/);
 		var key = m ? decodeURIComponent(m[1]) : new URLSearchParams(window.location.search).get("id");
 		var l = findByKey(feed, key);
 		if (!l) {

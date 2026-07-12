@@ -52,22 +52,22 @@ const PAGES = [
 	"index.html",
 	"services.html",
 	"service_details.html",
-	"service_agora.html",
-	"service_enoikiasi.html",
-	"service_polisi.html",
-	"service_ektimisi.html",
-	"service_anakainisi.html",
-	"service_diaxeirisi.html",
+	"services/buying.html",
+	"services/renting.html",
+	"services/selling.html",
+	"services/valuation.html",
+	"services/renovation.html",
+	"services/property-management.html",
 	"about.html",
 	"contact.html",
 	"listing_01.html",
 	"listing_03.html",
 	"listing_details_01.html",
-	"akinita.html",
-	"akinito.html",
+	"properties.html",
+	"property.html",
 	"faq.html",
-	"oroi_xrisis.html",
-	"politiki_aporritou.html",
+	"terms-of-use.html",
+	"privacy-policy.html",
 	"cookies.html",
 	"404.html",
 ];
@@ -193,7 +193,7 @@ function spliceHead(content, block) {
 
 /* First-time install: strip the hand-written head lines the block
    replaces (title, description, keywords, og:/twitter:/canonical), then
-   insert the marker pair after <base> when present (akinito.html needs
+   insert the marker pair after <base> when present (property.html needs
    its <base href="/"> to stay first), else after <meta charset>. */
 function installHeadMarkers(content, block) {
 	const headEnd = content.indexOf("</head>");
