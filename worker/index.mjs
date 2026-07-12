@@ -12,6 +12,11 @@
         shell with per-listing title/meta/OG/JSON-LD injected (social
         scrapers don't run JS); /sitemap.xml and /robots.txt are
         generated; non-production hosts answer Disallow-all + noindex.
+     5. POST /api/contact — contact-form relay: verifies the visitor's
+        Cloudflare Turnstile token, then forwards the message to the
+        Make scenario webhook. Both the Turnstile secret and the
+        webhook URL are Worker secrets (TURNSTILE_SECRET_KEY,
+        MAKE_CONTACT_WEBHOOK) — neither ever reaches the browser.
 
    A nightly cron (see wrangler.toml [triggers]) rebuilds the feed as
    reconciliation for any webhook deliveries that were missed.
@@ -78,6 +83,9 @@ export default {
 		if (pathname === webhookPath) {
 			return handleWebhook(request, env, ctx, url);
 		}
+		if (pathname === "/api/contact") {
+			return handleContact(request, env);
+		}
 		if (url.pathname === "/data/listings.json") {
 			return serveFeed(env);
 		}
@@ -106,6 +114,21 @@ export default {
 			to.search = "";
 			to.pathname = id ? "/akinita/" + encodeURIComponent(id) : "/akinita";
 			return Response.redirect(to, 301);
+		}
+		// Renamed pages (2026-07): template file names dropped in favour of
+		// clean ones — permanent redirects so old links/bookmarks keep working.
+		{
+			const renamed = {
+				"/about_us_01": "/about",
+				"/about_us_01.html": "/about",
+				"/service_01": "/services",
+				"/service_01.html": "/services",
+			};
+			if (renamed[pathname]) {
+				const to = new URL(url);
+				to.pathname = renamed[pathname];
+				return Response.redirect(to, 301);
+			}
 		}
 		return devNoindex(await env.ASSETS.fetch(request), url);
 	},
@@ -164,6 +187,88 @@ async function handleWebhook(request, env, ctx, url) {
 	// and retries a request that actually succeeded.
 	ctx.waitUntil(regenerate(env, "webhook"));
 	return new Response("OK", { status: 200 });
+}
+
+/* POST /api/contact — the site's contact form (contact.html +
+   js/fourwalls.js). The browser sends the fields plus a Turnstile
+   token; we verify the token with Cloudflare and only then relay the
+   message to the Make scenario's webhook, so the webhook URL never
+   appears client-side and bots can't reach it. Field names match the
+   Make scenario mapping: name, email, phone, message, page — phone
+   has its own row in the scenario's email template. The hidden
+   `website` field is a honeypot — a bot that filled it gets a fake
+   success and nothing is forwarded. */
+async function handleContact(request, env) {
+	if (request.method !== "POST") {
+		return contactJson({ success: false, error: "method_not_allowed" }, 405, { "Allow": "POST" });
+	}
+	if (!env.TURNSTILE_SECRET_KEY || !env.MAKE_CONTACT_WEBHOOK) {
+		console.error("contact: TURNSTILE_SECRET_KEY / MAKE_CONTACT_WEBHOOK secret not configured");
+		return contactJson({ success: false, error: "not_configured" }, 500);
+	}
+
+	let body;
+	try {
+		body = await request.json();
+	} catch {
+		return contactJson({ success: false, error: "bad_request" }, 400);
+	}
+
+	if (typeof body.website === "string" && body.website !== "") {
+		console.warn("contact: honeypot tripped, dropping message");
+		return contactJson({ success: true }, 200);
+	}
+
+	const name = String(body.name || "").trim().slice(0, 200);
+	const email = String(body.email || "").trim().slice(0, 200);
+	const phone = String(body.phone || "").trim().slice(0, 50);
+	const message = String(body.message || "").trim().slice(0, 5000);
+	if (!name || !email || !message) {
+		return contactJson({ success: false, error: "missing_fields" }, 400);
+	}
+	const token = String(body.token || "");
+	if (!token) {
+		return contactJson({ success: false, error: "missing_token" }, 400);
+	}
+
+	const verify = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			secret: env.TURNSTILE_SECRET_KEY,
+			response: token,
+			remoteip: request.headers.get("CF-Connecting-IP"),
+		}),
+	});
+	const outcome = await verify.json();
+	if (!outcome.success) {
+		console.warn(`contact: turnstile rejected (${(outcome["error-codes"] || []).join(", ")})`);
+		return contactJson({ success: false, error: "turnstile_failed" }, 403);
+	}
+
+	const fwd = await fetch(env.MAKE_CONTACT_WEBHOOK, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			name,
+			email,
+			phone,
+			message,
+			page: String(body.page || "").slice(0, 200),
+		}),
+	});
+	if (!fwd.ok) {
+		console.error(`contact: Make webhook forward failed (HTTP ${fwd.status})`);
+		return contactJson({ success: false, error: "forward_failed" }, 502);
+	}
+	return contactJson({ success: true }, 200);
+}
+
+function contactJson(obj, status, extraHeaders) {
+	return new Response(JSON.stringify(obj), {
+		status,
+		headers: { "Content-Type": "application/json; charset=utf-8", ...extraHeaders },
+	});
 }
 
 async function serveFeed(env) {

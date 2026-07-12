@@ -7,7 +7,7 @@
    (menu) and footer, we keep the canonical markup in:
 
        partials/header.html   — the main menu  (source: index.html)
-       partials/footer.html   — the footer     (source: service_01.html)
+       partials/footer.html   — the footer     (source: services.html)
 
    ...and stamp it into each page between HTML-comment markers:
 
@@ -50,7 +50,7 @@ const ROOT = path.resolve(__dirname, "..");
    opt it into the shared menu/footer. */
 const PAGES = [
 	"index.html",
-	"service_01.html",
+	"services.html",
 	"service_details.html",
 	"service_agora.html",
 	"service_enoikiasi.html",
@@ -58,7 +58,7 @@ const PAGES = [
 	"service_ektimisi.html",
 	"service_anakainisi.html",
 	"service_diaxeirisi.html",
-	"about_us_01.html",
+	"about.html",
 	"contact.html",
 	"listing_01.html",
 	"listing_03.html",
@@ -84,7 +84,7 @@ const REGIONS = [
 	},
 	{
 		name: "footer",
-		source: "service_01.html",
+		source: "services.html",
 		startAnchor: '<div class="footer-',
 		endAnchor: "<!-- /.footer-",
 	},

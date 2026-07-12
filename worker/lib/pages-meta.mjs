@@ -45,8 +45,8 @@ export const PAGES_META = {
 		workerManaged: true,
 		sitemap: false,
 	},
-	"service_01.html": {
-		path: "/service_01",
+	"services.html": {
+		path: "/services",
 		title: "Υπηρεσίες · Four Walls Real Estate",
 		description: "Οι υπηρεσίες της Four Walls στη Θεσσαλονίκη: αγορά, πώληση, ενοικίαση, εκτίμηση, ανακαίνιση και διαχείριση ακινήτων — δίπλα σας σε κάθε βήμα.",
 	},
@@ -80,8 +80,8 @@ export const PAGES_META = {
 		title: "Διαχείριση ακινήτων · Four Walls Real Estate",
 		description: "Διαχείριση ακινήτων στη Θεσσαλονίκη από τη Four Walls — μισθώσεις, συντήρηση και εισπράξεις, χωρίς κανέναν πονοκέφαλο για εσάς.",
 	},
-	"about_us_01.html": {
-		path: "/about_us_01",
+	"about.html": {
+		path: "/about",
 		title: "Σχετικά με εμάς · Four Walls Real Estate",
 		description: "Γνωρίστε τη Four Walls — μεσιτικό γραφείο στη Θεσσαλονίκη με προσωπική εξυπηρέτηση και διαφάνεια σε αγορά, πώληση, ενοικίαση και διαχείριση ακινήτων.",
 	},

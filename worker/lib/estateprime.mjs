@@ -183,7 +183,7 @@ export function mapListing(raw) {
 		},
 		images: (raw.photos || [])
 			.filter((p) => p.is_public !== false)
-			.map((p) => p.watermark_image || p.original_image)
+			.map((p) => p.original_image || p.watermark_image)
 			.filter(Boolean),
 		features: Array.isArray(raw.features) ? raw.features : [],
 		updatedAt: raw.date_updated ?? raw.date_created ?? null,

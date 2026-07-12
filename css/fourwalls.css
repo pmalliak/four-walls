@@ -881,3 +881,25 @@ body.fw-popup-lock {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+/* Honeypot field (bot trap) — parked off-screen instead of display:none
+   so naive bots still "see" and fill it; visitors and screen readers
+   never do (aria-hidden + tabindex="-1" on the input).                 */
+.form-style-one .fw-hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+/* Scroll target for links arriving at /contact#contact-form (and the
+   ?thema=/?msg= auto-scroll in js/fourwalls.js): land the form just
+   below the sticky menu instead of underneath it.                      */
+#contact-form {
+  scroll-margin-top: 120px;
+}
+/* Contact address banner: the opening-hours entry is plain text
+   (nothing to click) — match the theme's .address-banner .text a look. */
+.address-banner .text .fw-note {
+  color: rgba(22, 22, 22, 0.45);
+}

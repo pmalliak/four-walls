@@ -101,10 +101,10 @@
 										<a class="nav-link" href="/akinita">Ακίνητα</a>
 									</li>
 									<li class="nav-item">
-										<a class="nav-link" href="/service_01">Υπηρεσίες</a>
+										<a class="nav-link" href="/services">Υπηρεσίες</a>
 									</li>
 									<li class="nav-item">
-										<a class="nav-link" href="/about_us_01">Σχετικά</a>
+										<a class="nav-link" href="/about">Σχετικά</a>
 									</li>
 									<li class="nav-item">
 										<a class="nav-link" href="/contact">Επικοινωνία</a>
@@ -132,7 +132,7 @@
                 <ul class="theme-breadcrumb style-none d-inline-flex align-items-center justify-content-center position-relative z-1 bottom-line">
                     <li><a href="/">Αρχική</a></li>
                     <li>/</li>
-                    <li><a href="/service_01">Υπηρεσίες</a></li>
+                    <li><a href="/services">Υπηρεσίες</a></li>
                     <li>/</li>
                     <li>Ανακαινίσεις</li>
                 </ul>
@@ -161,7 +161,7 @@
 					<div class="col-xxl-6 col-lg-7 ms-auto">
 						<p class="fs-24 lh-lg mb-30 color-dark">Μια σωστή ανακαίνιση ανεβάζει την αξία του ακινήτου και το κάνει να ξεχωρίζει στην αγορά — είτε πρόκειται για πώληση, είτε για ενοικίαση, είτε για να το χαρείτε εσείς. Σχεδιάζουμε και συντονίζουμε τη δουλειά με συνεργεία που εμπιστευόμαστε, με ξεκάθαρο προϋπολογισμό και χρονοδιάγραμμα.</p>
                         <div class="d-inline-flex flex-wrap align-items-center">
-                            <a href="/contact" class="btn-three mt-20"><span>Συζητήστε το έργο σας</span> <i class="fa-light fa-arrow-right-long"></i></a>
+                            <a href="/contact?thema=anakainisi#contact-form" class="btn-three mt-20"><span>Συζητήστε το έργο σας</span> <i class="fa-light fa-arrow-right-long"></i></a>
                         </div>
 					</div>
 				</div>
@@ -194,7 +194,7 @@
                             <div class="icon d-flex align-items-center justify-content-center rounded-circle tran3s"><img src="images/lazy.svg" data-src="images/icon/icon_76.svg" alt="" class="lazy-img"></div>
                             <h6>Μερική ανακαίνιση</h6>
                             <p>Κουζίνα, μπάνιο, δάπεδα, χρώματα — στοχευμένες παρεμβάσεις που κάνουν μεγάλη διαφορά.</p>
-                            <a href="/contact" class="btn-twelve sm mt-auto">Ζητήστε προσφορά</a>
+                            <a href="/contact?thema=anakainisi-meriki#contact-form" class="btn-twelve sm mt-auto">Ζητήστε προσφορά</a>
                         </div>
                         <!-- /.card-style-ten -->
                     </div>
@@ -203,7 +203,7 @@
                             <div class="icon d-flex align-items-center justify-content-center rounded-circle tran3s"><img src="images/lazy.svg" data-src="images/icon/icon_69.svg" alt="" class="lazy-img"></div>
                             <h6>Ολική ανακαίνιση</h6>
                             <p>Πλήρης ανακατασκευή με ενιαίο σχεδιασμό, από την αποξήλωση μέχρι την παράδοση.</p>
-                            <a href="/contact" class="btn-twelve sm mt-auto">Ζητήστε προσφορά</a>
+                            <a href="/contact?thema=anakainisi-oliki#contact-form" class="btn-twelve sm mt-auto">Ζητήστε προσφορά</a>
                         </div>
                         <!-- /.card-style-ten -->
                     </div>
@@ -212,7 +212,7 @@
                             <div class="icon d-flex align-items-center justify-content-center rounded-circle tran3s"><img src="images/lazy.svg" data-src="images/icon/icon_78.svg" alt="" class="lazy-img"></div>
                             <h6>Ενεργειακή αναβάθμιση</h6>
                             <p>Κουφώματα, θέρμανση, μόνωση — χαμηλότερα πάγια και καλύτερη ενεργειακή κλάση.</p>
-                            <a href="/contact" class="btn-twelve sm mt-auto">Ζητήστε προσφορά</a>
+                            <a href="/contact?thema=anakainisi-energeiaki#contact-form" class="btn-twelve sm mt-auto">Ζητήστε προσφορά</a>
                         </div>
                         <!-- /.card-style-ten -->
                     </div>
@@ -231,46 +231,76 @@
 		-->
 		<div class="service-details mt-130 xl-mt-90 mb-150 xl-mb-100">
 			<div class="container">
-				<div class="title-one text-center mb-20 wow fadeInUp">
-					<h3>Πώς δουλεύουμε</h3>
-					<p class="fs-22">Ένας συνομιλητής για όλο το έργο — εμείς.</p>
-				</div>
-				<!-- /.title-one -->
-				<div class="feature-wrapper mt-30 mb-60 lg-mb-40">
-					<div class="bg-wrapper">
-						<div class="row">
-							<div class="col-xl-4 col-lg-6 col-md-4">
-								<div class="card-style-eleven mt-30">
-									<div class="icon"><img src="images/lazy.svg" data-src="images/icon/icon_07.fw.svg" alt="" class="lazy-img"></div>
-									<h5 class="mt-30 mb-20">Μελέτη &amp; προϋπολογισμός</h5>
-									<p>Επίσκεψη στον χώρο, καταγραφή αναγκών και ξεκάθαρη προσφορά.</p>
-								</div>
-								<!-- /.card-style-eleven -->
+				<div class="row">
+					<div class="col-lg-8">
+						<div class="service-post">
+							<div class="title-one mb-20 wow fadeInUp">
+								<h3>Πώς δουλεύουμε</h3>
+								<p class="fs-22">Ένας συνομιλητής για όλο το έργο — εμείς.</p>
 							</div>
-							<div class="col-xl-4 col-lg-6 col-md-4">
-								<div class="card-style-eleven mt-30">
-									<div class="icon"><img src="images/lazy.svg" data-src="images/icon/icon_08.fw.svg" alt="" class="lazy-img"></div>
-									<h5 class="mt-30 mb-20">Συντονισμός συνεργείων</h5>
-									<p>Δοκιμασμένα συνεργεία, σωστή σειρά εργασιών, τήρηση χρονοδιαγράμματος.</p>
+							<!-- /.title-one -->
+							<div class="feature-wrapper mt-30 mb-60 lg-mb-40">
+								<div class="bg-wrapper">
+									<div class="row">
+										<div class="col-xl-4 col-lg-6 col-md-4">
+											<div class="card-style-eleven mt-30">
+												<div class="icon"><img src="images/lazy.svg" data-src="images/icon/icon_07.fw.svg" alt="" class="lazy-img"></div>
+												<h5 class="mt-30 mb-20">Μελέτη &amp; προϋπολογισμός</h5>
+												<p>Επίσκεψη στον χώρο, καταγραφή αναγκών και ξεκάθαρη προσφορά.</p>
+											</div>
+											<!-- /.card-style-eleven -->
+										</div>
+										<div class="col-xl-4 col-lg-6 col-md-4">
+											<div class="card-style-eleven mt-30">
+												<div class="icon"><img src="images/lazy.svg" data-src="images/icon/icon_08.fw.svg" alt="" class="lazy-img"></div>
+												<h5 class="mt-30 mb-20">Συντονισμός συνεργείων</h5>
+												<p>Δοκιμασμένα συνεργεία, σωστή σειρά εργασιών, τήρηση χρονοδιαγράμματος.</p>
+											</div>
+											<!-- /.card-style-eleven -->
+										</div>
+										<div class="col-xl-4 col-lg-6 col-md-4">
+											<div class="card-style-eleven mt-30">
+												<div class="icon"><img src="images/lazy.svg" data-src="images/icon/icon_09.fw.svg" alt="" class="lazy-img"></div>
+												<h5 class="mt-30 mb-20">Παράδοση με έλεγχο</h5>
+												<p>Τελικός έλεγχος ποιότητας και παράδοση έτοιμου χώρου.</p>
+											</div>
+											<!-- /.card-style-eleven -->
+										</div>
+									</div>
 								</div>
-								<!-- /.card-style-eleven -->
+								<!-- /.bg-wrapper -->
 							</div>
-							<div class="col-xl-4 col-lg-6 col-md-4">
-								<div class="card-style-eleven mt-30">
-									<div class="icon"><img src="images/lazy.svg" data-src="images/icon/icon_09.fw.svg" alt="" class="lazy-img"></div>
-									<h5 class="mt-30 mb-20">Παράδοση με έλεγχο</h5>
-									<p>Τελικός έλεγχος ποιότητας και παράδοση έτοιμου χώρου.</p>
-								</div>
-								<!-- /.card-style-eleven -->
+							<!-- /.feature-wrapper -->
+							<div>
+								<p class="fs-22 mb-30">Σκέφτεστε πώληση μετά την ανακαίνιση; Δείτε πώς δουλεύουμε στην <a href="/service_polisi" class="color-dark text-decoration-underline">πώληση ακινήτου</a>.</p>
+								<a href="/contact?thema=anakainisi#contact-form" class="btn-two">Συζητήστε το έργο σας</a>
 							</div>
 						</div>
+						<!-- /.service-post -->
 					</div>
-					<!-- /.bg-wrapper -->
-				</div>
-				<!-- /.feature-wrapper -->
-				<div class="text-center">
-					<p class="fs-22 mb-30">Σκέφτεστε πώληση μετά την ανακαίνιση; Δείτε πώς δουλεύουμε στην <a href="/service_polisi" class="color-dark text-decoration-underline">πώληση ακινήτου</a>.</p>
-					<a href="/contact" class="btn-two">Συζητήστε το έργο σας</a>
+					<div class="col-lg-4">
+						<div class="ms-xl-5">
+							<div class="service-sidebar md-mt-80">
+								<div class="service-category">
+									<ul class="style-none">
+										<li><a href="/service_agora">Αγορά ακινήτου</a></li>
+										<li><a href="/service_enoikiasi">Ενοικίαση</a></li>
+										<li><a href="/service_polisi">Πώληση</a></li>
+										<li><a href="/service_ektimisi">Εκτίμηση</a></li>
+										<li><a href="/service_anakainisi" class="active">Ανακαινίσεις</a></li>
+										<li><a href="/service_diaxeirisi">Διαχείριση ακινήτων</a></li>
+									</ul>
+								</div>
+								<!-- /.service-category -->
+								<div class="contact-banner text-center mt-45">
+									<h4 class="mb-35 text-white">Έχετε ερωτήσεις; <br>Ας μιλήσουμε.</h4>
+									<a href="/contact?thema=anakainisi#contact-form" class="btn-two">Επικοινωνία</a>
+								</div>
+								<!-- /.contact-banner -->
+							</div>
+							<!-- /.service-sidebar -->
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -311,10 +341,10 @@
 								<h5 class="footer-title">Σύνδεσμοι</h5>
 								<ul class="footer-nav-link style-none">
 									<li><a href="/akinita">Ακίνητα</a></li>
-									<li><a href="/service_01">Υπηρεσίες</a></li>
+									<li><a href="/services">Υπηρεσίες</a></li>
 									<li><a href="/service_polisi">Πώληση ακινήτου</a></li>
 									<li><a href="/service_ektimisi">Εκτίμηση ακινήτου</a></li>
-									<li><a href="/about_us_01">Σχετικά με εμάς</a></li>
+									<li><a href="/about">Σχετικά με εμάς</a></li>
 									<li><a href="/contact">Επικοινωνία</a></li>
 								</ul>
 							</div>

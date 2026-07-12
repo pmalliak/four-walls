@@ -29,7 +29,7 @@ The header logo is a **vector SVG**. It was rebuilt from the brand PDF to replac
 a raster PNG whose anti-aliased edges were white at low opacity — invisible on
 white, but a visible white fringe around every letter on dark/coloured
 backgrounds. It's referenced from the header (desktop + mobile logo) and footer on
-`index.html`, `about_us_01.html`, `contact.html`, `service_01.html`, and
+`index.html`, `about.html`, `contact.html`, `services.html`, and
 `service_details.html`.
 
 ### Lockup proportions & sizing

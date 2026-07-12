@@ -110,22 +110,60 @@
   });
 })();
 
-/* Contact form: pre-fill from ?msg= and ?email= ------------------------ *
- * The listings page's empty-results CTA links to contact.html with the
- * visitor's search criteria encoded in the URL (see emptyCta() in
- * js/listings.fw.js), and the homepage valuation form submits here with
- * the visitor's email — so the form arrives pre-written.                 */
+/* Contact form: pre-fill + scroll from the arriving URL ---------------- *
+ * Every contact CTA on the site carries context so the form arrives
+ * pre-written and in view:
+ *   ?thema=<key>  — topic keys stamped on the CTA links (service pages,
+ *                   FAQ, homepage) mapped to a ready Greek opening line;
+ *   ?msg=<text>   — free text, wins over ?thema= (composed on the fly by
+ *                   the listings empty-results CTA, the listing detail
+ *                   CTA and the homepage valuation form);
+ *   ?email=       — visitor's email (homepage valuation form);
+ *   #contact-form — scroll to the form. Any of the params above scrolls
+ *                   too, once the page has settled (sticky-menu offset
+ *                   via scroll-margin-top in css/fourwalls.css).        */
 (function () {
   "use strict";
 
+  var TOPICS = {
+    "agora": "Γεια σας, ενδιαφέρομαι για αγορά ακινήτου. Θα ήθελα να συζητήσουμε τι αναζητώ.",
+    "polisi": "Γεια σας, ενδιαφέρομαι να πουλήσω το ακίνητό μου. Θα ήθελα να συζητήσουμε τα επόμενα βήματα.",
+    "enoikiasi": "Γεια σας, αναζητώ ακίνητο για ενοικίαση. Θα ήθελα τη βοήθειά σας.",
+    "ektimisi": "Γεια σας, θα ήθελα μια εκτίμηση για το ακίνητό μου.",
+    "anakainisi": "Γεια σας, θα ήθελα να συζητήσουμε ένα έργο ανακαίνισης.",
+    "anakainisi-meriki": "Γεια σας, θα ήθελα προσφορά για μερική ανακαίνιση (π.χ. κουζίνα, μπάνιο, δάπεδα, χρώματα).",
+    "anakainisi-oliki": "Γεια σας, θα ήθελα προσφορά για ολική ανακαίνιση.",
+    "anakainisi-energeiaki": "Γεια σας, θα ήθελα προσφορά για ενεργειακή αναβάθμιση (κουφώματα, θέρμανση, μόνωση).",
+    "diaxeirisi": "Γεια σας, θα ήθελα μια πρόταση για τη διαχείριση του ακινήτου μου.",
+    "klisi": "Γεια σας, θα ήθελα να με καλέσετε στο τηλέφωνο που σημειώνω στη φόρμα.",
+    "erotisi": "Γεια σας, θα ήθελα να ρωτήσω το εξής: "
+  };
+
   function prefillContactMessage() {
+    var form = document.getElementById("contact-form");
+    if (!form) return;
     var params = new URLSearchParams(window.location.search);
-    var box = document.querySelector("#contact-form textarea[name='message']");
-    var msg = params.get("msg");
+
+    var box = form.querySelector("textarea[name='message']");
+    var msg = params.get("msg") || TOPICS[params.get("thema")] || "";
     if (box && !box.value && msg) box.value = msg;
-    var email = document.querySelector("#contact-form input[name='email']");
+    var email = form.querySelector("input[name='email']");
     var addr = params.get("email");
     if (email && !email.value && addr) email.value = addr;
+
+    /* Scroll the form into view. The browser's own #contact-form jump
+       fires before the lazy images above the form claim their height,
+       so we correct after window load, when the layout has settled.    */
+    if (window.location.hash !== "#contact-form" && !msg && !addr) return;
+    var behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "auto" : "smooth";
+    function scrollToForm() {
+      setTimeout(function () {
+        form.scrollIntoView({ behavior: behavior, block: "start" });
+      }, 150);
+    }
+    if (document.readyState === "complete") scrollToForm();
+    else window.addEventListener("load", scrollToForm);
   }
 
   if (document.readyState === "loading") {
@@ -139,22 +177,27 @@
  * The theme wires #contact-form to inc/contact.php via AJAX, but PHP
  * never runs on the Cloudflare Worker host, so in production the call
  * dies silently — no email, no feedback. We unbind that handler and take
- * over: the fields POST as JSON to a Make webhook (scenario «Site -
- * Φόρμα επικοινωνίας», which emails panos@four-walls.gr), and on success
- * the .fw-popup confirmation appears. On localhost (preview server)
- * success is simulated so the popup can be seen while editing without
- * sending real emails.                                                  */
+ * over: the fields POST as JSON to the Worker's /api/contact, which
+ * verifies the Cloudflare Turnstile token server-side and only then
+ * relays to the Make webhook (scenario «Site - Φόρμα επικοινωνίας» →
+ * email). The webhook URL is a Worker secret — never in this file. On
+ * success the .fw-popup confirmation appears. On localhost (preview
+ * server, no Worker) success is simulated so the popup can be seen
+ * while editing without sending real emails.                           */
 (function () {
   "use strict";
   var $ = window.jQuery;
   if (!$) return;
 
-  var ENDPOINT = "https://hook.eu1.make.com/oh4zdr9kcp30fgvlk6x5idjjucrslagg";
+  var ENDPOINT = "/api/contact";
   var IS_LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
   var ERROR_HTML =
     "Το μήνυμα δεν στάλθηκε — δοκιμάστε ξανά σε λίγο, ή επικοινωνήστε " +
     'μαζί μας απευθείας στο <a href="mailto:info@four-walls.gr">info@four-walls.gr</a> ' +
     'ή στο <a href="tel:+306907483463">+30 6907 483 463</a>.';
+  var TURNSTILE_MSG =
+    "Περιμένετε να ολοκληρωθεί ο έλεγχος ασφαλείας (το πλαίσιο πάνω από " +
+    "το κουμπί) και πατήστε ξανά «Αποστολή».";
 
   var overlay = null;
   var lastFocus = null;
@@ -214,13 +257,28 @@
       var form = this;
       var $btn = $form.find("button").last();
       var btnLabel = $btn.text();
+
+      // Turnstile injects a hidden input with the proof-of-humanity
+      // token once the (usually invisible) check completes.
+      var tokenField = form.querySelector('input[name="cf-turnstile-response"]');
+      var token = tokenField ? tokenField.value : "";
+      if (!token && !IS_LOCAL) {
+        $form.find(".messages").html(
+          '<div class="alert alert-danger">' + TURNSTILE_MSG + "</div>"
+        );
+        return;
+      }
+
       $btn.prop("disabled", true).text("Αποστολή...");
 
       var payload = {
-        name: form.name.value.trim(),
+        name: (form.name.value.trim() + " " + form.lastname.value.trim()).trim(),
         email: form.email.value.trim(),
+        phone: form.phone ? form.phone.value.trim() : "",
         message: form.message.value.trim(),
-        page: window.location.pathname
+        page: window.location.pathname,
+        token: token,
+        website: form.website ? form.website.value : ""
       };
 
       var send = IS_LOCAL
@@ -237,11 +295,14 @@
         .then(function (res) {
           if (!res.ok) throw new Error("HTTP " + res.status);
           form.reset();
+          // Tokens are single-use — rearm the widget for a second message.
+          if (window.turnstile) window.turnstile.reset();
           $form.find(".messages").empty();
           $btn.prop("disabled", false).text(btnLabel);
           openPopup();
         })
         .catch(function () {
+          if (window.turnstile) window.turnstile.reset();
           $btn.prop("disabled", false).text(btnLabel);
           $form.find(".messages").html(
             '<div class="alert alert-danger">' + ERROR_HTML + "</div>"

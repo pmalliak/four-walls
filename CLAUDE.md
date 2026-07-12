@@ -13,8 +13,8 @@ front-ends** (no backend, no build step, no `package.json`):
    `forms/_autofill.dev.js` is a dev-only test helper (see its header).
 
 Live listings: **EstatePrime CRM → Cloudflare Worker → `/data/listings.json`**
-(webhook-triggered + nightly cron; sample-data mode until CRM API access is
-verified). The same Worker hosts the site. See [docs/listings-feed.md](docs/listings-feed.md).
+(webhook-triggered + nightly cron; **live CRM data in prod** — the repo's
+`data/listings.json` is still template sample data). The same Worker hosts the site. See [docs/listings-feed.md](docs/listings-feed.md).
 
 ## Local preview
 

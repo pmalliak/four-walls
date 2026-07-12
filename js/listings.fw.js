@@ -535,6 +535,16 @@
 		setText("fw-code", l.code ? "Κωδικός: " + l.code : "");
 		setText("fw-price", "Τιμή: " + fmtPrice(l));
 
+		/* Sidebar contact CTA carries the listing reference, so the
+		   contact form arrives pre-written (?msg=, read by fourwalls.js) */
+		var cta = document.getElementById("fw-contact-cta");
+		if (cta) {
+			var ask = "Γεια σας, ενδιαφέρομαι για το ακίνητο «" + title + "»" +
+				(l.code ? " (κωδ. " + l.code + ")" : "") +
+				". Θα ήθελα περισσότερες πληροφορίες.";
+			cta.href = "/contact?msg=" + encodeURIComponent(ask) + "#contact-form";
+		}
+
 		/* gallery */
 		var photos = l.images.length ? l.images : ["images/lazy.svg"];
 		var inner = document.getElementById("fw-gallery");

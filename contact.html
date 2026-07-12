@@ -103,10 +103,10 @@
 										<a class="nav-link" href="/akinita">Ακίνητα</a>
 									</li>
 									<li class="nav-item">
-										<a class="nav-link" href="/service_01">Υπηρεσίες</a>
+										<a class="nav-link" href="/services">Υπηρεσίες</a>
 									</li>
 									<li class="nav-item">
-										<a class="nav-link" href="/about_us_01">Σχετικά</a>
+										<a class="nav-link" href="/about">Σχετικά</a>
 									</li>
 									<li class="nav-item">
 										<a class="nav-link" href="/contact">Επικοινωνία</a>
@@ -164,10 +164,10 @@
                     <div class="d-flex flex-wrap justify-content-center justify-content-lg-between">
 						<div class="block position-relative z-1 mt-25">
 							<div class="d-xl-flex align-items-center">
-								<div class="icon rounded-circle d-flex align-items-center justify-content-center"><img src="images/lazy.svg" data-src="images/icon/icon_39.svg" alt="" class="lazy-img"></div>
+								<div class="icon rounded-circle d-flex align-items-center justify-content-center"><img src="images/lazy.svg" data-src="images/icon/icon_mail.fw.svg" alt="" class="lazy-img"></div>
 								<div class="text">
 									<p class="fs-22">Είμαστε πάντα στη διάθεσή σας.</p>
-									<a href="#" class="tran3s">info@four-walls.gr</a>
+									<a href="mailto:info@four-walls.gr" class="tran3s">info@four-walls.gr</a>
 								</div>
 								<!-- /.text -->
 							</div>
@@ -175,7 +175,7 @@
 						<!-- /.block -->
 						<div class="block position-relative skew-line z-1 mt-25">
 							<div class="d-xl-flex align-items-center">
-								<div class="icon rounded-circle d-flex align-items-center justify-content-center"><img src="images/lazy.svg" data-src="images/icon/icon_39.svg" alt="" class="lazy-img"></div>
+								<div class="icon rounded-circle d-flex align-items-center justify-content-center"><img src="images/lazy.svg" data-src="images/icon/icon_phone.fw.svg" alt="" class="lazy-img"></div>
 								<div class="text">
 									<p class="fs-22">Τηλέφωνο</p>
 									<a href="tel:+306907483463" class="tran3s">+30 6907 483 463</a>
@@ -186,10 +186,10 @@
 						<!-- /.block -->
 						<div class="block position-relative z-1 mt-25">
 							<div class="d-xl-flex align-items-center">
-								<div class="icon rounded-circle d-flex align-items-center justify-content-center"><img src="images/lazy.svg" data-src="images/icon/icon_39.svg" alt="" class="lazy-img"></div>
+								<div class="icon rounded-circle d-flex align-items-center justify-content-center"><img src="images/lazy.svg" data-src="images/icon/icon_clock.fw.svg" alt="" class="lazy-img"></div>
 								<div class="text">
 									<p class="fs-22">Ωράριο</p>
-									<a href="#" class="tran3s">Δευτέρα - Παρασκευή, 10:00 - 18:00</a>
+									<span class="fw-note d-block">Δευτέρα - Παρασκευή, 10:00 - 18:00</span>
 								</div>
 								<!-- /.text -->
 							</div>
@@ -204,21 +204,35 @@
                 <div class="row">
                     <div class="col-xl-7 col-lg-6">
                         <div class="form-style-one wow fadeInUp">
-                            <form action="inc/contact.php" id="contact-form" data-toggle="validator">
+                            <form action="/api/contact" id="contact-form" data-toggle="validator">
                                 <h3>Αποστολή μηνύματος</h3>
                                 <div class="messages"></div>
                                 <div class="row controls">
-                                    <div class="col-12">
+                                    <div class="col-sm-6">
                                         <div class="input-group-meta form-group mb-30">
                                             <label for="">Όνομα*</label>
                                             <input type="text" placeholder="Το όνομά σας*" name="name" required="required" data-error="Το όνομα είναι υποχρεωτικό.">
                                             <div class="help-block with-errors"></div>
                                         </div>
                                     </div>
-                                    <div class="col-12">
+                                    <div class="col-sm-6">
+                                        <div class="input-group-meta form-group mb-30">
+                                            <label for="">Επώνυμο*</label>
+                                            <input type="text" placeholder="Το επώνυμό σας*" name="lastname" required="required" data-error="Το επώνυμο είναι υποχρεωτικό.">
+                                            <div class="help-block with-errors"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
                                         <div class="input-group-meta form-group mb-40">
                                             <label for="">Email*</label>
                                             <input type="email" placeholder="Το email σας*" name="email" required="required" data-error="Απαιτείται έγκυρο email.">
+                                            <div class="help-block with-errors"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="input-group-meta form-group mb-40">
+                                            <label for="">Τηλέφωνο</label>
+                                            <input type="tel" placeholder="Το τηλέφωνό σας" name="phone">
                                             <div class="help-block with-errors"></div>
                                         </div>
                                     </div>
@@ -227,6 +241,10 @@
                                             <textarea placeholder="Το μήνυμά σας*" name="message" required="required" data-error="Γράψτε μας το μήνυμά σας."></textarea>
                                             <div class="help-block with-errors"></div>
                                         </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <input class="fw-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+                                        <div class="cf-turnstile mb-35" data-sitekey="0x4AAAAAAD0HkhD-wnMiyq6Y" data-action="turnstile-spin-v1" data-language="el"></div>
                                     </div>
                                     <div class="col-12"><button class="btn-nine text-uppercase rounded-3 fw-normal w-100">Αποστολή μηνύματος</button></div>
                                 </div>
@@ -282,10 +300,10 @@
 								<h5 class="footer-title">Σύνδεσμοι</h5>
 								<ul class="footer-nav-link style-none">
 									<li><a href="/akinita">Ακίνητα</a></li>
-									<li><a href="/service_01">Υπηρεσίες</a></li>
+									<li><a href="/services">Υπηρεσίες</a></li>
 									<li><a href="/service_polisi">Πώληση ακινήτου</a></li>
 									<li><a href="/service_ektimisi">Εκτίμηση ακινήτου</a></li>
-									<li><a href="/about_us_01">Σχετικά με εμάς</a></li>
+									<li><a href="/about">Σχετικά με εμάς</a></li>
 									<li><a href="/contact">Επικοινωνία</a></li>
 								</ul>
 							</div>
@@ -527,6 +545,8 @@
 		<script src="js/theme.js"></script>
 		<!-- Four Walls custom js -->
 		<script src="js/fourwalls.js"></script>
+		<!-- Cloudflare Turnstile — bot protection for the contact form -->
+		<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 		<!-- MapLibre GL + branded contact map -->
 		<script src="js/maplibre-gl.js"></script>
 		<script src="js/map.fw.js"></script>

@@ -72,8 +72,8 @@ virtual_tour_url, …` and arrays `features` / `view` / `flooring` /
   `display_address` is `"fake"`, only the fake coordinates/address may be
   published (the feed enforces this).
 - **`photos`**: `[{ original_image, watermark_image, is_public }]` —
-  absolute URLs on `files.estateprime.gr`; publish `watermark_image ||
-  original_image`, only where `is_public`.
+  absolute URLs on `files.estateprime.gr`; publish `original_image ||
+  watermark_image` (clean photos on our own site), only where `is_public`.
 - **`has_hidden_price`**: when true the feed publishes `price: null`.
 
 ## Webhook (live-observed 2026-07-09, not in the yaml)

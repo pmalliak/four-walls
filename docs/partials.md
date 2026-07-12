@@ -8,7 +8,7 @@ page between HTML-comment markers by a small tool.
 | Partial | Source of truth | Lifted originally from |
 |---------|-----------------|------------------------|
 | [`partials/header.html`](../partials/header.html) | the main menu | `index.html` |
-| [`partials/footer.html`](../partials/footer.html) | the `footer-four` footer | `service_01.html` |
+| [`partials/footer.html`](../partials/footer.html) | the `footer-four` footer | `services.html` |
 
 ## How it works
 
@@ -48,7 +48,7 @@ needs no per-page edits.
 The `PAGES` array at the top of [`tools/sync-partials.js`](../tools/sync-partials.js)
 lists them. Currently the Greek-adapted root pages:
 
-`index.html`, `service_01.html`, `service_details.html`, `about_us_01.html`,
+`index.html`, `services.html`, `service_details.html`, `about.html`,
 `contact.html`.
 
 **To add a page:** put its filename in `PAGES` and run the sync — the tool finds
