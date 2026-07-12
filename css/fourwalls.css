@@ -868,6 +868,12 @@ body.fw-popup-lock {
   color: #6a6a6a;
   margin-bottom: 28px;
 }
+/* The theme's global `button { display: block }` would pin the OK
+   button to the left edge; inline-block lets the popup's
+   text-align: center do its job.                                       */
+.fw-popup .btn-nine {
+  display: inline-block;
+}
 @media (prefers-reduced-motion: reduce) {
   .fw-popup-overlay,
   .fw-popup {
