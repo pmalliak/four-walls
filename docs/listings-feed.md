@@ -58,11 +58,13 @@ Design rules:
 	"count": 6,
 	"listings": [{
 		"id": "…", "code": "4W-101", "title": "Διαμέρισμα 85 τ.μ., Καλαμαριά",
+		"title_en": "85 m² apartment, Kalamaria",
 		"transaction": "sale | rent", "category": "apartment | house | …",
 		"price": 185000, "area": 85, "bedrooms": 2, "bathrooms": 1,
 		"floor": "2ος", "yearBuilt": 1998,
-		"location": { "area": "Καλαμαριά", "city": "Θεσσαλονίκη", "lat": 0, "lng": 0 },
-		"images": ["…"], "features": ["…"], "description": "…",
+		"location": { "area": "Καλαμαριά", "city": "Θεσσαλονίκη",
+			"area_en": "Kalamaria", "city_en": "Thessaloniki", "lat": 0, "lng": 0 },
+		"images": ["…"], "features": ["…"], "description": "…", "description_en": "…",
 		"featured": true,
 		"updatedAt": "2026-07-01T09:00:00Z"
 	}]
@@ -71,6 +73,12 @@ Design rules:
 
 `featured` appears only on the listing(s) tagged `FEATURED_TAG` in the CRM
 (home-page banner); all other listings omit the key.
+
+The `*_en` fields (`title_en`, `description_en`, `location.area_en`,
+`location.neighbourhood_en`, `location.city_en`) are **optional and additive**:
+they carry the CRM's English translation (`translations[].language_id 2`,
+`name_en` area fields) and are `null` wherever no English exists. Consumers
+must fall back to the Greek field — the English site does this per field.
 
 Prices are raw numbers — € formatting with `.` thousands separators happens at
 render time (see [localization.md](localization.md)).

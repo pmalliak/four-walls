@@ -108,6 +108,19 @@ export default {
 			const key = decodeURIComponent(pathname.slice("/properties/".length));
 			return devNoindex(await serveListingPage(key, url, env), url);
 		}
+		// English twin: /en/properties/<code> — same shell/SEO injection,
+		// English shell (en/property.html), labels, JSON-LD and canonical.
+		if (/^\/en\/properties\/[^/]+$/.test(pathname)) {
+			const key = decodeURIComponent(pathname.slice("/en/properties/".length));
+			return devNoindex(await serveListingPage(key, url, env, "en"), url);
+		}
+		if (pathname === "/en/property") {
+			const id = url.searchParams.get("id");
+			const to = new URL(url);
+			to.search = "";
+			to.pathname = id ? "/en/properties/" + encodeURIComponent(id) : "/en/properties";
+			return Response.redirect(to, 301);
+		}
 		// Old Greek detail URLs (/akinita/<key>, /akinito/<id>,
 		// /akinito?id=<id>) — permanent redirect to the canonical
 		// /properties/<key> form; bare /akinito and the /property shell

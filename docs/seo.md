@@ -4,6 +4,21 @@ How the site is made crawlable and shareable, and what still has to happen
 off-repo at go-live. Canonical origin everywhere: **`https://four-walls.gr`**
 (apex; `www` will redirect to it).
 
+## Two languages
+
+The English site lives under **`/en/`** (`en/*.html`, registry keys
+`en/…` in `pages-meta.mjs`). A page's language and its translation pair
+derive from the registry KEY alone (`pageLang()` / `alternateKey()` in
+[worker/lib/pages-meta.mjs](../worker/lib/pages-meta.mjs)) — `en/about.html`
+is always the alternate of `about.html`. Every indexable page (and both
+listing detail routes) emits the same **hreflang triple**:
+`el` → Greek URL, `en` → English URL, `x-default` → Greek (primary market).
+The sitemap mirrors the triples as `xhtml:link` alternates. `og:locale`
+comes from `SITE.locales[lang]` (`el_GR` / `en_GB`). English listing pages
+are served at `/en/properties/<code>` with English labels/JSON-LD; listing
+content falls back to Greek per field when the CRM has no English
+translation (see [listings-feed.md](listings-feed.md)).
+
 ## The three layers
 
 ### 1. Static heads — `FW:HEAD` blocks (sync-managed)

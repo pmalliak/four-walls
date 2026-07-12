@@ -9,6 +9,16 @@ page between HTML-comment markers by a small tool.
 |---------|-----------------|------------------------|
 | [`partials/header.html`](../partials/header.html) | the main menu | `index.html` |
 | [`partials/footer.html`](../partials/footer.html) | the `footer-four` footer | `services.html` |
+| [`partials/header.en.html`](../partials/header.en.html) | the English menu (`en/` pages) | hand-authored |
+| [`partials/footer.en.html`](../partials/footer.en.html) | the English footer (`en/` pages) | hand-authored |
+
+Pages under `en/` are stamped with the `.en` variants; everything else gets
+the Greek ones. The English partials are hand-authored translations — the
+sync only reads them, never bootstraps or overwrites them. Keep the footer's
+`RealEstateAgent` JSON-LD **byte-identical** across both footers (same
+`@id …/#organization`). The header's language switcher (`.fw-lang-switch`)
+ships a static `/` ↔ `/en/` fallback; `js/fourwalls.js` retargets it to the
+exact alternate page from the head's hreflang links at runtime.
 
 ## How it works
 

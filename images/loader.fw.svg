@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-36.5 -30 200 200" width="200" height="200" role="img" aria-label="Φόρτωση">
+  <!-- Four Walls page loader. Self-contained: the cube mark (from
+       images/logo/fourwalls_logo.svg, brand pink #FF0062) gently pulses while a
+       pink arc spins around it. Animation is baked in so pages only need to
+       point their preloader <img src> here — no CSS/JS hook required. Honours
+       prefers-reduced-motion (arc becomes a static full ring, pulse stops).
+       Cube centre is (63.5,70); keep it if you re-frame the viewBox. -->
+  <style>
+    @keyframes fw-load-spin  { to { transform: rotate(360deg); } }
+    @keyframes fw-load-pulse {
+      0%, 100% { opacity: 1;   transform: scale(1);    }
+      50%      { opacity: .55; transform: scale(.93);  }
+    }
+    .fw-load-ring {
+      transform-box: view-box;
+      transform-origin: 63.5px 70px;
+      animation: fw-load-spin 1.05s linear infinite;
+    }
+    .fw-load-cube {
+      transform-box: view-box;
+      transform-origin: 63.5px 70px;
+      animation: fw-load-pulse 1.6s ease-in-out infinite;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .fw-load-ring { animation: none; stroke-dasharray: none; opacity: .35; }
+      .fw-load-cube { animation: none; }
+    }
+  </style>
+
+  <!-- Spinning accent arc, just outside the cube -->
+  <circle class="fw-load-ring" cx="63.5" cy="70" r="90" fill="none"
+          stroke="#ff0062" stroke-width="4" stroke-linecap="round"
+          stroke-dasharray="150 566"/>
+
+  <!-- Brand cube (exact paths from the logo; inner transforms untouched) -->
+  <g class="fw-load-cube">
+    <g transform="translate(63.5,70) scale(1.15) translate(-63.5,-70)">
+      <g fill="#FF0062" transform="translate(0.385,0) scale(1.2623) translate(-227.333,-283.879)">
+        <path d="M 0,0 V -39.545 L -35.454,-60 v 39.545 l 8.182,4.091 v -31.364 l 6.818,4.092 v 30 l 6.817,4.091 v -30 l 6.819,4.09 v 31.364 z" transform="matrix(1.3333333,0,0,-1.3333333,327.3332,314.78773)"/>
+        <path d="M 0,0 V -39.545 L 35.455,-60 v 39.545 l -8.183,4.091 v -31.364 l -6.817,4.092 v 30 l -6.818,4.091 v -30 l -6.819,4.09 v 31.364 z" transform="matrix(1.3333333,0,0,-1.3333333,227.3332,314.78773)"/>
+        <path d="M 0,0 6.818,4.091 38.183,-15 31.364,-19.091 Z" transform="matrix(1.3333333,0,0,-1.3333333,269.15093,289.33333)"/>
+        <path d="M 0,0 27.272,-16.364 53.467,-0.058 46.979,4.549 25.909,-8.182 5.455,4.091 Z" transform="matrix(1.3333333,0,0,-1.3333333,232.7876,309.33333)"/>
+      </g>
+    </g>
+  </g>
+</svg>

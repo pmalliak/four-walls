@@ -21,6 +21,11 @@
   }
 
   function markCurrentPage() {
+    // /en/ needs no special casing: only last path segments are compared,
+    // and EN pages carry the EN header whose links are all /en/… — so
+    // /en/properties matches href="/en/properties" 1:1 ("/en/" ends with
+    // "/" and maps to "index" just like "/"). The language switcher lives
+    // outside .navbar-nav and is never considered.
     var here = fileFromHref(window.location.pathname) || "index";
 
     var links = document.querySelectorAll(
@@ -54,6 +59,32 @@
   }
 })();
 
+/* Language switcher: land on the SAME page in the other language ------ *
+ * The header partials ship a static fallback (/ or /en/); when the page's
+ * head carries hreflang alternates (all indexable pages, plus the Worker-
+ * injected listing detail pages), retarget the link to the exact
+ * alternate URL. Pages without alternates (404) keep the fallback.      */
+(function () {
+  "use strict";
+
+  function retarget() {
+    var link = document.querySelector(".fw-lang-switch");
+    if (!link) return;
+    var want = link.getAttribute("hreflang");
+    var alt = document.querySelector('link[rel="alternate"][hreflang="' + want + '"]');
+    if (!alt) return;
+    try {
+      link.href = new URL(alt.href).pathname;
+    } catch (e) { /* keep the static fallback */ }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", retarget);
+  } else {
+    retarget();
+  }
+})();
+
 /* Hero search: swap price ranges for Αγορά / Ενοικίαση ---------------- *
  * The search form lets the visitor pick a deal type. Sale and rent use
  * very different price scales, so we rebuild the price dropdown to match
@@ -64,29 +95,56 @@
   var $ = window.jQuery;
   if (!$) return;
 
-  var RANGES = {
-    sale: [
-      ["1", "Έως €100.000"],
-      ["2", "€100.000-200.000"],
-      ["3", "€200.000-300.000"],
-      ["4", "€300.000-500.000"],
-      ["5", "€500.000+"]
-    ],
-    buy: [
-      ["1", "Έως €100.000"],
-      ["2", "€100.000-200.000"],
-      ["3", "€200.000-300.000"],
-      ["4", "€300.000-500.000"],
-      ["5", "€500.000+"]
-    ],
-    rent: [
-      ["1", "Έως €400/μήνα"],
-      ["2", "€400-600/μήνα"],
-      ["3", "€600-900/μήνα"],
-      ["4", "€900-1.500/μήνα"],
-      ["5", "€1.500+/μήνα"]
-    ]
-  };
+  var LANG = /^en\b/i.test(document.documentElement.lang || "") ? "en" : "el";
+
+  var RANGES = ({
+    el: {
+      sale: [
+        ["1", "Έως €100.000"],
+        ["2", "€100.000-200.000"],
+        ["3", "€200.000-300.000"],
+        ["4", "€300.000-500.000"],
+        ["5", "€500.000+"]
+      ],
+      buy: [
+        ["1", "Έως €100.000"],
+        ["2", "€100.000-200.000"],
+        ["3", "€200.000-300.000"],
+        ["4", "€300.000-500.000"],
+        ["5", "€500.000+"]
+      ],
+      rent: [
+        ["1", "Έως €400/μήνα"],
+        ["2", "€400-600/μήνα"],
+        ["3", "€600-900/μήνα"],
+        ["4", "€900-1.500/μήνα"],
+        ["5", "€1.500+/μήνα"]
+      ]
+    },
+    en: {
+      sale: [
+        ["1", "Up to €100,000"],
+        ["2", "€100,000-200,000"],
+        ["3", "€200,000-300,000"],
+        ["4", "€300,000-500,000"],
+        ["5", "€500,000+"]
+      ],
+      buy: [
+        ["1", "Up to €100,000"],
+        ["2", "€100,000-200,000"],
+        ["3", "€200,000-300,000"],
+        ["4", "€300,000-500,000"],
+        ["5", "€500,000+"]
+      ],
+      rent: [
+        ["1", "Up to €400/month"],
+        ["2", "€400-600/month"],
+        ["3", "€600-900/month"],
+        ["4", "€900-1,500/month"],
+        ["5", "€1,500+/month"]
+      ]
+    }
+  })[LANG];
 
   $(function () {
     var $deal = $("#fw-deal");
@@ -114,7 +172,8 @@
  * Every contact CTA on the site carries context so the form arrives
  * pre-written and in view:
  *   ?thema=<key>  — topic keys stamped on the CTA links (service pages,
- *                   FAQ, homepage) mapped to a ready Greek opening line;
+ *                   FAQ, homepage) mapped to a ready opening line in the
+ *                   page's language (keys are identical on el/en pages);
  *   ?msg=<text>   — free text, wins over ?thema= (composed on the fly by
  *                   the listings empty-results CTA, the listing detail
  *                   CTA and the homepage valuation form);
@@ -125,19 +184,36 @@
 (function () {
   "use strict";
 
-  var TOPICS = {
-    "agora": "Γεια σας, ενδιαφέρομαι για αγορά ακινήτου. Θα ήθελα να συζητήσουμε τι αναζητώ.",
-    "polisi": "Γεια σας, ενδιαφέρομαι να πουλήσω το ακίνητό μου. Θα ήθελα να συζητήσουμε τα επόμενα βήματα.",
-    "enoikiasi": "Γεια σας, αναζητώ ακίνητο για ενοικίαση. Θα ήθελα τη βοήθειά σας.",
-    "ektimisi": "Γεια σας, θα ήθελα μια εκτίμηση για το ακίνητό μου.",
-    "anakainisi": "Γεια σας, θα ήθελα να συζητήσουμε ένα έργο ανακαίνισης.",
-    "anakainisi-meriki": "Γεια σας, θα ήθελα προσφορά για μερική ανακαίνιση (π.χ. κουζίνα, μπάνιο, δάπεδα, χρώματα).",
-    "anakainisi-oliki": "Γεια σας, θα ήθελα προσφορά για ολική ανακαίνιση.",
-    "anakainisi-energeiaki": "Γεια σας, θα ήθελα προσφορά για ενεργειακή αναβάθμιση (κουφώματα, θέρμανση, μόνωση).",
-    "diaxeirisi": "Γεια σας, θα ήθελα μια πρόταση για τη διαχείριση του ακινήτου μου.",
-    "klisi": "Γεια σας, θα ήθελα να με καλέσετε στο τηλέφωνο που σημειώνω στη φόρμα.",
-    "erotisi": "Γεια σας, θα ήθελα να ρωτήσω το εξής: "
-  };
+  var LANG = /^en\b/i.test(document.documentElement.lang || "") ? "en" : "el";
+
+  var TOPICS = ({
+    el: {
+      "agora": "Γεια σας, ενδιαφέρομαι για αγορά ακινήτου. Θα ήθελα να συζητήσουμε τι αναζητώ.",
+      "polisi": "Γεια σας, ενδιαφέρομαι να πουλήσω το ακίνητό μου. Θα ήθελα να συζητήσουμε τα επόμενα βήματα.",
+      "enoikiasi": "Γεια σας, αναζητώ ακίνητο για ενοικίαση. Θα ήθελα τη βοήθειά σας.",
+      "ektimisi": "Γεια σας, θα ήθελα μια εκτίμηση για το ακίνητό μου.",
+      "anakainisi": "Γεια σας, θα ήθελα να συζητήσουμε ένα έργο ανακαίνισης.",
+      "anakainisi-meriki": "Γεια σας, θα ήθελα προσφορά για μερική ανακαίνιση (π.χ. κουζίνα, μπάνιο, δάπεδα, χρώματα).",
+      "anakainisi-oliki": "Γεια σας, θα ήθελα προσφορά για ολική ανακαίνιση.",
+      "anakainisi-energeiaki": "Γεια σας, θα ήθελα προσφορά για ενεργειακή αναβάθμιση (κουφώματα, θέρμανση, μόνωση).",
+      "diaxeirisi": "Γεια σας, θα ήθελα μια πρόταση για τη διαχείριση του ακινήτου μου.",
+      "klisi": "Γεια σας, θα ήθελα να με καλέσετε στο τηλέφωνο που σημειώνω στη φόρμα.",
+      "erotisi": "Γεια σας, θα ήθελα να ρωτήσω το εξής: "
+    },
+    en: {
+      "agora": "Hello, I am interested in buying a property. I would like to discuss what I am looking for.",
+      "polisi": "Hello, I am interested in selling my property. I would like to discuss the next steps.",
+      "enoikiasi": "Hello, I am looking for a property to rent. I would appreciate your help.",
+      "ektimisi": "Hello, I would like a valuation of my property.",
+      "anakainisi": "Hello, I would like to discuss a renovation project.",
+      "anakainisi-meriki": "Hello, I would like a quote for a partial renovation (e.g. kitchen, bathroom, floors, painting).",
+      "anakainisi-oliki": "Hello, I would like a quote for a full renovation.",
+      "anakainisi-energeiaki": "Hello, I would like a quote for an energy upgrade (windows, heating, insulation).",
+      "diaxeirisi": "Hello, I would like a proposal for the management of my property.",
+      "klisi": "Hello, I would like you to call me on the phone number I have entered in the form.",
+      "erotisi": "Hello, I would like to ask the following: "
+    }
+  })[LANG];
 
   function prefillContactMessage() {
     var form = document.getElementById("contact-form");
@@ -191,13 +267,37 @@
 
   var ENDPOINT = "/api/contact";
   var IS_LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
-  var ERROR_HTML =
-    "Το μήνυμα δεν στάλθηκε — δοκιμάστε ξανά σε λίγο, ή επικοινωνήστε " +
-    'μαζί μας απευθείας στο <a href="mailto:info@four-walls.gr">info@four-walls.gr</a> ' +
-    'ή στο <a href="tel:+306907483463">+30 6907 483 463</a>.';
-  var TURNSTILE_MSG =
-    "Περιμένετε να ολοκληρωθεί ο έλεγχος ασφαλείας (το πλαίσιο πάνω από " +
-    "το κουμπί) και πατήστε ξανά «Αποστολή».";
+  var LANG = /^en\b/i.test(document.documentElement.lang || "") ? "en" : "el";
+  var STR = ({
+    el: {
+      errorHtml:
+        "Το μήνυμα δεν στάλθηκε — δοκιμάστε ξανά σε λίγο, ή επικοινωνήστε " +
+        'μαζί μας απευθείας στο <a href="mailto:info@four-walls.gr">info@four-walls.gr</a> ' +
+        'ή στο <a href="tel:+306907483463">+30 6907 483 463</a>.',
+      turnstile:
+        "Περιμένετε να ολοκληρωθεί ο έλεγχος ασφαλείας (το πλαίσιο πάνω από " +
+        "το κουμπί) και πατήστε ξανά «Αποστολή».",
+      popupTitle: "Το μήνυμά σας εστάλη!",
+      popupBody: "Σας ευχαριστούμε που επικοινωνήσατε με τη Four Walls. Θα σας απαντήσουμε το συντομότερο δυνατό.",
+      popupBtn: "Εντάξει",
+      sending: "Αποστολή..."
+    },
+    en: {
+      errorHtml:
+        "Your message could not be sent — please try again shortly, or contact " +
+        'us directly at <a href="mailto:info@four-walls.gr">info@four-walls.gr</a> ' +
+        'or <a href="tel:+306907483463">+30 6907 483 463</a>.',
+      turnstile:
+        "Please wait for the security check to complete (the box above " +
+        "the button) and press “Send” again.",
+      popupTitle: "Your message has been sent!",
+      popupBody: "Thank you for contacting Four Walls. We will get back to you as soon as possible.",
+      popupBtn: "OK",
+      sending: "Sending..."
+    }
+  })[LANG];
+  var ERROR_HTML = STR.errorHtml;
+  var TURNSTILE_MSG = STR.turnstile;
 
   var overlay = null;
   var lastFocus = null;
@@ -210,10 +310,13 @@
         '<span class="fw-popup-check" aria-hidden="true">' +
           '<svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
         "</span>" +
-        '<h3 id="fw-popup-title">Το μήνυμά σας εστάλη!</h3>' +
-        "<p>Σας ευχαριστούμε που επικοινωνήσατε με τη Four Walls. Θα σας απαντήσουμε το συντομότερο δυνατό.</p>" +
-        '<button type="button" class="btn-nine text-uppercase rounded-3 fw-normal">Εντάξει</button>' +
+        '<h3 id="fw-popup-title"></h3>' +
+        "<p></p>" +
+        '<button type="button" class="btn-nine text-uppercase rounded-3 fw-normal"></button>' +
       "</div>";
+    el.querySelector("h3").textContent = STR.popupTitle;
+    el.querySelector("p").textContent = STR.popupBody;
+    el.querySelector("button").textContent = STR.popupBtn;
     el.querySelector("button").addEventListener("click", closePopup);
     el.addEventListener("click", function (e) {
       if (e.target === el) closePopup();
@@ -269,7 +372,7 @@
         return;
       }
 
-      $btn.prop("disabled", true).text("Αποστολή...");
+      $btn.prop("disabled", true).text(STR.sending);
 
       var payload = {
         name: (form.name.value.trim() + " " + form.lastname.value.trim()).trim(),

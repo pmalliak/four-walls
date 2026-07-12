@@ -130,6 +130,7 @@ function hasTag(raw, tagId) {
 }
 
 const LANG_EL = 1; // translations[].language_id — 1 = Greek, 2 = English
+const LANG_EN = 2;
 
 /* Reshape one raw EstatePrime listing to the site's feed schema (see
    docs/listings-feed.md). Field names verified against the live API
@@ -138,10 +139,15 @@ const LANG_EL = 1; // translations[].language_id — 1 = Greek, 2 = English
    Privacy rules the CRM encodes and the PUBLIC feed must respect:
    - has_hidden_price  -> publish price as null
    - display_address "fake" -> publish the fake_* coordinates/address,
-     never the real ones; mark the location as approximate. */
+     never the real ones; mark the location as approximate.
+
+   The *_en fields are additive and OPTIONAL — English coverage in the CRM
+   is per-listing best-effort, so consumers must fall back to the Greek
+   field when an _en counterpart is null. */
 export function mapListing(raw) {
 	const t = (raw.translations || []).find((x) => x.language_id === LANG_EL)
 		|| (raw.translations || [])[0] || {};
+	const tEn = (raw.translations || []).find((x) => x.language_id === LANG_EN) || {};
 	const loc = raw.location || {};
 	const useFake = loc.display_address === "fake";
 	return {
@@ -149,6 +155,8 @@ export function mapListing(raw) {
 		code: raw.code ?? null,
 		title: t.title ?? null,
 		description: t.description ?? null,
+		title_en: tEn.title ?? null,
+		description_en: tEn.description ?? null,
 		transaction: raw.availability ?? null, // sale | rent | auction | shortterm
 		category: raw.category ?? null,        // residential | commercial | land | other
 		subcategory: raw.subcategory ?? null,  // apartment, maisonette, …
@@ -176,6 +184,9 @@ export function mapListing(raw) {
 			area: loc.area_level2?.name_el ?? null,
 			neighbourhood: loc.area_level3?.name_el ?? null,
 			city: loc.area_level1?.name_el ?? null,
+			area_en: loc.area_level2?.name_en ?? null,
+			neighbourhood_en: loc.area_level3?.name_en ?? null,
+			city_en: loc.area_level1?.name_en ?? null,
 			address: (useFake ? loc.fake_address_el : loc.address_el) ?? null,
 			lat: numberOrNull(useFake ? loc.fake_latitude : loc.latitude),
 			lng: numberOrNull(useFake ? loc.fake_longitude : loc.longitude),

@@ -9,6 +9,10 @@
        partials/header.html   — the main menu  (source: index.html)
        partials/footer.html   — the footer     (source: services.html)
 
+   Pages under en/ get the hand-authored English variants instead
+   (partials/header.en.html, partials/footer.en.html — never
+   bootstrapped, only read).
+
    ...and stamp it into each page between HTML-comment markers:
 
        <!-- FW:INCLUDE header ... -->  ...canonical header...  <!-- /FW:INCLUDE header -->
@@ -70,6 +74,24 @@ const PAGES = [
 	"privacy-policy.html",
 	"cookies.html",
 	"404.html",
+	/* English site (/en/…) — stamped with the .en partial variants. */
+	"en/index.html",
+	"en/services.html",
+	"en/services/buying.html",
+	"en/services/renting.html",
+	"en/services/selling.html",
+	"en/services/valuation.html",
+	"en/services/renovation.html",
+	"en/services/property-management.html",
+	"en/about.html",
+	"en/contact.html",
+	"en/properties.html",
+	"en/property.html",
+	"en/faq.html",
+	"en/terms-of-use.html",
+	"en/privacy-policy.html",
+	"en/cookies.html",
+	"en/404.html",
 ];
 
 /* One entry per reusable region. `source` is where the canonical markup
@@ -148,8 +170,12 @@ function esc(s) {
 /* Render the generated head block for one page. workerManaged pages
    (listing detail shell) get only title + description — the Worker
    injects canonical/OG/JSON-LD per listing, and emitting them here too
-   would duplicate the tags. Pages with path:null (404) likewise. */
-function buildHead(meta, SITE) {
+   would duplicate the tags. Pages with path:null (404) likewise.
+
+   When the page's translation pair exists in PAGES_META, both language
+   versions emit the identical hreflang triple (el / en / x-default→el),
+   derived from the registry keys so the pair can never drift. */
+function buildHead(page, meta, { SITE, PAGES_META, pageLang, alternateKey }) {
 	const t = "\t";
 	const lines = [
 		t + "<title>" + esc(meta.title) + "</title>",
@@ -158,10 +184,20 @@ function buildHead(meta, SITE) {
 	if (!meta.workerManaged && meta.path) {
 		const url = SITE.origin + meta.path;
 		const image = SITE.origin + SITE.ogImage;
+		const alt = PAGES_META[alternateKey(page)];
+		if (alt && alt.path && !alt.workerManaged) {
+			const elPath = pageLang(page) === "el" ? meta.path : alt.path;
+			const enPath = pageLang(page) === "el" ? alt.path : meta.path;
+			lines.push(
+				t + '<link rel="alternate" hreflang="el" href="' + esc(SITE.origin + elPath) + '">',
+				t + '<link rel="alternate" hreflang="en" href="' + esc(SITE.origin + enPath) + '">',
+				t + '<link rel="alternate" hreflang="x-default" href="' + esc(SITE.origin + elPath) + '">'
+			);
+		}
 		lines.push(
 			t + '<link rel="canonical" href="' + esc(url) + '">',
 			t + '<meta property="og:site_name" content="' + esc(SITE.name) + '">',
-			t + '<meta property="og:locale" content="' + esc(SITE.locale) + '">',
+			t + '<meta property="og:locale" content="' + esc(SITE.locales[pageLang(page)]) + '">',
 			t + '<meta property="og:type" content="website">',
 			t + '<meta property="og:url" content="' + esc(url) + '">',
 			t + '<meta property="og:title" content="' + esc(meta.title) + '">',
@@ -253,20 +289,37 @@ for (const region of REGIONS) {
 	console.log("bootstrapped partials/" + region.name + ".html  (from " + region.source + ")");
 }
 
+/* English partial variants (header.en.html / footer.en.html) are
+   hand-authored translations — never bootstrapped from a (Greek) source
+   page. Loaded read-only when present; en/ pages are skipped with a
+   warning until they exist. */
+for (const region of REGIONS) {
+	const file = path.join(partialDir, region.name + ".en.html");
+	if (fs.existsSync(file)) {
+		partials[region.name + ".en"] = read(file).replace(/\n+$/, "");
+	}
+}
+
 /* --- 2. Stamp every region + the SEO head block into every page --- */
 (async function main() {
 	// ESM registry shared with the Worker; this file is CommonJS, so load
 	// it dynamically (pathToFileURL keeps Windows paths working).
 	const metaUrl = pathToFileURL(path.join(ROOT, "worker", "lib", "pages-meta.mjs")).href;
-	const { SITE, PAGES_META } = await import(metaUrl);
+	const registry = await import(metaUrl);
+	const { SITE, PAGES_META, pageLang } = registry;
 
 	for (const page of PAGES) {
 		const file = path.join(ROOT, page);
 		let content = read(file);
 		const changed = [];
+		const lang = pageLang(page);
 
 		for (const region of REGIONS) {
-			const partial = partials[region.name];
+			const partial = partials[region.name + (lang === "el" ? "" : "." + lang)];
+			if (!partial) {
+				console.warn("  ! " + page + ": partials/" + region.name + "." + lang + ".html missing (skipped)");
+				continue;
+			}
 			let next = spliceMarkers(content, region.name, partial);
 			let mode = "updated";
 			if (next === null) {
@@ -285,7 +338,7 @@ for (const region of REGIONS) {
 		   hand-written head untouched. */
 		const meta = PAGES_META[page];
 		if (meta) {
-			const block = buildHead(meta, SITE);
+			const block = buildHead(page, meta, registry);
 			let next = spliceHead(content, block);
 			let mode = "updated";
 			if (next === null) {

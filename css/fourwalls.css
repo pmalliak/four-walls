@@ -18,6 +18,19 @@
   font-weight: 600;
 }
 
+/* Language switcher ---------------------------------------------------- */
+/* EN/ΕΛ toggle in the header's .right-widget slot; js/fourwalls.js
+   retargets its href to the exact alternate page (hreflang links).      */
+.theme-main-menu .fw-lang-switch {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: #161616;
+}
+.theme-main-menu .fw-lang-switch:hover {
+  color: #ff0062;
+}
+
 /* Logo lockup sizing -------------------------------------------------- */
 /* fourwalls_logo.svg was rebalanced: bigger cube, smaller wordmark, both
    centred on one middle line, viewBox measured tight to include the cube's

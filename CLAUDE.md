@@ -47,6 +47,16 @@ localization, environment, and per-component notes).
     «ΑΝΑΖΗΤΗΣΗ», never «ΑΝΑΖΉΤΗΣΗ». When hand-typing already-uppercase Greek,
     type it accent-free.
   - Currency is **€** (not `$`); use `.` as the thousands separator (€100.000).
+    On **English** pages use the `,` thousands separator (€100,000) and
+    `/month`, ` m²` instead of `/μήνα`, ` τ.μ.`.
+- **English site:** the marketing site has a full English twin under
+  [en/](en/) (URL prefix `/en/`, `<html lang="en">`, `<base href="/">`).
+  Registry keys `en/…` in `pages-meta.mjs` pair each page with its Greek
+  original automatically (hreflang); `en/` pages are stamped with
+  `partials/header.en.html` / `footer.en.html`; the client JS picks its
+  label maps from `<html lang>`; the feed carries optional `*_en` fields
+  with Greek fallback. **Content changes must be made in both languages**
+  (page + partial + `PAGES_META` entry), then re-run the sync.
 - **Shared header/footer:** the site menu and footer are one source of truth in
   [partials/](partials/), stamped into pages between `<!-- FW:INCLUDE … -->`
   markers by `node tools/sync-partials.js`. Edit the **partial**, then re-run the

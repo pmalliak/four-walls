@@ -17,31 +17,53 @@
    only allowed on the production hosts).
    ===================================================================== */
 
-import { SITE, PAGES_META } from "./pages-meta.mjs";
+import { SITE, PAGES_META, pageLang, alternateKey } from "./pages-meta.mjs";
 
 /* KV key of the feed — keep in sync with FEED_KEY in worker/index.mjs. */
 const FEED_KEY = "listings.json";
 
-/* Greek labels for CRM slugs — mirror of SUBCATEGORY / TRANSACTION in
-   js/listings.fw.js (an IIFE, so nothing to import). The generated
-   <title> must stay byte-identical to the client's document.title. */
+/* Labels for CRM slugs, per language — mirrors of the el/en SUBCATEGORY /
+   TRANSACTION maps in js/listings.fw.js (an IIFE, so nothing to import).
+   The generated <title> must stay byte-identical to the client's
+   document.title in BOTH languages — keep all four maps in sync. */
 const SUBCATEGORY = {
-	apartment: "Διαμέρισμα", maisonette: "Μεζονέτα", detached: "Μονοκατοικία",
-	house: "Μονοκατοικία", studio: "Στούντιο",
-	villa: "Βίλα", loft: "Loft", residential_building: "Κτίριο κατοικιών",
-	apartment_complex: "Συγκρότημα διαμερισμάτων", farmhouse: "Αγροικία",
-	houseboat: "Πλωτή κατοικία", other_residential: "Άλλη κατοικία",
-	office: "Γραφείο", store: "Κατάστημα", warehouse: "Αποθήκη",
-	hotel: "Ξενοδοχείο", commercial_building: "Επαγγελματικό κτίριο",
-	hall: "Αίθουσα", industrial_space: "Βιομηχανικός χώρος",
-	craft_space: "Βιοτεχνικός χώρος", other_commercial: "Άλλο επαγγελματικό",
-	plot: "Οικόπεδο", parcel: "Αγροτεμάχιο", island: "Νησί",
-	parking: "Πάρκινγκ", business: "Επιχείρηση", air: "Αέρας", other: "Άλλο"
+	el: {
+		apartment: "Διαμέρισμα", maisonette: "Μεζονέτα", detached: "Μονοκατοικία",
+		house: "Μονοκατοικία", studio: "Στούντιο",
+		villa: "Βίλα", loft: "Loft", residential_building: "Κτίριο κατοικιών",
+		apartment_complex: "Συγκρότημα διαμερισμάτων", farmhouse: "Αγροικία",
+		houseboat: "Πλωτή κατοικία", other_residential: "Άλλη κατοικία",
+		office: "Γραφείο", store: "Κατάστημα", warehouse: "Αποθήκη",
+		hotel: "Ξενοδοχείο", commercial_building: "Επαγγελματικό κτίριο",
+		hall: "Αίθουσα", industrial_space: "Βιομηχανικός χώρος",
+		craft_space: "Βιοτεχνικός χώρος", other_commercial: "Άλλο επαγγελματικό",
+		plot: "Οικόπεδο", parcel: "Αγροτεμάχιο", island: "Νησί",
+		parking: "Πάρκινγκ", business: "Επιχείρηση", air: "Αέρας", other: "Άλλο"
+	},
+	en: {
+		apartment: "Apartment", maisonette: "Maisonette", detached: "Detached house",
+		house: "Detached house", studio: "Studio",
+		villa: "Villa", loft: "Loft", residential_building: "Residential building",
+		apartment_complex: "Apartment complex", farmhouse: "Farmhouse",
+		houseboat: "Houseboat", other_residential: "Other residential",
+		office: "Office", store: "Retail space", warehouse: "Warehouse",
+		hotel: "Hotel", commercial_building: "Commercial building",
+		hall: "Hall", industrial_space: "Industrial space",
+		craft_space: "Light-industrial space", other_commercial: "Other commercial",
+		plot: "Plot of land", parcel: "Land parcel", island: "Island",
+		parking: "Parking space", business: "Business", air: "Air rights", other: "Other"
+	}
 };
 
 const TRANSACTION = {
-	sale: "Πώληση", rent: "Ενοικίαση",
-	auction: "Πλειστηριασμός", shortterm: "Βραχυχρόνια"
+	el: {
+		sale: "Πώληση", rent: "Ενοικίαση",
+		auction: "Πλειστηριασμός", shortterm: "Βραχυχρόνια"
+	},
+	en: {
+		sale: "For sale", rent: "For rent",
+		auction: "Auction", shortterm: "Short-term let"
+	}
 };
 
 /* schema.org type for the offered item, by CRM subcategory (fallback by
@@ -65,12 +87,20 @@ export function isProdHost(hostname) {
 	return hostname === "four-walls.gr" || hostname === "www.four-walls.gr";
 }
 
-function fmtNumber(n) {
-	return new Intl.NumberFormat("el-GR").format(n);
+function fmtNumber(n, lang = "el") {
+	return new Intl.NumberFormat(lang === "en" ? "en-GB" : "el-GR").format(n);
 }
 
-function subcategoryLabel(l) {
-	return SUBCATEGORY[l.subcategory] || SUBCATEGORY[l.category] || l.subcategory || "";
+function subcategoryLabel(l, lang = "el") {
+	const map = SUBCATEGORY[lang];
+	return map[l.subcategory] || map[l.category] || l.subcategory || "";
+}
+
+/* Location field in the requested language, Greek fallback per field —
+   same rule as loc() in js/listings.fw.js. */
+function locField(l, key, lang) {
+	const loc = l.location || {};
+	return (lang === "en" && loc[key + "_en"]) || loc[key] || null;
 }
 
 /* The URL key of a listing — its public «Κωδικός», same rule as
@@ -79,21 +109,27 @@ function listingKey(l) {
 	return l.code || l.id;
 }
 
-function canonicalUrl(l) {
-	return SITE.origin + "/properties/" + encodeURIComponent(listingKey(l));
+function canonicalUrl(l, lang = "el") {
+	return SITE.origin + (lang === "en" ? "/en" : "") +
+		"/properties/" + encodeURIComponent(listingKey(l));
 }
 
 /* Byte-identical to the client's document.title (js/listings.fw.js
-   initDetail) so the runtime overwrite changes nothing. */
-function listingTitle(l) {
-	const heading = subcategoryLabel(l) + (l.area != null ? " " + fmtNumber(l.area) + " τ.μ." : "");
-	return heading + (l.location?.area ? ", " + l.location.area : "");
+   initDetail) so the runtime overwrite changes nothing — in BOTH
+   languages (client: heading + ", " + loc(l, "area")). */
+function listingTitle(l, lang = "el") {
+	const sqm = lang === "en" ? " m²" : " τ.μ.";
+	const heading = subcategoryLabel(l, lang) + (l.area != null ? " " + fmtNumber(l.area, lang) + sqm : "");
+	const area = locField(l, "area", lang);
+	return heading + (area ? ", " + area : "");
 }
 
-/* Meta description: the CRM's Greek description trimmed to ~155 chars
-   on a word boundary; composed fallback when the CRM has none. */
-function listingDescription(l) {
-	const raw = (l.description || "").replace(/\s+/g, " ").trim();
+/* Meta description: the CRM's description trimmed to ~155 chars on a
+   word boundary (English falls back to Greek text when the CRM has no
+   English); composed fallback when the CRM has none at all. */
+function listingDescription(l, lang = "el") {
+	const src = (lang === "en" && l.description_en) || l.description || "";
+	const raw = src.replace(/\s+/g, " ").trim();
 	if (raw) {
 		if (raw.length <= 158) return raw;
 		let cut = raw.slice(0, 155);
@@ -101,11 +137,13 @@ function listingDescription(l) {
 		if (sp > 80) cut = cut.slice(0, sp);
 		return cut + "…";
 	}
-	const bits = [TRANSACTION[l.transaction] || null, listingTitle(l)];
+	const rent = l.transaction === "rent" || l.transaction === "shortterm";
+	const bits = [TRANSACTION[lang][l.transaction] || null, listingTitle(l, lang)];
 	if (l.price != null) {
-		bits.push("€" + fmtNumber(l.price) + (l.transaction === "rent" || l.transaction === "shortterm" ? "/μήνα" : ""));
+		bits.push("€" + fmtNumber(l.price, lang) + (rent ? (lang === "en" ? "/month" : "/μήνα") : ""));
 	}
-	return bits.filter(Boolean).join(" · ") + " — Four Walls Real Estate, Θεσσαλονίκη.";
+	return bits.filter(Boolean).join(" · ") +
+		(lang === "en" ? " — Four Walls Real Estate, Thessaloniki." : " — Four Walls Real Estate, Θεσσαλονίκη.");
 }
 
 function escAttr(s) {
@@ -133,10 +171,10 @@ async function loadFeed(env) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Listing detail page: /properties/<code>                             */
+/* Listing detail page: /properties/<code> and /en/properties/<code>   */
 /* ------------------------------------------------------------------ */
 
-export async function serveListingPage(key, url, env) {
+export async function serveListingPage(key, url, env, lang = "el") {
 	let feed = null;
 	try {
 		feed = await loadFeed(env);
@@ -147,13 +185,13 @@ export async function serveListingPage(key, url, env) {
 	// Fetch the shell WITHOUT the browser's conditional headers — a 304
 	// has no body to rewrite. The asset ETag is dropped for the same
 	// reason (it identifies the un-rewritten shell).
-	const shell = await env.ASSETS.fetch(new URL("/property", url));
+	const shell = await env.ASSETS.fetch(new URL(lang === "en" ? "/en/property" : "/property", url));
 	if (!feed || !Array.isArray(feed.listings)) return shell;
 
 	const l = feed.listings.find((x) => x.code === key || x.id === key);
 	if (!l) {
 		// Real 404 (not a 200 soft-404): serve the branded 404 page body.
-		const nf = await env.ASSETS.fetch(new URL("/404", url));
+		const nf = await env.ASSETS.fetch(new URL(lang === "en" ? "/en/404" : "/404", url));
 		const headers = new Headers(nf.headers);
 		headers.delete("ETag");
 		return new Response(nf.body, { status: 404, headers });
@@ -166,35 +204,41 @@ export async function serveListingPage(key, url, env) {
 	return new HTMLRewriter()
 		.on("title", {
 			element(e) {
-				e.setInnerContent(listingTitle(l) + " | Four Walls");
+				e.setInnerContent(listingTitle(l, lang) + " | Four Walls");
 			},
 		})
 		.on('meta[name="description"]', {
 			element(e) {
-				e.setAttribute("content", listingDescription(l));
+				e.setAttribute("content", listingDescription(l, lang));
 			},
 		})
 		.on("head", {
 			element(e) {
-				e.append(seoBlock(l), { html: true });
+				e.append(seoBlock(l, lang), { html: true });
 			},
 		})
 		.transform(new Response(shell.body, { status: 200, headers }));
 }
 
-/* Canonical + OG/Twitter + JSON-LD, appended to the shell's <head>.
-   The static FW:HEAD block of property.html deliberately carries only
-   title + description (workerManaged in pages-meta.mjs), so nothing
-   here is emitted twice. */
-function seoBlock(l) {
-	const canonical = canonicalUrl(l);
-	const title = listingTitle(l);
-	const desc = listingDescription(l);
+/* Canonical + hreflang + OG/Twitter + JSON-LD, appended to the shell's
+   <head>. The static FW:HEAD block of property.html deliberately carries
+   only title + description (workerManaged in pages-meta.mjs), so nothing
+   here is emitted twice. Both languages emit the identical hreflang
+   triple (el / en / x-default→el). */
+function seoBlock(l, lang = "el") {
+	const canonical = canonicalUrl(l, lang);
+	const elUrl = canonicalUrl(l, "el");
+	const enUrl = canonicalUrl(l, "en");
+	const title = listingTitle(l, lang);
+	const desc = listingDescription(l, lang);
 	const image = absImage(l.images?.[0]) || SITE.origin + SITE.ogImage;
 	const tags = [
+		`<link rel="alternate" hreflang="el" href="${escAttr(elUrl)}">`,
+		`<link rel="alternate" hreflang="en" href="${escAttr(enUrl)}">`,
+		`<link rel="alternate" hreflang="x-default" href="${escAttr(elUrl)}">`,
 		`<link rel="canonical" href="${escAttr(canonical)}">`,
 		`<meta property="og:site_name" content="${escAttr(SITE.name)}">`,
-		`<meta property="og:locale" content="${escAttr(SITE.locale)}">`,
+		`<meta property="og:locale" content="${escAttr(SITE.locales[lang])}">`,
 		`<meta property="og:type" content="website">`,
 		`<meta property="og:url" content="${escAttr(canonical)}">`,
 		`<meta property="og:title" content="${escAttr(title)}">`,
@@ -204,13 +248,13 @@ function seoBlock(l) {
 		`<meta name="twitter:title" content="${escAttr(title)}">`,
 		`<meta name="twitter:description" content="${escAttr(desc)}">`,
 		`<meta name="twitter:image" content="${escAttr(image)}">`,
-		`<script type="application/ld+json">${listingJsonLd(l, canonical, title, desc)}</script>`,
+		`<script type="application/ld+json">${listingJsonLd(l, canonical, title, desc, lang)}</script>`,
 	];
 	return "\n\t" + tags.join("\n\t") + "\n";
 }
 
 /* Exported for direct testing in Node — pure function, no CF APIs. */
-export function listingJsonLd(l, canonical, title, desc) {
+export function listingJsonLd(l, canonical, title, desc, lang = "el") {
 	const loc = l.location || {};
 	const images = (l.images || []).slice(0, 8).map(absImage).filter(Boolean);
 	const rent = l.transaction === "rent" || l.transaction === "shortterm";
@@ -226,8 +270,8 @@ export function listingJsonLd(l, canonical, title, desc) {
 		address: {
 			"@type": "PostalAddress",
 			streetAddress: loc.address || undefined,
-			addressLocality: loc.area || loc.city || undefined,
-			addressRegion: loc.city || "Θεσσαλονίκη",
+			addressLocality: locField(l, "area", lang) || locField(l, "city", lang) || undefined,
+			addressRegion: locField(l, "city", lang) || (lang === "en" ? "Thessaloniki" : "Θεσσαλονίκη"),
 			addressCountry: "GR",
 		},
 		// Privacy is already enforced upstream: the feed carries fake
@@ -249,7 +293,7 @@ export function listingJsonLd(l, canonical, title, desc) {
 		url: canonical,
 		name: title,
 		description: desc,
-		inLanguage: "el",
+		inLanguage: lang,
 		datePosted: isoDate(l.updatedAt),
 		image: images.length ? images : undefined,
 		mainEntity: { "@id": l.price != null ? canonical + "#offer" : canonical + "#item" },
@@ -286,11 +330,17 @@ export function listingJsonLd(l, canonical, title, desc) {
 
 	graph.push({
 		"@type": "BreadcrumbList",
-		itemListElement: [
-			{ "@type": "ListItem", position: 1, name: "Αρχική", item: SITE.origin + "/" },
-			{ "@type": "ListItem", position: 2, name: "Ακίνητα", item: SITE.origin + "/properties" },
-			{ "@type": "ListItem", position: 3, name: title },
-		],
+		itemListElement: lang === "en"
+			? [
+				{ "@type": "ListItem", position: 1, name: "Home", item: SITE.origin + "/en/" },
+				{ "@type": "ListItem", position: 2, name: "Properties", item: SITE.origin + "/en/properties" },
+				{ "@type": "ListItem", position: 3, name: title },
+			]
+			: [
+				{ "@type": "ListItem", position: 1, name: "Αρχική", item: SITE.origin + "/" },
+				{ "@type": "ListItem", position: 2, name: "Ακίνητα", item: SITE.origin + "/properties" },
+				{ "@type": "ListItem", position: 3, name: title },
+			],
 	});
 
 	// <-escape so "</script>" can never occur inside the block.
@@ -316,7 +366,9 @@ function escXml(s) {
 }
 
 /* A Worker route (not a static file) because listing URLs change on
-   every webhook/cron rebuild. Feed missing → static pages only. */
+   every webhook/cron rebuild. Feed missing → static pages only.
+   Every URL with a translation pair carries xhtml:link alternates
+   (el / en / x-default→el), mirroring the on-page hreflang triples. */
 export async function sitemapResponse(env) {
 	let feed = null;
 	try {
@@ -326,21 +378,39 @@ export async function sitemapResponse(env) {
 	}
 
 	const entries = [];
-	for (const meta of Object.values(PAGES_META)) {
+	for (const [key, meta] of Object.entries(PAGES_META)) {
 		if (meta.sitemap === false || !meta.path) continue;
-		entries.push({ loc: SITE.origin + meta.path });
+		const alt = PAGES_META[alternateKey(key)];
+		let alternates;
+		if (alt && alt.path && alt.sitemap !== false) {
+			const elPath = pageLang(key) === "el" ? meta.path : alt.path;
+			const enPath = pageLang(key) === "el" ? alt.path : meta.path;
+			alternates = { el: SITE.origin + elPath, en: SITE.origin + enPath };
+		}
+		entries.push({ loc: SITE.origin + meta.path, alternates });
 	}
 	for (const l of feed?.listings || []) {
 		if (!listingKey(l)) continue;
-		entries.push({ loc: canonicalUrl(l), lastmod: isoDate(l.updatedAt) });
+		const alternates = { el: canonicalUrl(l, "el"), en: canonicalUrl(l, "en") };
+		for (const lang of ["el", "en"]) {
+			entries.push({ loc: canonicalUrl(l, lang), lastmod: isoDate(l.updatedAt), alternates });
+		}
 	}
+
+	const alternateLinks = (a) =>
+		!a ? "" :
+		[["el", a.el], ["en", a.en], ["x-default", a.el]]
+			.map(([hreflang, href]) =>
+				'\t\t<xhtml:link rel="alternate" hreflang="' + hreflang + '" href="' + escXml(href) + '"/>\n')
+			.join("");
 
 	const xml =
 		'<?xml version="1.0" encoding="UTF-8"?>\n' +
-		'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+		'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' +
 		entries
 			.map((e) =>
 				"\t<url>\n\t\t<loc>" + escXml(e.loc) + "</loc>\n" +
+				alternateLinks(e.alternates) +
 				(e.lastmod ? "\t\t<lastmod>" + e.lastmod + "</lastmod>\n" : "") +
 				"\t</url>\n")
 			.join("") +

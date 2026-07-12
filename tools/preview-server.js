@@ -53,6 +53,7 @@ const server = http.createServer((req, res) => {
     if (urlPath === "/") urlPath = "/index.html";
     // Pretty listing URLs (mirrors the Worker): /properties/<id> -> property.html
     if (/^\/properties\/[^/]+$/.test(urlPath)) urlPath = "/property.html";
+    if (/^\/en\/properties\/[^/]+$/.test(urlPath)) urlPath = "/en/property.html";
     // Old Greek detail URLs — 301 to /properties/<id>, like the Worker.
     if (/^\/akinit[ao]\/[^/]+$/.test(urlPath)) {
       res.writeHead(301, { Location: "/properties/" + urlPath.split("/")[2] });
@@ -86,9 +87,10 @@ const server = http.createServer((req, res) => {
     }
     fs.stat(filePath, (err, st) => {
       if (err) {
-        // Mirror production (wrangler.toml `not_found_handling = "404-page"`):
-        // unknown paths serve the branded 404.html with a 404 status.
-        fs.readFile(path.join(ROOT, "404.html"), (pageErr, page) => {
+        // Mirror production (wrangler.toml `not_found_handling = "404-page"`,
+        // nearest 404.html): /en/* misses serve en/404.html, the rest the root one.
+        const notFound = /^\/?en\//.test(safe.replace(/\\/g, "/")) ? "en/404.html" : "404.html";
+        fs.readFile(path.join(ROOT, notFound), (pageErr, page) => {
           if (pageErr) {
             res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
             res.end("404 Not Found: " + safe);
