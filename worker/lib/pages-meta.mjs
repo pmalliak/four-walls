@@ -30,7 +30,7 @@ export const SITE = {
 	name: "Four Walls Real Estate",
 	locales: { el: "el_GR", en: "en_GB" }, // og:locale per language
 	/* Shared social-preview image (og:image / twitter:image), root-relative. */
-	ogImage: "/images/assets/ogg.fw.png",
+	ogImage: "/images/assets/og-home.fw.png",
 };
 
 /* Language of a PAGES_META key ("en/about.html" -> "en", else "el"). */
