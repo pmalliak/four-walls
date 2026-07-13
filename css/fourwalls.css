@@ -150,6 +150,14 @@
   white-space: nowrap;
   vertical-align: middle;
 }
+/* The hero and the feedback section below it are positioned siblings that
+   both carry Bootstrap's .z-1 (z-index:1). Equal z-index means the later
+   sibling wins, so the feedback text painted over the area select's open
+   popup. Lift the hero one level higher so its dropdowns escape above the
+   feedback section. (Header is z-index:999, so it still stays on top.)     */
+.hero-banner-one.z-1 {
+  z-index: 2 !important;
+}
 
 /* Tablet layout (iPad): the search collapses to three rows —
    [ Ενδιαφέρομαι για... ] / [ Τύπος · Περιοχή · Εύρος τιμής ] / [ button ]
