@@ -194,6 +194,8 @@
 			},
 			allPhotos: function (n) { return "Δείτε και τις " + n + " φωτογραφίες"; },
 			floorLabel: "Όροφος: ",
+			floorNames: { "-1": "Υπόγειο", "0": "Ισόγειο", "0.5": "Ημιόροφος" },
+			floorOrdinal: function (n) { return n + "ος"; },
 			details: {
 				code: "Κωδικός", type: "Τύπος", area: "Εμβαδόν", bedrooms: "Υπνοδωμάτια",
 				bathrooms: "Μπάνια", wc: "WC", kitchens: "Κουζίνες", livingRooms: "Σαλόνια",
@@ -246,6 +248,8 @@
 			},
 			allPhotos: function (n) { return "View all " + n + " photos"; },
 			floorLabel: "Floor: ",
+			floorNames: { "-1": "Basement", "0": "Ground floor", "0.5": "Mezzanine" },
+			floorOrdinal: function (n) { var s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); },
 			details: {
 				code: "Reference", type: "Type", area: "Floor area", bedrooms: "Bedrooms",
 				bathrooms: "Bathrooms", wc: "WC", kitchens: "Kitchens", livingRooms: "Living rooms",
@@ -297,6 +301,17 @@
 
 	function fmtNumber(n) {
 		return new Intl.NumberFormat(LANG === "en" ? "en-GB" : "el-GR").format(n);
+	}
+
+	/* EstatePrime sends floor as a number: -1 basement, 0 ground, 0.5
+	   mezzanine, 1..n storeys. Turn it into a human label; null when absent. */
+	function floorLabel(v) {
+		if (v == null || v === "") return null;
+		var n = Number(v);
+		if (!isFinite(n)) return String(v);
+		if (STR.floorNames[n] != null) return STR.floorNames[n];
+		if (Number.isInteger(n) && n >= 1) return STR.floorOrdinal(n);
+		return String(v);
 	}
 
 	function fmtPrice(listing) {
@@ -782,7 +797,7 @@
 		[[l.area != null, "icon_47", fmtNumber(l.area) + STR.sqm],
 		 [l.bedrooms != null && l.bedrooms > 0, "icon_48", STR.beds(l.bedrooms)],
 		 [l.bathrooms != null && l.bathrooms > 0, "icon_49", STR.baths(l.bathrooms)],
-		 [l.floor != null && l.floor !== "", "stairs.fw", STR.floorLabel + l.floor],
+		 [floorLabel(l.floor) != null, "stairs.fw", STR.floorLabel + floorLabel(l.floor)],
 		 [true, "icon_51", subcategoryLabel(l)]]
 			.forEach(function (row) {
 				if (!row[0]) return;
@@ -806,7 +821,7 @@
 		 [STR.details.wc, l.wc],
 		 [STR.details.kitchens, l.kitchens],
 		 [STR.details.livingRooms, l.livingRooms],
-		 [STR.details.floor, l.floor],
+		 [STR.details.floor, floorLabel(l.floor)],
 		 [STR.details.parking, l.parking],
 		 [STR.details.yearBuilt, l.yearBuilt],
 		 [STR.details.yearRenovated, l.yearRenovated],
@@ -830,6 +845,24 @@
 			am.appendChild(el("li", null, FEATURES[slug] || slug.replace(/^(has|is)_/, "").replace(/_/g, " ")));
 		});
 		if (!slugs.length) hide("fw-amenities-block");
+
+		/* nearby ("Κοντινά σημεία" / "What's nearby") — parsed by the Worker
+		   from the description into [{label, value}]; prefer the page
+		   language, fall back to the Greek list when no English one exists. */
+		var nearby = (LANG === "en" && l.nearby_en && l.nearby_en.length ? l.nearby_en : l.nearby) || [];
+		var nb = document.getElementById("fw-nearby");
+		if (nb && nearby.length) {
+			nb.textContent = "";
+			nearby.forEach(function (p) {
+				var li = document.createElement("li");
+				li.appendChild(document.createTextNode(p.label + (p.value ? ": " : "")));
+				if (p.value) li.appendChild(el("span", "fw-500 color-dark", p.value));
+				nb.appendChild(li);
+			});
+			show("fw-nearby-block");
+		} else {
+			hide("fw-nearby-block");
+		}
 
 		/* video tour */
 		if (l.youtubeUrl) {

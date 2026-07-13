@@ -150,13 +150,17 @@ export function mapListing(raw) {
 	const tEn = (raw.translations || []).find((x) => x.language_id === LANG_EN) || {};
 	const loc = raw.location || {};
 	const useFake = loc.display_address === "fake";
+	const desc = cleanDescription(t.description);
+	const descEn = cleanDescription(fixHomoglyphs(tEn.description ?? null));
 	return {
 		id: String(raw.id),
 		code: raw.code ?? null,
 		title: t.title ?? null,
-		description: t.description ?? null,
+		description: desc.text || null,
+		nearby: desc.nearby,
 		title_en: fixHomoglyphs(tEn.title ?? null),
-		description_en: fixHomoglyphs(tEn.description ?? null),
+		description_en: descEn.text || null,
+		nearby_en: descEn.nearby,
 		transaction: raw.availability ?? null, // sale | rent | auction | shortterm
 		category: raw.category ?? null,        // residential | commercial | land | other
 		subcategory: raw.subcategory ?? null,  // apartment, maisonette, …
@@ -226,4 +230,82 @@ function fixHomoglyphs(s) {
 		/[A-Za-z]/.test(tok)
 			? tok.replace(/[Α-Ω]/g, (ch) => HOMOGLYPHS[ch] || ch)
 			: tok);
+}
+
+/* HTML entities the CRM's rich-text editor emits. */
+const ENTITIES = {
+	amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ",
+	euro: "€", mdash: "—", ndash: "–", middot: "·", bull: "•",
+	hellip: "…", laquo: "«", raquo: "»", deg: "°",
+};
+function decodeEntities(s) {
+	return s.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (m, code) => {
+		if (code[0] === "#") {
+			const n = /^#x/i.test(code) ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
+			return Number.isFinite(n) ? String.fromCodePoint(n) : m;
+		}
+		const key = code.toLowerCase();
+		return Object.prototype.hasOwnProperty.call(ENTITIES, key) ? ENTITIES[key] : m;
+	});
+}
+
+/* EstatePrime stores manually-edited descriptions as rich-text HTML
+   (<div>, <br>, &amp; …). The feed must be PLAIN TEXT: the site renders the
+   description with textContent (CRM strings must never parse as HTML) and
+   the SEO meta/JSON-LD in seo.mjs slice it raw. Convert block tags to
+   newlines, drop the rest, decode entities, collapse whitespace. Auto-
+   generated (already-plain) descriptions pass through essentially intact. */
+function htmlToText(s) {
+	if (typeof s !== "string" || !s) return "";
+	const t = s
+		.replace(/\r\n?/g, "\n")
+		.replace(/<\s*br\s*\/?>/gi, "\n")
+		.replace(/<\/\s*(?:div|p|li|h[1-6]|tr)\s*>/gi, "\n")
+		.replace(/<\s*li[^>]*>/gi, "• ")
+		.replace(/<[^>]+>/g, "");
+	return decodeEntities(t)
+		.replace(/[ \t]+\n/g, "\n")
+		.replace(/\n{3,}/g, "\n\n")
+		.replace(/[ \t]{2,}/g, " ")
+		.trim();
+}
+
+/* Drop the trailing contact block ("Four Walls, Τηλέφωνο Επικοινωνίας…" /
+   "Four Walls, contact phone…"), plus a preceding "Τιμή: €…" / "Price: €…".
+   It exists for portals (Spitogatos reads the CRM description directly) but
+   is noise on our own site, where the sidebar already carries the NAP and
+   the price sits in the header. */
+function stripContactTail(s) {
+	return s.replace(
+		/\n*[ \t]*(?:(?:Τιμή|Price)\s*:\s*€[\d.,]+\.?[ \t]*)?Four Walls\s*,\s*(?:Τηλέφωνο|Tel\.?|τηλ\.?|contact phone|phone)[\s\S]*$/i,
+		"",
+	).trim();
+}
+
+/* Lift the "Κοντινά σημεία: …" / "Nearby: …" line into a structured list and
+   remove it from the prose — the site renders it as the "What's Nearby" card.
+   Items are "Label <distance>", separated by "·" / "•" / "|". */
+const NEARBY_LABEL = /^\s*(?:Κοντιν[άα]\s+σημε[ίι]α|Nearby)\s*[:\-–]\s*/i;
+const NEARBY_VALUE = /^(.*?)[ \t]+(\d+(?:[.,]\d+)?\s*(?:μ|m|km|χλμ|λεπτ[άό]|min|['’΄])\.?)\s*$/i;
+function extractNearby(text) {
+	if (!text) return { text: "", nearby: [] };
+	const lines = text.split("\n");
+	const idx = lines.findIndex((ln) => NEARBY_LABEL.test(ln));
+	if (idx === -1) return { text, nearby: [] };
+	const nearby = lines[idx].replace(NEARBY_LABEL, "").split(/\s*[·•|]\s*/)
+		.map((chunk) => {
+			const c = chunk.trim();
+			if (!c) return null;
+			const m = c.match(NEARBY_VALUE);
+			return m ? { label: m[1].trim(), value: m[2].trim() } : { label: c, value: "" };
+		})
+		.filter(Boolean);
+	lines.splice(idx, 1);
+	return { text: lines.join("\n").replace(/\n{3,}/g, "\n\n").trim(), nearby };
+}
+
+/* Full pipeline for one description field: HTML → text, drop the contact
+   tail, then split off the nearby list. Returns { text, nearby }. */
+export function cleanDescription(raw) {
+	return extractNearby(stripContactTail(htmlToText(raw)));
 }

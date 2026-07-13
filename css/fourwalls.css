@@ -628,6 +628,12 @@
    ===================================================================== */
 /* CRM descriptions keep their line breaks without needing <br> tags */
 .fw-pre-line { white-space: pre-line; }
+/* «Κοντινά σημεία» — our labels ("Στάση Μετρό (Σιντριβάνι)") run longer than
+   the theme's demo ("School & Collage"), so the theme's 26% (3-col) width and
+   floated value collide. Force a 2-column flex row: label left, value right. */
+.fw-nearby li { width: 48%; display: flex; justify-content: space-between; gap: 12px; }
+.fw-nearby li span { float: none; white-space: nowrap; }
+@media (max-width: 767px) { .fw-nearby li { width: 100%; } }
 /* CRM photos come in arbitrary aspect ratios — normalize the frames */
 #fw-grid .carousel-item img,
 #fw-latest .carousel-item img { aspect-ratio: 3 / 2; object-fit: cover; }
