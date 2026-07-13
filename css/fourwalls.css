@@ -977,3 +977,10 @@ body.fw-popup-lock {
 .address-banner .text .fw-note {
   color: rgba(22, 22, 22, 0.45);
 }
+/* Scroll-to-top button: the theme pins it at right:5px, which phones with
+   curved corners / rounded screens clip. Pull it in from the edge and add
+   the device safe-area inset so it clears the rounded corner every time.  */
+.scroll-top {
+  right: calc(20px + env(safe-area-inset-right, 0px));
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+}
