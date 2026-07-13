@@ -1031,3 +1031,18 @@ body.fw-popup-lock {
     grid-template-columns: 1fr;
   }
 }
+/* Overview strip (area · beds · baths · floor · type) ---------------- *
+ * Same partial-row trap as the amenities: the theme's overview is a
+ * `d-flex flex-wrap justify-content-between` strip of fixed 20%-wide
+ * segments meant to seat five stats across the card. But the items are
+ * conditional — beds/baths drop out when zero, floor when unknown — so a
+ * land plot or studio ends up with two or three, which space-between then
+ * flings to opposite corners of the card. Let the segments flex to equal
+ * shares instead: five still render at 20% (unchanged), while fewer fill
+ * the width evenly with the slanted dividers kept balanced. Desktop only —
+ * below 992px the theme already wraps the strip two-up (li = 50%). */
+@media (min-width: 992px) {
+  #fw-overview li {
+    flex: 1 1 0;
+  }
+}
