@@ -20,6 +20,7 @@
    ===================================================================== */
 
 import { SAMPLE_LISTINGS } from "./sample-listings.mjs";
+import { enrichAccessibility } from "./accessibility.mjs";
 
 const MAX_PAGES = 200; // hard stop against pagination bugs
 
@@ -27,6 +28,7 @@ const MAX_PAGES = 200; // hard stop against pagination bugs
 export async function buildFeed(env) {
 	const sample = env.SAMPLE_DATA === "1";
 	const listings = sample ? SAMPLE_LISTINGS : await fetchAllListings(env);
+	if (!sample) await enrichAccessibility(listings, env); // OSM ratings, KV-cached
 	return {
 		generatedAt: new Date().toISOString(),
 		source: sample ? "sample" : "estateprime",

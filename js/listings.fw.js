@@ -196,6 +196,12 @@
 			floorLabel: "Όροφος: ",
 			floorNames: { "-1": "Υπόγειο", "0": "Ισόγειο", "0.5": "Ημιόροφος" },
 			floorOrdinal: function (n) { return n + "ος"; },
+			distM: "μ", distKm: "χλμ",
+			access: {
+				cat: { transit: "Συγκοινωνίες", errands: "Καθημερινά ψώνια", education: "Εκπαίδευση", leisure: "Αναψυχή & πράσινο" },
+				band: { excellent: "Άριστη", verygood: "Πολύ καλή", good: "Καλή", moderate: "Μέτρια", limited: "Περιορισμένη" },
+				types: { metro: "μετρό", tram: "τραμ", train: "τρένο", bus: "στάση λεωφορείου", supermarket: "σούπερ μάρκετ", bakery: "φούρνος", pharmacy: "φαρμακείο", convenience: "μίνι μάρκετ", school: "σχολείο", kindergarten: "νηπιαγωγείο", university: "πανεπιστήμιο", college: "κολέγιο", park: "πάρκο", square: "πλατεία", playground: "παιδική χαρά", gym: "γυμναστήριο", dining: "εστίαση" }
+			},
 			details: {
 				code: "Κωδικός", type: "Τύπος", area: "Εμβαδόν", bedrooms: "Υπνοδωμάτια",
 				bathrooms: "Μπάνια", wc: "WC", kitchens: "Κουζίνες", livingRooms: "Σαλόνια",
@@ -250,6 +256,12 @@
 			floorLabel: "Floor: ",
 			floorNames: { "-1": "Basement", "0": "Ground floor", "0.5": "Mezzanine" },
 			floorOrdinal: function (n) { var s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); },
+			distM: "m", distKm: "km",
+			access: {
+				cat: { transit: "Public transport", errands: "Everyday shopping", education: "Education", leisure: "Leisure & green" },
+				band: { excellent: "Excellent", verygood: "Very good", good: "Good", moderate: "Moderate", limited: "Limited" },
+				types: { metro: "metro", tram: "tram", train: "train", bus: "bus stop", supermarket: "supermarket", bakery: "bakery", pharmacy: "pharmacy", convenience: "mini market", school: "school", kindergarten: "kindergarten", university: "university", college: "college", park: "park", square: "square", playground: "playground", gym: "gym", dining: "cafes/dining" }
+			},
 			details: {
 				code: "Reference", type: "Type", area: "Floor area", bedrooms: "Bedrooms",
 				bathrooms: "Bathrooms", wc: "WC", kitchens: "Kitchens", livingRooms: "Living rooms",
@@ -301,6 +313,14 @@
 
 	function fmtNumber(n) {
 		return new Intl.NumberFormat(LANG === "en" ? "en-GB" : "el-GR").format(n);
+	}
+
+	/* Metres for the accessibility evidence line: round to 10 m under 1 km,
+	   otherwise one-decimal km with the page-language decimal mark. */
+	function fmtDist(m) {
+		if (m == null) return "";
+		if (m < 1000) return Math.round(m / 10) * 10 + STR.distM;
+		return (m / 1000).toFixed(1).replace(".", LANG === "en" ? "." : ",") + STR.distKm;
 	}
 
 	/* EstatePrime sends floor as a number: -1 basement, 0 ground, 0.5
@@ -862,6 +882,31 @@
 			show("fw-nearby-block");
 		} else {
 			hide("fw-nearby-block");
+		}
+
+		/* accessibility ("Προσβασιμότητα περιοχής") — OSM ratings computed and
+		   KV-cached by the Worker; qualitative band + nearest-POI evidence. */
+		var acc = l.accessibility;
+		var scoreRow = document.getElementById("fw-score");
+		if (scoreRow && acc) {
+			scoreRow.textContent = "";
+			["transit", "errands", "education", "leisure"].forEach(function (catKey) {
+				var c = acc[catKey];
+				if (!c || !c.band) return;
+				var col = el("div", "col-md-6");
+				var block = el("div", "block mb-25");
+				block.appendChild(el("h6", "mb-1", STR.access.cat[catKey]));
+				block.appendChild(el("span", "fw-band fw-band-" + c.band, STR.access.band[c.band] || c.band));
+				if (c.type) {
+					block.appendChild(el("span", "fs-16 fw-score-ev",
+						(STR.access.types[c.type] || c.type) + (c.m != null ? " " + fmtDist(c.m) : "")));
+				}
+				col.appendChild(block);
+				scoreRow.appendChild(col);
+			});
+			show("fw-score-block");
+		} else {
+			hide("fw-score-block");
 		}
 
 		/* video tour */

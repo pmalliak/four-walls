@@ -628,12 +628,37 @@
    ===================================================================== */
 /* CRM descriptions keep their line breaks without needing <br> tags */
 .fw-pre-line { white-space: pre-line; }
-/* «Κοντινά σημεία» — our labels ("Στάση Μετρό (Σιντριβάνι)") run longer than
-   the theme's demo ("School & Collage"), so the theme's 26% (3-col) width and
-   floated value collide. Force a 2-column flex row: label left, value right. */
-.fw-nearby li { width: 48%; display: flex; justify-content: space-between; gap: 12px; }
-.fw-nearby li span { float: none; white-space: nowrap; }
-@media (max-width: 767px) { .fw-nearby li { width: 100%; } }
+/* «Κοντινά σημεία» — same partial-row trap as the amenities list: the theme's
+   `justify-content-between` + fixed-width li (26%) flings a half-full last row
+   to opposite edges, leaving big gaps. Switch to a 2-column grid (constant
+   column-gap, aligned columns, partial rows pack left). Each cell is a flex
+   row so the value sits right of its longer-than-the-demo Greek label. The
+   `#fw-nearby` id out-specifies the theme's `!important` flex utilities. */
+#fw-nearby {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr);
+  column-gap: 40px;
+}
+#fw-nearby li {
+  width: auto; /* grid tracks size the columns — drop the theme's 26% */
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+#fw-nearby li span { float: none; white-space: nowrap; }
+@media (max-width: 767px) { #fw-nearby { grid-template-columns: 1fr; } }
+/* «Προσβασιμότητα περιοχής» — OSM accessibility ratings. Each category shows a
+   colour-coded band pill (excellent→limited) + the nearest-POI evidence. */
+.fw-band {
+  display: inline-block; padding: 2px 12px; border-radius: 20px;
+  font-size: 14px; font-weight: 600; color: #fff; line-height: 1.6;
+}
+.fw-band-excellent { background: #1f9d55; }
+.fw-band-verygood  { background: #57ab5a; }
+.fw-band-good      { background: #d9a406; }
+.fw-band-moderate  { background: #e8833a; }
+.fw-band-limited   { background: #9aa0a6; }
+.fw-score-ev { color: #6c7378; margin-left: 10px; }
 /* CRM photos come in arbitrary aspect ratios — normalize the frames */
 #fw-grid .carousel-item img,
 #fw-latest .carousel-item img { aspect-ratio: 3 / 2; object-fit: cover; }
