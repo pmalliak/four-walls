@@ -143,9 +143,16 @@ sends one of those with the same secret, that works too.
 
 ```bash
 node tools/build-listings.mjs      # writes data/listings.json (sample data)
+node tools/snapshot-feed.mjs       # mirrors the LIVE prod feed (real listings, no API keys)
 npx wrangler dev                   # full Worker at http://localhost:8787
 ```
 
-The plain preview server (`node tools/preview-server.js`) also serves
-`data/listings.json` as a static file once the tool has generated it — enough
-for front-end work without wrangler.
+The plain preview server (`node tools/preview-server.js`) serves
+`data/listings.json` as a static file once one of the tools above has written
+it — enough for front-end work without wrangler. Use `build-listings.mjs` for
+sample data or `snapshot-feed.mjs` to develop against the real production
+stock. (`data/listings.json` is gitignored — local only.)
+
+Note `npx wrangler dev` serves the feed from KV, which starts **empty** locally
+and 503s until a webhook/cron/manual rebuild populates it; the preview server +
+a snapshot is the friction-free path for front-end work.
