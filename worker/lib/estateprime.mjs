@@ -155,8 +155,8 @@ export function mapListing(raw) {
 		code: raw.code ?? null,
 		title: t.title ?? null,
 		description: t.description ?? null,
-		title_en: tEn.title ?? null,
-		description_en: tEn.description ?? null,
+		title_en: fixHomoglyphs(tEn.title ?? null),
+		description_en: fixHomoglyphs(tEn.description ?? null),
 		transaction: raw.availability ?? null, // sale | rent | auction | shortterm
 		category: raw.category ?? null,        // residential | commercial | land | other
 		subcategory: raw.subcategory ?? null,  // apartment, maisonette, …
@@ -184,9 +184,9 @@ export function mapListing(raw) {
 			area: loc.area_level2?.name_el ?? null,
 			neighbourhood: loc.area_level3?.name_el ?? null,
 			city: loc.area_level1?.name_el ?? null,
-			area_en: loc.area_level2?.name_en ?? null,
-			neighbourhood_en: loc.area_level3?.name_en ?? null,
-			city_en: loc.area_level1?.name_en ?? null,
+			area_en: fixHomoglyphs(loc.area_level2?.name_en ?? null),
+			neighbourhood_en: fixHomoglyphs(loc.area_level3?.name_en ?? null),
+			city_en: fixHomoglyphs(loc.area_level1?.name_en ?? null),
 			address: (useFake ? loc.fake_address_el : loc.address_el) ?? null,
 			lat: numberOrNull(useFake ? loc.fake_latitude : loc.latitude),
 			lng: numberOrNull(useFake ? loc.fake_longitude : loc.longitude),
@@ -204,4 +204,26 @@ export function mapListing(raw) {
 function numberOrNull(v) {
 	const n = Number(v);
 	return Number.isFinite(n) ? n : null;
+}
+
+/* Greek capitals that are visual twins of Latin letters. EstatePrime's
+   auto-translated English text occasionally capitalises a word with the
+   Greek homoglyph (seen live: "Εven"/"Βuildable" — Greek Ε/Β). It reads as
+   perfect English but they are real Greek code points, which hurt search,
+   screen readers and copy-paste on the /en/ site. */
+const HOMOGLYPHS = {
+	"Α": "A", "Β": "B", "Ε": "E", "Ζ": "Z", "Η": "H", "Ι": "I", "Κ": "K",
+	"Μ": "M", "Ν": "N", "Ο": "O", "Ρ": "P", "Τ": "T", "Υ": "Y", "Χ": "X",
+};
+
+/* Latinise Greek homoglyph capitals in an English field — but ONLY inside a
+   token that already holds a Latin letter, so a genuinely Greek word (e.g. a
+   street name that slipped into an _en field) is left untouched. Non-strings
+   (null) pass straight through. */
+function fixHomoglyphs(s) {
+	if (typeof s !== "string" || !s) return s;
+	return s.replace(/\S*[Α-Ω]\S*/g, (tok) =>
+		/[A-Za-z]/.test(tok)
+			? tok.replace(/[Α-Ω]/g, (ch) => HOMOGLYPHS[ch] || ch)
+			: tok);
 }
