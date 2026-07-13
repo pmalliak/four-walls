@@ -72,10 +72,25 @@
     if (!link) return;
     var want = link.getAttribute("hreflang");
     var alt = document.querySelector('link[rel="alternate"][hreflang="' + want + '"]');
-    if (!alt) return;
-    try {
-      link.href = new URL(alt.href).pathname;
-    } catch (e) { /* keep the static fallback */ }
+    if (alt) {
+      try {
+        link.href = new URL(alt.href).pathname;
+        return;
+      } catch (e) { /* fall through to the path-based twin below */ }
+    }
+    // No on-page alternate to read: for listing detail pages the twin route
+    // is a pure /en/ prefix toggle, so derive it from the current path. This
+    // covers the local preview server (no head injection) and the prod
+    // fallback where the Worker serves a plain shell (feed unavailable) —
+    // both would otherwise leave the header's static /  or /en/ home target,
+    // sending the visitor to the home page instead of the same property.
+    // Everything else (e.g. a 404) keeps that static fallback.
+    var path = location.pathname;
+    if (/^\/properties\/[^/]+$/.test(path)) {
+      link.href = "/en" + path;
+    } else if (/^\/en\/properties\/[^/]+$/.test(path)) {
+      link.href = path.slice(3);
+    }
   }
 
   if (document.readyState === "loading") {
