@@ -20,7 +20,7 @@
    ===================================================================== */
 
 import { SAMPLE_LISTINGS } from "./sample-listings.mjs";
-import { enrichAccessibility } from "./accessibility.mjs";
+import { ACCESSIBILITY } from "./accessibility-data.mjs";
 
 const MAX_PAGES = 200; // hard stop against pagination bugs
 
@@ -28,7 +28,6 @@ const MAX_PAGES = 200; // hard stop against pagination bugs
 export async function buildFeed(env) {
 	const sample = env.SAMPLE_DATA === "1";
 	const listings = sample ? SAMPLE_LISTINGS : await fetchAllListings(env);
-	if (!sample) await enrichAccessibility(listings, env); // OSM ratings, KV-cached
 	return {
 		generatedAt: new Date().toISOString(),
 		source: sample ? "sample" : "estateprime",
@@ -163,6 +162,7 @@ export function mapListing(raw) {
 		title_en: fixHomoglyphs(tEn.title ?? null),
 		description_en: descEn.text || null,
 		nearby_en: descEn.nearby,
+		accessibility: ACCESSIBILITY[String(raw.id)] ?? null, // OSM ratings (tools/build-accessibility.mjs)
 		transaction: raw.availability ?? null, // sale | rent | auction | shortterm
 		category: raw.category ?? null,        // residential | commercial | land | other
 		subcategory: raw.subcategory ?? null,  // apartment, maisonette, …

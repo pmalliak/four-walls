@@ -16,12 +16,14 @@
    privacy). The result per category is { band, type, m } where `type` is a
    POI slug the site localises and `m` is the straight-line metres.
 
-   USAGE
-     - Worker: `enrichAccessibility(listings, env)` runs inside the feed
-       rebuild (webhook/cron), caching each listing's rating in KV so it is
-       computed once — automatically when a new listing appears — and
-       reused thereafter (until its coordinates change).
-     - Offline: `computeAccessibility(lat, lng)` for the local-preview tool.
+   USAGE — precompute OFFLINE, read in the Worker.
+     Overpass is NOT reachable from the Cloudflare Worker (its outbound
+     requests to the public mirrors hang, which stalled the feed rebuild).
+     So ratings are precomputed by tools/build-accessibility.mjs — which
+     calls `computeAccessibility(lat, lng)` here — into the committed map
+     worker/lib/accessibility-data.mjs. estateprime.mjs merges that map into
+     the feed by listing id (no network in the rebuild path). Re-run the tool
+     and redeploy when a listing is added or its coordinates change.
 
    Source: © OpenStreetMap contributors (ODbL).
    ===================================================================== */
@@ -162,40 +164,8 @@ function scoreFromElements(lat, lng, elements) {
 	return out;
 }
 
-/* Compute the four category ratings for a coordinate (queries Overpass). */
+/* Compute the four category ratings for a coordinate (queries Overpass).
+   Used only by the OFFLINE tool — never call this from the Worker. */
 export async function computeAccessibility(lat, lng) {
 	return scoreFromElements(lat, lng, await fetchOverpass(lat, lng));
-}
-
-const CACHE_VERSION = "v1";
-const cacheKey = (id, lat, lng) => `access:${CACHE_VERSION}:${id}@${lat.toFixed(4)},${lng.toFixed(4)}`;
-
-/* Attach `accessibility` to each listing, computing (once, on first sight)
-   and caching in KV. Runs inside the feed rebuild — so a NEW listing gets
-   its rating automatically on the next webhook/cron, and existing ones are
-   free KV reads. Bounded per run (ACCESS_MAX_NEW, default 15) to stay polite
-   to Overpass and inside Worker limits; leftovers compute on later rebuilds.
-   Best-effort: an Overpass failure just leaves the listing unrated (retried
-   next time). No-ops when KV is absent (e.g. local sample builds). */
-export async function enrichAccessibility(listings, env) {
-	const kv = env?.LISTINGS_KV;
-	if (!kv) return;
-	let budget = Number(env.ACCESS_MAX_NEW ?? 15);
-	for (const l of listings) {
-		const lat = l.location?.lat, lng = l.location?.lng;
-		if (lat == null || lng == null) continue;
-		const key = cacheKey(l.id, lat, lng);
-		let rec = await kv.get(key, "json");
-		if (!rec && budget > 0) {
-			budget--;
-			try {
-				rec = await computeAccessibility(lat, lng);
-				await kv.put(key, JSON.stringify(rec));
-			} catch (e) {
-				console.warn(`accessibility ${l.code || l.id}: ${e.message}`);
-				continue; // leave unrated; retry on a later rebuild
-			}
-		}
-		if (rec) l.accessibility = rec;
-	}
 }
