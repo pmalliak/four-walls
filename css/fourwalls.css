@@ -984,3 +984,50 @@ body.fw-popup-lock {
   right: calc(20px + env(safe-area-inset-right, 0px));
   bottom: calc(20px + env(safe-area-inset-bottom, 0px));
 }
+/* Mobile off-canvas menu (hamburger) --------------------------------- *
+ * The panel is an off-canvas slide (transform: translateX) that the theme
+ * reveals via `.navbar-collapse.show`. The catch: Bootstrap's collapse first
+ * runs a `.collapsing` HEIGHT animation (transition: height .35s ease) and
+ * only adds `.show` once it finishes — so the panel sits still for ~210ms
+ * before it slides in, which is the "delay before it opens" you feel.
+ * Bootstrap picks when to add/remove `.show` from the element's FIRST
+ * transition-duration value, so we zero the *height* duration (its callback
+ * then fires immediately) while keeping the *transform* duration — the slide
+ * still animates, and it works for both opening and closing.
+ * Measured: first movement 210ms -> ~20ms after the tap.                   */
+.navbar-collapse {
+  transition: transform 0.25s ease-out;
+}
+.navbar-collapse.collapsing {
+  transition: height 0s, transform 0.25s ease-out !important;
+  height: 100vh !important;
+  overflow: hidden;
+}
+/* Amenities list (Παροχές & χαρακτηριστικά) -------------------------- *
+ * The theme lays this list out with `d-flex flex-wrap justify-content-between`
+ * and fixed-width items (li = 22% desktop / 31% tablet / 100% mobile). On a
+ * *full* row that spaces four items evenly, but the last row is usually
+ * partial — our amenities count comes from the CRM and is rarely a multiple
+ * of four — and space-between then shoves those leftover items to opposite
+ * edges, leaving the big gaps between the checks. Switch just this list to a
+ * grid: columns stay aligned, gaps are constant, and a partial last row packs
+ * to the left. The `#fw-amenities` id out-specifies the `!important` flex
+ * utilities, and mirrors the theme's 4/3/1-column breakpoints. */
+#fw-amenities {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr);
+  column-gap: 22px;
+}
+#fw-amenities li {
+  width: auto; /* grid tracks size the columns — drop the theme's 22%/31%/100% */
+}
+@media (max-width: 991px) {
+  #fw-amenities {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 767px) {
+  #fw-amenities {
+    grid-template-columns: 1fr;
+  }
+}

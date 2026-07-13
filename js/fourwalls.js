@@ -415,6 +415,68 @@
   });
 })();
 
+/* Snappy scroll-to-top ------------------------------------------------ *
+ * Bootstrap sets `:root { scroll-behavior: smooth }`, so every programmatic
+ * scrollTop write (the theme's jQuery $.animate, and any scrollTo) gets
+ * RE-smoothed by the browser with its own ease-in-out curve. That native
+ * curve starts at near-zero speed — the page holds still for a beat before
+ * it moves — and it overrides both CSS transitions and jQuery easing, which
+ * is why neither touched it. Fix: drop the theme handler, temporarily switch
+ * the root to `scroll-behavior: auto` so our per-frame writes land instantly,
+ * and drive the scroll ourselves with an ease-OUT curve (full speed at the
+ * start, decelerating into place). Honors prefers-reduced-motion.         */
+(function () {
+  "use strict";
+  var btn = document.querySelector(".scroll-top");
+  if (!btn) return;
+
+  // Remove the theme's jQuery click handler (js/theme.js) so it can't also
+  // fire and re-trigger the smooth-scrolled $.animate.
+  if (window.jQuery) window.jQuery(btn).off("click");
+
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+  function prefersReduced() {
+    return (
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }
+
+  btn.addEventListener("click", function (e) {
+    e.preventDefault();
+    var root = document.documentElement;
+    var startY = window.pageYOffset || root.scrollTop || 0;
+    if (startY <= 0) return;
+
+    if (prefersReduced()) {
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    // Inline `auto` overrides the :root smooth rule for the duration of our
+    // animation, so window.scrollTo(0, y) below is an instant jump each frame
+    // and OUR easing controls the motion. Restored when we finish.
+    var prevBehavior = root.style.scrollBehavior;
+    root.style.scrollBehavior = "auto";
+
+    var duration = 280;
+    var start = null;
+    function step(now) {
+      if (start === null) start = now;
+      var t = Math.min((now - start) / duration, 1);
+      window.scrollTo(0, Math.round(startY * (1 - easeOutCubic(t))));
+      if (t < 1) {
+        window.requestAnimationFrame(step);
+      } else {
+        root.style.scrollBehavior = prevBehavior;
+      }
+    }
+    window.requestAnimationFrame(step);
+  });
+})();
+
 /* Featured-banner parallax -------------------------------------------- *
  * The photo collage behind «Επιλεγμένο ακίνητο του μήνα» (#fw-featured)
  * scrolls slower than the page: as the section crosses the viewport the
