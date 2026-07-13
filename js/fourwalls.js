@@ -8,47 +8,65 @@
    * Detects the page currently open and marks the matching item in the
    * main menu with the "current-page" class (pink highlight via CSS).
    * Works on every page without editing each file.                      */
-  function fileFromHref(href) {
+  function normPath(href) {
     if (!href) return "";
-    // strip query/hash, take last path segment (no default — "#"/"" => "")
-    var clean = href.split("#")[0].split("?")[0];
+    // strip query/hash, lower-case, compare the FULL path (not just the
+    // last segment) so a section stays highlighted on its sub-pages.
+    var clean = href.split("#")[0].split("?")[0].toLowerCase();
     if (!clean) return "";
-    var last = (clean.split("/").pop() || "").toLowerCase();
-    // Clean URLs and .html forms are the same page (/properties ≡ properties.html);
-    // a path ending in "/" is the home page.
-    if (last.slice(-5) === ".html") last = last.slice(0, -5);
-    return last || (clean.charAt(clean.length - 1) === "/" ? "index" : "");
+    if (clean.charAt(0) !== "/") clean = "/" + clean; // root-absolute
+    // Clean URLs and .html forms are the same page (/services ≡ /services.html).
+    if (clean.slice(-5) === ".html") clean = clean.slice(0, -5);
+    // Drop a trailing slash, but keep the root as "/"; "/" and "/index" are home.
+    if (clean.length > 1 && clean.slice(-1) === "/") clean = clean.slice(0, -1);
+    return clean === "/index" ? "/" : clean;
   }
 
   function markCurrentPage() {
-    // /en/ needs no special casing: only last path segments are compared,
-    // and EN pages carry the EN header whose links are all /en/… — so
-    // /en/properties matches href="/en/properties" 1:1 ("/en/" ends with
-    // "/" and maps to "index" just like "/"). The language switcher lives
-    // outside .navbar-nav and is never considered.
-    var here = fileFromHref(window.location.pathname) || "index";
+    // /en/ needs no special casing: EN pages carry the EN header whose links
+    // are all /en/… — so /en/services/buying compares against href="/en/services"
+    // exactly like the Greek pair. The language switcher lives outside
+    // .navbar-nav and is never considered.
+    var here = normPath(window.location.pathname) || "/";
 
     var links = document.querySelectorAll(
       ".theme-main-menu .navbar-nav .nav-link[href], " +
       ".theme-main-menu .navbar-nav .dropdown-item[href]"
     );
 
-    var topMatch = null;
+    var exactTop = null;   // top-level item whose link IS the current page
+    var sectionTop = null; // top-level item whose section CONTAINS it
 
     links.forEach(function (link) {
-      var target = fileFromHref(link.getAttribute("href"));
-      if (!target || target === "#") return;
-      if (target !== here) return;
+      var raw = (link.getAttribute("href") || "").split("#")[0].split("?")[0];
+      var target = normPath(raw);
+      if (!target) return; // "#"/empty hrefs
+
+      var exact = target === here;
+      // The current page lives under this link's section (e.g. /services/buying
+      // under /services). Home/root links — written with a trailing slash
+      // ("/" or "/en/") — are never section parents; every path starts with
+      // them, so they'd swallow the whole site (or language).
+      var isRoot = target === "/" || raw.slice(-1) === "/";
+      var section = !isRoot && here.indexOf(target + "/") === 0;
+      if (!exact && !section) return;
 
       // Highlight the exact link (useful for items inside the mega menu)
-      var li = link.closest("li");
-      if (li) li.classList.add("current-page");
+      if (exact) {
+        var li = link.closest("li");
+        if (li) li.classList.add("current-page");
+      }
 
-      // Remember the top-level <li> so the pink highlight lands on it
+      // Remember the top-level <li> so the pink highlight lands on it.
+      // Prefer an exact match; fall back to a section (parent) match.
       var topItem = link.closest(".navbar-nav > .nav-item");
-      if (topItem && !topMatch) topMatch = topItem;
+      if (topItem) {
+        if (exact && !exactTop) exactTop = topItem;
+        else if (section && !sectionTop) sectionTop = topItem;
+      }
     });
 
+    var topMatch = exactTop || sectionTop;
     if (topMatch) topMatch.classList.add("current-page");
   }
 
