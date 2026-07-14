@@ -19,3 +19,11 @@ deeper, one topic per file:
 | [components/contact-map.md](components/contact-map.md) | Contact-page map: branded MapLibre GL style, street-name-only labels, logo pin |
 
 New component write-ups go under [components/](components/).
+
+## Reusable playbook
+
+[scaffold/PLAYBOOK.md](scaffold/PLAYBOOK.md) distills this whole project into a
+**generic, portable blueprint** — "static template → production site on one
+Cloudflare Worker" (hosting, live data feed, per-item SEO, i18n, forms, DNS
+cutover). Copy it into the next project as a starting scaffold; it points back
+to the files here as the reference implementation.

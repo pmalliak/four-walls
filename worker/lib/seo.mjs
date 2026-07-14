@@ -164,6 +164,18 @@ function absImage(src) {
 	}
 }
 
+/* Origin of an absolute URL, or null for relative/malformed input — used
+   to preconnect to the photo host. Never throws (a throw inside seoBlock
+   would fail the whole detail-page rewrite). */
+function urlOrigin(src) {
+	if (!src) return null;
+	try {
+		return new URL(src).origin;
+	} catch {
+		return null;
+	}
+}
+
 async function loadFeed(env) {
 	// One KV read per request, edge-cached: feed updates reach listing
 	// heads within ≤5 min, which webhook/cron cadence makes acceptable.
@@ -232,7 +244,24 @@ function seoBlock(l, lang = "el") {
 	const title = listingTitle(l, lang);
 	const desc = listingDescription(l, lang);
 	const image = absImage(l.images?.[0]) || SITE.origin + SITE.ogImage;
+	/* LCP fast path: warm the connection to the photo host and preload the
+	   first gallery image. Without this the hero photo only starts loading
+	   AFTER the theme scripts + 115 KB feed fetch + client render, over a
+	   cold connection — the single biggest delay on the detail page. Plain
+	   <img> loads are no-cors, so neither hint carries `crossorigin` (a
+	   mismatch would open a second, unused connection); the preload href is
+	   the raw CRM URL so it byte-matches the src js/listings.fw.js will set.
+	   Skipped in sample mode, where images are relative (no host to warm). */
+	const firstImg = l.images?.[0];
+	const imgOrigin = urlOrigin(firstImg);
+	const perf = imgOrigin
+		? [
+			`<link rel="preconnect" href="${escAttr(imgOrigin)}">`,
+			`<link rel="preload" as="image" href="${escAttr(firstImg)}" fetchpriority="high">`,
+		]
+		: [];
 	const tags = [
+		...perf,
 		`<link rel="alternate" hreflang="el" href="${escAttr(elUrl)}">`,
 		`<link rel="alternate" hreflang="en" href="${escAttr(enUrl)}">`,
 		`<link rel="alternate" hreflang="x-default" href="${escAttr(elUrl)}">`,
