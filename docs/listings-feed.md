@@ -21,10 +21,13 @@ Design rules:
   signal; the Worker re-fetches the full listing set from the API (source of
   truth). Regeneration is idempotent, so webhook bursts are harmless.
 - **The nightly cron is the safety net** for missed webhook deliveries.
-- **Tag whitelist:** only listings carrying the EstatePrime tag named by the
-  `FILTER_TAG` var (currently `spitogatos`) are published. While that tag
-  does not exist in the CRM, all active listings are published (graceful
-  rollout — the filter arms itself the moment the tag is created).
+- **Every active listing is published — no whitelist.** The CRM's Spitogatos
+  integration pushes all `status: active` stock to the portal, so the site
+  mirrors the portal by publishing the same set. (Until 2026-07-16 a
+  `FILTER_TAG="spitogatos"` tag whitelist gated the feed; the integration made
+  that hand-maintained label redundant and it was removed.) `status` is the
+  only publication signal the API offers — see
+  [estateprime-api.md](estateprime-api.md#portals--publication-state-not-exposed).
 - **«Ακίνητο του μήνα» tag:** the listing carrying the EstatePrime tag named
   by the `FEATURED_TAG` var (currently `website-featured`) is published with
   `featured: true` and fills the home-page banner — so the pick is made in

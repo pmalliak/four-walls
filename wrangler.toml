@@ -66,9 +66,10 @@ SAMPLE_DATA = "0"
 WEBHOOK_PATH = "/listings"
 # EstatePrime account subdomain: https://<this>.estateprime.gr/api
 ESTATEPRIME_SUBDOMAIN = "fourwalls"
-# Whitelist: only listings carrying this EstatePrime tag are published.
-# Until the tag exists in the CRM, all active listings are published.
-FILTER_TAG = "spitogatos"
+# NOTE: there is no publication whitelist. The CRM's Spitogatos integration
+# pushes every ACTIVE listing to the portal, so the feed mirrors it and
+# publishes all active stock (the old FILTER_TAG="spitogatos" tag was a
+# hand-maintained label — removed 2026-07-16).
 # «Ακίνητο του μήνα»: the listing carrying this EstatePrime tag gets
 # featured:true in the feed and fills the home-page banner. Tag missing
 # or nothing tagged -> front-end falls back (FEATURED_ID, then newest).

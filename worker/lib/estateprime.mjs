@@ -77,22 +77,21 @@ async function fetchAllListings(env) {
 		if (body.total_pages && page >= body.total_pages) break;
 	}
 
-	// The feed only carries publicly visible stock.
-	let active = all.filter((raw) => (raw.status ?? "active") === "active");
+	// The feed only carries publicly visible stock. Since the CRM's
+	// Spitogatos integration went live it pushes EVERY active listing to the
+	// portal, so "active" already means "published on Spitogatos" — the site
+	// mirrors the portal by publishing the same set. There is deliberately no
+	// tag whitelist: the old `spitogatos` CRM tag was a hand-maintained label
+	// that the integration made redundant (and it always lagged reality).
+	//
+	// Careful: `status` is the ONLY publication signal the API gives us. It
+	// exposes nothing about portals — and `source_id` (1=xe.gr, 2=plot.gr,
+	// 3=spitogatos.gr) is the LEAD SOURCE the listing came from, never a
+	// publication target. Don't mistake it for one.
+	const active = all.filter((raw) => (raw.status ?? "active") === "active");
+	console.log(`estateprime: ${active.length} active of ${all.length} listings`);
 
-	const tags = (env.FILTER_TAG || env.FEATURED_TAG)
-		? await fetchTags(base, headers) : [];
-
-	// Whitelist by CRM tag (FILTER_TAG var, e.g. "spitogatos"): only tagged
-	// listings are published. Until the tag exists in EstatePrime, publish
-	// all active listings so the site never goes empty mid-rollout.
-	const tagId = resolveTagId(tags, env.FILTER_TAG);
-	if (env.FILTER_TAG && tagId === null) {
-		console.warn(`estateprime: tag "${env.FILTER_TAG}" not found in CRM — publishing ALL active listings until it exists`);
-	} else if (tagId !== null) {
-		active = active.filter((raw) => hasTag(raw, tagId));
-		console.log(`estateprime: tag "${env.FILTER_TAG}" (id ${tagId}) matched ${active.length} listings`);
-	}
+	const tags = env.FEATURED_TAG ? await fetchTags(base, headers) : [];
 
 	// «Ακίνητο του μήνα» (FEATURED_TAG var): the tagged listing is published
 	// with featured:true and the home page shows it in the index banner.

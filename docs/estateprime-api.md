@@ -76,6 +76,34 @@ virtual_tour_url, …` and arrays `features` / `view` / `flooring` /
   watermark_image` (clean photos on our own site), only where `is_public`.
 - **`has_hidden_price`**: when true the feed publishes `price: null`.
 
+## Portals / publication state (NOT exposed)
+
+Probed live 2026-07-16, after the CRM's Spitogatos integration was switched
+on. **The API tells you nothing about which portals a listing is published
+to.** Don't go looking again — the findings:
+
+- A full raw listing (`GET /listings` *and* `GET /listings/{id}` — the single
+  endpoint adds only `price_history`) has **no** portal/publication field.
+  Grepping the whole object for `portal|spitogat|publish|syndicat|ilist|export`
+  returns nothing.
+- **No portals endpoint exists.** `/listings/portals`, `/listings/{id}/portals`,
+  `/listings/publications`, `/listings/integrations`, `/listings/channels`,
+  `/listings/feeds` all answer `200` — but that is a **router artifact, not a
+  real resource**: unknown trailing segments are ignored, so
+  `/listings/{id}/bogus-xyz` returns the plain listing and `/listings/bogus`
+  returns `data: []`. Verify any "new" endpoint against a nonsense path before
+  believing it.
+- **`source_id` is a trap.** `/listings/sources` is
+  `1=xe.gr, 2=plot.gr, 3=spitogatos.gr`, but it is the **lead source** — where
+  the listing came *from* — not a publication target. In the live account it is
+  `null` on 114 of 115 active listings. It is **not** "published on Spitogatos".
+- **`tags` are hand-maintained labels**, not integration state
+  (`/listings/tags` → `2=ilist`, `3=spitogatos`, `7=website-featured`).
+
+Consequence for the feed: the integration pushes **every active listing** to
+Spitogatos, so `status === "active"` *is* the publication rule and the feed
+publishes all active stock. See [listings-feed.md](listings-feed.md).
+
 ## Webhook (live-observed 2026-07-09, not in the yaml)
 
 - Token arrives in an **`EstatePrime` request header** (handled in
