@@ -487,5 +487,27 @@ export const ACCESSIBILITY = {
 			"type": "park",
 			"m": 45
 		}
+	},
+	"116": {
+		"transit": {
+			"band": "moderate",
+			"type": "metro",
+			"m": 1145
+		},
+		"errands": {
+			"band": "excellent",
+			"type": "convenience",
+			"m": 52
+		},
+		"education": {
+			"band": "excellent",
+			"type": "school",
+			"m": 159
+		},
+		"leisure": {
+			"band": "excellent",
+			"type": "dining",
+			"m": 84
+		}
 	}
 };
