@@ -176,6 +176,8 @@ input.invalid,select.invalid{border-color:var(--pink);background:#fff6f9}
 .pd-foot{margin-top:20px;padding-top:12px;border-top:1px solid #e5e8ef;
   display:flex;justify-content:space-between;align-items:flex-end;font-size:10.5px;color:#6b7385;line-height:1.5}
 .pd-foot b{color:var(--navy)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;background:var(--navy);color:#fff;padding:11px 16px;border-radius:10px;font-size:14px;max-width:90%;box-shadow:0 6px 20px rgba(0,0,0,.25);z-index:60;display:none}
+.toast.ok{background:#12855b}.toast.err{background:#b3261e}
 /* ===== shared έντυπα chrome (header / steps / preview / document) ===== */
 .hdrwrap{max-width:860px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) 16px 0;}
 .apphd{display:flex;align-items:center;gap:12px;background:var(--navy);color:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;}
@@ -255,17 +257,7 @@ input.invalid,select.invalid{border-color:var(--pink);background:#fff6f9}
   <button class="btn primary" id="submitBtn" type="button">Αποστολή</button>
 </footer>
 
-<!-- Result overlay -->
-<div class="scrim" id="resultScrim">
-  <div class="modal result" id="resultBox">
-    <div class="badge" id="resultBadge"></div>
-    <h3 id="resultTitle"></h3>
-    <p id="resultMsg"></p>
-    <div class="sum" id="resultSum" style="display:none"></div>
-    <div class="row" id="resultActions"></div>
-  </div>
-</div>
-
+<div class="toast" id="toast"></div>
 
 <script>
 "use strict";
@@ -639,10 +631,12 @@ async function makePdf(mode){
   }finally{ document.body.removeChild(holder); }
 }
 function savePDF(){ try{ window.print(); }catch(e){} }
+function toast(msg,type){ const t=document.getElementById("toast"); if(!t) return; t.className="toast "+(type||""); t.textContent=msg; t.style.display="block"; clearTimeout(t._t); t._t=setTimeout(()=>{ t.style.display="none"; },4600); }
 function sendLabel(){ return state.send_to_client===true ? "Αποστολή + email στον ιδιοκτήτη" : "Αποστολή"; }
 function refreshSendLabel(){ const b=document.getElementById("submitBtn"); if(b&&!b.disabled) b.textContent=sendLabel(); }
 async function doSubmit(){
   if(!validate()){ toEdit(); return; }
+  if(state.send_to_client===true && !String(state.owner_email||"").trim()){ toast("Συμπλήρωσε το email του ιδιοκτήτη για να του σταλεί αντίγραφο.","err"); toEdit(); return; }
   const btn=document.getElementById("submitBtn");
   btn.disabled=true; btn.textContent="Δημιουργία PDF...";
   const payload=buildPayload();
@@ -652,43 +646,13 @@ async function doSubmit(){
     btn.textContent="Αποστολή...";
     await postForm(payload);
     try{ localStorage.removeItem(LS_DRAFT); }catch(e){}
-    showResult("ok",payload);
+    toast(state.send_to_client===true ? "Στάλθηκε — και στον ιδιοκτήτη." : "Στάλθηκε.","ok");
   }catch(err){
     try{ localStorage.setItem("fw_last_failed",JSON.stringify(payload)); }catch(e){}
-    showResult("err",payload,err.message);
+    toast("Αποτυχία αποστολής. Έλεγξε τη σύνδεση.","err");
   }finally{
     btn.disabled=false; btn.textContent=sendLabel();
   }
-}
-
-/* ---------- Result overlay ---------- */
-function showResult(kind,payload,errMsg){
-  const scrim=document.getElementById("resultScrim"), box=document.getElementById("resultBox");
-  box.className="modal result "+kind;
-  document.getElementById("resultBadge").innerHTML = kind==="ok" ? "&#10003;" : "!";
-  document.getElementById("resultTitle").textContent = kind==="ok" ? "Η φόρμα εστάλη" : "Δεν στάλθηκε";
-  document.getElementById("resultMsg").textContent = kind==="ok"
-    ? "Τα στοιχεία εστάλησαν στο γραφείο για καταχώριση."
-    : "Έλεγξε τη σύνδεση. Τα στοιχεία κρατήθηκαν, μπορείς να ξαναδοκιμάσεις.";
-  const sum=document.getElementById("resultSum");
-  sum.style.display="block"; sum.textContent=payload.summary||"";
-  const act=document.getElementById("resultActions");
-  if(kind==="ok"){
-    act.innerHTML=`<button class="btn primary" id="rNew" style="flex:1">Νέα καταχώριση</button>
-      <button class="btn ghost" id="rClose" style="flex:1;border-color:var(--line);color:var(--muted)">Κλείσιμο</button>`;
-    act.querySelector("#rNew").onclick=()=>{ resetForm(); toEdit(); closeScrim(scrim); };
-  }else{
-    act.innerHTML=`<button class="btn primary" id="rRetry" style="flex:1">Δοκιμή ξανά</button>
-      <button class="btn ghost" id="rPrint" style="flex:1">Εκτύπωση</button>`;
-    act.querySelector("#rRetry").onclick=()=>{ closeScrim(scrim); doSubmit(); };
-    act.querySelector("#rPrint").onclick=()=>{ closeScrim(scrim); savePDF(); };
-  }
-  scrim.classList.add("show");
-}
-function resetForm(){
-  for(const k in state) delete state[k];
-  try{ localStorage.removeItem(LS_DRAFT);}catch(e){}
-  render(); markSaved(""); window.scrollTo({top:0,behavior:"smooth"});
 }
 
 function closeScrim(el){ el.classList.remove("show"); }
