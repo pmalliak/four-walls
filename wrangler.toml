@@ -83,6 +83,13 @@ ESTATEPRIME_SUBDOMAIN = "fourwalls"
 # featured:true in the feed and fills the home-page banner. Tag missing
 # or nothing tagged -> front-end falls back (FEATURED_ID, then newest).
 FEATURED_TAG = "website-featured"
+# TRIAL — server-rendered (real-text) PDFs for the έντυπα attachments via
+# the Browser Rendering REST API. "0" = off: the client's html2pdf capture
+# flows as before, so this is also the instant rollback switch. Turning it
+# on additionally needs the BROWSER_RENDER_TOKEN secret (API token with
+# Account → Browser Rendering → Edit). See worker/lib/pdfrender.mjs.
+PDF_RENDER = "0"
+CF_ACCOUNT_ID = "94b15dbfc8d916d5af9808c1c9bc3f16"
 
 # Secrets (NOT here — set with `npx wrangler secret put <NAME>`):
 #   WEBHOOK_KEY              shared secret for the EstatePrime webhook
@@ -94,3 +101,4 @@ FEATURED_TAG = "website-featured"
 #                            υποβολή φόρμας»). The URL is the credential, so
 #                            it stays server-side — see worker/lib/forms.mjs.
 #   MAKE_FORMS_APIKEY        optional: only if the hook above gets API-key auth
+#   BROWSER_RENDER_TOKEN     Browser Rendering API token (PDF trial — see PDF_RENDER)

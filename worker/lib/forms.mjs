@@ -17,6 +17,7 @@
    ===================================================================== */
 
 import { json } from "./access.mjs";
+import { renderDocPdf } from "./pdfrender.mjs";
 
 /* The Make scenario routes on this exact string, so it is a contract
    between each form's CONFIG.id and the scenario's filters — not free
@@ -69,6 +70,24 @@ export async function handleFormSubmit(request, env, email) {
 		// simply lying. Keep both: theirs for the document, ours for audit.
 		received_at: new Date().toISOString(),
 	};
+
+	// TRIAL: swap the client's photographed PDF for a real-text one rendered
+	// server-side from the same document HTML. Fail-open by design — any
+	// problem keeps the client PDF, and PDF_RENDER="0" turns it all off.
+	const docHtml = payload.doc_html;
+	delete payload.doc_html; // Make never needs the raw HTML
+	if (docHtml) {
+		try {
+			const b64 = await renderDocPdf(env, docHtml);
+			if (b64) {
+				payload.pdf_base64 = b64;
+				payload.pdf_mime = "application/pdf";
+				payload.pdf_rendered = "server"; // visible in Make for the trial
+			}
+		} catch (err) {
+			console.warn(`forms: server PDF render failed, keeping client PDF: ${String(err)}`);
+		}
+	}
 
 	const fwd = await fetch(env.MAKE_FORMS_WEBHOOK, {
 		method: "POST",

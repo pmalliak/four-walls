@@ -180,9 +180,10 @@ async function makePdf(mode){var src=document.getElementById('doc');var holder=d
  }finally{document.body.removeChild(holder);}}
 
 function savePDF(){try{window.print();}catch(e){toast('Δεν άνοιξε ο διάλογος εκτύπωσης.','err');}}
+function DOCHTML(){var st='';document.querySelectorAll('style').forEach(function(x){st+=x.textContent;});var doc=document.getElementById('doc');var inner=doc&&doc.innerHTML?doc.innerHTML:CONFIG.buildDoc(collect().v,collect().s);return '<!doctype html><html lang="el"><head><meta charset="utf-8">'+'<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'+'<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">'+'<style>'+st+'</style>'+'<style>@media print{@page{margin:0}}.doc{width:auto!important;}</style>'+'</head><body><div class="doc">'+inner+'</div></body></html>';}
 async function sendMake(){var _v=collect().v;if(!String(_v.katavallon_email||'').trim()){toast('Συμπλήρωσε το email του πελάτη για την αποστολή.','err');return;}
  try{busy(true);toast('Δημιουργία PDF & αποστολή…');var r=await makePdf('send');var c=collect();
-  var payload={form:CONFIG.id,title:CONFIG.title,submitted_at:new Date().toISOString(),data:c.v,signatures:c.s,pdf_filename:r.fn,pdf_base64:r.uri.split(',')[1]};
+  var payload={form:CONFIG.id,title:CONFIG.title,submitted_at:new Date().toISOString(),data:c.v,signatures:c.s,pdf_filename:r.fn,pdf_base64:r.uri.split(',')[1],doc_html:DOCHTML()};
   var rr=await fetch('/api/forms/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   if(rr.status===401||rr.status===403)throw new Error('Χρειάζεται σύνδεση — άνοιξε ξανά την εφαρμογή.');
   if(!rr.ok)throw new Error('HTTP '+rr.status);
