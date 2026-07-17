@@ -20,18 +20,44 @@
 (function () {
 	"use strict";
 
-	/* CRM detail key -> the form's data-k key. Shared by ανάθεση and
-	   υπόδειξη, which carry an identical «Στοιχεία εντολέα» block. Note
-	   the ΑΔΤ issue date/authority keys carry no entoleas_ prefix. */
-	var ENTOLEAS = {
-		onomatepwnymo: "entoleas_onomatepwnymo",
-		patronymo: "entoleas_patronymo",
-		katoikia: "entoleas_katoikia",
-		adt: "entoleas_adt",
-		adt_imerominia_ekdosis: "adt_imerominia_ekdosis",
-		adt_arxi_ekdosis: "adt_arxi_ekdosis",
-		afm: "entoleas_afm",
-	};
+	/* One entry per «pick a person» card, keyed by an anchor field that
+	   only that card has: `map` is CRM detail key -> the form's data-k.
+	   A form only gets a button for the cards it actually contains.
+
+	   ΠΡΟΣΟΧΗ — the απόδειξη's name fields are in ΓΕΝΙΚΗ («κατ’ εντολή
+	   Γεωργίου Παπαδοπούλου»), while the CRM stores nominative. The
+	   picker fills what the CRM has and the consultant fixes the ending;
+	   filling the ΑΦΜ/πατρώνυμο is the part that saves the typing. */
+	var BLOCKS = [
+		{
+			// ανάθεση + υπόδειξη: an identical «Στοιχεία εντολέα» card.
+			// The ΑΔΤ issue date/authority keys carry no entoleas_ prefix.
+			anchor: "entoleas_onomatepwnymo",
+			map: {
+				onomatepwnymo: "entoleas_onomatepwnymo",
+				patronymo: "entoleas_patronymo",
+				katoikia: "entoleas_katoikia",
+				adt: "entoleas_adt",
+				adt_imerominia_ekdosis: "adt_imerominia_ekdosis",
+				adt_arxi_ekdosis: "adt_arxi_ekdosis",
+				afm: "entoleas_afm",
+				email: "entoleas_email",
+				phone: "entoleas_tilefono",
+			},
+		},
+		{
+			// απόδειξη · «Καταβάλλων» — γενική. This is the person the
+			// receipt is for, so it carries the delivery email/phone.
+			anchor: "katavallon_geniki",
+			map: {
+				onomatepwnymo: "katavallon_geniki",
+				patronymo: "katavallon_patronymo",
+				afm: "katavallon_afm",
+				email: "katavallon_email",
+				phone: "katavallon_tilefono",
+			},
+		},
+	];
 
 	var cache = { contacts: null, listings: null };
 
@@ -65,8 +91,26 @@
 
 	function money(n) {
 		if (n == null || n === "") return "";
-		// Greek pages use "." as the thousands separator (docs/localization.md).
-		return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " €";
+		var num = Number(n);
+		if (!isFinite(num)) return String(n);
+		// Greek format: "." thousands, "," decimals (docs/localization.md).
+		// Decimals appear only when real — half a month's rent can be x,50 €.
+		var int = Math.floor(num);
+		var dec = Math.round((num - int) * 100);
+		if (dec === 100) { int += 1; dec = 0; }
+		var s = String(int).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+		if (dec) s += "," + (dec < 10 ? "0" + dec : dec);
+		return s + " €";
+	}
+
+	/* Office standard the consultant can overtype: sale 2% with a €1.000
+	   floor (the two rules meet exactly at €50.000), rent half a month.
+	   Hidden/missing price or auction/shortterm -> blank, never a guess. */
+	function suggestedFee(l) {
+		if (l.hiddenPrice || l.price == null) return "";
+		if (l.availability === "rent") return money(l.price / 2);
+		if (l.availability === "sale") return money(Math.max(Math.round(l.price * 0.02), 1000));
+		return "";
 	}
 
 	async function getJson(url) {
@@ -208,6 +252,53 @@
 		});
 	}
 
+	/* ------------------------------------------- αιτιολογία (απόδειξη) */
+
+	/* Greek needs the article to agree with the noun, so each entry stores
+	   article + genitive together rather than trying to inflect at runtime.
+	   This is a lookup, not a guess: a word's gender is fixed.
+
+	   Keys mirror the CRM slugs in worker/lib/seo.mjs / js/listings.fw.js —
+	   keep them in step when a new subcategory shows up. Anything unknown
+	   falls back to «του ακινήτου», which is always grammatical. */
+	var OF_SUBCATEGORY = {
+		apartment: "του διαμερίσματος", maisonette: "της μεζονέτας",
+		detached: "της μονοκατοικίας", house: "της μονοκατοικίας",
+		studio: "του στούντιο", villa: "της βίλας", loft: "του loft",
+		residential_building: "του κτιρίου κατοικιών",
+		apartment_complex: "του συγκροτήματος διαμερισμάτων",
+		farmhouse: "της αγροικίας", houseboat: "της πλωτής κατοικίας",
+		other_residential: "της κατοικίας",
+		office: "του γραφείου", store: "του καταστήματος",
+		warehouse: "της αποθήκης", hotel: "του ξενοδοχείου",
+		commercial_building: "του επαγγελματικού κτιρίου",
+		hall: "της αίθουσας", industrial_space: "του βιομηχανικού χώρου",
+		craft_space: "του βιοτεχνικού χώρου",
+		other_commercial: "του επαγγελματικού χώρου",
+		plot: "του οικοπέδου", parcel: "του αγροτεμαχίου",
+		island: "του νησιού", parking: "του πάρκινγκ",
+		business: "της επιχείρησης", air: "του αέρα", other: "του ακινήτου",
+	};
+
+	/* Same idea: «για ΤΗΝ πώληση» but «για ΤΟΝ πλειστηριασμό». */
+	var FOR_TRANSACTION = {
+		sale: "την πώληση", rent: "την εκμίσθωση",
+		auction: "τον πλειστηριασμό", shortterm: "τη βραχυχρόνια μίσθωση",
+	};
+
+	/* Deliberately says nothing about the εντολέας. The receipt already
+	   names them one sentence earlier («εισέπραξε … κατ’ εντολή X»), so
+	   repeating it would only force us to guess their gender — which the
+	   CRM does not carry — to pick between «του εντολέα» and «της
+	   εντολέως». The document reads «… ευρώ, ως {aitiologia}.», hence no
+	   leading «ως» here. */
+	function aitiologiaFor(l) {
+		var what = FOR_TRANSACTION[l.availability] || "τη συναλλαγή";
+		var kind = OF_SUBCATEGORY[l.subcategory] || "του ακινήτου";
+		var s = "προκαταβολή για " + what + " " + kind;
+		return l.address ? s + " επί της οδού " + l.address : s;
+	}
+
 	/* -------------------------------------------------------- listings */
 
 	async function loadListings() {
@@ -238,11 +329,44 @@
 				if (keys.dieuthynsi) setField(keys.dieuthynsi, l.address);
 				if (keys.tm) setField(keys.tm, l.size);
 				if (keys.timi) setField(keys.timi, l.hiddenPrice ? "" : money(l.price));
-				// The μεσιτική αμοιβή is deliberately NOT filled from
-				// assignment_fee: that is what the OWNER agreed to pay on
-				// the ανάθεση, which is not necessarily what this client
-				// is being asked for. Wrong number on a signed contract.
+				// Prefilled from the office formula (suggestedFee), NOT from
+				// the CRM's assignment_fee — that is what the OWNER agreed
+				// on the ανάθεση, not what this client is asked for. The
+				// input stays editable; the consultant has the last word.
+				if (keys.amoivi) setField(keys.amoivi, suggestedFee(l));
 				toast("Συμπληρώθηκε από το CRM.");
+			},
+		});
+	}
+
+	/* απόδειξη: pick the PROPERTY, and the εντολέας fills in from whoever
+	   owns it — the receipt is written on the owner's behalf, so the
+	   property is what the consultant actually has in mind. Costs one extra
+	   request (listing -> ownerId -> contact), only on the tap. */
+	function pickListingOwner() {
+		openSheet({
+			placeholder: "Κωδικός, διεύθυνση ή περιοχή…",
+			load: loadListings,
+			onPick: async function (row) {
+				var l = row.raw;
+				// The sentence needs no CRM round-trip, so write it even if
+				// the owner lookup below fails.
+				setField("aitiologia", aitiologiaFor(l));
+				if (!l.ownerId) {
+					toast("Η αιτιολογία μπήκε. Το ακίνητο δεν έχει ιδιοκτήτη στο CRM.");
+					return;
+				}
+				try {
+					var c = await getJson("/api/crm/contacts/" + l.ownerId);
+					setField("entoleas_geniki", c.onomatepwnymo);
+					setField("entoleas_afm", c.afm);
+					// The CRM holds the nominative; this field is printed in a
+					// genitive slot («κατ’ εντολή …»), so the ending is the
+					// consultant's to fix. Say so rather than let it be signed.
+					toast("Συμπληρώθηκε. Διόρθωσε το όνομα σε γενική.");
+				} catch (err) {
+					toast(err.message || "Σφάλμα.");
+				}
 			},
 		});
 	}
@@ -268,20 +392,30 @@
 		return b;
 	}
 
+	/* Put a button in the header of the .card that owns `anchorKey`. */
+	function cardButton(anchorKey, label, onClick) {
+		var anchor = document.querySelector('[data-k="' + anchorKey + '"]');
+		if (!anchor) return;
+		var card = anchor.closest(".card");
+		var head = card && card.querySelector(".sect");
+		if (!head) return;
+		head.appendChild(button(label, onClick));
+	}
+
 	function attach() {
-		// «Στοιχεία εντολέα» — anchor on a field we know is in that card.
-		var anchor = document.querySelector('[data-k="' + ENTOLEAS.onomatepwnymo + '"]');
-		if (anchor) {
-			var card = anchor.closest(".card");
-			var head = card && card.querySelector(".sect");
-			if (head) {
-				head.appendChild(
-					button("Από το CRM", function () {
-						pickContact(ENTOLEAS);
-					}),
-				);
-			}
-		}
+		// One button per person-card the page actually has: ανάθεση and
+		// υπόδειξη have only the εντολέας; the απόδειξη's καταβάλλων is the
+		// one person there who is picked as a person.
+		BLOCKS.forEach(function (block) {
+			cardButton(block.anchor, "Από το CRM", function () {
+				pickContact(block.map);
+			});
+		});
+
+		// απόδειξη · «Εντολέας (για λογαριασμό του)» — reached through the
+		// property rather than the contact list, which also lets us prefill
+		// the αιτιολογία from that property's type/deal/address.
+		cardButton("entoleas_geniki", "Από ακίνητο", pickListingOwner);
 
 		// Property rows: υπόδειξη renders up to 5 `.akin` blocks; ανάθεση
 		// has a single un-numbered set. Both are covered by reading the
@@ -298,6 +432,7 @@
 						dieuthynsi: n + "_dieuthynsi",
 						tm: n + "_tm",
 						timi: n + "_timi",
+						amoivi: n + "_amoivi",
 					});
 				}),
 			);
@@ -307,6 +442,10 @@
 	/* ------------------------------------------------------------ boot */
 
 	var CSS =
+		// The .akin row label is plain inline text; without flex the button
+		// lands glued to «ΑΚΙΝΗΤΟ 1». Flex + the button's margin-left:auto
+		// sends it to the right edge, matching the .sect header layout.
+		".akin .lab{display:flex;align-items:center;gap:8px;}" +
 		".crmbtn{margin-left:auto;font-size:11px;padding:4px 9px;background:var(--navy);color:#fff;border:0;border-radius:7px;font-weight:700;letter-spacing:.01em;}" +
 		".crmbtn:active{opacity:.75;}" +
 		".crmsheet{position:fixed;inset:0;background:rgba(16,24,40,.45);z-index:9999;display:flex;align-items:flex-end;justify-content:center;}" +
