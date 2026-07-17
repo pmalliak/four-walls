@@ -282,12 +282,13 @@ const ENERGY = ["A+","A","B+","B","C","D","E","Z","H","Υπό έκδοση"];
 
 const SECTIONS = [
   {title:"Ακίνητο & ιδιοκτήτης", hint:"Τα απαραίτητα για να καταχωρηθεί η ανάθεση.", fields:[
-    {k:"address", l:"Διεύθυνση ακινήτου", t:"text", req:true, full:true, ph:"Οδός, αριθμός"},
+    {k:"address", l:"Οδός & αριθμός", t:"text", req:true, full:true, ph:"π.χ. Ολύμπου 62"},
+    {k:"tk", l:"Τ.Κ.", t:"num"},
     {k:"region", l:"Περιοχή / Δήμος", t:"text", ph:"π.χ. Καλαμαριά"},
     {k:"owner_name", l:"Ονοματεπώνυμο ιδιοκτήτη", t:"text", req:true},
     {k:"owner_phone", l:"Τηλέφωνο", t:"tel", req:true, ph:"69........"},
     {k:"owner_email", l:"Email", t:"email", ph:"προαιρετικό"},
-    {k:"send_to_client", l:"Αποστολή αντιγράφου στον ιδιοκτήτη (email)", t:"yn"}
+    {k:"send_to_client", l:"Αποστολή αντιγράφου στον ιδιοκτήτη (email)", t:"yn", full:true}
   ]},
   {title:"Τύπος", special:"type"},
   {title:"Βασικά στοιχεία", grid:"narrow", fields:[
@@ -569,8 +570,9 @@ function OPT(fn){return {margin:[10,10,12,10],filename:fn,image:{type:"jpeg",qua
   html2canvas:{scale:2,backgroundColor:"#ffffff",useCORS:true,logging:false,scrollX:0,scrollY:0},
   jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
   pagebreak:{mode:["css","legacy"],avoid:[".it",".frow",".noteblock"]}};}
+function GRK(s){var M={'α':'a','ά':'a','β':'v','γ':'g','δ':'d','ε':'e','έ':'e','ζ':'z','η':'i','ή':'i','θ':'th','ι':'i','ί':'i','ϊ':'i','ΐ':'i','κ':'k','λ':'l','μ':'m','ν':'n','ξ':'x','ο':'o','ό':'o','π':'p','ρ':'r','σ':'s','ς':'s','τ':'t','υ':'y','ύ':'y','ϋ':'y','ΰ':'y','φ':'f','χ':'ch','ψ':'ps','ω':'o','ώ':'o'};return String(s==null?'':s).split('').map(function(c){var l=c.toLowerCase();if(M[l]==null)return c;var t=M[l];return c===l?t:(t.charAt(0).toUpperCase()+t.slice(1));}).join('');}
 function docFileName(){
-  const nm=String(state.address||"akinito").replace(/[^\p{L}\p{N}]+/gu,"_").slice(0,28);
+  const nm=GRK(state.address||"akinito").replace(/[^\p{L}\p{N}]+/gu,"_").slice(0,28);
   return "katachorisi_"+nm+"_"+new Date().toISOString().slice(0,10)+".pdf";
 }
 function buildDoc(){
@@ -579,11 +581,11 @@ function buildDoc(){
   let h='<div class="hd"><div class="brand2"><img src="'+logo+'" alt=""><div class="wm2"><div class="n">FOUR WALLS</div><div class="s">REAL ESTATE</div></div></div><div class="co"><strong>FOUR WALLS Real Estate</strong><br>Φραγκίνη 9, 54624 Θεσσαλονίκη<br>Τηλ +30 6907 483 463<br>info@four-walls.gr &middot; four-walls.gr</div></div>';
   h+='<h1>ΦΟΡΜΑ ΚΑΤΑΧΩΡΙΣΗΣ ΑΚΙΝΗΤΟΥ</h1><div class="accent"></div><div class="datel">Θεσσαλονίκη '+dateStr+'</div>';
   const band=[["Συναλλαγή",state.transaction_type],["Κατηγορία",[state.category,state.subtype].filter(Boolean).join(" · ")],
-    ["Διεύθυνση",[state.address,state.region].filter(Boolean).join(", ")],
+    ["Διεύθυνση",[state.address,[state.tk,state.region].filter(Boolean).join(" ")].filter(Boolean).join(", ")],
     ["Τιμή",state.price?state.price+" €":""],["Εμβαδόν",state.area?state.area+" τ.μ.":""]].filter(x=>x[1]);
   if(band.length) h+='<div class="props">'+band.map(x=>'<div class="frow"><span class="k">'+esc(x[0])+'</span><span class="v2">'+esc(String(x[1]))+'</span></div>').join("")+'</div>';
   // band fields + delivery preference are not repeated in the sections
-  const SKIP=new Set(["address","region","price","area","transaction_type","send_to_client"]);
+  const SKIP=new Set(["address","tk","region","price","area","transaction_type","send_to_client"]);
   SECTIONS.forEach(sec=>{
     if(sec.special) return;
     const items=[],notes=[];

@@ -161,7 +161,8 @@ function showStep(n){document.getElementById('step1').classList.toggle('hide',n!
 function toPreview(){var c=collect();document.getElementById('doc').innerHTML=CONFIG.buildDoc(c.v,c.s);showStep(2);fit();}
 function toEdit(){showStep(1);}
 
-function fileName(v){var nm=(v.entoleas_onomatepwnymo||v.katavallon_geniki||'').replace(/[^\p{L}\p{N}]+/gu,'_').slice(0,28);var d=(v.imerominia||new Date().toISOString().slice(0,10));return CONFIG.id+(nm?'_'+nm:'')+'_'+d+'.pdf';}
+function GRK(s){var M={'α':'a','ά':'a','β':'v','γ':'g','δ':'d','ε':'e','έ':'e','ζ':'z','η':'i','ή':'i','θ':'th','ι':'i','ί':'i','ϊ':'i','ΐ':'i','κ':'k','λ':'l','μ':'m','ν':'n','ξ':'x','ο':'o','ό':'o','π':'p','ρ':'r','σ':'s','ς':'s','τ':'t','υ':'y','ύ':'y','ϋ':'y','ΰ':'y','φ':'f','χ':'ch','ψ':'ps','ω':'o','ώ':'o'};return String(s==null?'':s).split('').map(function(c){var l=c.toLowerCase();if(M[l]==null)return c;var t=M[l];return c===l?t:(t.charAt(0).toUpperCase()+t.slice(1));}).join('');}
+function fileName(v){var nm=GRK(v.entoleas_onomatepwnymo||v.katavallon_geniki||'').replace(/[^\p{L}\p{N}]+/gu,'_').slice(0,28);var d=(v.imerominia||new Date().toISOString().slice(0,10));return CONFIG.id+(nm?'_'+nm:'')+'_'+d+'.pdf';}
 function OPT(fn){return {margin:[10,10,12,10],filename:fn,image:{type:'jpeg',quality:0.98},
  html2canvas:{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false,scrollX:0,scrollY:0},
  jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},

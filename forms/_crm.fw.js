@@ -35,7 +35,7 @@
 			map: {
 				onomatepwnymo: "entoleas_onomatepwnymo",
 				patronymo: "entoleas_patronymo",
-				katoikia: "entoleas_katoikia",
+				katoikia: "entoleas_odos",
 				adt: "entoleas_adt",
 				adt_imerominia_ekdosis: "adt_imerominia_ekdosis",
 				adt_arxi_ekdosis: "adt_arxi_ekdosis",
