@@ -88,7 +88,7 @@ FEATURED_TAG = "website-featured"
 # flows as before, so this is also the instant rollback switch. Turning it
 # on additionally needs the BROWSER_RENDER_TOKEN secret (API token with
 # Account → Browser Rendering → Edit). See worker/lib/pdfrender.mjs.
-PDF_RENDER = "0"
+PDF_RENDER = "1"
 CF_ACCOUNT_ID = "94b15dbfc8d916d5af9808c1c9bc3f16"
 
 # Secrets (NOT here — set with `npx wrangler secret put <NAME>`):

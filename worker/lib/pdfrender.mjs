@@ -26,6 +26,19 @@ export async function renderDocPdf(env, docHtml) {
 	}
 	if (typeof docHtml !== "string" || !docHtml.trim() || docHtml.length > MAX_HTML) return null;
 
+	// The renderer does not fetch the document's Google-Fonts <link> (the
+	// first trial printed serif fallbacks), so the type ships inline: our
+	// own asset with Manrope 400/700/800 as base64 @font-face. Read via
+	// the ASSETS binding — no network involved.
+	let fontsCss = "";
+	try {
+		const r = await env.ASSETS.fetch("https://assets.local/css/doc-fonts.fw.css");
+		if (r.ok) fontsCss = await r.text();
+		else console.warn(`pdfrender: doc-fonts asset HTTP ${r.status}`);
+	} catch (err) {
+		console.warn(`pdfrender: doc-fonts asset unreadable: ${String(err)}`);
+	}
+
 	const res = await fetch(
 		`https://api.cloudflare.com/client/v4/accounts/${env.CF_ACCOUNT_ID}/browser-rendering/pdf`,
 		{
@@ -36,9 +49,7 @@ export async function renderDocPdf(env, docHtml) {
 			},
 			body: JSON.stringify({
 				html: docHtml,
-				// networkidle0 so the Manrope webfonts are actually loaded
-				// before printing — otherwise the first render falls back to
-				// a system font.
+				...(fontsCss ? { addStyleTag: [{ content: fontsCss }] } : {}),
 				gotoOptions: { waitUntil: "networkidle0", timeout: 30000 },
 				pdfOptions: {
 					format: "a4",
