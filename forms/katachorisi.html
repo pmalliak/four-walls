@@ -639,6 +639,8 @@ async function makePdf(mode){
   }finally{ document.body.removeChild(holder); }
 }
 function savePDF(){ try{ window.print(); }catch(e){} }
+function sendLabel(){ return state.send_to_client===true ? "Αποστολή + email στον ιδιοκτήτη" : "Αποστολή"; }
+function refreshSendLabel(){ const b=document.getElementById("submitBtn"); if(b&&!b.disabled) b.textContent=sendLabel(); }
 async function doSubmit(){
   if(!validate()){ toEdit(); return; }
   const btn=document.getElementById("submitBtn");
@@ -655,7 +657,7 @@ async function doSubmit(){
     try{ localStorage.setItem("fw_last_failed",JSON.stringify(payload)); }catch(e){}
     showResult("err",payload,err.message);
   }finally{
-    btn.disabled=false; btn.textContent="Αποστολή";
+    btn.disabled=false; btn.textContent=sendLabel();
   }
 }
 
@@ -696,6 +698,9 @@ document.addEventListener("DOMContentLoaded",()=>{
   render(); loadDraft();
   document.getElementById("toNext").onclick=()=>{ if(validate()) toPreview(); };
   document.getElementById("btnBack").onclick=toEdit;
+  const sendYn=document.querySelector('[data-yn="send_to_client"]');
+  if(sendYn) sendYn.addEventListener("click",()=>setTimeout(refreshSendLabel,0));
+  refreshSendLabel();
   document.getElementById("printBtn").onclick=savePDF;
   document.getElementById("submitBtn").onclick=doSubmit;
   window.addEventListener("resize",fit);
