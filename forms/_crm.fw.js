@@ -50,7 +50,6 @@
 			anchor: "katavallon_geniki",
 			map: {
 				onomatepwnymo: "katavallon_geniki",
-				patronymo: "katavallon_patronymo",
 				afm: "katavallon_afm",
 				email: "katavallon_email",
 				phone: "katavallon_tilefono",
