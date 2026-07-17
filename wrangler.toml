@@ -62,6 +62,15 @@ crons = ["15 3 * * *"]
 [vars]
 # "1" = feed from sample data (dev); "0" = live EstatePrime API.
 SAMPLE_DATA = "0"
+# Cloudflare Access — gates the CRM pickers on forms.four-walls.gr
+# (worker/lib/crm.mjs requireAccess). NOT secrets: these are public
+# identifiers, and the Worker verifies the Access JWT's signature against
+# the team's public keys rather than trusting them blindly. The AUD tag
+# never changes unless the Access app is deleted and recreated.
+# Access app: "Έντυπα — Four Walls" (self-hosted, forms.four-walls.gr,
+# 1-month session). Policy: allow @four-walls.gr + panos gmail.
+ACCESS_TEAM_DOMAIN = "four-walls.cloudflareaccess.com"
+ACCESS_AUD = "d5366d7089b4883c5f7302a0333e703266b6c80c633d5a1990f5180da2f675b0"
 # Full webhook URL: https://webhooks.four-walls.gr/listings
 WEBHOOK_PATH = "/listings"
 # EstatePrime account subdomain: https://<this>.estateprime.gr/api

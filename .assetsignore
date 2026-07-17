@@ -4,8 +4,10 @@
 .gitignore
 .assetsignore
 .dev.vars
-.webhook-key.local
-.estateprime-test.local
+# Any *.local file is a local-only secret and must never be served. The
+# repo root IS this Worker's asset directory, so a file that is merely
+# gitignored still gets published unless it is listed here too.
+*.local
 .wrangler
 .claude
 node_modules

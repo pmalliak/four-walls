@@ -113,8 +113,30 @@ publishes all active stock. See [listings-feed.md](listings-feed.md).
 - No `User-Agent`; sender is a datacenter IP — zone Bot Fight Mode blocks it
   on custom domains, hence the registered URL is the workers.dev one.
 
-## Other resources (exist, unused by the feed)
+## Contacts (used by the Έντυπα pickers, not by the feed)
 
-Calendar, Communication, Contacts, Contracts, Expenses, External Listings,
-Files, Incomes, Knowledge Base, Locations, Offers, Reminders (POST only),
-Requests, Tasks, Users, Webmail. Support: tech@estateprime.gr.
+`GET /contacts` (paginated, `?search=` works) and `GET /contacts/{id}` back the
+CRM pickers in forms/. The live `Contact` carries several fields the spec omits
+— `vat_number`, `id_number`, `full_name`, `is_active`, `office_id` — while the
+documented `notes` is not returned.
+
+Traps that cost real debugging time, all verified 2026-07-17:
+
+- **An unknown id answers `200` with `data: []`**, not 404 — and `[]` is truthy.
+- **`custom_fields` comes back as an object keyed by id** (`{"7": "Αντώνιος"}`),
+  not the `[{custom_field_id, value}]` array the spec describes. Empty fields
+  are omitted entirely.
+- **The list endpoint omits `custom_fields`, `tags` and `users`**; only the
+  single-contact endpoint returns them.
+- **`date_updated` never changes** on edits, native or custom.
+- **No update endpoint** — only `GET`, `POST` (create) and `DELETE`.
+- **The API rate-limits (`429`)**, threshold undocumented.
+
+Field map, custom-field ids, and the Cloudflare Access setup:
+[forms-crm.md](forms-crm.md).
+
+## Other resources (exist, unused)
+
+Calendar, Communication, Contracts, Expenses, External Listings, Files,
+Incomes, Knowledge Base, Locations, Offers, Reminders (POST only), Requests,
+Tasks, Users, Webmail. Support: tech@estateprime.gr.

@@ -36,7 +36,7 @@ export async function buildFeed(env) {
 	};
 }
 
-function apiConfig(env) {
+export function apiConfig(env) {
 	const missing = ["ESTATEPRIME_SUBDOMAIN", "ESTATEPRIME_API_KEY", "ESTATEPRIME_API_SECRET"]
 		.filter((k) => !env[k]);
 	if (missing.length) throw new Error(`Missing config: ${missing.join(", ")}`);

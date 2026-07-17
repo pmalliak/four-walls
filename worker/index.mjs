@@ -33,6 +33,7 @@
 
 import { buildFeed } from "./lib/estateprime.mjs";
 import { robotsResponse, sitemapResponse, serveListingPage, isProdHost } from "./lib/seo.mjs";
+import { requireAccess, isLocalDev, contactsIndex, contactDetail, listingsIndex, json } from "./lib/crm.mjs";
 
 const FEED_KEY = "listings.json";
 const DEFAULT_WEBHOOK_PATH = "/listings"; // overridden by WEBHOOK_PATH var
@@ -56,6 +57,20 @@ export default {
 		// so forms.* answers Disallow-all instead of serving a form asset).
 		if (pathname === "/robots.txt") {
 			return robotsResponse(url);
+		}
+
+		// CRM pickers for the Έντυπα PWA (contacts + active stock). These
+		// serve client PII, so they exist on exactly two hostnames: the
+		// forms domain, which Cloudflare Access sits in front of, and
+		// localhost for `wrangler dev`. NOT on workers.dev — that URL is
+		// kept alive for the CRM webhook and bypasses Access entirely,
+		// which would leave the whole client database wide open.
+		// requireAccess() inside is the real gate; this is defence in depth.
+		if (pathname.startsWith("/api/crm/")) {
+			if (url.hostname.startsWith("forms.") || isLocalDev(url, env)) {
+				return handleCrm(request, env, url, pathname);
+			}
+			return new Response("Not Found", { status: 404 });
 		}
 
 		// forms.four-walls.gr serves ONLY the Έντυπα PWA: the forms/ folder
@@ -179,6 +194,42 @@ export default {
 		ctx.waitUntil(regenerate(env, "cron"));
 	},
 };
+
+/* CRM pickers for the Έντυπα PWA. Read-only: the EstatePrime API has no
+   documented update endpoint for contacts (asked 2026-07-17), so nothing
+   here writes back to the CRM yet.
+
+   Every response carries client PII, so requireAccess() runs FIRST on
+   every path and returns a Response (not null) when the caller is not an
+   authenticated Access user. */
+async function handleCrm(request, env, url, pathname) {
+	const denied = await requireAccess(request, env, url);
+	if (denied) return denied;
+
+	if (request.method !== "GET") {
+		return json({ error: "Method not allowed" }, 405);
+	}
+
+	try {
+		if (pathname === "/api/crm/contacts") {
+			return json(await contactsIndex(env));
+		}
+		const m = pathname.match(/^\/api\/crm\/contacts\/(\d+)$/);
+		if (m) {
+			const contact = await contactDetail(env, m[1]);
+			return contact ? json(contact) : json({ error: "Not found" }, 404);
+		}
+		if (pathname === "/api/crm/listings") {
+			return json(await listingsIndex(env));
+		}
+		return json({ error: "Not found" }, 404);
+	} catch (err) {
+		// Never surface the CRM's own error text — it can carry account
+		// details. The full error goes to the Observability logs instead.
+		console.error("CRM route failed", pathname, err?.stack || String(err));
+		return json({ error: "Upstream error" }, 502);
+	}
+}
 
 /* Keep non-production hosts (dev.*, *.workers.dev, forms.*) out of
    search indexes even when a page is linked externally — robots.txt

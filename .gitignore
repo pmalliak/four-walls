@@ -9,3 +9,8 @@ data/
 .webhook-key.local
 # disposable EstatePrime test keys
 .estateprime-test.local
+# every *.local file is a local-only secret. The glob is the safety net:
+# these kept being added one by one, and the repo root doubles as the
+# Worker's asset directory — a missed entry is published, not just
+# committed. Keep the twin entry in .assetsignore.
+*.local
