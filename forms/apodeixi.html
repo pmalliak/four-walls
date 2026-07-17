@@ -136,7 +136,7 @@ function renderEditor(){var host=document.getElementById('editor');var html='';
    for(var i=1;i<=5;i++){html+='<div class="akin"><div class="lab">ΑΚΙΝΗΤΟ '+i+'</div><div class="grid">'+
      field({k:'akinito_'+i+'_kodikos',l:'Κωδικός'})+field({k:'akinito_'+i+'_tm',l:'Τ.Μ.',mode:'numeric'})+
      field({k:'akinito_'+i+'_dieuthynsi',l:'Διεύθυνση',full:1})+
-     field({k:'akinito_'+i+'_timi',l:'Τιμή / Μίσθωμα'})+field({k:'akinito_'+i+'_amoivi',l:'Μεσιτική αμοιβή'})+'</div></div>';}
+     field({k:'akinito_'+i+'_timi',l:'Τιμή / Μίσθωμα',mode:'decimal'})+field({k:'akinito_'+i+'_amoivi',l:'Μεσιτική αμοιβή',mode:'decimal'})+'</div></div>';}
   }else{var fs=sec.fields,g='<div class="grid">';for(var i=0;i<fs.length;i++){var f=fs[i];if(f.t==='toggle'){g+='<div class="f full"><label class="switch"><input type="checkbox" data-k="'+f.k+'" data-toggle="'+f.grp+'"'+(f.val?' checked':'')+'><span class="track"><span class="knob"></span></span><span class="tlabel">'+f.l+'</span></label></div><div class="grp" data-grp="'+f.grp+'"'+(f.val?'':' hidden')+'><div class="grid">';var j=i+1;while(j<fs.length&&fs[j].grp===f.grp){g+=field(fs[j]);j++;}g+='</div></div>';i=j-1;}else{g+=field(f);}}g+='</div>';html+=g;}
   html+='</fieldset>';});
  html+='<fieldset class="card"><div class="sect">Υπογραφές</div><div class="hintline">Υπόγραψε με το δάχτυλο ή γραφίδα (Apple Pencil).</div>';
