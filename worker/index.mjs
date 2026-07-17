@@ -33,7 +33,9 @@
 
 import { buildFeed } from "./lib/estateprime.mjs";
 import { robotsResponse, sitemapResponse, serveListingPage, isProdHost } from "./lib/seo.mjs";
-import { requireAccess, isLocalDev, contactsIndex, contactDetail, listingsIndex, json } from "./lib/crm.mjs";
+import { requireAccess, isLocalDev, json } from "./lib/access.mjs";
+import { contactsIndex, contactDetail, listingsIndex } from "./lib/crm.mjs";
+import { handleFormSubmit } from "./lib/forms.mjs";
 
 const FEED_KEY = "listings.json";
 const DEFAULT_WEBHOOK_PATH = "/listings"; // overridden by WEBHOOK_PATH var
@@ -59,18 +61,23 @@ export default {
 			return robotsResponse(url);
 		}
 
-		// CRM pickers for the Έντυπα PWA (contacts + active stock). These
-		// serve client PII, so they exist on exactly two hostnames: the
-		// forms domain, which Cloudflare Access sits in front of, and
-		// localhost for `wrangler dev`. NOT on workers.dev — that URL is
-		// kept alive for the CRM webhook and bypasses Access entirely,
-		// which would leave the whole client database wide open.
-		// requireAccess() inside is the real gate; this is defence in depth.
-		if (pathname.startsWith("/api/crm/")) {
-			if (url.hostname.startsWith("forms.") || isLocalDev(url, env)) {
-				return handleCrm(request, env, url, pathname);
+		// The Έντυπα PWA's private API: the CRM pickers read the client
+		// database, and /api/forms/submit carries a signed contract. Both
+		// are client PII, so both live on exactly two hostnames — the forms
+		// domain, which Cloudflare Access sits in front of, and localhost
+		// for `wrangler dev`. NOT on workers.dev: that URL is kept alive for
+		// the CRM webhook and bypasses Access entirely, which would leave
+		// the whole client database wide open. The host check is defence in
+		// depth; requireAccess() below is the real gate, for both.
+		if (pathname.startsWith("/api/crm/") || pathname === "/api/forms/submit") {
+			if (!(url.hostname.startsWith("forms.") || isLocalDev(url, env))) {
+				return new Response("Not Found", { status: 404 });
 			}
-			return new Response("Not Found", { status: 404 });
+			const { denied, email } = await requireAccess(request, env, url);
+			if (denied) return denied;
+			return pathname === "/api/forms/submit"
+				? handleFormSubmit(request, env, email)
+				: handleCrm(request, env, pathname);
 		}
 
 		// forms.four-walls.gr serves ONLY the Έντυπα PWA: the forms/ folder
@@ -199,13 +206,9 @@ export default {
    documented update endpoint for contacts (asked 2026-07-17), so nothing
    here writes back to the CRM yet.
 
-   Every response carries client PII, so requireAccess() runs FIRST on
-   every path and returns a Response (not null) when the caller is not an
-   authenticated Access user. */
-async function handleCrm(request, env, url, pathname) {
-	const denied = await requireAccess(request, env, url);
-	if (denied) return denied;
-
+   Every response carries client PII. The caller has already cleared the
+   Access gate — never route here without it. */
+async function handleCrm(request, env, pathname) {
 	if (request.method !== "GET") {
 		return json({ error: "Method not allowed" }, 405);
 	}

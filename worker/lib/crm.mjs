@@ -5,8 +5,8 @@
    a client on the tablet and the form's fields autofill from the CRM.
 
    PRIVACY — this serves the client database (names, phones, ΑΦΜ, ΑΔΤ).
-   Every route is gated by requireAccess() below and MUST stay that way.
-   It fails closed: no Cloudflare Access config -> 503, never open.
+   Every route is gated by requireAccess() (access.mjs), applied by the
+   caller in index.mjs, and MUST stay that way.
 
    SHAPE OF THE CALLS (why it is only 3 requests, not 58)
      The list endpoint does NOT return custom_fields/tags/users — only
@@ -47,120 +47,13 @@ const CF_ADT_DATE = "10";
 const CF_ADT_AUTHORITY = "11";
 
 const CONTACTS_KEY = "crm:contacts-index";
-const LISTINGS_KEY = "crm:listings-index";
+// -v2: the entry now carries subcategory + ownerId. The cache is kept
+// without a TTL on purpose (see cachedIndex), so a stale v1 entry would be
+// served to the picker for its whole freshness window with those fields
+// simply missing. Bumping the key retires it instead.
+const LISTINGS_KEY = "crm:listings-index-v2";
 const INDEX_TTL = 900; // seconds a cached index counts as fresh
 const MAX_PAGES = 50;
-
-/* ---------------------------------------------------------------- auth */
-
-/* Cloudflare Access sits in front of forms.four-walls.gr. It would be
-   enough on its own IF the Worker were only reachable there — but
-   workers_dev = true keeps a *.workers.dev URL alive for the CRM
-   webhook, and that URL bypasses Access entirely. So the caller MUST
-   also verify the JWT rather than trust the header's presence. */
-export async function requireAccess(request, env, url) {
-	if (isLocalDev(url, env)) return null; // local `wrangler dev` only
-
-	const team = env.ACCESS_TEAM_DOMAIN; // e.g. fourwalls.cloudflareaccess.com
-	const aud = env.ACCESS_AUD; // Application Audience tag from the Access app
-	if (!team || !aud) {
-		return json({ error: "Access not configured" }, 503);
-	}
-	const token =
-		request.headers.get("Cf-Access-Jwt-Assertion") ||
-		cookieValue(request.headers.get("Cookie"), "CF_Authorization");
-	if (!token) return json({ error: "Unauthorized" }, 401);
-
-	const payload = await verifyAccessJwt(token, team, aud);
-	if (!payload) return json({ error: "Unauthorized" }, 401);
-	return null; // authorised
-}
-
-/* `wrangler dev` reports the hostname from wrangler.toml's [routes]
-   (four-walls.gr), NOT localhost — so the hostname alone cannot tell us
-   we are running locally. Hence the explicit flag.
-
-   CRM_DEV_BYPASS disables the Access gate on the client database. It
-   lives in .dev.vars (gitignored) and must NEVER be added to
-   wrangler.toml [vars] or set via `wrangler deploy` — that would publish
-   every contact's name, phone, ΑΦΜ and ΑΔΤ to the open internet. */
-export function isLocalDev(url, env) {
-	if (env?.CRM_DEV_BYPASS === "1") return true;
-	return url.hostname === "localhost" || url.hostname === "127.0.0.1";
-}
-
-function cookieValue(header, name) {
-	if (!header) return null;
-	for (const part of header.split(";")) {
-		const [k, ...v] = part.trim().split("=");
-		if (k === name) return v.join("=");
-	}
-	return null;
-}
-
-let jwksCache = null;
-let jwksCachedAt = 0;
-
-async function getJwks(team) {
-	const now = Date.now();
-	if (jwksCache && now - jwksCachedAt < 3600_000) return jwksCache;
-	const res = await fetch(`https://${team}/cdn-cgi/access/certs`);
-	if (!res.ok) throw new Error(`Access certs ${res.status}`);
-	jwksCache = await res.json();
-	jwksCachedAt = now;
-	return jwksCache;
-}
-
-export async function verifyAccessJwt(token, team, aud) {
-	try {
-		const [h, p, s] = token.split(".");
-		if (!h || !p || !s) return null;
-
-		const header = JSON.parse(b64urlToText(h));
-		const payload = JSON.parse(b64urlToText(p));
-
-		const auds = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
-		if (!auds.includes(aud)) return null;
-		if (payload.iss !== `https://${team}`) return null;
-
-		const now = Math.floor(Date.now() / 1000);
-		if (typeof payload.exp === "number" && payload.exp < now) return null;
-		if (typeof payload.nbf === "number" && payload.nbf > now + 60) return null;
-
-		const jwks = await getJwks(team);
-		const jwk = (jwks.keys || []).find((k) => k.kid === header.kid);
-		if (!jwk) return null;
-
-		const key = await crypto.subtle.importKey(
-			"jwk",
-			{ kty: jwk.kty, n: jwk.n, e: jwk.e, alg: "RS256", ext: true },
-			{ name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-			false,
-			["verify"],
-		);
-		const ok = await crypto.subtle.verify(
-			"RSASSA-PKCS1-v1_5",
-			key,
-			b64urlToBytes(s),
-			new TextEncoder().encode(`${h}.${p}`),
-		);
-		return ok ? payload : null;
-	} catch {
-		return null;
-	}
-}
-
-function b64urlToBytes(s) {
-	const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
-	const bin = atob(b64 + "=".repeat((4 - (b64.length % 4)) % 4));
-	const out = new Uint8Array(bin.length);
-	for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-	return out;
-}
-
-function b64urlToText(s) {
-	return new TextDecoder().decode(b64urlToBytes(s));
-}
 
 /* ------------------------------------------------------- fetch + cache */
 
@@ -288,11 +181,18 @@ function displayName(raw) {
 
 /* ------------------------------------------------------------ listings */
 
-/* Active stock for the property picker. NOTE: this deliberately reads
-   the REAL address, not the fake one the public feed publishes for
-   display_address="fake" listings (14 of 15 active ones). A σύμβαση
-   υπόδειξης naming an approximate address would be worthless — this is
-   the internal tool, behind Access, so it gets the real data. */
+/* Active stock for the property picker (23 of the account's 116 listings,
+   2026-07-17). NOTE: this deliberately reads the REAL address, not the
+   fake one the public feed publishes for display_address="fake" listings.
+   A σύμβαση υπόδειξης naming an approximate address would be worthless —
+   this is the internal tool, behind Access, so it gets the real data.
+
+   `ownerId` backs the απόδειξη's «Από ακίνητο» picker: pick the property,
+   and the εντολέας fields fill from whoever owns it. EstatePrime returns
+   `contacts` as an array of bare contact ids, and every active listing
+   currently carries exactly one — but an empty array is a legitimate
+   state (a listing with no contact attached), so the caller must cope
+   with ownerId === null rather than assume. */
 export async function listingsIndex(env) {
 	return cachedIndex(env, LISTINGS_KEY, async () => {
 		const rows = await fetchAllPages(env, "/listings");
@@ -311,23 +211,15 @@ export async function listingsIndex(env) {
 					price: raw.price ?? null,
 					hiddenPrice: !!raw.has_hidden_price,
 					availability: raw.availability ?? "",
+					// Slug (apartment | maisonette | …), not a label — the forms
+					// hold the Greek. `subtype` is always null on this account;
+					// subcategory is the field that is actually populated.
+					subcategory: raw.subcategory ?? "",
+					ownerId: raw.contacts?.[0] ?? null,
 					fee: raw.assignment_fee ?? null,
 					feeType: raw.assignment_fee_type ?? null,
 				};
 			}),
 		};
-	});
-}
-
-/* ---------------------------------------------------------------- util */
-
-export function json(body, status = 200) {
-	return new Response(JSON.stringify(body), {
-		status,
-		headers: {
-			"Content-Type": "application/json; charset=utf-8",
-			// Client data: never let a proxy or the browser keep a copy.
-			"Cache-Control": "no-store",
-		},
 	});
 }

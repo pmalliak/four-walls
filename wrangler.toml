@@ -88,3 +88,9 @@ FEATURED_TAG = "website-featured"
 #   WEBHOOK_KEY              shared secret for the EstatePrime webhook
 #   ESTATEPRIME_API_KEY      EstatePrime public API key   (used when SAMPLE_DATA=0)
 #   ESTATEPRIME_API_SECRET   EstatePrime secret API key   (used when SAMPLE_DATA=0)
+#   TURNSTILE_SECRET_KEY     verifies the site contact form's token
+#   MAKE_CONTACT_WEBHOOK     Make hook for the site contact form
+#   MAKE_FORMS_WEBHOOK       Make hook for the Έντυπα PWA (scenario «Έντυπα —
+#                            υποβολή φόρμας»). The URL is the credential, so
+#                            it stays server-side — see worker/lib/forms.mjs.
+#   MAKE_FORMS_APIKEY        optional: only if the hook above gets API-key auth
