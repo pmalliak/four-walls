@@ -24,10 +24,9 @@
 	   only that card has: `map` is CRM detail key -> the form's data-k.
 	   A form only gets a button for the cards it actually contains.
 
-	   ΠΡΟΣΟΧΗ — the απόδειξη's name fields are in ΓΕΝΙΚΗ («κατ’ εντολή
-	   Γεωργίου Παπαδοπούλου»), while the CRM stores nominative. The
-	   picker fills what the CRM has and the consultant fixes the ending;
-	   filling the ΑΦΜ/πατρώνυμο is the part that saves the typing. */
+	   The απόδειξη document names the parties in labelled rows, so the
+	   NOMINATIVE the CRM holds is the correct case as-is. (The *_geniki
+	   keys are historical — renaming them would break saved drafts.) */
 	var BLOCKS = [
 		{
 			// ανάθεση + υπόδειξη: an identical «Στοιχεία εντολέα» card.
@@ -46,8 +45,8 @@
 			},
 		},
 		{
-			// απόδειξη · «Καταβάλλων» — γενική. This is the person the
-			// receipt is for, so it carries the delivery email/phone.
+			// απόδειξη · «Καταβάλλων». This is the person the receipt is
+			// for, so it carries the delivery email/phone.
 			anchor: "katavallon_geniki",
 			map: {
 				onomatepwnymo: "katavallon_geniki",
@@ -360,10 +359,7 @@
 					var c = await getJson("/api/crm/contacts/" + l.ownerId);
 					setField("entoleas_geniki", c.onomatepwnymo);
 					setField("entoleas_afm", c.afm);
-					// The CRM holds the nominative; this field is printed in a
-					// genitive slot («κατ’ εντολή …»), so the ending is the
-					// consultant's to fix. Say so rather than let it be signed.
-					toast("Συμπληρώθηκε. Διόρθωσε το όνομα σε γενική.");
+					toast("Συμπληρώθηκε από το CRM.");
 				} catch (err) {
 					toast(err.message || "Σφάλμα.");
 				}
