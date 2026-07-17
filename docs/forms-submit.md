@@ -72,8 +72,17 @@ The known bad bundle: `katachorisi` deliberately submits **without a PDF** if
 jsPDF fails to load, but the email module's attachment mapping requires
 `pdf_base64`. Those land in incomplete executions rather than being lost.
 
-The emails are written **for the client** (office addresses go in CC).
-Note the recipient is still `panos@four-walls.gr` while that is wired up.
+### Recipients (as wired in the scenario)
+
+| branch | to | copies |
+|---|---|---|
+| anathesi / ypodeixi | client email when `send_to_client` (a default-on toggle), else `info@` | bcc `manos@` + `panos@` |
+| apodeixi | `katavallon_email` on the same toggle, else `info@` | bcc `manos@` + `panos@` |
+| katachorisi (always) | `info@` — internal «ΓΙΑ ΚΑΤΑΧΩΡΙΣΗ» reminder to enter listing+contact | cc `panos@` + `manos@` |
+| katachorisi (ΝΑΙ on the form) | `owner_email` — client-facing confirmation | bcc `panos@` + `manos@` |
+
+The client-facing copy and the internal reminder are different emails —
+katachorisi is the only branch that can send both.
 
 ### Greek grammar in the templates
 
