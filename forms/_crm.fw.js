@@ -402,7 +402,7 @@
 		// υπόδειξη have only the εντολέας; the απόδειξη's καταβάλλων is the
 		// one person there who is picked as a person.
 		BLOCKS.forEach(function (block) {
-			cardButton(block.anchor, "Από το CRM", function () {
+			cardButton(block.anchor, "Επαφή από CRM", function () {
 				pickContact(block.map);
 			});
 		});
@@ -410,7 +410,7 @@
 		// απόδειξη · «Εντολέας (για λογαριασμό του)» — reached through the
 		// property rather than the contact list, which also lets us prefill
 		// the αιτιολογία from that property's type/deal/address.
-		cardButton("entoleas_geniki", "Από ακίνητο", pickListingOwner);
+		cardButton("entoleas_geniki", "Ακίνητο από CRM", pickListingOwner);
 
 		// Property rows: υπόδειξη renders up to 5 `.akin` blocks; ανάθεση
 		// has a single un-numbered set. Both are covered by reading the
@@ -421,7 +421,7 @@
 			if (!lab || !code) return;
 			var n = code.getAttribute("data-k").replace(/_kodikos$/, "");
 			lab.appendChild(
-				button("Από το CRM", function () {
+				button("Ακίνητο από CRM", function () {
 					pickListing({
 						kodikos: n + "_kodikos",
 						dieuthynsi: n + "_dieuthynsi",
