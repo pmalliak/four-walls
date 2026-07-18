@@ -166,7 +166,7 @@
 			showing: "Εμφάνιση ",
 			of: " από ",
 			forRent: "για ενοικίαση", forBuy: "για αγορά",
-			areaPrefix: "περιοχή ", pricePrefix: "τιμή ",
+			areaPrefix: "περιοχή ",
 			bedroomsPlus: "+ υπνοδωμάτια", bathsPlus: "+ μπάνια",
 			fromSqm: function (v) { return "από " + v + " τ.μ."; },
 			toSqm: function (v) { return "έως " + v + " τ.μ."; },
@@ -182,9 +182,6 @@
 			emptyValuation: "Ζητήστε δωρεάν εκτίμηση",
 			noResults: "Δεν βρέθηκαν ακίνητα με αυτά τα κριτήρια.",
 			resetFilters: "Καθαρισμός φίλτρων",
-			anyPrice: "Οποιαδήποτε τιμή",
-			rentBands: ["Έως €400/μήνα", "€400-600/μήνα", "€600-900/μήνα", "€900-1.500/μήνα", "€1.500+/μήνα"],
-			saleBands: ["Έως €100.000", "€100.000-200.000", "€200.000-300.000", "€300.000-500.000", "€500.000+"],
 			notFound: "Το ακίνητο δεν βρέθηκε",
 			refLabel: "Κωδικός: ",
 			priceLabel: "Τιμή: ",
@@ -226,7 +223,7 @@
 			showing: "Showing ",
 			of: " of ",
 			forRent: "to rent", forBuy: "to buy",
-			areaPrefix: "area ", pricePrefix: "price ",
+			areaPrefix: "area ",
 			bedroomsPlus: "+ bedrooms", bathsPlus: "+ bathrooms",
 			fromSqm: function (v) { return "from " + v + " m²"; },
 			toSqm: function (v) { return "up to " + v + " m²"; },
@@ -242,9 +239,6 @@
 			emptyValuation: "Request a free valuation",
 			noResults: "No properties match these criteria.",
 			resetFilters: "Reset filters",
-			anyPrice: "Any price",
-			rentBands: ["Up to €400/month", "€400-600/month", "€600-900/month", "€900-1,500/month", "€1,500+/month"],
-			saleBands: ["Up to €100,000", "€100,000-200,000", "€200,000-300,000", "€300,000-500,000", "€500,000+"],
 			notFound: "Property not found",
 			refLabel: "Reference: ",
 			priceLabel: "Price: ",
@@ -274,23 +268,6 @@
 			feedError: "Listings are unavailable right now. Please try again shortly."
 		}
 	})[LANG];
-
-	/* Type filter groups (option value -> CRM subcategories) */
-	var TYPE_GROUPS = {
-		apartment: ["apartment", "loft"],
-		maisonette: ["maisonette"],
-		house: ["detached", "villa", "farmhouse", "residential_building",
-			"apartment_complex", "houseboat", "other_residential"],
-		commercial: ["office", "store", "warehouse", "hotel", "commercial_building",
-			"hall", "industrial_space", "craft_space", "other_commercial", "business"],
-		land: ["plot", "parcel", "island"]
-	};
-
-	/* Price bands per transaction (value 1..5, aligned with js/fourwalls.js) */
-	var PRICE_BANDS = {
-		sale: [[0, 100000], [100000, 200000], [200000, 300000], [300000, 500000], [500000, Infinity]],
-		rent: [[0, 400], [400, 600], [600, 900], [900, 1500], [1500, Infinity]]
-	};
 
 	/* ---------------- helpers ---------------- */
 
@@ -463,7 +440,6 @@
 			transaction: document.getElementById("fw-f-transaction"),
 			type: document.getElementById("fw-f-type"),
 			area: document.getElementById("fw-f-area"),
-			price: document.getElementById("fw-f-price"),
 			sort: document.getElementById("fw-sort"),
 			/* extra filters (advanceFilterModal) */
 			bedrooms: document.getElementById("fw-f-bedrooms"),
@@ -501,14 +477,6 @@
 			var exact = areas.find(function (a) { return a.toLowerCase() === areaParam.toLowerCase(); });
 			if (exact) controls.area.value = exact;
 		}
-		/* Price is preselected AFTER swapPriceOptions: the static markup only
-		   holds the placeholder option, so ?price=N has nothing to match until
-		   the bands (which depend on the transaction above) are built. */
-		swapPriceOptions(controls, false);
-		var priceParam = params.get("price");
-		if (priceParam && controls.price.querySelector('option[value="' + priceParam + '"]')) {
-			controls.price.value = priceParam;
-		}
 
 		/* nice-select has already wrapped the selects — refresh them. */
 		if (window.jQuery) window.jQuery(".fw-filter-select").niceSelect("update");
@@ -518,7 +486,6 @@
 				transaction: controls.transaction.value,
 				type: controls.type.value,
 				area: controls.area.value || areaParam,
-				price: controls.price.value,
 				sort: controls.sort.value,
 				bedrooms: controls.bedrooms ? controls.bedrooms.value : "",
 				bathrooms: controls.bathrooms ? controls.bathrooms.value : "",
@@ -532,8 +499,7 @@
 			var f = currentFilters();
 			var out = listings.filter(function (l) {
 				if (f.transaction && l.transaction !== f.transaction) return false;
-				if (f.type && TYPE_GROUPS[f.type] &&
-					TYPE_GROUPS[f.type].indexOf(l.subcategory) === -1) return false;
+				if (f.type && l.category !== f.type) return false;
 				if (f.area) {
 					/* Both languages in the haystack — shared filter links
 					   (?area=Kalamaria / ?area=Καλαμαριά) match everywhere. */
@@ -541,11 +507,6 @@
 						l.location.area_en, l.location.neighbourhood_en, l.location.city_en]
 						.filter(Boolean).join(" ").toLowerCase();
 					if (hay.indexOf(f.area.toLowerCase()) === -1) return false;
-				}
-				if (f.price) {
-					var bands = PRICE_BANDS[f.transaction === "rent" ? "rent" : "sale"];
-					var band = bands[Number(f.price) - 1];
-					if (band && (l.price == null || l.price < band[0] || l.price >= band[1])) return false;
 				}
 				if (f.bedrooms && !(l.bedrooms >= Number(f.bedrooms))) return false;
 				if (f.bathrooms && !(l.bathrooms >= Number(f.bathrooms))) return false;
@@ -606,8 +567,6 @@
 			if (type) parts.push(type.toLowerCase());
 			if (f.transaction) parts.push(f.transaction === "rent" ? STR.forRent : STR.forBuy);
 			if (f.area) parts.push(STR.areaPrefix + f.area);
-			var price = selectedLabel(controls.price);
-			if (price) parts.push(STR.pricePrefix + price.toLowerCase());
 			if (f.bedrooms) parts.push(f.bedrooms + STR.bedroomsPlus);
 			if (f.bathrooms) parts.push(f.bathrooms + STR.bathsPlus);
 			if (f.amin) parts.push(STR.fromSqm(f.amin));
@@ -669,7 +628,6 @@
 		Object.keys(controls).forEach(function (k) {
 			if (!controls[k]) return;
 			var onChange = function () {
-				if (k === "transaction") swapPriceOptions(controls, true);
 				apply();
 			};
 			if (window.jQuery) window.jQuery(controls[k]).on("change", onChange);
@@ -700,32 +658,11 @@
 			Object.keys(controls).forEach(function (k) {
 				if (controls[k] && k !== "sort") controls[k].value = "";
 			});
-			swapPriceOptions(controls, true);
 			if (window.jQuery) window.jQuery(".fw-filter-select").niceSelect("update");
 			apply();
 		});
 
 		apply();
-	}
-
-	/* Rent and sale price scales differ — rebuild the price options. */
-	function swapPriceOptions(controls, refresh) {
-		var rent = controls.transaction.value === "rent";
-		var labels = rent ? STR.rentBands : STR.saleBands;
-		var keep = controls.price.value;
-		controls.price.textContent = "";
-		var any = document.createElement("option");
-		any.value = "";
-		any.textContent = STR.anyPrice;
-		controls.price.appendChild(any);
-		labels.forEach(function (label, i) {
-			var opt = document.createElement("option");
-			opt.value = String(i + 1);
-			opt.textContent = label;
-			controls.price.appendChild(opt);
-		});
-		controls.price.value = keep || "";
-		if (refresh && window.jQuery) window.jQuery(controls.price).niceSelect("update");
 	}
 
 	/* ---------------- detail page (property.html) ---------------- */
