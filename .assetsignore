@@ -18,6 +18,7 @@ docs
 data
 partials
 inc
+crm
 CLAUDE.md
 index.html.orig
 estateprime-api-doc.yaml
