@@ -74,9 +74,13 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 .doc .frow{display:flex;gap:10px;margin:6px 0;align-items:baseline;}
 .doc .frow .k{font-family:'Manrope';font-weight:700;color:var(--navy);font-size:12px;min-width:120px;}
 .doc .frow .v2{flex:1;border-bottom:1px solid #cdd5e0;padding-bottom:2px;min-height:1.2em;font-weight:700;color:var(--navy);}
-.doc table{width:calc(100% - 30px);border-collapse:collapse;table-layout:fixed;margin:8px 0 4px 30px;font-size:11px;}
+/* separate+outer border on the table: collapsed borders paint half a pixel
+   outside the box, which the PDF rasterizer clips on the right and which
+   offsets the navy header band from the left border line. */
+.doc table{width:calc(100% - 30px);border-collapse:separate;border-spacing:0;border:1px solid #b9c1cc;table-layout:fixed;margin:8px 0 4px 30px;font-size:11px;}
 .doc th{background:var(--navy);color:#fff;font-family:'Manrope';font-weight:700;font-size:9px;padding:5px;text-align:left;line-height:1.2;}
-.doc td{border:1px solid #b9c1cc;padding:5px;height:24px;vertical-align:middle;font-weight:700;color:var(--navy);word-break:break-word;}
+.doc td{border:0;border-top:1px solid #b9c1cc;border-right:1px solid #b9c1cc;padding:5px;height:24px;vertical-align:middle;font-weight:700;color:var(--navy);word-break:break-word;}
+.doc td:last-child{border-right:0;}
 .doc th:nth-child(1),.doc td:nth-child(1){width:13%;}
 .doc th:nth-child(3),.doc td:nth-child(3){width:9%;}
 .doc .datel{margin:16px 0 2px;font-weight:700;color:var(--navy);}
