@@ -54,6 +54,11 @@ export async function renderDocPdf(env, docHtml) {
 				pdfOptions: {
 					format: "a4",
 					printBackground: true,
+					// The real margin authority is the @page rule DOCHTML appends
+					// (CSS @page beats these in Chromium print — with a lone
+					// margin:12mm from the forms' print CSS the right margin was
+					// silently dropped and the page clipped). Keep both at
+					// 10/10/12/10 so whichever wins, the page is the same.
 					margin: { top: "10mm", right: "10mm", bottom: "12mm", left: "10mm" },
 				},
 			}),
