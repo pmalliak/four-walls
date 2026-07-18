@@ -34,7 +34,6 @@
 			anchor: "entoleas_onomatepwnymo",
 			map: {
 				onomatepwnymo: "entoleas_onomatepwnymo",
-				patronymo: "entoleas_patronymo",
 				katoikia: "entoleas_odos",
 				adt: "entoleas_adt",
 				adt_imerominia_ekdosis: "adt_imerominia_ekdosis",
@@ -235,7 +234,7 @@
 						setField(map[src], val);
 						if (!val) missing.push(src);
 					});
-					// The CRM holds no πατρώνυμο/κατοικία for most contacts
+					// The CRM holds no κατοικία for most contacts
 					// yet — say so instead of leaving silent blanks that get
 					// signed as-is.
 					toast(
