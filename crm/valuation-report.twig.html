@@ -10,7 +10,7 @@
    Colours are stamped into <style> via Twig so any PDF engine
    (dompdf / mpdf / wkhtmltopdf) renders them — no CSS variables.
    ============================================================ #}
-{% set brand  = company.main_color|default('#1C3457') %}
+{% set brand  = '#1C3457' %}
 {% set accent = '#FF0062' %}
 {% set ink    = '#242a33' %}
 {% set navyink= '#14213c' %}
@@ -24,10 +24,10 @@
 <meta charset="utf-8">
 <title>Αναφορά Εκτίμησης · {{ valuation.address|default(company.name) }}</title>
 <style>
-	@page { size: A4; margin: 14mm 13mm; }
+	@page { size: A4; margin: 0; }
 	* { box-sizing: border-box; }
 	body{
-		margin:0; color:{{ ink }};
+		margin:0; padding:14mm 13mm; color:{{ ink }};
 		font-family:"Manrope","Helvetica Neue",Arial,"DejaVu Sans",sans-serif;
 		font-size:11px; line-height:1.5;
 		-webkit-print-color-adjust:exact; print-color-adjust:exact;
@@ -106,6 +106,7 @@
 	.foot b{ color:{{ brand }}; }
 	.disclaimer{ font-size:8.5px; color:{{ muted }}; margin-top:10px; line-height:1.5; }
 	.pbreak{ page-break-before:always; }
+	.pbreak + .sec{ padding-top:14mm; }
 </style>
 </head>
 <body>
@@ -117,10 +118,9 @@
 			<div class="wm"><div class="n">FOUR WALLS</div><div class="s">REAL ESTATE</div></div>
 		</div>
 		<div class="co">
-			<strong>{{ office.name|default('FOUR WALLS Real Estate') }}</strong><br>
 			Φραγκίνη 9, 54624 Θεσσαλονίκη<br>
-			Τηλ {{ office.phone|default('+30 6907 483 463') }}<br>
-			{{ office.email|default('info@four-walls.gr') }} &middot; {{ office.website|default('four-walls.gr') }}
+			Τηλ +30 6907 483 463<br>
+			info@four-walls.gr &middot; four-walls.gr
 		</div>
 	</div>
 
@@ -174,30 +174,37 @@
 		</div>
 	</div>
 
-	{# ========== MARKET COMPARISON ========== #}
+	{# ========== MARKET COMPARISON (columns hide when a category has no data) ========== #}
+	{% if valuation.results.total or valuation.results.our_total or valuation.results.closing_total %}
 	<div class="sec">
 		<h2>Συγκριτική ανάλυση αγοράς</h2>
 		<div class="cmp">
+			{% if valuation.results.total %}
 			<div class="col">
 				<div class="h">Αγγελίες portals</div>
-				<div class="row"><span class="muted">Πλήθος</span><span class="v">{{ valuation.results.total|default(0) }}</span></div>
+				<div class="row"><span class="muted">Πλήθος</span><span class="v">{{ valuation.results.total }}</span></div>
 				<div class="row"><span class="muted">Μέση τιμή</span><span class="v eur">{{ valuation.results.average|default(0)|number_format(0, ',', '.') }}</span></div>
 				<div class="row"><span class="muted">Μέση τιμή / τ.μ.</span><span class="v eur">{{ valuation.results.average_sqm_price|default(0)|number_format(0, ',', '.') }}</span></div>
 			</div>
+			{% endif %}
+			{% if valuation.results.our_total %}
 			<div class="col">
 				<div class="h">Ακίνητα γραφείου</div>
-				<div class="row"><span class="muted">Πλήθος</span><span class="v">{{ valuation.results.our_total|default(0) }}</span></div>
+				<div class="row"><span class="muted">Πλήθος</span><span class="v">{{ valuation.results.our_total }}</span></div>
 				<div class="row"><span class="muted">Μέση τιμή</span><span class="v eur">{{ valuation.results.our_average|default(0)|number_format(0, ',', '.') }}</span></div>
 				<div class="row"><span class="muted">Μέση τιμή / τ.μ.</span><span class="v eur">{{ valuation.results.our_average_sqm_price|default(0)|number_format(0, ',', '.') }}</span></div>
 			</div>
+			{% endif %}
+			{% if valuation.results.closing_total %}
 			<div class="col">
 				<div class="h">Πωλήσεις (κλεισίματα)</div>
-				<div class="row"><span class="muted">Πλήθος</span><span class="v">{{ valuation.results.closing_total|default(0) }}</span></div>
+				<div class="row"><span class="muted">Πλήθος</span><span class="v">{{ valuation.results.closing_total }}</span></div>
 				<div class="row"><span class="muted">Μέση τιμή</span><span class="v eur">{{ valuation.results.closing_average|default(0)|number_format(0, ',', '.') }}</span></div>
-				<div class="row"><span class="muted">&nbsp;</span><span class="v">&nbsp;</span></div>
 			</div>
+			{% endif %}
 		</div>
 	</div>
+	{% endif %}
 
 	{# ========== PAGE 2 : comparable listings ========== #}
 	<div class="pbreak"></div>
@@ -242,8 +249,8 @@
 	</div>
 	{% endif %}
 
-	{# ========== ADVISOR NOTES ========== #}
-	{% if valuation.notes %}
+	{# ========== ADVISOR NOTES (hidden when empty) ========== #}
+	{% if valuation.notes|trim %}
 	<div class="sec">
 		<h2>Σημειώσεις συμβούλου</h2>
 		<div class="notes">{{ valuation.notes }}</div>
@@ -257,7 +264,7 @@
 			{% if user.photo %}<img class="ph" src="{{ user.photo }}" alt="{{ user.first_name }} {{ user.last_name }}">{% endif %}
 			<div>
 				<div class="n">{{ user.first_name }} {{ user.last_name }}</div>
-				<div class="role">Σύμβουλος ακινήτων · {{ office.name|default(company.name) }}</div>
+				<div class="role">Σύμβουλος ακινήτων</div>
 				<div class="c">
 					{% if user.phone %}<span>☎ <b>{{ user.phone }}</b></span>{% endif %}
 					{% if user.email %}<span>✉ <b>{{ user.email }}</b></span>{% endif %}
