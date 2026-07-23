@@ -1,44 +1,72 @@
-# CRM documents (EstatePrime · Twig)
+# CRM templates (EstatePrime · Twig)
 
-Server-side **Twig + HTML** templates that EstatePrime renders to PDF. Unlike the
-[`forms/`](../forms/) PWA (client-side, `html2pdf`), these run inside the CRM and
-receive their data as Twig variables (`valuation.*`, `user.*`, `office.*`,
-`company.*`, `system.*`).
+Server-side **Twig + HTML** templates that live inside the EstatePrime CRM (you
+paste them into the CRM editor). Two kinds, with **different** renderers, styles
+and constraints:
 
-## Templates
+| File | Kind | When | Style |
+|------|------|------|-------|
+| [`valuation-report.twig.html`](valuation-report.twig.html) | PDF document | Αναφορά Εκτίμησης | Document header, navy `#1C3457` / pink `#FF0062` |
+| [`appointment-created.twig.html`](appointment-created.twig.html) | Email (GR) | ραντεβού δημιουργήθηκε | Make email, navy `#16233A` / pink `#FF1462` |
+| [`appointment-reminder.twig.html`](appointment-reminder.twig.html) | Email (GR) | υπενθύμιση ραντεβού | ” |
+| [`appointment-created.en.twig.html`](appointment-created.en.twig.html) | Email (EN) | appointment booked | ” |
+| [`appointment-reminder.en.twig.html`](appointment-reminder.en.twig.html) | Email (EN) | appointment reminder | ” |
 
-| File | Document | Data root |
-|------|----------|-----------|
-| [`valuation-report.twig.html`](valuation-report.twig.html) | Αναφορά Εκτίμησης Ακινήτου | `valuation.*` |
+Data roots: documents get `valuation.*`; emails get `appointment.*`, `contact.*`,
+`user.*`, `office.*`, `company.*`. Subject lines are set in the CRM notification
+config, **not** in the template (`<title>` is ignored). Emails go to recipients'
+Gmail/Outlook, so **no `data:` URI images** (host them or use text); the map uses
+a hosted Mapbox static image.
 
-## Shared document header — keep ALL documents consistent
+## Two visual systems (don't mix them)
 
-Every Four Walls document (these CRM templates **and** the `forms/` έντυπα) opens
-with the **same header**: the pink brand cube + `FOUR WALLS` / `REAL ESTATE`
-wordmark on the left, office contact block on the right, a **navy `#1C3457`
-bottom rule with a 150px pink `#FF0062` accent** under it. Source of truth is the
-forms' `.doc .hd` block; this folder mirrors it as `.hd` (see the header CSS in
-`valuation-report.twig.html`). When you add a new document, **copy that header
-verbatim** — do not redesign it.
+- **PDF documents** — the shared **document header**: pink brand cube +
+  `FOUR WALLS` / `REAL ESTATE` wordmark, office contact right, navy `#1C3457`
+  rule + 150px pink `#FF0062` accent. Same header the `forms/` έντυπα print.
+- **Emails** — the house **Make/Zoho email style** (mirrors Make scenarios
+  6530594 / 6604242): 520px card, Arial, bg `#f4f5f7`, navy `#16233A` band,
+  pink `#FF1462` 3px accent + accents, label/value rows. Customer emails add the
+  `FOUR WALLS REAL ESTATE` wordmark in the band; internal ones don't.
 
-## Conventions (same spirit as the site)
+## ⚠️ The EstatePrime template validator (emails — learned the hard way)
 
-- **Colours are stamped via Twig, not CSS variables.** PDF engines (dompdf /
-  mpdf / wkhtmltopdf) don't reliably support `var(--x)`, so we `{% set brand =
-  company.main_color|default('#1C3457') %}` and interpolate the literal hex into
-  the `<style>` block. Pink accent stays the Four Walls constant `#FF0062`.
-- **Greek capitals take no τόνος.** PDF engines do **not** strip accents on CSS
-  `text-transform:uppercase` the way an `lang="el"` browser does. So never rely
-  on it for Greek — type any all-caps label **already accent-free** in the
-  markup (`ΕΚΤΙΜΩΜΕΝΗ ΤΙΜΗ`, not lowercase + transform). Lowercase/sentence-case
-  keeps its accents normally.
-- **Numbers:** `{{ n|number_format(0, ',', '.') }}` → `€185.000`. Currency `€`
-  prefix, `.` thousands separator.
-- **Null-safe:** every field goes through `|default(...)`; array sections are
-  wrapped in `{% if x is not empty %}`.
+Saving an email template runs a **strict, naive validator** that throws
+«Οι μεταβλητές που δηλώσατε είναι λάθος». It rejects far more than bad variables:
+
+1. **Only variables in that template's documented field list.** `appointment`
+   has no `custom_field_11` (that's `contact.*`); no free-text notes field.
+2. **Only plain `{% if variable %}` / `{% else %}` / `{% endif %}` and `{{ var }}`.**
+   NO operators or tests inside tags: `==`, `!=`, `is defined`, `is not null`,
+   `and`, `or`. (So an id→label map like `{% if category_id == 1 %}` is
+   impossible — do such mapping in Make, or show the raw value / drop it.)
+3. **No variable straight after a URL scheme:** `href="tel:{{ user.phone }}"`
+   fails; plain `{{ user.phone }}` text and `href="https://…/{{ x }}"` are fine.
+4. **It scans inside `{# … #}` comments** for `{% %}`/`{{ }}` — never put example
+   Twig tags in a comment (plain prose in a comment is OK, even English keywords).
+5. **English body text must dodge words that are Twig keywords/tests/functions.**
+   Confirmed culprits: **`with`**, **`date`**, and the **apostrophe** (`I'm` — `'`
+   opens a Twig string). Also avoid `is, and, or, not, in, as, from, do, set, use,
+   range, empty, defined, block, apply, starts, ends`. Greek prose is naturally
+   safe. Fixes used: label **"When"** not "Date"; "of your … appointment" not
+   "… with"; ", " not " at "; "reach us on" not "at/by phone"; "We are" not "I'm".
+   If a template needs rich English copy, **send it via Make/Zoho** — no validator.
+
+Full history: memory `estateprime-template-validator`. The **PDF document**
+renderer is likely a real Twig engine (the valuation report uses `|default`,
+`|number_format`, `is not empty`, `max/min`) — if it ever rejects those, the same
+rules apply.
+
+## Other conventions
+
+- **Colours stamped via Twig, not CSS `var()`** (PDF engines don't support it):
+  `{% set brand = company.main_color|default('#1C3457') %}` → literal hex in
+  `<style>`. Emails hardcode the Make palette (`#16233A` / `#FF1462`).
+- **Greek capitals take no τόνος** — type all-caps labels accent-free
+  (`ΕΚΤΙΜΩΜΕΝΗ ΤΙΜΗ`), never rely on `text-transform:uppercase` (PDF engines keep
+  the accent).
+- **Numbers** (documents): `{{ n|number_format(0, ',', '.') }}` → `€185.000`.
 
 ## Preview
 
-The CRM renders these; there's no local Twig runtime here. To eyeball the design,
-use the sample-data preview (static HTML, no Twig) kept alongside during
-development.
+The CRM renders these; there's no local Twig runtime here. Eyeball the design
+with a sample-data preview (static HTML, no Twig) built during development.

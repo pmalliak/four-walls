@@ -1,0 +1,85 @@
+{# ============================================================
+   Υπενθύμιση ραντεβού — EstatePrime EMAIL (Twig + HTML)
+   Four Walls · follows the house Make-email style
+   (Zoho sendMail templates in scenarios 6530594 / 6604242):
+     · 520px card, Arial, bg #f4f5f7
+     · navy #16233A title bar + pink #FF1462 3px accent
+     · label/value rows (label #777777 w140, value #16233A bold)
+     · pink #FF1462 full-width button · no logo image
+   Rendered by EstatePrime, so the logic below is Twig
+   (appointment.* / contact.* / user.*), not Make expressions.
+   Greek all-caps are typed accent-free. See crm/README.md.
+   ============================================================ #}
+<!DOCTYPE html>
+<html lang="el" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="x-apple-disable-message-reformatting">
+<title>Υπενθύμιση για το ραντεβού σας</title>
+</head>
+<body style="margin:0; padding:0; background:#f4f5f7; font-family:Arial,sans-serif;">
+	<div style="display:none; max-height:0; overflow:hidden; opacity:0;">Υπενθύμιση για το ραντεβού σας με τη Four Walls Real Estate.</div>
+	<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7; padding:16px 0;">
+		<tr><td align="center">
+			<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px; width:100%; background:#ffffff; border-radius:8px; overflow:hidden;">
+
+				{# ===== Brand header + accent (customer-facing; house Make style, με επωνυμία) ===== #}
+				<tr><td style="background:#16233A; padding:15px 20px;"><span style="color:#ffffff; font-size:18px; font-weight:bold; letter-spacing:1.5px;">FOUR WALLS</span><span style="color:#FF1462; font-size:10px; font-weight:bold; letter-spacing:2px;">&nbsp;&nbsp;REAL ESTATE</span></td></tr>
+				<tr><td style="height:3px; background:#FF1462;"></td></tr>
+
+				{# ===== Body ===== #}
+				<tr><td style="padding:18px 20px 6px 20px; font-size:14px; line-height:1.7; color:#16233A;">
+					<h1 style="margin:0 0 12px 0; font-size:19px; font-weight:bold; color:#16233A;">Υπενθύμιση για το ραντεβού σας</h1>
+					<p style="margin:0 0 10px 0;">Γεια σας,</p>
+					<p style="margin:0 0 12px 0;">Θα θέλαμε να σας υπενθυμίσουμε το ραντεβού σας με τα παρακάτω στοιχεία:</p>
+
+					<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px; line-height:1.7; color:#16233A;">
+						{% if appointment.is_full_day %}
+							<tr><td style="color:#777777; width:140px; padding:2px 0; vertical-align:top;">Ημέρα</td><td style="padding:2px 0; font-weight:bold;">{{ appointment.date_starts }}</td></tr>
+						{% else %}
+							<tr><td style="color:#777777; width:140px; padding:2px 0; vertical-align:top;">Ημέρα και ώρα</td><td style="padding:2px 0; font-weight:bold;">{{ appointment.date_starts }} στις {{ appointment.time_starts }}</td></tr>
+						{% endif %}
+						{% if appointment.address.latitude %}
+							<tr><td style="color:#777777; padding:2px 0; vertical-align:top;">Τοποθεσία</td><td style="padding:2px 0;"><a href="https://www.google.com/maps/place/{{ appointment.address.latitude }},{{ appointment.address.longitude }}" style="color:#FF1462; text-decoration:none;">{{ appointment.address.address }}</a></td></tr>
+						{% endif %}
+					</table>
+
+					{% if appointment.address.latitude %}
+						<a href="https://www.google.com/maps/place/{{ appointment.address.latitude }},{{ appointment.address.longitude }}" style="display:block; margin:14px 0 4px 0;"><img src="https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+FF1462({{ appointment.address.longitude }},{{ appointment.address.latitude }})/{{ appointment.address.longitude }},{{ appointment.address.latitude }},14,0/480x230?access_token=pk.eyJ1IjoiZXN0YXRlcHJpbWUiLCJhIjoiY203eXI5YnNiMGNhbDJqczZwaXFlYzBlbyJ9.U_GwlxkC_TvQPxvPSqPuAg" alt="Χάρτης τοποθεσίας" width="480" style="width:100%; max-width:480px; border-radius:6px; display:block; border:0;"></a>
+					{% endif %}
+
+					<p style="font-size:12px; color:#777777; margin:14px 0 12px 0; line-height:1.5;">Αν δεν μπορέσετε να παρευρεθείτε ή θέλετε να αλλάξετε το ραντεβού, ενημερώστε μας — με απάντηση σε αυτό το email, με κλήση ή μήνυμα στο <strong style="color:#FF1462;">{{ user.phone }}</strong>. Είμαι στη διάθεσή σας για οποιαδήποτε απορία.</p>
+
+					<p style="margin:14px 0 4px 0;">Με εκτίμηση,</p>
+
+					{% if user.photo %}
+						<table role="presentation" cellpadding="0" cellspacing="0" style="margin:2px 0 4px 0;">
+							<tr>
+								<td valign="middle" style="padding-right:14px;"><img src="{{ user.photo }}" alt="{{ user.first_name }} {{ user.last_name }}" width="52" height="52" style="width:52px; height:52px; border-radius:50%; display:block; border:0;"></td>
+								<td valign="middle">
+									<div style="font-size:14px; font-weight:bold; color:#16233A;">{{ user.first_name }} {{ user.last_name }}</div>
+									<div style="font-size:12px; color:#FF1462; font-weight:bold;">Σύμβουλος ακινήτων</div>
+									<div style="font-size:12px; color:#777777;">{{ user.email }} · {{ user.phone }}</div>
+								</td>
+							</tr>
+						</table>
+					{% else %}
+						<div style="font-size:14px; font-weight:bold; color:#16233A;">{{ user.first_name }} {{ user.last_name }}</div>
+						<div style="font-size:12px; color:#FF1462; font-weight:bold;">Σύμβουλος ακινήτων</div>
+						<div style="font-size:12px; color:#777777;">{{ user.email }} · {{ user.phone }}</div>
+					{% endif %}
+				</td></tr>
+
+				{# ===== Footer ===== #}
+				<tr><td style="border-top:1px solid #eceef2; padding:14px 20px; font-size:11px; color:#999999; line-height:1.6;">
+					<strong style="color:#16233A;">Four Walls Real Estate</strong> · Φραγκίνη 9, 54624 Θεσσαλονίκη · <a href="tel:+306907483463" style="color:#999999; text-decoration:none;">+30 6907 483 463</a><br>
+					<a href="mailto:info@four-walls.gr" style="color:#FF1462; text-decoration:none;">info@four-walls.gr</a> · <a href="https://four-walls.gr/go?to=/&amp;c=appointment_reminder" style="color:#FF1462; text-decoration:none;">four-walls.gr</a>
+				</td></tr>
+
+			</table>
+		</td></tr>
+	</table>
+</body>
+</html>
