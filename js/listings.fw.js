@@ -738,12 +738,16 @@
 		photosBtn.textContent = "";
 		if (photos.length > 1 && photos[0] !== "images/lazy.svg") {
 			photosBtn.appendChild(document.createTextNode(STR.allPhotos(photos.length)));
-			photos.forEach(function (src) {
+			photos.forEach(function (src, i) {
 				var a = document.createElement("a");
 				a.href = src;
 				a.className = "d-block";
 				a.setAttribute("data-fancybox", "mainImg");
 				a.setAttribute("data-caption", title);
+				/* All anchors are stretched to fill the button by CSS and overlap.
+				   Keep the first one on top so a click opens Fancybox at photo 1,
+				   not the last anchor in DOM order. */
+				if (i === 0) a.style.zIndex = "2";
 				photosBtn.appendChild(a);
 			});
 		}
