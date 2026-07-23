@@ -29,8 +29,11 @@ export const SITE = {
 	origin: "https://four-walls.gr",
 	name: "Four Walls Real Estate",
 	locales: { el: "el_GR", en: "en_GB" }, // og:locale per language
-	/* Shared social-preview image (og:image / twitter:image), root-relative. */
-	ogImage: "/images/assets/og-home.fw.png",
+	/* Shared social-preview image (og:image / twitter:image), root-relative.
+	   The ?v=… is a cache-buster: bump it whenever og-home.fw.png is
+	   re-rendered so social scrapers (FB/LinkedIn/WhatsApp/Viber) re-fetch
+	   instead of showing the cached preview. */
+	ogImage: "/images/assets/og-home.fw.png?v=20260723",
 };
 
 /* Language of a PAGES_META key ("en/about.html" -> "en", else "el"). */

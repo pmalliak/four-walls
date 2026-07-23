@@ -116,6 +116,35 @@ export default {
 		if (pathname === "/api/contact") {
 			return handleContact(request, env);
 		}
+		// Tracked outbound links from our emails/CRM: /go?to=/path&c=<campaign>.
+		// Logs one structured "email_click" line (queryable in the Worker's
+		// Observability tab — logs are already persisted, wrangler.toml) and
+		// 302s to the destination with UTM stamped on, so Cloudflare Web
+		// Analytics also attributes the landing visit. `to` is forced to a
+		// same-origin absolute path: the open-redirect guard below rebuilds
+		// the URL on THIS origin and bails to "/" if anything (//evil.com,
+		// a scheme, a backslash trick) lands it off-host — four-walls.gr can
+		// never be used to launder a link to another site.
+		if (pathname === "/go") {
+			const rawTo = url.searchParams.get("to") || "/";
+			const campaign = (url.searchParams.get("c") || "link").slice(0, 64);
+			const to = /^\/(?!\/)[^\\]*$/.test(rawTo) ? rawTo : "/";
+			let dest = new URL(to, url.origin);
+			if (dest.origin !== url.origin) dest = new URL("/", url.origin);
+			dest.searchParams.set("utm_source", "email");
+			dest.searchParams.set("utm_medium", "email");
+			dest.searchParams.set("utm_campaign", campaign);
+			console.log(JSON.stringify({
+				event: "email_click",
+				campaign,
+				to: dest.pathname,
+				ref: request.headers.get("Referer") || "",
+				ua: request.headers.get("User-Agent") || "",
+				country: request.cf?.country || "",
+				ts: new Date().toISOString(),
+			}));
+			return Response.redirect(dest.toString(), 302);
+		}
 		if (url.pathname === "/data/listings.json") {
 			return serveFeed(env);
 		}
