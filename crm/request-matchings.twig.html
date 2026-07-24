@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="el" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="x-apple-disable-message-reformatting">
+<title>Νεα ακινητα για τη ζητηση σας</title>
+</head>
+<body style="margin:0; padding:0; background:#f4f5f7; font-family:Arial,sans-serif;">
+	<div style="display:none; max-height:0; overflow:hidden; opacity:0;">Βρήκαμε νέα ακίνητα που ταιριάζουν στα κριτήρια της ζήτησής σας.</div>
+	<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7; padding:16px 0;">
+		<tr><td align="center">
+			<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px; width:100%; background:#ffffff; border-radius:8px; overflow:hidden;">
+
+				<tr><td style="background:#16233A; padding:15px 20px;"><span style="color:#ffffff; font-size:18px; font-weight:bold; letter-spacing:1.5px;">FOUR WALLS</span><span style="color:#FF1462; font-size:10px; font-weight:bold; letter-spacing:2px;">&nbsp;&nbsp;REAL ESTATE</span></td></tr>
+				<tr><td style="height:3px; background:#FF1462;"></td></tr>
+
+				<tr><td style="padding:18px 20px 4px 20px; font-size:14px; line-height:1.7; color:#16233A;">
+					<h1 style="margin:0 0 12px 0; font-size:19px; font-weight:bold; color:#16233A;">Νέα ακίνητα για τη ζήτησή σας</h1>
+					<p style="margin:0 0 10px 0;">Γεια σας,</p>
+					<p style="margin:0 0 12px 0;">Εντοπίσαμε ακίνητα που ταιριάζουν με τα κριτήρια της ζήτησής σας. Δείτε τα παρακάτω:</p>
+
+					<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px; line-height:1.6; color:#16233A; background:#f7f8fa; border-left:3px solid #FF1462;">
+						<tr><td style="padding:8px 12px;">
+							<span style="color:#777777;">Ζήτηση</span> <strong>{{ request.purpose }} · {{ request.category }}</strong>
+							<span style="color:#999999;">&nbsp;(κωδ. {{ request.id }})</span>
+						</td></tr>
+					</table>
+				</td></tr>
+
+				{% for listing in listings %}
+					<tr><td style="padding:16px 20px 0 20px;">
+						<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eceef2; border-radius:6px; overflow:hidden;">
+
+							{% if listing.photos %}
+								<tr><td style="padding:0;">
+									<a href="{{ listing.url }}" style="display:block;"><img src="{{ listing.photos.0 }}" alt="{{ listing.title }}" width="480" style="width:100%; max-width:480px; height:auto; display:block; border:0;"></a>
+								</td></tr>
+							{% endif %}
+
+							<tr><td style="padding:12px 14px 14px 14px; font-size:14px; line-height:1.6; color:#16233A;">
+								<div style="font-size:15px; font-weight:bold; color:#16233A; margin:0 0 4px 0;">{{ listing.title }}</div>
+
+								{% if listing.price %}
+									<div style="font-size:17px; font-weight:bold; color:#FF1462; margin:0 0 4px 0;">{{ listing.price }}</div>
+								{% endif %}
+
+								{% if listing.code %}
+									<div style="font-size:12px; color:#777777; margin:0 0 10px 0;">Κωδικός ακινήτου: {{ listing.code }}</div>
+								{% endif %}
+
+								<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 0 0;">
+									<tr><td style="background:#FF1462; border-radius:4px;">
+										<a href="{{ listing.url }}" style="display:block; padding:9px 18px; font-size:13px; font-weight:bold; color:#ffffff; text-decoration:none; letter-spacing:0.4px;">ΔΕΙΤΕ ΤΟ ΑΚΙΝΗΤΟ</a>
+									</td></tr>
+								</table>
+							</td></tr>
+
+						</table>
+					</td></tr>
+				{% endfor %}
+
+				<tr><td style="padding:16px 20px 6px 20px; font-size:14px; line-height:1.7; color:#16233A;">
+					<p style="font-size:12px; color:#777777; margin:0 0 12px 0; line-height:1.5;">Αν κάποιο από τα παραπάνω σας ενδιαφέρει, απαντήστε σε αυτό το email ή καλέστε μας στο <strong style="color:#FF1462;">{{ user.phone }}</strong> για να κλείσουμε επίσκεψη. Συνεχίζουμε να παρακολουθούμε την αγορά και θα σας ενημερώσουμε μόλις προκύψει κάτι νέο.</p>
+
+					<p style="font-size:12px; color:#777777; margin:0 0 12px 0; line-height:1.5; padding-top:10px; border-top:1px solid #eceef2;">Βρήκατε ήδη αυτό που ψάχνατε; <a href="https://four-walls.gr/request-closed?r={{ request.id }}&amp;c={{ contact.id }}" style="color:#FF1462; text-decoration:underline;">Πείτε μας να σταματήσουμε τις προτάσεις</a> για τη ζήτηση αυτή.</p>
+
+					<p style="margin:14px 0 4px 0;">Με εκτίμηση,</p>
+
+					{% if user.photo %}
+						<table role="presentation" cellpadding="0" cellspacing="0" style="margin:2px 0 4px 0;">
+							<tr>
+								<td valign="middle" style="padding-right:14px;"><img src="{{ user.photo }}" alt="{{ user.first_name }} {{ user.last_name }}" width="52" height="52" style="width:52px; height:52px; border-radius:50%; display:block; border:0;"></td>
+								<td valign="middle">
+									<div style="font-size:14px; font-weight:bold; color:#16233A;">{{ user.first_name }} {{ user.last_name }}</div>
+									<div style="font-size:12px; color:#FF1462; font-weight:bold;">Σύμβουλος ακινήτων</div>
+									<div style="font-size:12px; color:#777777;">{{ user.email }} · {{ user.phone }}</div>
+								</td>
+							</tr>
+						</table>
+					{% else %}
+						<div style="font-size:14px; font-weight:bold; color:#16233A;">{{ user.first_name }} {{ user.last_name }}</div>
+						<div style="font-size:12px; color:#FF1462; font-weight:bold;">Σύμβουλος ακινήτων</div>
+						<div style="font-size:12px; color:#777777;">{{ user.email }} · {{ user.phone }}</div>
+					{% endif %}
+				</td></tr>
+
+				<tr><td style="border-top:1px solid #eceef2; padding:14px 20px; font-size:11px; color:#999999; line-height:1.6;">
+					<strong style="color:#16233A;">Four Walls Real Estate</strong> · Φραγκίνη 9, 54624 Θεσσαλονίκη · <a href="tel:+306907483463" style="color:#999999; text-decoration:none;">+30 6907 483 463</a><br>
+					<a href="mailto:info@four-walls.gr" style="color:#FF1462; text-decoration:none;">info@four-walls.gr</a> · <a href="https://four-walls.gr/go?to=/&amp;c=request_matchings" style="color:#FF1462; text-decoration:none;">four-walls.gr</a>
+				</td></tr>
+
+			</table>
+		</td></tr>
+	</table>
+</body>
+</html>

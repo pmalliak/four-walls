@@ -365,6 +365,115 @@
   });
 })();
 
+/* Request closed: «ολοκλήρωσα την αναζήτηση» ---------------------------- *
+ * /request-closed is the landing page of the link at the bottom of the
+ * CRM matchings email (crm/request-matchings.twig.html), which carries
+ * the ids as ?r=<request>&c=<contact>. The client confirms with the
+ * button; we POST to the Worker's /api/request-closed, which verifies
+ * the Turnstile token and relays to Make (→ email to info@; the CRM
+ * write-back comes later, when EstatePrime exposes an update endpoint).
+ * The ids stay in the query string only — nothing about the client is
+ * rendered from them, so a tampered link can only misfile one email.
+ * On localhost the POST is simulated so the done state can be seen
+ * without sending mail.                                                 */
+(function () {
+  "use strict";
+  var form = document.getElementById("fw-request-closed-form");
+  if (!form) return;
+
+  var ENDPOINT = "/api/request-closed";
+  var IS_LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+  var LANG = /^en\b/i.test(document.documentElement.lang || "") ? "en" : "el";
+  var STR = ({
+    el: {
+      errorHtml:
+        "Η επιβεβαίωση δεν καταχωρήθηκε — δοκιμάστε ξανά σε λίγο, ή γράψτε μας " +
+        'στο <a href="mailto:info@four-walls.gr">info@four-walls.gr</a>.',
+      turnstile:
+        "Περιμένετε να ολοκληρωθεί ο έλεγχος ασφαλείας (το πλαίσιο πάνω από το " +
+        "κουμπί) και πατήστε ξανά «Επιβεβαίωση».",
+      sending: "Αποστολή..."
+    },
+    en: {
+      errorHtml:
+        "Your confirmation was not recorded — please try again shortly, or write " +
+        'to <a href="mailto:info@four-walls.gr">info@four-walls.gr</a>.',
+      turnstile:
+        "Please wait for the security check to complete (the box above the " +
+        "button) and press “Confirm” again.",
+      sending: "Sending..."
+    }
+  })[LANG];
+  var ERROR_HTML = STR.errorHtml;
+  var TURNSTILE_MSG = STR.turnstile;
+
+  var params = new URLSearchParams(window.location.search);
+  var requestId = (params.get("r") || "").slice(0, 20);
+  var contactId = (params.get("c") || "").slice(0, 20);
+
+  // Show the request code back to the client only when it looks like one
+  // of ours (digits) — never echo raw query text into the page.
+  if (/^\d+$/.test(requestId)) {
+    document.getElementById("fw-rc-code").textContent = requestId;
+    document.getElementById("fw-rc-meta").hidden = false;
+  }
+
+  var messages = document.getElementById("fw-rc-messages");
+  var btn = form.querySelector("button[type=submit]");
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    var tokenField = form.querySelector('input[name="cf-turnstile-response"]');
+    var token = tokenField ? tokenField.value : "";
+    if (!token && !IS_LOCAL) {
+      messages.innerHTML = TURNSTILE_MSG;
+      return;
+    }
+
+    var checked = form.querySelector('input[name="reason"]:checked');
+    var payload = {
+      request_id: requestId,
+      contact_id: contactId,
+      reason: checked ? checked.value : "",
+      comment: form.comment.value.trim(),
+      page: window.location.pathname + window.location.search,
+      token: token,
+      website: form.website ? form.website.value : ""
+    };
+
+    var label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = STR.sending;
+    messages.innerHTML = "";
+
+    var send = IS_LOCAL
+      ? new Promise(function (resolve) {
+          setTimeout(function () { resolve({ ok: true }); }, 500);
+        })
+      : fetch(ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+    send
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        document.getElementById("fw-request-closed").hidden = true;
+        var done = document.getElementById("fw-rc-done");
+        done.hidden = false;
+        done.scrollIntoView({ block: "center" });
+      })
+      .catch(function () {
+        if (window.turnstile) window.turnstile.reset();
+        btn.disabled = false;
+        btn.textContent = label;
+        messages.innerHTML = ERROR_HTML;
+      });
+  });
+})();
+
 /* Snappy scroll-to-top ------------------------------------------------ *
  * Bootstrap sets `:root { scroll-behavior: smooth }`, so every programmatic
  * scrollTop write (the theme's jQuery $.animate, and any scrollTo) gets

@@ -17,6 +17,9 @@
         Make scenario webhook. Both the Turnstile secret and the
         webhook URL are Worker secrets (TURNSTILE_SECRET_KEY,
         MAKE_CONTACT_WEBHOOK) — neither ever reaches the browser.
+     6. POST /api/request-closed — same relay for the «ολοκλήρωσα την
+        αναζήτηση» confirmation on /request-closed, the landing page of
+        the link in the CRM matchings email (MAKE_REQUEST_CLOSED_WEBHOOK).
 
    A nightly cron (see wrangler.toml [triggers]) rebuilds the feed as
    reconciliation for any webhook deliveries that were missed.
@@ -115,6 +118,9 @@ export default {
 		}
 		if (pathname === "/api/contact") {
 			return handleContact(request, env);
+		}
+		if (pathname === "/api/request-closed") {
+			return handleRequestClosed(request, env);
 		}
 		// Tracked outbound links from our emails/CRM: /go?to=/path&c=<campaign>.
 		// Logs one structured "email_click" line (queryable in the Worker's
@@ -386,6 +392,95 @@ async function handleContact(request, env) {
 		console.error(`contact: Make webhook forward failed (HTTP ${fwd.status})`);
 		return contactJson({ success: false, error: "forward_failed" }, 502);
 	}
+	return contactJson({ success: true }, 200);
+}
+
+/* POST /api/request-closed — the «ολοκλήρωσα την αναζήτηση» button on
+   /request-closed, the landing page of the link in the CRM matchings
+   email (crm/request-matchings.twig.html). Same shape as the contact
+   relay: Turnstile is verified here, then the confirmation is forwarded
+   to its own Make webhook (MAKE_REQUEST_CLOSED_WEBHOOK), which emails
+   info@ so a consultant closes the ζήτηση by hand. When EstatePrime
+   exposes a request-update endpoint, Make gets a second module and this
+   route does not change.
+
+   The ids come from the email link's query string, so they are visitor
+   input: both are accepted ONLY as digits and are otherwise dropped —
+   Make must treat a blank id as «άγνωστη ζήτηση, ψάξ' το» rather than
+   matching on something arbitrary. Nothing here reads or returns CRM
+   data, so a guessed id can at worst file one misleading email. */
+async function handleRequestClosed(request, env) {
+	if (request.method !== "POST") {
+		return contactJson({ success: false, error: "method_not_allowed" }, 405, { "Allow": "POST" });
+	}
+	if (!env.TURNSTILE_SECRET_KEY || !env.MAKE_REQUEST_CLOSED_WEBHOOK) {
+		console.error("request-closed: TURNSTILE_SECRET_KEY / MAKE_REQUEST_CLOSED_WEBHOOK secret not configured");
+		return contactJson({ success: false, error: "not_configured" }, 500);
+	}
+
+	let body;
+	try {
+		body = await request.json();
+	} catch {
+		return contactJson({ success: false, error: "bad_request" }, 400);
+	}
+
+	if (typeof body.website === "string" && body.website !== "") {
+		console.warn("request-closed: honeypot tripped, dropping confirmation");
+		return contactJson({ success: true }, 200);
+	}
+
+	const digits = (v) => (/^\d{1,12}$/.test(String(v || "")) ? String(v) : "");
+	const requestId = digits(body.request_id);
+	const contactId = digits(body.contact_id);
+	const reason = String(body.reason || "").trim().slice(0, 100);
+	const comment = String(body.comment || "").trim().slice(0, 2000);
+
+	const token = String(body.token || "");
+	if (!token) {
+		return contactJson({ success: false, error: "missing_token" }, 400);
+	}
+	const verify = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			secret: env.TURNSTILE_SECRET_KEY,
+			response: token,
+			remoteip: request.headers.get("CF-Connecting-IP"),
+		}),
+	});
+	const outcome = await verify.json();
+	if (!outcome.success) {
+		console.warn(`request-closed: turnstile rejected (${(outcome["error-codes"] || []).join(", ")})`);
+		return contactJson({ success: false, error: "turnstile_failed" }, 403);
+	}
+
+	const fwd = await fetch(env.MAKE_REQUEST_CLOSED_WEBHOOK, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			request_id: requestId,
+			contact_id: contactId,
+			reason,
+			comment,
+			page: String(body.page || "").slice(0, 200),
+			received_at: new Date().toISOString(),
+		}),
+	});
+	if (!fwd.ok) {
+		console.error(`request-closed: Make webhook forward failed (HTTP ${fwd.status})`);
+		return contactJson({ success: false, error: "forward_failed" }, 502);
+	}
+	// One structured line per confirmation — queryable in Observability
+	// next to the /go email_click events, so «άνοιξε το email → πάτησε
+	// τον σύνδεσμο → επιβεβαίωσε» is reconstructable without the CRM.
+	console.log(JSON.stringify({
+		event: "request_closed",
+		request_id: requestId,
+		contact_id: contactId,
+		reason,
+		ts: new Date().toISOString(),
+	}));
 	return contactJson({ success: true }, 200);
 }
 

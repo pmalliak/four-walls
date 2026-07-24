@@ -97,6 +97,9 @@ CF_ACCOUNT_ID = "94b15dbfc8d916d5af9808c1c9bc3f16"
 #   ESTATEPRIME_API_SECRET   EstatePrime secret API key   (used when SAMPLE_DATA=0)
 #   TURNSTILE_SECRET_KEY     verifies the site contact form's token
 #   MAKE_CONTACT_WEBHOOK     Make hook for the site contact form
+#   MAKE_REQUEST_CLOSED_WEBHOOK  Make hook for the «ολοκλήρωσα την αναζήτηση»
+#                            confirmation on /request-closed (→ email to info@;
+#                            see docs/request-closed.md)
 #   MAKE_FORMS_WEBHOOK       Make hook for the Έντυπα PWA (scenario «Έντυπα —
 #                            υποβολή φόρμας»). The URL is the credential, so
 #                            it stays server-side — see worker/lib/forms.mjs.

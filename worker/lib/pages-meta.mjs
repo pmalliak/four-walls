@@ -126,6 +126,16 @@ export const PAGES_META = {
 		title: "Cookies · Four Walls Real Estate",
 		description: "Ενημέρωση για τα cookies στον ιστότοπο της Four Walls — ποια χρησιμοποιούνται και πώς να τα διαχειριστείτε.",
 	},
+	/* Landing page for the «ολοκλήρωσα την αναζήτηση» link in the CRM
+	   matchings email (crm/request-matchings.twig.html). Reachable only
+	   from that email — kept out of the sitemap, and Greek-only for now
+	   (the email it serves is Greek-only). */
+	"request-closed.html": {
+		path: "/request-closed",
+		title: "Ολοκλήρωση αναζήτησης · Four Walls Real Estate",
+		description: "Επιβεβαιώστε ότι ολοκληρώσατε την αναζήτηση ακινήτου και θα σταματήσουμε τις προτάσεις για τη συγκεκριμένη ζήτηση.",
+		sitemap: false,
+	},
 	"404.html": {
 		path: null,
 		title: "Η σελίδα δεν βρέθηκε · Four Walls Real Estate",
@@ -215,6 +225,15 @@ export const PAGES_META = {
 		path: "/en/cookies",
 		title: "Cookies · Four Walls Real Estate",
 		description: "How the Four Walls website uses cookies — which ones are set and how to manage them.",
+	},
+	/* English twin of request-closed.html — the landing page of the
+	   opt-out link in the English matchings email. Same rules: reachable
+	   only from that email, kept out of the sitemap. */
+	"en/request-closed.html": {
+		path: "/en/request-closed",
+		title: "Search Complete · Four Walls Real Estate",
+		description: "Confirm that you have finished your property search and we will stop sending you suggestions for it.",
+		sitemap: false,
 	},
 	"en/404.html": {
 		path: null,
