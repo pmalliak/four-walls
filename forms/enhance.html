@@ -40,6 +40,8 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 .opt input{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:24px;height:24px;margin:1px 0 0;border:2px solid #cdd5e0;border-radius:7px;background:#fff;position:relative;cursor:pointer;transition:.12s;}
 .opt input:checked{background:var(--navy);border-color:var(--navy);}
 .opt input:checked::after{content:"";position:absolute;left:7px;top:3px;width:6px;height:11px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg);}
+.opt input[type=radio]{border-radius:50%;}
+.opt input[type=radio]:checked::after{left:6px;top:6px;width:8px;height:8px;border:0;border-radius:50%;background:#fff;transform:none;}
 .opt.warn input:checked{background:#c2410c;border-color:#c2410c;}
 .opt .o-t{font-weight:700;color:var(--navy);font-size:14px;}
 .opt .o-d{color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.4;}
@@ -97,6 +99,13 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		<div class="ghdr warn">Προσοχή — αλλάζουν την πραγματική εικόνα</div>
 		<div class="hintline" style="margin-top:2px">Ενεργοποιήστε τα μόνο όταν πρέπει· από προεπιλογή οι φθορές παραμένουν ορατές ώστε να μην παραπλανούμε τον πελάτη.</div>
 		<div id="optsWarn"></div>
+	</div>
+
+	<div class="card">
+		<div class="sect">Μοντέλο</div>
+		<label class="opt"><input type="radio" name="model" value="lite"><div><div class="o-t">Πολύ οικονομικό — Nano Banana 2 Lite</div><div class="o-d">~0,02–0,05 € / φωτογραφία · για μεγάλα batches και απλές λήψεις</div></div></label>
+		<label class="opt"><input type="radio" name="model" value="nb2" checked><div><div class="o-t">Οικονομικό — Nano Banana 2</div><div class="o-d">~0,05–0,08 € / φωτογραφία · γρήγορο, για καθημερινή χρήση</div></div></label>
+		<label class="opt"><input type="radio" name="model" value="pro"><div><div class="o-t">Κορυφαίο — Nano Banana Pro</div><div class="o-d">~0,13 € / φωτογραφία · μέγιστη πιστότητα για δύσκολες λήψεις</div></div></label>
 	</div>
 
 	<div class="card">
@@ -165,7 +174,11 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		});
 	}
 	function selectedOptions(){
-		return [].slice.call(document.querySelectorAll(".opt input:checked")).map(function(c){ return c.dataset.key; });
+		return [].slice.call(document.querySelectorAll(".opt input[type=checkbox]:checked")).map(function(c){ return c.dataset.key; });
+	}
+	function selectedModel(){
+		var r = document.querySelector('input[name=model]:checked');
+		return r ? r.value : "nb2";
 	}
 
 	/* ---- property picker (reads /api/crm/listings, like _crm.fw.js) ---- */
@@ -274,7 +287,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		setProg(4, "Προετοιμασία αποστολής…");
 		try{
 			var initRes = await fetch("/api/photos/init", { method:"POST", headers:{ "Content-Type":"application/json" },
-				body: JSON.stringify({ property: selected, options: selectedOptions(), count: items.length }) });
+				body: JSON.stringify({ property: selected, options: selectedOptions(), model: selectedModel(), count: items.length }) });
 			if (!initRes.ok) throw new Error("init " + initRes.status);
 			var batchId = (await initRes.json()).batch_id;
 
@@ -299,7 +312,8 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 	function reset(){
 		items.forEach(function(it){ URL.revokeObjectURL(it.url); });
 		items = []; selected = null; renderGrid(); renderChosen();
-		document.querySelectorAll(".opt input").forEach(function(c){ var o = OPTIONS.find(function(x){ return x.key===c.dataset.key; }); c.checked = !!(o&&o.on); });
+		document.querySelectorAll(".opt input[type=checkbox]").forEach(function(c){ var o = OPTIONS.find(function(x){ return x.key===c.dataset.key; }); c.checked = !!(o&&o.on); });
+		var nb2 = document.querySelector('input[name=model][value=nb2]'); if (nb2) nb2.checked = true;
 		show("ok", false); show("form", true); show("bar", true); window.scrollTo(0,0);
 	}
 

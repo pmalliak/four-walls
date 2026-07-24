@@ -76,6 +76,17 @@ const KNOWN_OPTIONS = new Set([
 	...Object.keys(SAFE_FRAGMENTS), "repair_damage", "virtual_staging",
 ]);
 
+/* Model tiers the form may pick. The CLIENT sends only the tier key; the
+   real Gemini model name is resolved HERE, so the browser can never inject
+   an arbitrary (pricier) model. Make just uses payload.gemini_model.
+   Prices ≈ per photo at 2K output. */
+const MODEL_TIERS = {
+	lite: { model: "gemini-3.1-flash-lite-image", label: "Nano Banana 2 Lite (πολύ οικονομικό)" },
+	nb2: { model: "gemini-3.1-flash-image", label: "Nano Banana 2 (οικονομικό)" },
+	pro: { model: "gemini-3-pro-image", label: "Nano Banana Pro (κορυφαίο)" },
+};
+const DEFAULT_TIER = "nb2";
+
 /* Greek labels for the handoff email («Επεξεργασίες» row) — keep in sync
    with the OPTIONS array in forms/enhance.html. */
 const OPTION_LABELS_EL = {
@@ -223,6 +234,10 @@ async function initBatch(request, env, url, email) {
 		? [...new Set(body.options.filter((o) => KNOWN_OPTIONS.has(o)))]
 		: [];
 
+	// Unknown/absent tier silently falls back to the cheap default — a typo
+	// must never buy the expensive model.
+	const tier = MODEL_TIERS[body?.model] ? body.model : DEFAULT_TIER;
+
 	// property: keep only the fields we trust and the email needs. A blank
 	// property is legitimate — the email then links to "create a listing".
 	let property = null;
@@ -245,6 +260,9 @@ async function initBatch(request, env, url, email) {
 		options,
 		// Ready-made Greek list for the email's «Επεξεργασίες» row.
 		options_label: options.map((k) => OPTION_LABELS_EL[k] || k).join(", "),
+		model_tier: tier,
+		gemini_model: MODEL_TIERS[tier].model,
+		model_label: MODEL_TIERS[tier].label,
 		prompt: composePrompt(options),
 		count,
 	};
@@ -328,6 +346,9 @@ async function finalizeBatch(request, env, url, batchId) {
 		links: meta.links,
 		options: meta.options,
 		options_label: meta.options_label || (meta.options || []).join(", "),
+		model_tier: meta.model_tier || DEFAULT_TIER,
+		gemini_model: meta.gemini_model || MODEL_TIERS[DEFAULT_TIER].model,
+		model_label: meta.model_label || MODEL_TIERS[DEFAULT_TIER].label,
 		prompt: meta.prompt,
 		count: photos.length,
 		photos,

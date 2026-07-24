@@ -54,10 +54,24 @@ the UI. Two things that matters for:
 **Status 2026-07-24 — COMPLETE and verified end-to-end** with a real listing
 photo through the full chain (form → R2 → webhook → per-property folders →
 Nano Banana Pro edit → `enhanced/`+`originals/` in Drive → email): 39 s and
-~€0.15 for a 1-photo batch. Model: **`gemini-3.1-flash-image` (Nano Banana 2) capped at 2K output**
-(~€1.2–2 per 25 photos; Pro uncapped was hitting the 4K tier at ~€5.5/25) on
-Panos's personal Gemini connection (billing enabled 2026-07-24). Quality
-fallback if NB2 disappoints: `gemini-3-pro-image` + 2K ≈ €3.1/25.
+~€0.15 for a 1-photo batch. **Model is chosen per batch in the form** («Μοντέλο» radios; output always
+capped at 2K), on Panos's personal Gemini connection (billing enabled
+2026-07-24). The browser sends only a tier key — `worker/lib/photos.mjs`
+`MODEL_TIERS` resolves it to the real model name (so the client can never
+inject an arbitrary model) and Make maps `{{1.gemini_model}}` straight in:
+
+| Tier key | Model | ~€/photo @2K | Default |
+|----------|-------|--------------|:-------:|
+| `lite` | `gemini-3.1-flash-lite-image` | ~0.02–0.05 | |
+| `nb2`  | `gemini-3.1-flash-image` | ~0.05–0.08 | ✅ (also the fallback for unknown keys) |
+| `pro`  | `gemini-3-pro-image` | ~0.13 | |
+
+(Pro uncapped was hitting the 4K tier at ~€0.22/photo — that is why the
+first real batch cost ~€3.) Gemini's **Batch API** (−50%) was considered
+and skipped: Make's module has no batch mode, and a polling second
+scenario would burn more Make ops than the €1/shoot it saves at current
+volume — `batch_id` is ready as the correlation key if volume ever
+justifies it.
 
 `blur_windows` (replaced the old sky option, 2026-07-24): privacy feature —
 the view through windows becomes a bright defocused glow so the building
