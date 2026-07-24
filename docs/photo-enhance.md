@@ -38,7 +38,6 @@ The design mirrors the existing browser→Worker→Make-secret pattern used by
 | Routes | [worker/index.mjs](../worker/index.mjs) | Staff API gated by Access on `forms.*`; public `/api/photos/file/` served on the apex, guarded by signature |
 | Config | [wrangler.toml](../wrangler.toml) | `PHOTO_BUCKET` R2 binding + `MAKE_PHOTO_WEBHOOK` / `PHOTO_SIGN_KEY` secrets |
 | Engine | Make scenario (below) | Gemini calls, Drive upload, email |
-| Bake-off | [tools/gemini-declutter.dev.js](../tools/gemini-declutter.dev.js) | Dev-only local tester — the exact Gemini call the scenario uses; delete once live |
 
 ## Prompt composition (the toggles)
 
