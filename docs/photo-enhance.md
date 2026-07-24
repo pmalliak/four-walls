@@ -202,7 +202,10 @@ is there to reference.
 
 **Cloudflare** (deploy = push to `main`; secrets don't need a deploy):
 - [ ] `npx wrangler r2 bucket create four-walls-photos`
-- [ ] (recommended) R2 → bucket → **lifecycle rule**: expire objects after 7 days (originals are throwaway once Make has them)
+- [x] R2 **lifecycle rule** `expire-staged-photos`: objects under `photos/`
+      auto-expire after 7 days (added 2026-07-25 via
+      `wrangler r2 bucket lifecycle add`). R2 is staging only — Drive is the
+      permanent home; 7 days covers any DLQ retry window.
 - [ ] `npx wrangler secret put PHOTO_SIGN_KEY` — any long random string
 - [ ] `npx wrangler secret put MAKE_PHOTO_WEBHOOK` — the webhook URL from Make step 1
 - [ ] push to `main` so the `PHOTO_BUCKET` binding + routes deploy
