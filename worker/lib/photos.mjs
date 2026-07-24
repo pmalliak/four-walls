@@ -115,9 +115,21 @@ function composePrompt(options) {
 		? "- Repair visible surface damage: fill cracks, remove stains and water marks, and touch up peeling or scuffed paint so walls and surfaces look sound and freshly maintained."
 		: "- Preserve ALL visible damage exactly as it is: cracks, stains, water marks, peeling paint, scuffs and wear must remain clearly visible and unaltered. Do not hide or repair any defect.");
 
-	// Staging — off (the default) must add nothing.
+	// Staging — off (the default) must add nothing. When on, the spec is
+	// deliberately detailed: v1's one-liner staged rooms too sparsely (a
+	// lone sofa, a bathroom with just a mirror) and let the model invent
+	// doors / turn a window into a balcony door (feedback 2026-07-25).
 	lines.push(on.has("virtual_staging")
-		? "- If a room is empty or sparsely furnished, add tasteful, realistic, appropriately-scaled furniture and decor suited to the room type, without misrepresenting the room's true size or layout."
+		? [
+			"- Virtual staging: furnish empty or sparse rooms completely and realistically, the way a professional home stager would present a listing — welcoming and lived-in, never minimal, never cluttered. First identify each room's type from its visible fixtures, then furnish accordingly:",
+			"  * Living room: a full sofa arrangement with cushions and a throw, coffee table, area rug, TV unit or bookcase, floor lamp, wall art and a plant.",
+			"  * Bedroom: a properly sized bed with made-up linens and pillows, nightstands with lamps, a rug and wall art.",
+			"  * Kitchen: small countertop appliances (coffee machine, kettle, toaster), a fruit bowl, a cutting board and a few tasteful jars — on existing counters only.",
+			"  * Bathroom: folded towels on existing rails or shelves, a bath mat, soap dispensers and cosmetics by the basin, a small plant or candles.",
+			"  * Dining area: a dining table with chairs and a simple centerpiece.",
+			"  In every room, also add curtains on the existing windows, a tasteful ceiling light fixture if the room lacks one, and rugs or plants as accents.",
+			"  STRICT while staging: add furniture, textiles, light fixtures and decor ONLY — NEVER invent doors, balcony doors, windows, openings or passages that are not in the photo; never turn a window into a balcony door or vice versa; every wall, opening and room dimension stays exactly as photographed; keep all furniture realistically scaled and do not misrepresent the room's true size or layout.",
+		].join("\n")
 		: "- Do not add any furniture, appliances or decorative objects that are not already physically present in the photo.");
 
 	// blur_windows deliberately REPLACES what is seen through windows — the
@@ -125,8 +137,8 @@ function composePrompt(options) {
 	// or the two instructions contradict and the model resolves it
 	// unpredictably.
 	lines.push(on.has("blur_windows")
-		? "HARD RULES: never add, remove, resize or relocate any permanent architectural feature — walls, doors, windows, floors, ceilings, stairs, built-in cabinetry. The ONLY permitted change through windows is the privacy obscuring requested above. The edited photo must not misrepresent the property itself."
-		: "HARD RULES: never add, remove, resize or relocate any permanent architectural feature — walls, doors, windows, floors, ceilings, stairs, built-in cabinetry — and never alter anything seen through windows. The edited photo must not misrepresent the property.");
+		? "HARD RULES: never add, remove, resize, relocate or reinterpret any permanent architectural feature — walls, doors, balcony doors, windows, other openings, floors, ceilings, stairs, built-in cabinetry. A window stays a window; a door stays a door. The ONLY permitted change through windows is the privacy obscuring requested above. The edited photo must not misrepresent the property itself."
+		: "HARD RULES: never add, remove, resize, relocate or reinterpret any permanent architectural feature — walls, doors, balcony doors, windows, other openings, floors, ceilings, stairs, built-in cabinetry. A window stays a window; a door stays a door. Never alter anything seen through windows. The edited photo must not misrepresent the property.");
 	return lines.join("\n");
 }
 
