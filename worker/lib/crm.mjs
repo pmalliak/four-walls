@@ -81,10 +81,14 @@ async function apiJson(base, headers, path, tries = 3) {
    empty in front of a client: an index that is a few hours old still
    finds the right person far better than an error message does. The
    entry is stored WITHOUT expirationTtl on purpose — it is the fallback,
-   so it must outlive its own freshness window. */
-async function cachedIndex(env, key, build) {
+   so it must outlive its own freshness window.
+
+   `force` skips the freshness check (still falls back to stale on error):
+   the picker's «Ανανέωση» button and the EstatePrime webhook use it, so a
+   listing added in the CRM shows up without waiting out the TTL. */
+async function cachedIndex(env, key, build, force) {
 	const cached = await env.LISTINGS_KV.get(key, "json");
-	const fresh = cached && Date.now() - Date.parse(cached.generatedAt) < INDEX_TTL * 1000;
+	const fresh = !force && cached && Date.now() - Date.parse(cached.generatedAt) < INDEX_TTL * 1000;
 	if (fresh) return cached;
 
 	try {
@@ -105,7 +109,7 @@ async function cachedIndex(env, key, build) {
 /* Search index: every contact, trimmed to what the searchbox matches on.
    58 contacts today -> a few KB, so the tablet downloads it once and
    filters locally (instant, and survives a bad 4G signal at a viewing). */
-export async function contactsIndex(env) {
+export async function contactsIndex(env, force) {
 	return cachedIndex(env, CONTACTS_KEY, async () => {
 		const rows = await fetchAllPages(env, "/contacts");
 		return {
@@ -113,7 +117,7 @@ export async function contactsIndex(env) {
 			count: rows.length,
 			contacts: rows.map(indexEntry),
 		};
-	});
+	}, force);
 }
 
 /* Walk a paginated list endpoint to the end. The ?page= guard mirrors
@@ -193,7 +197,7 @@ function displayName(raw) {
    currently carries exactly one — but an empty array is a legitimate
    state (a listing with no contact attached), so the caller must cope
    with ownerId === null rather than assume. */
-export async function listingsIndex(env) {
+export async function listingsIndex(env, force) {
 	return cachedIndex(env, LISTINGS_KEY, async () => {
 		const rows = await fetchAllPages(env, "/listings");
 		const active = rows.filter((r) => r.status === "active");
@@ -221,5 +225,5 @@ export async function listingsIndex(env) {
 				};
 			}),
 		};
-	});
+	}, force);
 }

@@ -193,9 +193,9 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			'<div class="c-addr">' + [selected.address, selected.area].filter(Boolean).join(" · ") + '</div></div>';
 		$("clearSel").onclick = function(){ selected = null; renderChosen(); };
 	}
-	async function loadListings(){
-		if (listingsCache) return listingsCache;
-		var res = await fetch("/api/crm/listings", { headers:{ Accept:"application/json" } });
+	async function loadListings(force){
+		if (listingsCache && !force) return listingsCache;
+		var res = await fetch("/api/crm/listings" + (force ? "?refresh=1" : ""), { headers:{ Accept:"application/json" } });
 		if (res.status===401 || res.status===403) throw new Error("Χρειάζεται σύνδεση — ανοίξτε ξανά την εφαρμογή.");
 		if (!res.ok) throw new Error("Σφάλμα " + res.status + " από το CRM.");
 		var data = await res.json();
@@ -209,11 +209,16 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 	}
 	function openSheet(){
 		var back = document.createElement("div"); back.className = "sheet";
-		back.innerHTML = '<div class="panel"><div class="shead"><input class="ssearch" type="search" placeholder="Κωδικός, διεύθυνση ή περιοχή…" autocomplete="off"><button class="sclose" type="button">Άκυρο</button></div><div class="slist"><div class="sstatus">Φόρτωση…</div></div></div>';
+		back.innerHTML = '<div class="panel"><div class="shead"><input class="ssearch" type="search" placeholder="Κωδικός, διεύθυνση ή περιοχή…" autocomplete="off"><button class="sclose srefresh" type="button" title="Ανανέωση από το CRM">↻</button><button class="sclose" type="button">Άκυρο</button></div><div class="slist"><div class="sstatus">Φόρτωση…</div></div></div>';
 		document.body.appendChild(back); document.body.style.overflow = "hidden";
 		var input = back.querySelector(".ssearch"), list = back.querySelector(".slist");
 		function shut(){ back.remove(); document.body.style.overflow = ""; }
-		back.querySelector(".sclose").onclick = shut;
+		back.querySelector(".sclose:not(.srefresh)").onclick = shut;
+		back.querySelector(".srefresh").onclick = function(){
+			list.innerHTML = '<div class="sstatus">Ανανέωση από το CRM…</div>';
+			loadListings(true).then(function(r){ rows = r; render(); })
+				.catch(function(err){ list.innerHTML = '<div class="sstatus"></div>'; list.firstChild.textContent = err.message; });
+		};
 		back.onclick = function(e){ if (e.target===back) shut(); };
 		var rows = [];
 		function render(){

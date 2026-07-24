@@ -81,7 +81,7 @@ export default {
 			if (denied) return denied;
 			return pathname === "/api/forms/submit"
 				? handleFormSubmit(request, env, email)
-				: handleCrm(request, env, pathname);
+				: handleCrm(request, env, pathname, url);
 		}
 
 		// AI photo enhancement — the STAFF half (init/upload/finalize). Same
@@ -265,14 +265,18 @@ export default {
 
    Every response carries client PII. The caller has already cleared the
    Access gate — never route here without it. */
-async function handleCrm(request, env, pathname) {
+async function handleCrm(request, env, pathname, url) {
 	if (request.method !== "GET") {
 		return json({ error: "Method not allowed" }, 405);
 	}
 
+	// ?refresh=1 — the picker's «Ανανέωση» button: skip the 15-min index
+	// freshness window and rebuild from the CRM right now.
+	const force = url?.searchParams.get("refresh") === "1";
+
 	try {
 		if (pathname === "/api/crm/contacts") {
-			return json(await contactsIndex(env));
+			return json(await contactsIndex(env, force));
 		}
 		const m = pathname.match(/^\/api\/crm\/contacts\/(\d+)$/);
 		if (m) {
@@ -280,7 +284,7 @@ async function handleCrm(request, env, pathname) {
 			return contact ? json(contact) : json({ error: "Not found" }, 404);
 		}
 		if (pathname === "/api/crm/listings") {
-			return json(await listingsIndex(env));
+			return json(await listingsIndex(env, force));
 		}
 		return json({ error: "Not found" }, 404);
 	} catch (err) {
@@ -536,5 +540,16 @@ async function regenerate(env, trigger) {
 		console.log(`feed regenerated (${trigger}): ${feed.count} listings, source=${feed.source}`);
 	} catch (err) {
 		console.error(`feed regeneration FAILED (${trigger}): ${err.message}`);
+	}
+	// The same CRM change that moved the public feed also staled the forms'
+	// property picker — rebuild its index in the same breath, so a listing
+	// added in EstatePrime shows up in enhance.html/έντυπα within seconds
+	// instead of waiting out the 15-min TTL. Failure is non-fatal: the
+	// picker then just falls back to its own TTL/refresh-button paths.
+	try {
+		const idx = await listingsIndex(env, true);
+		console.log(`crm picker index regenerated (${trigger}): ${idx.count} active listings`);
+	} catch (err) {
+		console.error(`crm picker index regeneration FAILED (${trigger}): ${err.message}`);
 	}
 }

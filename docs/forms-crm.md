@@ -42,6 +42,12 @@ Code: [worker/lib/crm.mjs](../worker/lib/crm.mjs) (server) +
   refreshed, but if the CRM is down or rate-limiting, the last known copy is
   served with `stale: true`. A few-hours-old list still finds the right person;
   an error message in front of a client does not.
+- **Fresh on demand (2026-07-24).** Two paths beat the 15-min window:
+  the picker sheets carry an **«↻» button** that refetches with
+  `?refresh=1` (skips the freshness check, still stale-on-error), and the
+  EstatePrime **webhook/cron** rebuilds the listings index right after the
+  public feed (`regenerate()` in worker/index.mjs) — so a listing added in
+  the CRM appears in the pickers within seconds on its own.
 - **Read-only.** EstatePrime exposes no contact update endpoint, so
   corrections the consultant makes in the form stay in the form. See
   [Known limits](#known-limits).

@@ -135,8 +135,13 @@
 		input.type = "search";
 		input.placeholder = opts.placeholder;
 		input.autocomplete = "off";
+		// ↻ force-refetches from the CRM (?refresh=1 skips the Worker's
+		// 15-min index cache) — for «μόλις το πρόσθεσα στο CRM» moments.
+		var refresh = el("button", "crmclose", "↻");
+		refresh.title = "Ανανέωση από το CRM";
 		var close = el("button", "crmclose", "Άκυρο");
 		head.appendChild(input);
+		head.appendChild(refresh);
 		head.appendChild(close);
 
 		var list = el("div", "crmlist");
@@ -154,6 +159,20 @@
 			document.body.style.overflow = "";
 		}
 		close.onclick = shut;
+		refresh.onclick = function () {
+			list.textContent = "";
+			list.appendChild(el("div", "crmstatus", "Ανανέωση από το CRM…"));
+			opts
+				.load(true)
+				.then(function (items) {
+					rows = items;
+					render();
+				})
+				.catch(function (err) {
+					list.textContent = "";
+					list.appendChild(el("div", "crmstatus", err.message || "Σφάλμα."));
+				});
+		};
 		back.onclick = function (e) {
 			if (e.target === back) shut();
 		};
@@ -205,9 +224,9 @@
 
 	/* -------------------------------------------------------- contacts */
 
-	async function loadContacts() {
-		if (!cache.contacts) {
-			var data = await getJson("/api/crm/contacts");
+	async function loadContacts(force) {
+		if (!cache.contacts || force) {
+			var data = await getJson("/api/crm/contacts" + (force ? "?refresh=1" : ""));
 			cache.contacts = (data.contacts || []).map(function (c) {
 				var sub = [c.phone, c.email].filter(Boolean).join(" · ");
 				return {
@@ -298,9 +317,9 @@
 
 	/* -------------------------------------------------------- listings */
 
-	async function loadListings() {
-		if (!cache.listings) {
-			var data = await getJson("/api/crm/listings");
+	async function loadListings(force) {
+		if (!cache.listings || force) {
+			var data = await getJson("/api/crm/listings" + (force ? "?refresh=1" : ""));
 			cache.listings = (data.listings || []).map(function (l) {
 				return {
 					raw: l,
