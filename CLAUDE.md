@@ -5,8 +5,12 @@ front-ends** (no backend, no build step, no `package.json`):
 
 1. **Marketing site** (repo root) — built on the purchased **"Homy"** HTML
    template. Entry: [index.html](index.html). Brand accent: **pink `#ff0062`**.
-   Many template pages exist (`listing_*`, `agent*`, `blog_*`, `index-2..8`,
-   etc.); we translate/adapt them to Greek as needed.
+   The unadapted template demo pages (`listing_*`, `agent*`, `blog_*`,
+   `index-2..8`, etc.) and their template-only images live under
+   [template/](template/) (reference only, never served); we translate/adapt
+   them into real Greek/English pages at the repo root as needed. `images/`
+   holds only assets the live site actually uses; master brand files are in
+   [brand/](brand/).
 2. **Έντυπα PWA** ([forms/](forms/)) — a separate installable app for internal
    real-estate paperwork (αναθέσεις, αποδείξεις, καταχωρίσεις, υποδείξεις) with
    signature pads and client-side PDF export. Brand accent: **navy `#1C3457`**.

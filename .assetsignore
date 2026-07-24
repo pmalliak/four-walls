@@ -20,62 +20,17 @@ partials
 inc
 crm
 CLAUDE.md
-index.html.orig
 estateprime-api-doc.yaml
 # dev-only form autofill helper — never ship to production
 forms/_autofill.dev.js
-# unadapted template demo pages — kept in repo as raw material, never served
-listing_01.html
-listing_03.html
-listing_details_01.html
-service_details.html
-index-2.html
-index-3.html
-index-4.html
-index-5.html
-index-6.html
-index-7.html
-index-8.html
-about_us_02.html
-agency.html
-agency_details.html
-agent.html
-agent_details.html
-blog_01.html
-blog_02.html
-blog_03.html
-blog_details.html
-compare.html
-listing_02.html
-listing_04.html
-listing_05.html
-listing_06.html
-listing_07.html
-listing_08.html
-listing_09.html
-listing_10.html
-listing_11.html
-listing_12.html
-listing_13.html
-listing_14.html
-listing_15.html
-listing_16.html
-listing_17.html
-listing_details_02.html
-listing_details_03.html
-listing_details_04.html
-listing_details_05.html
-listing_details_06.html
-pricing_01.html
-pricing_02.html
-project_01.html
-project_02.html
-project_03.html
-project_04.html
-project_details_01.html
-service_02.html
-footer-preview-*.html
-banner-preview.fw.html
+# Unadapted "Homy" template demo pages + their template-only images, kept
+# in the repo as raw reference material (see docs/architecture.md). The
+# whole folder is reference-only and never served — grouping them here
+# replaced ~45 individual filename entries.
+template
+# Master brand source files (brand PDF, spare logo lockups) — not web
+# assets; see docs/brand.md.
+brand
 # theme sources / sourcemaps — internal, don't ship
 scss
 css/*.map
@@ -83,6 +38,3 @@ css/style.css
 # unused by any page (icons load via style.fw.min.css -> fonts/bootstrap-icons-1.11.1)
 css/bootstrap-icons.css
 css/bootstrap-icons.min.css
-# unreferenced leftovers / internal assets
-images/fav-icon/icon.png
-images/logo/fourwalls-brand.pdf

@@ -55,7 +55,6 @@ const ROOT = path.resolve(__dirname, "..");
 const PAGES = [
 	"index.html",
 	"services.html",
-	"service_details.html",
 	"services/buying.html",
 	"services/renting.html",
 	"services/selling.html",
@@ -64,9 +63,13 @@ const PAGES = [
 	"services/property-management.html",
 	"about.html",
 	"contact.html",
-	"listing_01.html",
-	"listing_03.html",
-	"listing_details_01.html",
+	/* Template reference scaffolds (live under template/, never served) kept
+	   in sync so they show the current menu/footer wrapped around raw Homy
+	   markup — handy when hand-building a new page. See docs/architecture.md. */
+	"template/service_details.html",
+	"template/listing_01.html",
+	"template/listing_03.html",
+	"template/listing_details_01.html",
 	"properties.html",
 	"property.html",
 	"faq.html",

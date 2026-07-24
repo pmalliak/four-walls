@@ -1,6 +1,6 @@
 # Brand & logo assets
 
-Source of truth: [`../images/logo/fourwalls-brand.pdf`](../images/logo/fourwalls-brand.pdf)
+Source of truth: [`../brand/fourwalls-brand.pdf`](../brand/fourwalls-brand.pdf)
 — an Adobe Illustrator vector brand sheet (icon + "FOURWALLS" wordmark + "REAL
 ESTATE" tagline + hex-labelled colour swatches). When anything about the brand
 is unclear, that file wins.
@@ -16,14 +16,18 @@ Both are labelled with their hex right in the brand sheet. The PDF also contains
 a near-duplicate pink `#E62065` on one icon copy — ignore it; `#FF0062` is the
 documented pink.
 
-## Logo files (`images/logo/`)
+## Logo files
 
-| File | What |
-|------|------|
-| `fourwalls-brand.pdf` | Authoritative vector brand sheet |
-| `fourwalls_logo.svg` | **Header logo** — horizontal lockup, pink `#FF0062` icon ("cube") + black `#000000` "FOURWALLS", `viewBox="-23.08 -24.5 1048.06 189"` (~5.5:1) |
-| `fourwalls_logo_vertical.svg` | Stacked lockup (icon + wordmark + "REAL ESTATE" tagline) extracted from the brand PDF — used by the footer's optional `.footer-logo-vertical` |
-| `fourwalls_logo_light.png` | Old light variant (white wordmark) — currently unreferenced |
+The logo the site actually serves stays in `images/logo/`; the master brand
+sheet and the spare lockups (not referenced by any page) live in `brand/`, so
+`images/` only holds live-site assets.
+
+| File | Where | What |
+|------|-------|------|
+| `fourwalls-brand.pdf` | `brand/` | Authoritative vector brand sheet |
+| `fourwalls_logo.svg` | `images/logo/` | **Header logo** — horizontal lockup, pink `#FF0062` icon ("cube") + black `#000000` "FOURWALLS", `viewBox="-23.08 -24.5 1048.06 189"` (~5.5:1) |
+| `fourwalls_logo_vertical.svg` | `brand/` | Stacked lockup (icon + wordmark + "REAL ESTATE" tagline) extracted from the brand PDF — the source for the favicons; wire it into the footer's optional `.footer-logo-vertical` if needed |
+| `fourwalls_logo_light.png` | `brand/` | Old light variant (white wordmark) — currently unreferenced |
 
 The header logo is a **vector SVG**. It was rebuilt from the brand PDF to replace
 a raster PNG whose anti-aliased edges were white at low opacity — invisible on
@@ -67,7 +71,6 @@ White brand cube on a pink `#FF0062` disc, generated from the cube paths in
 | `icon.fw.svg` | Vector favicon (64 viewBox) — pink disc + white cube |
 | `icon.fw.png` | 64×64 raster fallback (transparent outside the disc); also used as an avatar image on `property.html` |
 | `apple-touch-icon.fw.png` | 180×180 full-bleed pink square (iOS rounds the corners itself) |
-| `icon.png` | Homy template original — unreferenced, kept as-is |
 
 Every site page carries the same three `<link>` lines in `<head>` (SVG first,
 PNG fallback, apple-touch-icon). The Έντυπα PWA (`forms/`) has its own separate

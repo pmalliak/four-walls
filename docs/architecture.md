@@ -12,13 +12,23 @@ Cloudflare Worker that also hosts the site (webhook-triggered regeneration +
 nightly cron) — see [listings-feed.md](listings-feed.md). Brand colours, logo
 files, and the brand-PDF vector workflow are in [brand.md](brand.md).
 
-## Reference demos — keep them
+## Reference demos — keep them (`template/`)
 
-The `index-2.html … index-8.html` files are the template's alternate homepage
-demos, and the `listing_*` / `agent*` / `blog_*` / `pricing_*` files are its
-component library. They're a **reference**, not dead code — e.g. the Buy/Rent
-tab pattern was lifted from `index-5.html`. Look there before hand-building a
-component; the theme usually already has it.
+The unadapted "Homy" demo pages live in **[`template/`](../template/)**: the
+alternate homepages (`index-2.html … index-8.html`) plus the `listing_*` /
+`agent*` / `blog_*` / `pricing_*` component library, alongside the
+template-only images they need in **`template/images/`**. They're a
+**reference**, not dead code — e.g. the Buy/Rent tab pattern was lifted from
+`template/index-5.html`. Look there before hand-building a component; the theme
+usually already has it.
+
+The whole folder is `.assetsignore`d (never served). Each page carries a
+`<base href="/">` so, previewed locally, it still resolves the shared `css/`,
+`js/`, `vendor/` and the site's `images/` from the repo root. Four pages
+(`service_details.html`, `listing_01.html`, `listing_03.html`,
+`listing_details_01.html`) are kept in sync with the live header/footer by
+`tools/sync-partials.js`, so they show the current chrome around raw template
+markup.
 
 ## Key files & folders
 
@@ -28,7 +38,9 @@ component; the theme usually already has it.
 | `css/style*.min.css`, `js/theme.js` | Theme build — **do not edit** (override instead) |
 | `css/fourwalls.css`, `js/fourwalls.js` | Our overrides (loaded after the theme) — put tweaks here |
 | `vendor/` | Theme's JS libs (jQuery, bootstrap, `nice-select`, slick, wow, …) |
-| `images/` | Assets; custom ones carry a `.fw` suffix |
+| `images/` | Assets **the live site actually uses** (~118 files); custom ones carry a `.fw` suffix |
+| `template/` | Unadapted Homy demo pages + their template-only images (`template/images/`) — reference, never served |
+| `brand/` | Master brand source files (brand PDF + spare logo lockups) — see [brand.md](brand.md) |
 | `forms/` | The Έντυπα PWA (separate app) |
 | `tools/preview-server.js` | Local preview server |
 | `worker/`, `wrangler.toml` | Cloudflare Worker: hosts the site + listings feed ([listings-feed.md](listings-feed.md)) |

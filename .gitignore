@@ -16,3 +16,5 @@ data/
 *.local
 # Claude Code per-machine permissions (not shared)
 .claude/settings.local.json
+# macOS Finder cruft
+.DS_Store

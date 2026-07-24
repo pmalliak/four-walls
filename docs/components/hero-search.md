@@ -52,5 +52,5 @@ fixed in `fourwalls.css`:
 ## History
 
 The single "Ψάχνω για…" dropdown (which mixed deal + property type) was replaced
-first with Buy/Rent tabs (from `index-5.html`), then — per preference — with the
+first with Buy/Rent tabs (from `template/index-5.html`), then — per preference — with the
 current all-dropdown form: a deal selector + property type + area + price.
