@@ -62,8 +62,12 @@ const SAFE_FRAGMENTS = {
 		"Improve exposure and colour: brighten the scene so it reads clean and airy, correct white balance to neutral, gently recover detail in blown-out windows and dark shadows, and keep colour natural and realistic — never oversaturated.",
 	straighten:
 		"Correct the geometry: level the horizon and straighten vertical lines (walls, door frames) to remove camera tilt and keystoning.",
-	sky:
-		"Where sky is visible through a window or in an exterior view, replace a dull or overcast sky with a clear, natural blue sky with soft clouds, keeping the building's exposure consistent with it.",
+	// Privacy, not beautification: the office publishes approximate addresses
+	// only (display_address="fake" in the CRM), and a recognizable view
+	// through a window lets a viewer pinpoint the building and bypass the
+	// agency. The glow/blur keeps the photo bright without revealing it.
+	blur_windows:
+		"Privacy: obscure whatever is visible through every window, balcony door and glass railing — replace the outside view with a bright, heavily defocused daylight glow so that no buildings, streets, balconies, landmarks or landscape outside are recognizable. Keep the window frames, curtains and glass reflections crisp and natural, and keep the light spilling into the room consistent.",
 	remove_people:
 		"Remove any people and pets from the scene, and remove the photographer's reflection from mirrors, windows and glossy surfaces.",
 };
@@ -71,6 +75,18 @@ const SAFE_FRAGMENTS = {
 const KNOWN_OPTIONS = new Set([
 	...Object.keys(SAFE_FRAGMENTS), "repair_damage", "virtual_staging",
 ]);
+
+/* Greek labels for the handoff email («Επεξεργασίες» row) — keep in sync
+   with the OPTIONS array in forms/enhance.html. */
+const OPTION_LABELS_EL = {
+	declutter: "Αφαίρεση ακαταστασίας",
+	lighting: "Βελτίωση φωτισμού & χρωμάτων",
+	straighten: "Ευθυγράμμιση & προοπτική",
+	blur_windows: "Θόλωμα θέας παραθύρων",
+	remove_people: "Αφαίρεση ανθρώπων & αντανακλάσεων",
+	repair_damage: "Επιδιόρθωση φθορών",
+	virtual_staging: "Εικονική επίπλωση κενών χώρων",
+};
 
 function composePrompt(options) {
 	const on = new Set(options);
@@ -93,9 +109,13 @@ function composePrompt(options) {
 		? "- If a room is empty or sparsely furnished, add tasteful, realistic, appropriately-scaled furniture and decor suited to the room type, without misrepresenting the room's true size or layout."
 		: "- Do not add any furniture, appliances or decorative objects that are not already physically present in the photo.");
 
-	lines.push(
-		"HARD RULES: never add, remove, resize or relocate any permanent architectural feature — walls, doors, windows, floors, ceilings, stairs, built-in cabinetry — and never alter the view seen through windows. The edited photo must not misrepresent the property.",
-	);
+	// blur_windows deliberately REPLACES what is seen through windows — the
+	// only sanctioned exception to the windows rule. Spell it out both ways,
+	// or the two instructions contradict and the model resolves it
+	// unpredictably.
+	lines.push(on.has("blur_windows")
+		? "HARD RULES: never add, remove, resize or relocate any permanent architectural feature — walls, doors, windows, floors, ceilings, stairs, built-in cabinetry. The ONLY permitted change through windows is the privacy obscuring requested above. The edited photo must not misrepresent the property itself."
+		: "HARD RULES: never add, remove, resize or relocate any permanent architectural feature — walls, doors, windows, floors, ceilings, stairs, built-in cabinetry — and never alter anything seen through windows. The edited photo must not misrepresent the property.");
 	return lines.join("\n");
 }
 
@@ -223,6 +243,8 @@ async function initBatch(request, env, url, email) {
 		property,
 		links: propertyLinks(env, property),
 		options,
+		// Ready-made Greek list for the email's «Επεξεργασίες» row.
+		options_label: options.map((k) => OPTION_LABELS_EL[k] || k).join(", "),
 		prompt: composePrompt(options),
 		count,
 	};
@@ -305,6 +327,7 @@ async function finalizeBatch(request, env, url, batchId) {
 		property: meta.property,
 		links: meta.links,
 		options: meta.options,
+		options_label: meta.options_label || (meta.options || []).join(", "),
 		prompt: meta.prompt,
 		count: photos.length,
 		photos,

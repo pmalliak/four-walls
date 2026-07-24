@@ -29,6 +29,42 @@ The design mirrors the existing browser→Worker→Make-secret pattern used by
 [forms.mjs](../worker/lib/forms.mjs) and `/api/contact`. See the sibling docs
 [forms-crm.md](forms-crm.md) and [forms-submit.md](forms-submit.md).
 
+## Live scenario — «Photos — AI enhance» (id 6688477)
+
+Built and maintained **via the Make API** (2026-07-24), not hand-assembled in
+the UI. Two things that matters for:
+
+- API-authored modules must explicitly set the "advanced" params the UI
+  auto-fills — `stopOnHttpError`/`shareCookies` (HTTP), `convert` (Drive
+  upload). Omitting them fails at runtime with `BundleValidationError`.
+- The Gemini module's image `data` field takes the **raw binary buffer**
+  (`{{4.data}}` straight from HTTP «Download a file») — do NOT wrap it in
+  `base64()`: the module encodes internally, and pre-encoding double-encodes,
+  which Gemini reports as `400 Unable to process input image` on any photo.
+- Drive layout — **one folder per property, one subfolder per upload, and
+  separate `enhanced/` + `originals/` inside it**:
+  `Four Walls/photos/<code>/<YYYY-MM-DD · batch6>/{enhanced,originals}/`.
+  The property folder is found-or-created («Get a Folder ID for a Path» →
+  on-error «Create a Folder» → Resume), so later uploads for the same
+  property reuse it. Batches without a property go under
+  `photos/Χωρίς ακίνητο/`.
+- The Gemini API key needs **billing enabled** on its Google Cloud project —
+  image models have zero free-tier quota (`429 free_tier_requests, limit: 0`).
+
+**Status 2026-07-24 — COMPLETE and verified end-to-end** with a real listing
+photo through the full chain (form → R2 → webhook → per-property folders →
+Nano Banana Pro edit → `enhanced/`+`originals/` in Drive → email): 39 s and
+~€0.15 for a 1-photo batch. Model: **`gemini-3.1-flash-image` (Nano Banana 2) capped at 2K output**
+(~€1.2–2 per 25 photos; Pro uncapped was hitting the 4K tier at ~€5.5/25) on
+Panos's personal Gemini connection (billing enabled 2026-07-24). Quality
+fallback if NB2 disappoints: `gemini-3-pro-image` + 2K ≈ €3.1/25.
+
+`blur_windows` (replaced the old sky option, 2026-07-24): privacy feature —
+the view through windows becomes a bright defocused glow so the building
+can't be located from its θέα; mirrors the office's approximate-address
+policy. When OFF, windows are fully locked ("never alter anything seen
+through windows").
+
 ## Pieces
 
 | Piece | File | Role |
@@ -51,7 +87,7 @@ and reviewable. Two options change the property's *true condition* and are
 | `declutter` | Αφαίρεση ακαταστασίας | on | omits the fragment |
 | `lighting` | Βελτίωση φωτισμού & χρωμάτων | on | omits |
 | `straighten` | Ευθυγράμμιση & προοπτική | on | omits |
-| `sky` | Βελτίωση ουρανού | on | omits |
+| `blur_windows` | Θόλωμα θέας παραθύρων | on | window lockdown: "never alter anything seen through windows" |
 | `remove_people` | Αφαίρεση ανθρώπων & αντανακλάσεων | on | omits |
 | `repair_damage` | Επιδιόρθωση φθορών | **off** | **actively tells the model to PRESERVE every crack/stain/wear** |
 | `virtual_staging` | Εικονική επίπλωση κενών χώρων | **off** | tells the model to add nothing not physically present |
