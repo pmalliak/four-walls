@@ -114,6 +114,10 @@ would be forgeable by anyone who reached the Worker around Access.
 
 ### 4. Deploy and verify
 
+Deploying is just `git push` to `main` — Cloudflare Workers Builds picks it up
+(see [README.md](README.md)). The command below is only for a machine that is
+logged in to wrangler and needs to bypass git.
+
 ```bash
 npx wrangler deploy
 ```

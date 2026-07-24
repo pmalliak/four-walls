@@ -41,6 +41,11 @@ are.
 | Worker route | `worker/index.mjs` → `handleRequestClosed()` |
 | Secrets | `TURNSTILE_SECRET_KEY` (shared with the contact form), `MAKE_REQUEST_CLOSED_WEBHOOK` |
 
+Live since 2026-07-24: pushing to `main` deployed it (Workers Builds), and
+`POST /api/request-closed` with no token answers `400 missing_token` — the
+one-line check that the route is up and the secrets are configured (a missing
+secret answers `500 not_configured` instead).
+
 ## Make
 
 | | |

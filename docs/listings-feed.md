@@ -96,7 +96,8 @@ npx wrangler kv namespace create LISTINGS_KV
 npx wrangler secret put WEBHOOK_KEY          # e.g. output of: openssl rand -hex 32
 npx wrangler secret put ESTATEPRIME_API_KEY  # needed only when SAMPLE_DATA=0
 
-# 3. Deploy (site + webhook + feed, all one Worker)
+# 3. Deploy (site + webhook + feed, all one Worker) — first time only;
+#    afterwards a git push to main deploys (Workers Builds, see README.md)
 npx wrangler deploy
 ```
 
@@ -137,8 +138,8 @@ sends one of those with the same secret, that works too.
    `mapListing()`. Keep the *output* schema unchanged.
 2. Test locally: `ESTATEPRIME_API_KEY=… node tools/build-listings.mjs`, then
    eyeball `data/listings.json`.
-3. Set `SAMPLE_DATA = "0"` in `wrangler.toml`, `npx wrangler deploy`, and
-   trigger a rebuild (curl above).
+3. Set `SAMPLE_DATA = "0"` in `wrangler.toml`, push to `main` (that deploys),
+   and trigger a rebuild (curl above).
 4. Verify EstatePrime fires events for **create, update AND sell/withdraw** —
    without a withdraw event, sold listings linger until the nightly cron.
 

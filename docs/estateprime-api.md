@@ -120,6 +120,40 @@ CRM pickers in forms/. The live `Contact` carries several fields the spec omits
 — `vat_number`, `id_number`, `full_name`, `is_active`, `office_id` — while the
 documented `notes` is not returned.
 
+`POST /contacts` (verified by creating contact 72 live, 2026-07-23):
+
+- **Required fields beyond the spec** — the API 400s with `Missing <field>` one
+  at a time until all of these are present: `users` (array of user ids,
+  `GET /users` → 1=Πάνος, 2=Μάνος), `created_by`, `office_id` (1=Κεντρικό),
+  `language_id` (1=Greek), `country` (`"GR"`).
+- **Phone `type` uses UI slugs** like `"mobile-personal"`, not the spec's bare
+  `"mobile"`.
+- **Email key mismatch:** live GET returns `email`, the spec's `ContactInput`
+  says `email_address`. Sending both worked; which one the API actually reads
+  is untested.
+- **Include `is_active: true` in the payload** — a POST without it landed
+  «Ανενεργό» (contact 72), and there is **no API way to fix it after the
+  fact**: `PUT` → 403, `PATCH` → fake 200 (no effect), and
+  `POST /contacts/{id}` is the router artifact — it routes to *create*
+  (fails on phone uniqueness). The one-time fix is the CRM UI toggle
+  (Επαφή → Βασικές πληροφορίες → pencil → Κατάσταση → Αποθήκευση).
+- **Phone numbers are unique** — a duplicate number 400s
+  (`Phone number … is already in use`). Useful as a dedupe backstop.
+- **`DELETE /contacts/{id}` can answer `200` without deleting** — contact 72
+  survived a `200` DELETE intact. Always re-GET to confirm a delete happened.
+- `tags` are integer ids from `GET /contacts/tags` (live: 1=ilist, 4=make,
+  9=spitogatos, 10=ΖΗΤΗΣΗ, 11=ΑΝΑΘΕΣΗ, 12=claude); there is no
+  tag-creation endpoint — new tags are made in the CRM UI. For
+  Claude-created Spitogatos leads, send them **in this order**:
+  `[12, 9, 10]` (claude, spitogatos, ΖΗΤΗΣΗ) — Panos's preference.
+- Claude-created Spitogatos leads are assigned to **Μάνος Χριστινάκης**
+  (`users: [2]`, `created_by: 2`) — per Panos, 2026-07-23.
+- **Greek names arriving romanized get written in Greek script** with proper
+  accents («Christos Papadopoulos» → Χρήστος Παπαδόπουλος); the original
+  Latin spelling stays in the notes. Foreign names stay in Latin script.
+- Contact sources (`GET /contacts/sources`) are separate from listing sources:
+  3=Spitogatos.gr.
+
 Traps that cost real debugging time, all verified 2026-07-17:
 
 - **An unknown id answers `200` with `data: []`**, not 404 — and `[]` is truthy.
@@ -134,6 +168,93 @@ Traps that cost real debugging time, all verified 2026-07-17:
 
 Field map, custom-field ids, and the Cloudflare Access setup:
 [forms-crm.md](forms-crm.md).
+
+## Communications (used by the Spitogatos lead intake)
+
+`POST /communication` works as documented (verified by creating comm 18 live,
+2026-07-24). Required: `channel, user_id, contact_id, store_id, type
+("incoming"|"outgoing"), communication_date`. Notes:
+
+- Channels: `1=Κλήση, 2=Email, 3=SMS, 4=Δια ζώσης, 5=Άλλο`. `store_id` is 1.
+- **Communications have their own tag namespace** (`GET /communication/tags`):
+  live ids `5=make, 8=spitogatos, 15=claude` — different ids from contact tags.
+- **Tag order is not preserved** — the API stores/returns tag ids sorted
+  ascending regardless of submission order (sent `[15,8]`, got `[8,15]`).
+  Same applies to contact tags. Display order in the UI follows tag id.
+- **`GET /communication/{id}` answers an empty `500`** even for an existing
+  id — read back via the list endpoint (`GET /communication?page=N`) instead.
+- **To link a communication to a request, use the internal `POST
+  /communication/form`, NOT the public API** (solved 2026-07-24). The public
+  `POST /api/communication` with `request_id` → **`500`** (with `requests:[id]`
+  → `200` but silently dropped) — broken, reported to EstatePrime. But the CRM's
+  own **`POST /communication/form`** (web path, `x-www-form-urlencoded`,
+  session-cookie auth, no CSRF) accepts `request_id` and creates a fully-linked
+  comm headlessly → `{"success":true,"id":"N","custom_error":null}`. Verified:
+  comm created that way read back `contact_id:72, request_id:18`.
+  Fields: `create_communication=1`, `type` (incoming/outgoing), `channel`
+  (1=Κλήση,2=Email,3=SMS,4=Δια ζώσης,5=Άλλο), `contact_id`, `request_id`,
+  `user_id`, `tags[]`, `source_id`, `communication_date` (`DD/MM/YYYY HH:MM`),
+  `comments`, `listing_ids[]`, and `create_auto_request=1` (a checkbox that
+  auto-spawns a ζήτηση from the comm — leave OFF; we build the ζήτηση
+  ourselves). So the whole intake (contact→ζήτηση→comm) is now headless via
+  `/api/contacts` + `/requests/form` + `/communication/form`; no UI.
+- Spitogatos lead intake convention: one **incoming** communication per lead
+  on the contact, `channel: 2` (Email), `user_id: 2` (Μάνος),
+  `communication_date` = the notification email's arrival time, tags
+  claude + spitogatos, comments = lead summary + Live URL + ζήτηση id. Create
+  it **after** the ζήτηση so its id can be named in the comment.
+
+## Requests / ζητήσεις (used by the Spitogatos lead intake)
+
+**Create ζητήσεις via the internal web endpoint, NOT the public API** (nailed
+down 2026-07-24). Two facts:
+
+- **The public `POST /api/requests` is broken** — a bare `POST {}` returns `200`
+  but creates nothing, and a full body also `200`s without appearing. EstatePrime
+  confirmed it's broken for now. Do not use it to create.
+- **The CRM's own internal endpoint works headlessly**:
+  **`POST /requests/form`** (note: web path, NOT `/api/...`), body =
+  **`application/x-www-form-urlencoded`**, authenticated by the **logged-in
+  session cookie** (not Basic auth — so call it via a same-origin `fetch` from a
+  browser tab that's logged into the CRM, not from a Node/Basic-auth script).
+  No CSRF token required. Returns `{"success":true,"id":"N"}`. Verified by
+  creating request 19 with the full lead payload — all fields (areas, tags,
+  subtype, extra_fields) landed correctly. **This removes the UI form entirely
+  — ζητήσεις no longer need browser form-filling.**
+
+Form-encoded field names (from `#request-form`, the complete set):
+`save_request=1`, `source_id`, `contact_ids[]`, `user_ids[]`, `tags[]`,
+`request_status` (1=Ενεργή), `availability`, `category`, `subcategory[]`,
+`subtype[]` (studio=1, γκαρσονιέρα=2), `area_level1[]` `area_level2[]`
+`area_level3[]` (**location is REQUIRED — omitting it fails with "missing
+location"**), `price_min/max`, `size_min/max`, `has_elevator`, `floor_min/max`,
+`elevator_min_floor`, `rooms_min/max`, `is_furnished` (`yes`/`no`),
+`heating_type[]`, `heating_source[]`, and boolean feature flags sent as
+`name=1` when checked (`has_balcony`, `suitable_for_students`,
+`has_air_condition`, `has_storage_room`, `pets_allowed`, … 30+ of them).
+`area_level2[]` takes the spitogatos `geographyIds` directly.
+
+Field reference (from request 17/18):
+- `source_id` (request sources: **1=Spitogatos.gr, 2=xe.gr** — a third
+  namespace, distinct from listing and contact sources), `status`
+  (**1=Ενεργή, 2=Ανενεργή**), `availability`, `category`, `subcategories`
+  (array of listing subcategory slugs — Studio/Γκαρσονιέρα → `apartment`),
+  `subtypes`, `price_min/max`, `size_min/max`, `floor_min/max`, `rooms_min/max`,
+  `has_elevator` (bool), `contacts` (array of contact ids), `users`,
+  `tags` (request tag ids: **6=make, 13=claude, 14=spitogatos** — a THIRD tag
+  namespace), and `locations` (array of `{area_level1, area_level2,
+  area_level3}` — resolve area names to ids via `GET /locations`; the 12
+  Θεσσαλονίκη-Δήμος subareas live under `area_level1: 108`).
+- **`extra_fields`** is where the richer criteria land (object, not array):
+  `heating_type: ["individual"]`, `heating_source: ["natural_gas"]`,
+  `is_furnished: "yes"`, `features: ["has_balcony",
+  "suitable_for_students", …]`. The «Επιπλέον χαρακτηριστικά» checkboxes map
+  to `features` slugs.
+- Spitogatos lead intake: build the ζήτηση from the email/lead — availability,
+  category, subtype, price_max, size, floor, elevator, furnished, heating, and
+  features (βεράντα → `has_balcony`, φοιτητικό → `suitable_for_students`) all
+  come straight from the lead's structured fields and free-text message. Source
+  Spitogatos.gr, assigned to Μάνος, tags claude + spitogatos, contact linked.
 
 ## Other resources (exist, unused)
 

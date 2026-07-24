@@ -14,3 +14,5 @@ data/
 # Worker's asset directory — a missed entry is published, not just
 # committed. Keep the twin entry in .assetsignore.
 *.local
+# Claude Code per-machine permissions (not shared)
+.claude/settings.local.json

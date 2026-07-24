@@ -3,6 +3,15 @@
 Start with [../CLAUDE.md](../CLAUDE.md) for the high-level map. These docs go
 deeper, one topic per file:
 
+> **Deploy = `git push` to `main`.** The Worker is wired to the GitHub repo
+> (Cloudflare **Workers Builds**), so pushing builds and deploys on its own —
+> live in under a minute, verified 2026-07-24. **Do not run `npx wrangler
+> deploy`**; the `wrangler deploy` lines further down are the manual fallback
+> for a machine that is logged in, and for first-time setup. Secrets are the
+> exception: they are **not** in the repo, so they go in via the Cloudflare
+> dashboard (Workers → Settings → Variables and Secrets) or `wrangler secret
+> put`, and a **deploy is not needed** for a secret to take effect.
+
 | Doc | What's in it |
 |-----|--------------|
 | [architecture.md](architecture.md) | The two front-ends, the template's reference demos, key file/folder map |

@@ -16,6 +16,13 @@ Live listings: **EstatePrime CRM → Cloudflare Worker → `/data/listings.json`
 (webhook-triggered + nightly cron; **live CRM data in prod** — the repo's
 `data/listings.json` is still template sample data). The same Worker hosts the site. See [docs/listings-feed.md](docs/listings-feed.md).
 
+## Deploy
+
+**`git push` to `main` is the deploy.** The Worker is connected to the GitHub
+repo (Cloudflare Workers Builds) and goes live in under a minute. Never run
+`npx wrangler deploy` — it is the manual fallback only. Secrets live outside the
+repo (Cloudflare dashboard / `wrangler secret put`) and need no deploy.
+
 ## Local preview
 
 Zero-dependency Node server (serves the repo root):
