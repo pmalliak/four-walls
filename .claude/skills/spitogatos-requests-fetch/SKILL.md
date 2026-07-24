@@ -11,17 +11,49 @@ description: >-
 # Spitogatos ζήτηση → EstatePrime intake
 
 Fully **headless** pipeline (no CRM UI form-filling). Per lead: **contact → ζήτηση → communication**,
-each communication linked to BOTH the contact and the request. Runs interactively — it needs the
-live browser session (spitogatos + CRM) and `.dev.vars` (EstatePrime dev keys, repo root).
+each communication linked to BOTH the contact and the request. Needs a browser session on
+spitogatos + CRM — either the in-app `Claude_Browser`, or (preferred since 2026-07-24) the
+**self-driven headless mode** below, which logs in on its own.
 
 Deep field maps & the "why" live in [docs/estateprime-api.md](../../../docs/estateprime-api.md) and
 [docs/estateprime-crm-ui.md](../../../docs/estateprime-crm-ui.md) — read them if anything below is unclear.
 
 ## Preconditions
-- Browser (in-app `Claude_Browser`) logged in at `live.spitogatos.gr` AND `fourwalls.estateprime.gr`
-  (same session carries both cookies + spitogatos's Reese84 anti-bot token).
-- `.dev.vars` at repo root with `ESTATEPRIME_API_KEY` / `_SECRET` (+ `_SUBDOMAIN`).
+- `.dev.vars` at repo root with `ESTATEPRIME_API_KEY` / `_SECRET` (+ `_SUBDOMAIN`), and — for
+  headless mode — a fresh `BW_SESSION` (Panos runs `bw unlock --raw` and pastes it there).
 - `node` on PATH (fallback `& "C:\Program Files\nodejs\node.exe"`).
+- Headless mode: **Spark Desktop running** (its CLI reads the lead emails + 2FA codes) and the
+  Bitwarden vault unlocked. Claude_Browser mode instead needs the browser already logged in at
+  `live.spitogatos.gr` AND `fourwalls.estateprime.gr`.
+
+## Headless mode (no Claude_Browser) — scripts/headless/
+Everything runs from node + a **dedicated Edge** (own profile, NOT Panos's browser) driven over CDP.
+Real Edge passes both Cloudflare (CRM) and Imperva/Reese84 (spitogatos); plain node fetch does NOT.
+
+```powershell
+& "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" `
+  --remote-debugging-port=9222 --user-data-dir="$env:LOCALAPPDATA\FourWalls\edge-claude-profile" `
+  --no-first-run --no-default-browser-check --window-size=1280,900 about:blank
+```
+
+Then, from the repo root (order matters; each is a no-op if already done/logged in):
+1. `node …/headless/enumerate.mjs 2026/07/10 <processed.json> enquiries.json` — Spark CLI email sweep (step 1).
+2. `node …/headless/crm-login.mjs` + `node …/headless/sg-login.mjs` — log in via Bitwarden CLI creds
+   (item ids pinned in `bw.mjs`). Spitogatos 2FA code is auto-read from Spark. Remember-me is ticked,
+   so the profile keeps both sessions across runs.
+3. `node …/headless/sg-fetch.mjs enquiries.json details.json` — paced detail GETs (step 2).
+4. Steps 3–4 as below (leads.json by hand, then `prep.mjs`).
+5. `node …/headless/crm-post.mjs worklist.json results.json` — the step-5 form POSTs.
+6. `verify-log.mjs` as below.
+
+Gotchas learned 2026-07-24:
+- The **guru login form ignores synthetic fills** — sg-login uses real CDP mouse/keyboard input
+  (`Input.insertText`). The CRM form accepts synthetic fills.
+- Leads with `"status":"deleted"` come back **anonymized** (asterisks — visitor withdrew the
+  enquiry, even same-day). Unprocessable: record them in `processed.json → skipped_duplicates`.
+- ALL-CAPS Greek names must get explicit `greek_first/greek_last` (prep's titleCase would emit
+  «…οσ» with a non-final sigma). Watch for swapped first/last (e.g. «ΘΩΜΑΚΟΣ ΧΑΡΑΛΑΜΠΟΣ» =
+  Θωμάκος surname — the email address usually disambiguates).
 
 ## Auth split (important)
 - **`/api/*`** (contacts, locations, requests-read, verification) = **HTTP Basic** → run from **node**.

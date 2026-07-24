@@ -97,22 +97,35 @@
   "506795",
   "506687",
   "506686",
-  "507960"
+  "507960",
+  "508020",
+  "508081",
+  "508082",
+  "508095",
+  "508115",
+  "508117",
+  "508119",
+  "508131"
  ],
  "note": "Spitogatos searchEnquiryIds already turned into CRM contact+ζήτηση+communication. 507856=contact72/req18; 507653=c75/r23; 507934=c73/r24; 507922=c74/r25.",
- "updated": null,
+ "updated": "2026-07-24",
  "skipped_duplicates": {
+  "506431": "deleted στο spitogatos (ανωνυμοποιημένα στοιχεία)",
   "506686": "Λεντέρη resubmit (c94)",
   "506687": "Λεντέρη resubmit (c94)",
   "506795": "Πλασταρά resubmit (c93)",
   "506866": "Λαμπροπούλου sale-dup of 506867",
+  "506965": "deleted στο spitogatos (ανωνυμοποιημένα στοιχεία)",
+  "507025": "deleted στο spitogatos (ανωνυμοποιημένα στοιχεία)",
   "507034": "Λεντέρη resubmit (c94)",
   "507109": "Γιάγκου resubmit (c101)",
   "507164": "Λεντέρη resubmit (c94)",
   "507167": "Λεντέρη resubmit (c94)",
+  "507204": "deleted στο spitogatos (ανωνυμοποιημένα στοιχεία)",
   "507283": "Γεωργάκη resubmit (c109)",
   "507355": "Λεντέρη resubmit (c94)",
   "507503": "near-dup of 507506 (sale 130k vs 140k)",
-  "507601": "exact dup of 507603"
+  "507601": "exact dup of 507603",
+  "507989": "deleted στο spitogatos (ανωνυμοποιημένα στοιχεία)"
  }
 }
