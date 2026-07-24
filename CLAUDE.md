@@ -11,6 +11,9 @@ front-ends** (no backend, no build step, no `package.json`):
    real-estate paperwork (αναθέσεις, αποδείξεις, καταχωρίσεις, υποδείξεις) with
    signature pads and client-side PDF export. Brand accent: **navy `#1C3457`**.
    `forms/_autofill.dev.js` is a dev-only test helper (see its header).
+   Works offline: `forms/sw.js` caches the app shell and `forms/_outbox.fw.js`
+   queues failed submits in IndexedDB, auto-resending on reconnect/unlock
+   (see [docs/forms-submit.md](docs/forms-submit.md)).
 
 Live listings: **EstatePrime CRM → Cloudflare Worker → `/data/listings.json`**
 (webhook-triggered + nightly cron; **live CRM data in prod** — the repo's

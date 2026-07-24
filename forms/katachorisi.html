@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="html2pdf.bundle.min.js"></script>
 <style>
 :root{
   --navy:#1C3457; --navy2:#25406a; --pink:#FF0062; --pink-soft:#ffe6ef;
@@ -544,15 +544,6 @@ function pdVal(f,v){
   if(f && f.suf && v!=="" && v!=null) return v+" "+f.suf;
   return v;
 }
-/* ---------- Submit ---------- *//* ---------- Submit ---------- */
-async function postForm(payload){
-  const res=await fetch("/api/forms/submit",{method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(payload)});
-  if(res.status===401||res.status===403) throw new Error("Χρειάζεται σύνδεση — άνοιξε ξανά την εφαρμογή");
-  if(!res.ok) throw new Error("HTTP "+res.status);
-  return true;
-}
 /* ---------- Έγγραφο & PDF (κοινή γραμμή με τα άλλα έντυπα) ---------- */
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 async function ready(el){
@@ -648,12 +639,15 @@ async function doSubmit(){
     const r=await makePdf("send");
     payload.pdf_base64=r.uri.split(",")[1]; payload.pdf_filename=r.fn; payload.pdf_mime="application/pdf"; payload.doc_html=DOCHTML();
     btn.textContent="Αποστολή...";
-    await postForm(payload);
+    /* Sent or queued, the payload is safe outside the draft — the
+       outbox (see _outbox.fw.js) retries it when the network returns. */
+    const res=await FWOutbox.submit(payload,"Καταχώριση — "+(state.address||state.owner_name||""));
     try{ localStorage.removeItem(LS_DRAFT); }catch(e){}
-    toast(state.send_to_client===true ? "Στάλθηκε — και στον ιδιοκτήτη." : "Στάλθηκε.","ok");
+    if(res.sent) toast(state.send_to_client===true ? "Στάλθηκε — και στον ιδιοκτήτη." : "Στάλθηκε.","ok");
+    else if(res.reason==="auth") toast("Αποθηκεύτηκε. Χρειάζεται σύνδεση χρήστη — άνοιξε ξανά την εφαρμογή για να σταλεί.","err");
+    else toast("Δεν υπάρχει σύνδεση — αποθηκεύτηκε και θα σταλεί αυτόματα μόλις βρεθεί δίκτυο.","ok");
   }catch(err){
-    try{ localStorage.setItem("fw_last_failed",JSON.stringify(payload)); }catch(e){}
-    toast("Αποτυχία αποστολής. Έλεγξε τη σύνδεση.","err");
+    toast("Αποτυχία — το έντυπο δεν στάλθηκε ούτε αποθηκεύτηκε.","err");
   }finally{
     btn.disabled=false; btn.textContent=sendLabel();
   }
@@ -676,6 +670,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.querySelectorAll(".scrim").forEach(sc=>sc.addEventListener("click",e=>{ if(e.target===sc) closeScrim(sc); }));
 });
 </script>
+<script src="_outbox.fw.js"></script>
 <!-- DEV AUTOFILL: dev-only test helper, loads only on localhost (see _autofill.dev.js) --><script>if(/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname))document.body.appendChild(Object.assign(document.createElement("script"),{src:"_autofill.dev.js"}));</script>
 </body>
 </html>

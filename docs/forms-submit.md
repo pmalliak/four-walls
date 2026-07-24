@@ -50,6 +50,32 @@ Make. An id with no branch is dropped silently by Make; a branch with no id is
 refused with `unknown_form`. Neither failure is visible to the consultant, so
 do both or neither.
 
+## Offline: the outbox (iPad with no signal)
+
+Inside a property the iPad is often offline, so «Αποστολή» never talks to the
+network directly — every form calls `FWOutbox.submit()`
+([../forms/_outbox.fw.js](../forms/_outbox.fw.js)). If the POST fails for any
+reason, the **whole payload** (data + signatures + generated PDF) is parked in
+IndexedDB and retried automatically: on the `online` event, when the tablet is
+unlocked (`visibilitychange` — the app is never swiped away, only locked), and
+on a 3-minute timer while visible. A tap-to-send pill at the top shows how many
+έντυπα are queued; `submitted_at` stays the tap-time, `received_at` the upload
+time, so a queued form can legitimately show hours between the two.
+
+[../forms/sw.js](../forms/sw.js) makes the app itself work offline: it
+precaches the pages + **self-hosted** `html2pdf.bundle.min.js` (the cdnjs tag
+is gone — offline PDF generation needs the library locally) and runtime-caches
+the Google Fonts files. `/api/*` is never cached (CRM responses carry client
+PII, and the outbox owns submit retries). **Bump `VERSION` in sw.js** when the
+shell list changes.
+
+iOS notes: Safari has no Background Sync, so queued forms send only while the
+app is open — which is exactly the unlock/reopen moment hooked above. Use the
+**installed Home-Screen app**, not the site in Safari: the two have separate
+storage, and only the installed app is exempt from Safari's 7-day storage
+eviction. The old `fw_last_failed` localStorage dead-drop in katachorisi was
+removed — the outbox supersedes it.
+
 ## Make
 
 | | |

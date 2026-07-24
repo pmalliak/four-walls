@@ -1,4 +1,4 @@
-<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>FOUR WALLS</title><link rel="apple-touch-icon" href="https://four-walls.gr/forms/icon-180.png"><link rel="icon" type="image/png" href="icon-192.png"><link rel="manifest" href="manifest.webmanifest" crossorigin="use-credentials"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Four Walls"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#1C3457"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>FOUR WALLS</title><link rel="apple-touch-icon" href="https://four-walls.gr/forms/icon-180.png"><link rel="icon" type="image/png" href="icon-192.png"><link rel="manifest" href="manifest.webmanifest" crossorigin="use-credentials"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Four Walls"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#1C3457"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script src="html2pdf.bundle.min.js"></script>
 <style>
 :root{--navy:#1C3457;--pink:#FF0062;--ink:#242a33;--muted:#6b7280;--line:#d7dce3;--bg:#eef1f5;}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -184,11 +184,11 @@ function DOCHTML(){var st='';document.querySelectorAll('style').forEach(function
 async function sendMake(){var _v=collect().v;if(!String(_v.katavallon_email||'').trim()){toast('Συμπλήρωσε το email του πελάτη για την αποστολή.','err');return;}
  try{busy(true);toast('Δημιουργία PDF & αποστολή…');var r=await makePdf('send');var c=collect();
   var payload={form:CONFIG.id,title:CONFIG.title,submitted_at:new Date().toISOString(),data:c.v,signatures:c.s,pdf_filename:r.fn,pdf_base64:r.uri.split(',')[1],doc_html:DOCHTML()};
-  var rr=await fetch('/api/forms/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-  if(rr.status===401||rr.status===403)throw new Error('Χρειάζεται σύνδεση — άνοιξε ξανά την εφαρμογή.');
-  if(!rr.ok)throw new Error('HTTP '+rr.status);
-  toast('Στάλθηκε.','ok');
- }catch(e){console.error(e);toast(e.message&&/σύνδεση/.test(e.message)?e.message:'Αποτυχία αποστολής. Έλεγξε τη σύνδεση.','err');}finally{busy(false);}}
+  var res=await FWOutbox.submit(payload,CONFIG.title+' — '+(c.v.katavallon_geniki||''));
+  if(res.sent)toast('Στάλθηκε.','ok');
+  else if(res.reason==='auth')toast('Αποθηκεύτηκε. Χρειάζεται σύνδεση χρήστη — άνοιξε ξανά την εφαρμογή για να σταλεί.','err');
+  else toast('Δεν υπάρχει σύνδεση — αποθηκεύτηκε και θα σταλεί αυτόματα μόλις βρεθεί δίκτυο.','ok');
+ }catch(e){console.error(e);toast('Αποτυχία — το έντυπο δεν στάλθηκε ούτε αποθηκεύτηκε.','err');}finally{busy(false);}}
 
 function init(){renderEditor();
  document.getElementById('toNext').onclick=toPreview;document.getElementById('btnBack').onclick=toEdit;
@@ -198,6 +198,7 @@ function init(){renderEditor();
 if(typeof document!=='undefined')document.addEventListener('DOMContentLoaded',init);
 
 var CONFIG={id:'apodeixi',title:'Απόδειξη Είσπραξης',signs:[{k:'sig_katavallon',l:'Ο/Η καταβάλλων/-ουσα'},{k:'sig_lavousa',l:'Ο μεσίτης'}],sections:[{t:'Στοιχεία απόδειξης',fields:[{k:'imerominia',l:'Ημερομηνία',t:'date'},{k:'poso_arithmitikos',l:'Ποσό (€)',mode:'numeric'}]},{t:'Εντολέας (για λογαριασμό του)',fields:[{k:'entoleas_geniki',l:'Ονοματεπώνυμο',full:1},{k:'entoleas_afm',l:'ΑΦΜ εντολέα',mode:'numeric'}]},{t:'Καταβάλλων/-ουσα',fields:[{k:'katavallon_geniki',l:'Ονοματεπώνυμο'},{k:'katavallon_afm',l:'ΑΦΜ',mode:'numeric'},{k:'katavallon_email',l:'Email',t:'email',mode:'email'},{k:'katavallon_tilefono',l:'Τηλέφωνο',t:'tel',mode:'tel'},]},{t:'Αιτιολογία',fields:[{k:'aitiologia',l:'Αιτία είσπραξης (π.χ. προκαταβολή για εκμίσθωση διαμερίσματος επί της οδού…)',t:'textarea',full:1}]}],buildDoc:function(v,s){return HEADER+'<div class="rc-top"><div><h1>ΑΠΟΔΕΙΞΗ ΕΙΣΠΡΑΞΗΣ</h1><div class="accent"></div></div><div class="rc-amt">'+V(v.poso_arithmitikos)+' €</div></div>'+'<div class="rc-body">Το μεσιτικό γραφείο με την επωνυμία <b>FOUR WALLS</b> εισέπραξε από τον/την κάτωθι καταβάλλοντα/-ουσα, για λογαριασμό και κατ’ εντολή του/της κάτωθι εντολέως, το ποσό των '+V(v.poso_arithmitikos)+' ευρώ, ως '+V(v.aitiologia)+'.</div>'+'<div class="props"><div class="frow"><span class="k">Εντολέας</span><span class="v2">'+V(v.entoleas_geniki)+' &middot; ΑΦΜ '+V(v.entoleas_afm)+'</span></div><div class="frow"><span class="k">Καταβάλλων/-ουσα</span><span class="v2">'+V(v.katavallon_geniki)+' &middot; ΑΦΜ '+V(v.katavallon_afm)+'</span></div></div>'+'<div class="datel" style="text-align:right">Θεσσαλονίκη '+fmtDate(v.imerominia)+'</div>'+signRow('Ο/Η ΚΑΤΑΒΑΛΛΩΝ/-ΟΥΣΑ','sig_katavallon','Ο ΜΕΣΙΤΗΣ','sig_lavousa',s)+FOOTER;}};</script>
+<script src="_outbox.fw.js"></script>
 <script src="_crm.fw.js"></script>
 <!-- DEV AUTOFILL: dev-only test helper, loads only on localhost (see _autofill.dev.js) --><script>if(/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname))document.body.appendChild(Object.assign(document.createElement("script"),{src:"_autofill.dev.js"}));</script>
 </body></html>
