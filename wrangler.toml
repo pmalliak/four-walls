@@ -42,6 +42,17 @@ not_found_handling = "404-page"
 binding = "LISTINGS_KV"
 id = "faf7d0b092d94eb1bdb974c764e3191a"
 
+# R2 — staging bucket for the AI photo-enhancement pipeline (worker/lib/
+# photos.mjs). The browser uploads full-res originals here (behind Access);
+# Make fetches each one via a short-lived HMAC-signed URL, edits it through
+# Gemini, and drops the results in Google Drive. Create it once with:
+#   npx wrangler r2 bucket create four-walls-photos
+# Originals are throwaway once Make has them — a lifecycle rule that expires
+# objects after ~7 days keeps the bucket from growing (see docs/photo-enhance.md).
+[[r2_buckets]]
+binding = "PHOTO_BUCKET"
+bucket_name = "four-walls-photos"
+
 # Persistent logs in the dashboard (Worker → Observability tab). Console
 # output is kept queryable — no need for a live `wrangler tail`.
 [observability.logs]
@@ -105,3 +116,10 @@ CF_ACCOUNT_ID = "94b15dbfc8d916d5af9808c1c9bc3f16"
 #                            it stays server-side — see worker/lib/forms.mjs.
 #   MAKE_FORMS_APIKEY        optional: only if the hook above gets API-key auth
 #   BROWSER_RENDER_TOKEN     Browser Rendering API token (PDF trial — see PDF_RENDER)
+#   MAKE_PHOTO_WEBHOOK       Make hook for the AI photo pipeline (scenario
+#                            «Photos — AI enhance»). URL is the credential,
+#                            so it stays server-side — see worker/lib/photos.mjs.
+#   MAKE_PHOTO_APIKEY        optional: only if that hook gets API-key auth
+#   PHOTO_SIGN_KEY           HMAC secret that signs the per-photo download URLs
+#                            Make fetches. Any long random string:
+#                            `npx wrangler secret put PHOTO_SIGN_KEY`

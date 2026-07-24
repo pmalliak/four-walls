@@ -28,6 +28,7 @@ deeper, one topic per file:
 | [forms-crm.md](forms-crm.md) | Έντυπα CRM pickers: Access setup, key split, contact field map, upstream limits |
 | [forms-submit.md](forms-submit.md) | Έντυπα submit: PWA → Worker → Make router → client email + PDF; the PDF-capture trap |
 | [request-closed.md](request-closed.md) | «Ολοκλήρωσα την αναζήτηση»: matchings email → `/request-closed` → Worker → Make → email to info@ |
+| [photo-enhance.md](photo-enhance.md) | AI photo enhancement: enhance.html → Worker/R2 → Make (Gemini "Nano Banana") → Google Drive + email; the edit toggles and Make build recipe |
 | [components/hero-search.md](components/hero-search.md) | Homepage search bar: fields, responsive layout, price swap |
 | [components/contact-map.md](components/contact-map.md) | Contact-page map: branded MapLibre GL style, street-name-only labels, logo pin |
 

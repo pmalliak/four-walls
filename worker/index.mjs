@@ -39,6 +39,7 @@ import { robotsResponse, sitemapResponse, serveListingPage, isProdHost } from ".
 import { requireAccess, isLocalDev, json } from "./lib/access.mjs";
 import { contactsIndex, contactDetail, listingsIndex } from "./lib/crm.mjs";
 import { handleFormSubmit } from "./lib/forms.mjs";
+import { handlePhotoApi, servePhotoFile } from "./lib/photos.mjs";
 
 const FEED_KEY = "listings.json";
 const DEFAULT_WEBHOOK_PATH = "/listings"; // overridden by WEBHOOK_PATH var
@@ -83,6 +84,20 @@ export default {
 				: handleCrm(request, env, pathname);
 		}
 
+		// AI photo enhancement — the STAFF half (init/upload/finalize). Same
+		// gate as the CRM pickers above: forms host + a verified Access JWT,
+		// so only a signed-in consultant can stage originals and spend Gemini
+		// credits. The public download half (/api/photos/file/) is deliberately
+		// NOT here — Make fetches it from the apex with an HMAC signature.
+		if (pathname.startsWith("/api/photos/") && !pathname.startsWith("/api/photos/file/")) {
+			if (!(url.hostname.startsWith("forms.") || isLocalDev(url, env))) {
+				return new Response("Not Found", { status: 404 });
+			}
+			const { denied, email } = await requireAccess(request, env, url);
+			if (denied) return denied;
+			return handlePhotoApi(request, env, url, email);
+		}
+
 		// forms.four-walls.gr serves ONLY the Έντυπα PWA: the forms/ folder
 		// mapped to the domain root. The app uses root-absolute paths
 		// (/manifest.webmanifest, /icon-192.png, start_url "/"), so it only
@@ -115,6 +130,13 @@ export default {
 
 		if (pathname === webhookPath) {
 			return handleWebhook(request, env, ctx, url);
+		}
+		// AI photo enhancement — the PUBLIC half: Make pulls each staged
+		// original by its signed URL. No Access (Make has no cookie); the
+		// HMAC signature + short expiry minted in photos.mjs is the guard.
+		// Lives on the apex precisely because that host has no Access in front.
+		if (pathname.startsWith("/api/photos/file/")) {
+			return servePhotoFile(request, env, url);
 		}
 		if (pathname === "/api/contact") {
 			return handleContact(request, env);

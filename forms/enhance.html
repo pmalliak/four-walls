@@ -1,0 +1,383 @@
+<!doctype html><html lang="el"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>FOUR WALLS · Επεξεργασία φωτογραφιών</title>
+<link rel="apple-touch-icon" href="https://four-walls.gr/forms/icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest" crossorigin="use-credentials">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Four Walls">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1C3457">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#1C3457;--pink:#FF0062;--muted:#6b7280;--line:#dbe1ea;--bg:#eef1f5;--ok:#1a8a4a;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;background:var(--bg);font-family:'Manrope',system-ui,Arial,sans-serif;color:#242a33;}
+.wrap{max-width:600px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom));}
+.hero{background:var(--navy);color:#fff;border-radius:20px;padding:24px 22px;text-align:center;margin-bottom:8px;}
+.hero .n{font-weight:800;letter-spacing:.16em;font-size:20px;}
+.hero .s{font-weight:700;letter-spacing:.42em;font-size:9px;color:#ff8bbb;margin-top:6px;}
+.back{display:inline-block;margin:14px 2px 6px;color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;}
+.back:active{color:var(--navy);}
+h1{font-size:22px;font-weight:800;color:var(--navy);margin:6px 2px 2px;}
+.lede{color:var(--muted);font-size:14px;margin:0 2px 16px;line-height:1.5;}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 16px;margin-bottom:14px;box-shadow:0 2px 10px rgba(20,30,50,.06);}
+.sect{font-weight:800;color:var(--navy);font-size:15px;letter-spacing:.01em;display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.sect .num{flex:0 0 auto;width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;}
+.hint{color:var(--muted);font-size:12.5px;line-height:1.5;margin:2px 0 0;}
+/* property picker */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 16px;cursor:pointer;}
+.btn-navy{background:var(--navy);color:#fff;}
+.btn-navy:active{opacity:.85;}
+.btn-ghost{background:#fff;color:var(--navy);border:1.5px solid var(--line);}
+.pickrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.chosen{flex:1;min-width:0;background:#f5f7fa;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:14px;}
+.chosen .c-code{font-weight:800;color:var(--navy);}
+.chosen .c-addr{color:var(--muted);font-size:12.5px;margin-top:2px;}
+.chosen .c-clear{float:right;color:var(--pink);font-weight:700;font-size:12px;cursor:pointer;}
+.blanknote{background:#fff7fb;border:1px dashed #f2b7d2;color:#a03a6a;border-radius:12px;padding:11px 13px;font-size:12.5px;line-height:1.5;}
+/* option toggles */
+.opt{display:flex;gap:12px;align-items:flex-start;padding:12px 4px;border-top:1px solid #eef1f5;cursor:pointer;}
+.opt:first-of-type{border-top:0;}
+.opt input{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:26px;height:26px;margin:1px 0 0;border:2px solid var(--line);border-radius:8px;background:#fff;position:relative;cursor:pointer;transition:.12s;}
+.opt input:checked{background:var(--navy);border-color:var(--navy);}
+.opt input:checked::after{content:"";position:absolute;left:8px;top:3px;width:6px;height:12px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg);}
+.opt .o-t{font-weight:700;color:var(--navy);font-size:14.5px;}
+.opt .o-d{color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.45;}
+.grouphdr{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 4px 2px;}
+.grouphdr.warn{color:#c2410c;}
+.opt.warn input:checked{background:#c2410c;border-color:#c2410c;}
+/* photos */
+.drop{border:2px dashed var(--line);border-radius:14px;padding:22px 14px;text-align:center;color:var(--muted);cursor:pointer;transition:.12s;}
+.drop:active{border-color:var(--pink);background:#fff5f9;}
+.drop .big{font-weight:800;color:var(--navy);font-size:15px;}
+.drop input{display:none;}
+.count{font-size:13px;color:var(--muted);margin:12px 2px 8px;font-weight:600;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;}
+.thumb{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#e6eaf0;}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.thumb .x{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:rgba(20,30,50,.72);color:#fff;border:0;font-size:14px;line-height:22px;cursor:pointer;}
+/* submit + progress */
+.submit{width:100%;background:var(--pink);color:#fff;font-size:16px;font-weight:800;border:0;border-radius:14px;padding:16px;margin-top:6px;cursor:pointer;}
+.submit:disabled{background:#c9ccd2;cursor:default;}
+.bar{height:8px;background:#e2e6ec;border-radius:99px;overflow:hidden;margin:14px 0 6px;}
+.bar > i{display:block;height:100%;width:0;background:var(--pink);transition:width .2s;}
+.status{text-align:center;color:var(--muted);font-size:13px;}
+.done{text-align:center;padding:10px 6px;}
+.done .ic{width:60px;height:60px;border-radius:50%;background:#e6f6ec;color:var(--ok);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:32px;font-weight:800;}
+.done h2{color:var(--navy);margin:0 0 8px;font-size:19px;}
+.done p{color:var(--muted);font-size:14px;line-height:1.55;margin:0 0 6px;}
+.foot{text-align:center;color:#8a93a1;font-size:12px;margin-top:18px;line-height:1.6;}
+/* CRM sheet (mirrors _crm.fw.js) */
+.sheet{position:fixed;inset:0;background:rgba(16,24,40,.45);z-index:9999;display:flex;align-items:flex-end;justify-content:center;}
+@media(min-width:640px){.sheet{align-items:center;}}
+.panel{background:var(--bg);width:100%;max-width:560px;max-height:86vh;border-radius:16px 16px 0 0;display:flex;flex-direction:column;overflow:hidden;}
+@media(min-width:640px){.panel{border-radius:16px;max-height:76vh;}}
+.shead{display:flex;gap:8px;padding:12px;background:#fff;border-bottom:1px solid var(--line);}
+.ssearch{flex:1;font:inherit;font-size:16px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;}
+.ssearch:focus{outline:2px solid var(--navy);outline-offset:-1px;}
+.sclose{flex:0 0 auto;padding:0 14px;background:#fff;border:1px solid var(--line);border-radius:10px;font-weight:700;}
+.slist{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px;}
+.srow{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 13px;margin-bottom:7px;min-height:52px;cursor:pointer;}
+.srow:active{border-color:var(--pink);}
+.srow-t{font-weight:700;color:var(--navy);font-size:14px;}
+.srow-s{color:var(--muted);font-size:12px;margin-top:2px;}
+.sstatus{padding:22px 12px;text-align:center;color:var(--muted);font-size:13px;}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:12px 18px;border-radius:12px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:10000;max-width:90vw;text-align:center;}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+</style></head><body><div class="wrap">
+
+<div class="hero"><div class="n">FOUR WALLS</div><div class="s">REAL ESTATE</div></div>
+<a class="back" href="index.html">‹ Έντυπα</a>
+
+<div id="form">
+	<h1>Επεξεργασία φωτογραφιών</h1>
+	<p class="lede">Ανεβάστε τις φωτογραφίες ενός ακινήτου για αυτόματη επεξεργασία με AI (ξεκαθάρισμα, φωτισμός κ.λπ.). Θα λάβετε email με τον σύνδεσμο μόλις είναι έτοιμες.</p>
+
+	<!-- 1 · property -->
+	<div class="card">
+		<div class="sect"><span class="num">1</span>Ακίνητο</div>
+		<div class="pickrow" id="pickrow">
+			<button class="btn btn-navy" id="pickBtn" type="button">Επιλογή από CRM</button>
+			<div class="hint" id="pickHint">Προαιρετικό — αφήστε το κενό αν το ακίνητο δεν έχει καταχωρηθεί ακόμη.</div>
+		</div>
+		<div id="chosenBox"></div>
+	</div>
+
+	<!-- 2 · edits -->
+	<div class="card">
+		<div class="sect"><span class="num">2</span>Τι να γίνει στις φωτογραφίες</div>
+		<div class="grouphdr">Βελτιώσεις</div>
+		<div id="optsSafe"></div>
+		<div class="grouphdr warn">Προσοχή — αλλάζουν την πραγματική εικόνα</div>
+		<p class="hint" style="margin:0 4px 4px">Ενεργοποιήστε τα μόνο όταν πρέπει· από προεπιλογή οι φθορές παραμένουν ορατές ώστε να μην παραπλανούμε τον πελάτη.</p>
+		<div id="optsWarn"></div>
+	</div>
+
+	<!-- 3 · photos -->
+	<div class="card">
+		<div class="sect"><span class="num">3</span>Φωτογραφίες</div>
+		<label class="drop" id="drop">
+			<div class="big">Προσθήκη φωτογραφιών</div>
+			<div class="hint" style="margin-top:4px">Επιλέξτε από τη συλλογή ή τραβήξτε νέες</div>
+			<input type="file" id="file" accept="image/*" multiple>
+		</label>
+		<div class="count" id="count" hidden></div>
+		<div class="grid" id="grid"></div>
+	</div>
+
+	<button class="submit" id="send" type="button" disabled>Αποστολή για επεξεργασία</button>
+</div>
+
+<!-- progress -->
+<div id="progress" hidden>
+	<div class="card">
+		<div class="sect"><span class="num">…</span>Αποστολή σε εξέλιξη</div>
+		<div class="bar"><i id="barfill"></i></div>
+		<div class="status" id="progtext">Προετοιμασία…</div>
+	</div>
+</div>
+
+<!-- done -->
+<div id="ok" hidden>
+	<div class="card done">
+		<div class="ic">✓</div>
+		<h2>Στάλθηκαν για επεξεργασία</h2>
+		<p id="okmsg"></p>
+		<p>Η επεξεργασία διαρκεί μερικά λεπτά. Θα λάβετε email στο <strong>info@four-walls.gr</strong> με τον σύνδεσμο των έτοιμων φωτογραφιών.</p>
+		<button class="btn btn-ghost" id="again" type="button" style="margin-top:12px">Νέα αποστολή</button>
+	</div>
+</div>
+
+<div class="foot">FOUR WALLS Real Estate · Θεσσαλονίκη · four-walls.gr</div>
+</div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+(function(){
+	/* --- options (keys must match worker/lib/photos.mjs) --------------- */
+	var OPTIONS = [
+		{key:"declutter",       label:"Αφαίρεση ακαταστασίας",              desc:"Προσωπικά αντικείμενα, καλώδια, σκουπίδια, τακτοποίηση", on:true},
+		{key:"lighting",        label:"Βελτίωση φωτισμού & χρωμάτων",       desc:"Φωτεινότητα, ισορροπία λευκού, ανάκτηση παραθύρων", on:true},
+		{key:"straighten",      label:"Ευθυγράμμιση & προοπτική",           desc:"Ίσιωμα κάθετων γραμμών και ορίζοντα", on:true},
+		{key:"sky",             label:"Βελτίωση ουρανού",                   desc:"Καθαρός γαλάζιος ουρανός σε εξωτερικές λήψεις", on:true},
+		{key:"remove_people",   label:"Αφαίρεση ανθρώπων & αντανακλάσεων",  desc:"Άτομα, κατοικίδια, αντανάκλαση του φωτογράφου", on:true},
+		{key:"repair_damage",   label:"Επιδιόρθωση φθορών",                 desc:"Ρωγμές, λεκέδες, ξεφλουδισμένη βαφή — μόνο αν θα αποκατασταθούν πραγματικά", on:false, warn:true},
+		{key:"virtual_staging", label:"Εικονική επίπλωση κενών χώρων",      desc:"Προσθήκη επίπλων σε άδειους χώρους — χρειάζεται ενημέρωση του αγοραστή", on:false, warn:true}
+	];
+
+	var MAX_EDGE = 3840;     // downscale longest edge to this (keeps web-grade detail, normalises HEIC→JPEG)
+	var MAX_FILES = 60;
+
+	var selected = null;     // {id, code, address, area} or null
+	var items = [];          // {blob, type, name, url}
+	var listingsCache = null;
+
+	var $ = function(id){ return document.getElementById(id); };
+
+	function toast(msg){
+		var t = $("toast"); t.textContent = msg; t.classList.add("on");
+		clearTimeout(toast._t); toast._t = setTimeout(function(){ t.classList.remove("on"); }, 3000);
+	}
+
+	/* --- render options ---------------------------------------------- */
+	function renderOptions(){
+		OPTIONS.forEach(function(o){
+			var lab = document.createElement("label");
+			lab.className = "opt" + (o.warn ? " warn" : "");
+			var cb = document.createElement("input");
+			cb.type = "checkbox"; cb.checked = o.on; cb.dataset.key = o.key;
+			var box = document.createElement("div");
+			var t = document.createElement("div"); t.className = "o-t"; t.textContent = o.label;
+			var d = document.createElement("div"); d.className = "o-d"; d.textContent = o.desc;
+			box.appendChild(t); box.appendChild(d);
+			lab.appendChild(cb); lab.appendChild(box);
+			(o.warn ? $("optsWarn") : $("optsSafe")).appendChild(lab);
+		});
+	}
+	function selectedOptions(){
+		return [].slice.call(document.querySelectorAll(".opt input:checked")).map(function(c){ return c.dataset.key; });
+	}
+
+	/* --- property picker (reads /api/crm/listings, like _crm.fw.js) --- */
+	function norm(s){
+		return String(s==null?"":s).toLowerCase().normalize("NFD")
+			.replace(/[̀-ͯ]/g,"").replace(/ς/g,"σ").trim();
+	}
+	function renderChosen(){
+		var box = $("chosenBox");
+		if (!selected){ box.innerHTML = ""; return; }
+		box.innerHTML =
+			'<div class="chosen" style="margin-top:12px">' +
+				'<span class="c-clear" id="clearSel">Αφαίρεση</span>' +
+				'<div class="c-code">' + (selected.code || "Ακίνητο") + '</div>' +
+				'<div class="c-addr">' + [selected.address, selected.area].filter(Boolean).join(" · ") + '</div>' +
+			'</div>';
+		$("clearSel").onclick = function(){ selected = null; renderChosen(); };
+	}
+	async function loadListings(){
+		if (listingsCache) return listingsCache;
+		var res = await fetch("/api/crm/listings", { headers:{ Accept:"application/json" } });
+		if (res.status===401 || res.status===403) throw new Error("Χρειάζεται σύνδεση — ανοίξτε ξανά την εφαρμογή.");
+		if (!res.ok) throw new Error("Σφάλμα " + res.status + " από το CRM.");
+		var data = await res.json();
+		listingsCache = (data.listings||[]).map(function(l){
+			return {
+				raw:{ id:l.id, code:l.code, address:l.address, area:l.area },
+				_t:(l.code?l.code+" · ":"") + (l.address||"(χωρίς διεύθυνση)"),
+				_s:[l.area, l.size?l.size+" τ.μ.":""].filter(Boolean).join(" · "),
+				_h:norm([l.code,l.address,l.area].join(" "))
+			};
+		});
+		return listingsCache;
+	}
+	function openSheet(){
+		var back = document.createElement("div"); back.className = "sheet";
+		back.innerHTML =
+			'<div class="panel"><div class="shead">' +
+				'<input class="ssearch" type="search" placeholder="Κωδικός, διεύθυνση ή περιοχή…" autocomplete="off">' +
+				'<button class="sclose" type="button">Άκυρο</button></div>' +
+				'<div class="slist"><div class="sstatus">Φόρτωση…</div></div></div>';
+		document.body.appendChild(back);
+		document.body.style.overflow = "hidden";
+		var input = back.querySelector(".ssearch");
+		var list = back.querySelector(".slist");
+		function shut(){ back.remove(); document.body.style.overflow = ""; }
+		back.querySelector(".sclose").onclick = shut;
+		back.onclick = function(e){ if (e.target===back) shut(); };
+		var rows = [];
+		function render(){
+			var q = norm(input.value);
+			list.innerHTML = "";
+			var hits = q ? rows.filter(function(r){ return r._h.indexOf(q)!==-1; }) : rows;
+			if (!hits.length){ list.innerHTML = '<div class="sstatus">'+(q?"Κανένα αποτέλεσμα.":"Κενό.")+'</div>'; return; }
+			hits.slice(0,60).forEach(function(r){
+				var b = document.createElement("button"); b.className = "srow"; b.type = "button";
+				b.innerHTML = '<div class="srow-t"></div><div class="srow-s"></div>';
+				b.querySelector(".srow-t").textContent = r._t;
+				b.querySelector(".srow-s").textContent = r._s;
+				b.onclick = function(){ selected = r.raw; renderChosen(); shut(); };
+				list.appendChild(b);
+			});
+			if (hits.length>60) list.appendChild(Object.assign(document.createElement("div"),{className:"sstatus",textContent:"…και άλλα "+(hits.length-60)+". Στενέψτε την αναζήτηση."}));
+		}
+		input.oninput = render;
+		setTimeout(function(){ input.focus(); }, 50);
+		loadListings().then(function(r){ rows = r; render(); })
+			.catch(function(err){ list.innerHTML = '<div class="sstatus"></div>'; list.firstChild.textContent = err.message; });
+	}
+
+	/* --- photos: prepare (downscale + normalise) + render ------------- */
+	function inferMime(name){
+		var m = (name.match(/\.(\w+)$/)||[])[1];
+		return ({jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp",heic:"image/heic",heif:"image/heif"})[(m||"").toLowerCase()] || "";
+	}
+	async function prepare(file){
+		try{
+			var bmp = await createImageBitmap(file, { imageOrientation:"from-image" });
+			var scale = Math.min(1, MAX_EDGE/Math.max(bmp.width,bmp.height));
+			var w = Math.round(bmp.width*scale), h = Math.round(bmp.height*scale);
+			var c = document.createElement("canvas"); c.width=w; c.height=h;
+			c.getContext("2d").drawImage(bmp,0,0,w,h);
+			bmp.close && bmp.close();
+			var blob = await new Promise(function(res){ c.toBlob(res,"image/jpeg",0.92); });
+			if (blob) return { blob:blob, type:"image/jpeg", name:file.name.replace(/\.\w+$/,"")+".jpg" };
+		}catch(e){ /* HEIC on a browser that can't decode it, etc. — send original */ }
+		return { blob:file, type:file.type||inferMime(file.name), name:file.name };
+	}
+	function fmtSize(n){ return n>=1048576 ? (n/1048576).toFixed(1)+" MB" : Math.round(n/1024)+" KB"; }
+	function renderGrid(){
+		var grid = $("grid"); grid.innerHTML = "";
+		items.forEach(function(it, i){
+			var d = document.createElement("div"); d.className = "thumb";
+			d.innerHTML = '<img src="'+it.url+'"><button class="x" type="button" aria-label="Αφαίρεση">×</button>';
+			d.querySelector(".x").onclick = function(){ URL.revokeObjectURL(it.url); items.splice(i,1); renderGrid(); };
+			grid.appendChild(d);
+		});
+		var total = items.reduce(function(s,it){ return s+it.blob.size; },0);
+		var c = $("count");
+		if (items.length){ c.hidden=false; c.textContent = items.length+" φωτογραφίες · "+fmtSize(total); }
+		else c.hidden = true;
+		$("send").disabled = items.length===0;
+	}
+	async function addFiles(files){
+		var arr = [].slice.call(files).filter(function(f){ return /^image\//.test(f.type) || inferMime(f.name); });
+		if (!arr.length) return;
+		if (items.length + arr.length > MAX_FILES){ toast("Μέχρι "+MAX_FILES+" φωτογραφίες ανά αποστολή."); arr = arr.slice(0, MAX_FILES-items.length); }
+		toast("Προετοιμασία " + arr.length + " φωτογραφιών…");
+		for (var i=0;i<arr.length;i++){
+			var p = await prepare(arr[i]);
+			p.url = URL.createObjectURL(p.blob);
+			items.push(p);
+			renderGrid();
+		}
+	}
+
+	/* --- upload: init -> PUT each -> finalize ------------------------- */
+	function setProg(pct, text){ $("barfill").style.width = pct+"%"; if (text!=null) $("progtext").textContent = text; }
+	async function runPool(list, worker, conc, onDone){
+		var i=0, done=0;
+		async function next(){
+			while (i<list.length){ var idx=i++; await worker(list[idx], idx); onDone(++done); }
+		}
+		await Promise.all(Array.from({length:Math.min(conc,list.length)}, next));
+	}
+	async function send(){
+		$("form").hidden = true; $("progress").hidden = false;
+		setProg(4, "Προετοιμασία αποστολής…");
+		try{
+			var initRes = await fetch("/api/photos/init", {
+				method:"POST", headers:{ "Content-Type":"application/json" },
+				body: JSON.stringify({ property: selected, options: selectedOptions(), count: items.length })
+			});
+			if (!initRes.ok) throw new Error("init " + initRes.status);
+			var batchId = (await initRes.json()).batch_id;
+
+			await runPool(items, async function(it, idx){
+				var r = await fetch("/api/photos/upload/"+batchId+"/"+idx, {
+					method:"PUT",
+					headers:{ "Content-Type":it.type, "X-Filename":encodeURIComponent(it.name) },
+					body: it.blob
+				});
+				if (!r.ok) throw new Error("upload " + r.status);
+			}, 3, function(done){
+				setProg(8 + Math.round(done/items.length*82), "Αποστολή " + done + "/" + items.length + " φωτογραφιών…");
+			});
+
+			setProg(94, "Ολοκλήρωση…");
+			var fin = await fetch("/api/photos/finalize/"+batchId, { method:"POST" });
+			if (!fin.ok) throw new Error("finalize " + fin.status);
+			var res = await fin.json();
+
+			setProg(100, "Έτοιμο");
+			$("progress").hidden = true; $("ok").hidden = false;
+			$("okmsg").textContent = res.count + " φωτογραφίες" + (selected ? " για το ακίνητο " + (selected.code||"") : "") + " στάλθηκαν για επεξεργασία.";
+		}catch(err){
+			$("progress").hidden = true; $("form").hidden = false;
+			toast("Κάτι πήγε στραβά ("+err.message+"). Δοκιμάστε ξανά.");
+		}
+	}
+	function reset(){
+		items.forEach(function(it){ URL.revokeObjectURL(it.url); });
+		items = []; selected = null;
+		renderGrid(); renderChosen();
+		document.querySelectorAll(".opt input").forEach(function(c){
+			var o = OPTIONS.find(function(x){ return x.key===c.dataset.key; }); c.checked = !!(o&&o.on);
+		});
+		$("ok").hidden = true; $("form").hidden = false;
+		window.scrollTo(0,0);
+	}
+
+	/* --- boot -------------------------------------------------------- */
+	renderOptions();
+	$("pickBtn").onclick = openSheet;
+	$("file").onchange = function(e){ addFiles(e.target.files); e.target.value = ""; };
+	$("send").onclick = send;
+	$("again").onclick = reset;
+})();
+</script>
+</body></html>
