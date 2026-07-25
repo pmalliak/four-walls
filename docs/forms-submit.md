@@ -41,8 +41,14 @@ string is a contract between each form's `CONFIG.id` and the scenario's filters.
 }
 ```
 
-`katachorisi` also sends `summary` and `ref`; it has no `CONFIG`, so it sets
-`form` by hand in `buildPayload()`.
+`katachorisi` also sends `summary`, `ref`, `schema: "crm-v1"` and a `crm`
+object — its fields mirror the EstatePrime listing schema 1:1 so property
+creation can be automated later (see
+[forms-katachorisi-crm.md](forms-katachorisi-crm.md)); it has no `CONFIG`, so
+it sets `form` by hand in `buildPayload()`. Its `data` keeps the legacy keys
+the Make templates read (`transaction_type`, `subtype`, `address`, `tk`,
+`region`, `area`), and `data.send_to_client` stays **boolean** because the
+client-email filter compares against the text `"true"`.
 
 **Adding a form** means adding its id to `FORM_IDS` in
 [../worker/lib/forms.mjs](../worker/lib/forms.mjs) **and** a router branch in
