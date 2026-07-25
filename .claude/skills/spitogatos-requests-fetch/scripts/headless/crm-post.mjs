@@ -15,11 +15,14 @@ if (!tab) { console.log('no CRM tab — run crm-login.mjs first'); process.exit(
 await tab.navigate('https://fourwalls.estateprime.gr/requests', { waitMs: 30000 }).catch((e) => console.log('nav warn:', e.message));
 await sleep(1500);
 
-const out = await tab.eval(`(async () => {
-	const jobs = ${JSON.stringify(jobs)};
-	const H = { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest' };
-	const results = [];
-	for (const j of jobs) {
+// One eval per job, paced from node — in-page setTimeout chains hang forever in a
+// long-hidden background tab (intensive timer throttling fires them 1/min).
+await tab.send('Page.bringToFront').catch(() => {});
+const results = [];
+for (const j of jobs) {
+	const out = await tab.eval(`(async () => {
+		const j = ${JSON.stringify(j)};
+		const H = { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest' };
 		const p = ['save_request=1', 'source_id=1', 'contact_ids[]=' + j.contactId, 'user_ids[]=2',
 			'tags[]=13', 'tags[]=14', 'request_status=1', 'rating='];
 		for (const [l1, l2] of j.areas) { p.push('area_level1[]=' + l1); p.push('area_level2[]=' + l2); }
@@ -36,14 +39,12 @@ const out = await tab.eval(`(async () => {
 				.json().catch(() => ({ parse: 'fail' }));
 			commId = cr && cr.id; commRaw = cr && !cr.id ? cr : null;
 		}
-		results.push({ leadId: j.leadId, name: j.name, contactId: j.contactId, requestId: rr && rr.id,
+		return JSON.stringify({ leadId: j.leadId, name: j.name, contactId: j.contactId, requestId: rr && rr.id,
 			requestRaw: rr && !rr.id ? rr : null, commId, commRaw });
-		await new Promise((r) => setTimeout(r, 600)); // pace + stay under 429s
-	}
-	return JSON.stringify(results);
-})()`, { timeoutMs: Math.max(180000, jobs.length * 5000) });
-
-const results = JSON.parse(out);
+	})()`, { timeoutMs: 60000 });
+	results.push(JSON.parse(out));
+	await sleep(600); // pace + stay under 429s
+}
 writeFileSync(outPath, JSON.stringify(results, null, 1), 'utf8');
 for (const r of results)
 	console.log(`  ${r.leadId} ${r.name}: request=${r.requestId ?? JSON.stringify(r.requestRaw)} comm=${r.commId ?? JSON.stringify(r.commRaw)}`);

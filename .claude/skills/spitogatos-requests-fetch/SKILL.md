@@ -54,6 +54,9 @@ Gotchas learned 2026-07-24:
 - ALL-CAPS Greek names must get explicit `greek_first/greek_last` (prep's titleCase would emit
   «…οσ» with a non-final sigma). Watch for swapped first/last (e.g. «ΘΩΜΑΚΟΣ ΧΑΡΑΛΑΜΠΟΣ» =
   Θωμάκος surname — the email address usually disambiguates).
+- (2026-07-25) **Never run in-page `setTimeout` loops** in the long-lived tabs: a tab hidden >5min
+  gets intensive timer throttling (timers fire ~1/min) and the eval hangs forever. sg-fetch and
+  crm-post now do one `eval` per item and pace from **node** (`sleep`), plus `Page.bringToFront`.
 
 ## Auth split (important)
 - **`/api/*`** (contacts, locations, requests-read, verification) = **HTTP Basic** → run from **node**.
