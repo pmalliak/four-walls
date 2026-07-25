@@ -30,6 +30,7 @@ deeper, one topic per file:
 | [forms-katachorisi-crm.md](forms-katachorisi-crm.md) | Καταχώριση ακινήτου: CRM-aligned schema (πεδία/slugs 1:1 με το EstatePrime), το `crm` payload, area ids, ο δρόμος για το auto-create |
 | [request-closed.md](request-closed.md) | «Ολοκλήρωσα την αναζήτηση»: matchings email → `/request-closed` → Worker → Make → email to info@ |
 | [photo-enhance.md](photo-enhance.md) | AI photo enhancement: enhance.html → Worker/R2 → Make (Gemini "Nano Banana") → Google Drive + email; the edit toggles and Make build recipe |
+| [listing-description-prompt.md](listing-description-prompt.md) | Έτοιμο AI prompt για την περιγραφή αγγελίας (το AI του CRM φτιάχνει μόνο περιγραφή) στο ύφος του γραφείου — κανόνας «παραλία», slugs→ελληνικά, παραδείγματα |
 | [components/hero-search.md](components/hero-search.md) | Homepage search bar: fields, responsive layout, price swap |
 | [components/contact-map.md](components/contact-map.md) | Contact-page map: branded MapLibre GL style, street-name-only labels, logo pin |
 
