@@ -13,6 +13,10 @@ and constraints:
 | [`appointment-reminder.en.twig.html`](appointment-reminder.en.twig.html) | Email (EN) | appointment reminder | ” |
 | [`request-matchings.twig.html`](request-matchings.twig.html) | Email (GR) | νέα διασταύρωση ζήτησης – ακινήτων | ” |
 | [`request-matchings.en.twig.html`](request-matchings.en.twig.html) | Email (EN) | ” — English (UK) slot | ” |
+| [`appointment-created.sms.twig`](appointment-created.sms.twig) | SMS (GR) | ραντεβού δημιουργήθηκε | plain text, one line |
+| [`appointment-reminder.sms.twig`](appointment-reminder.sms.twig) | SMS (GR) | υπενθύμιση ραντεβού | ” |
+| [`appointment-created.en.sms.twig`](appointment-created.en.sms.twig) | SMS (EN) | appointment booked | ” |
+| [`appointment-reminder.en.sms.twig`](appointment-reminder.en.sms.twig) | SMS (EN) | appointment reminder | ” |
 
 The matchings email ends with a **«σταματήστε τις προτάσεις»** link to
 `/request-closed?r=…&c=…` — the client's opt-out, wired to Make; see
@@ -42,6 +46,30 @@ so save one before opening the other.
 English template** (the sample data does; assume a real send does too). The
 English copy therefore avoids them — its chip shows only `ref. {{ request.id }}`
 and its subject is the plain wording. Revisit after a real English send.
+
+## SMS templates (2026-07-25)
+
+The `.sms.twig` files mirror the appointment emails as plain-text one-liners.
+They live in **Ρυθμίσεις → SMS → Πρότυπα** (editor
+`/settings/sms/view/{slug}/{lang}` — `new_appointment` / `appointment_reminder`,
+lang `1` = Ελληνικά, `2` = English (UK)); endpoint details in
+[../docs/estateprime-api.md](../docs/estateprime-api.md). Conventions:
+
+- Same data roots as the appointment emails minus `office` extras:
+  `contact.*`, `appointment.*` (incl. `is_remote`/`meeting_url`, unused — the
+  emails ignore them too), `user.*`, `office.*`, `system.*`.
+- **Same dead-simple conditional structure** as the appointment emails
+  (`is_full_day` if/else, `address.latitude` guard) and the EN copy dodges the
+  validator's Twig-keyword words (no `with/or/at/date`, no apostrophes) — the
+  four one-liners saved without tripping it, so whether the SMS save runs the
+  same validator is untested.
+- **No `{# … #}` comments** — they'd inflate the editor char counter and risk
+  the WAF; explanations stay here.
+- Greek renders as UCS-2 (67 chars/segment concatenated) — with the sample
+  address each message previews at ~145–150 chars ≈ 3 segments.
+- «Αυτόματη αποστολή» (the list's Ρυθμίσεις modal) is **left Ανενεργή** and the
+  SMS provider (`#tab-settings`: provider, api_key, sender ≤11 chars) is
+  unconfigured — nothing sends until both are set.
 
 ## Two visual systems (don't mix them)
 

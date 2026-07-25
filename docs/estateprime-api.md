@@ -256,6 +256,94 @@ Field reference (from request 17/18):
   come straight from the lead's structured fields and free-text message. Source
   Spitogatos.gr, assigned to Μάνος, tags claude + spitogatos, contact linked.
 
+## Document templates / Ψηφιακά Έντυπα (internal web endpoints, mapped 2026-07-25)
+
+`/settings/document-templates` lists the templates (1 = Υπόδειξη ακινήτου,
+2 = Ανάθεση ακινήτου); the editor lives at
+`/settings/document-templates/view/{id}/{lang}` (lang **1 = Greek, 2 = English**).
+Not part of the public API — same-origin POSTs with the session cookie, no CSRF
+(like `/requests/form`). All three actions POST **to the view URL itself**,
+`application/x-www-form-urlencoded`:
+
+- `load_template=true` → `{success, html, email_html, sms_content, variables,
+  fields, sections_listings, sections_contacts, signature_not_required}`.
+  **No subject in the response** — the email subject only exists as the
+  `#email-subject-input` value in the page HTML.
+- `preview=true&subject=…&html=…&variables=<json>` → server-side Twig render,
+  `{success, html, subject}` or `{success:false, error}` — good for validating a
+  template before saving.
+- `save=true&content=…&subject=…&email_content=…&sms_content=…&fields=<json>&
+  sections_listings=0|1|2&sections_contacts=0|1|2&signature_not_required=0|1`.
+
+Templates are **Twig** extending `document-sign-base.twig` (`{% block styles %}`
++ `{% block body %}`); the base appends the signature footer + sign-pad UI, and
+the final PDF is **browser-rendered** (flexbox, CSS counters, `::marker`,
+data-URI images all work). Variables: `document.{id,name,created_at,
+data.{contacts[],listings[],<field-id>…}}`, `contact.{full_name,vat_number,
+id_number,mobile,area,street,postal_code}`, `listing.{id,code,price,address,
+type,size,floor_label,energy_class_label,availability,availability_label}`,
+`user`, `office.{name,logo,vatno,gemi,doy,phone}`, `company`, `system.
+current_time`, `sign_url`, helper `formatNumber(x, withEuro)`. Data fields land
+in `document.data.<id>` (per-listing: keyed by listing id, e.g.
+`document.data.commission[listing.id]`).
+
+Traps:
+
+- **The UI's save drops field metadata.** `load_template` returns fields with
+  `source` (auto-fill, e.g. `listing.assignment_fee`), `type`, `required`,
+  `editable` — but the page's `getFieldsData()` serializes only
+  `id/label/per_listing/hidden_on_unsigned`, so any UI save (or a faithful
+  replica of it) silently strips the auto-fill wiring. Pass the full field
+  objects through in `fields` to preserve them.
+- **`office.*` is placeholder data** unless a logo/details are set in CRM
+  settings — the fourwalls account has none, so our templates hardcode the
+  brand block and embed the logo as a data URI.
+- **CDP gotchas driving this from the dedicated Edge** ([[edge-cdp-automation]]):
+  a single big `Runtime.evaluate` (≳40 KB expression) hangs Edge's CDP — upload
+  payloads into a `window` var in ~6 KB chunks, then `fetch(body: window.__P)`.
+  And a killed Node script does **not** abort the page's in-flight fetch; a few
+  stuck POSTs wedge the renderer's whole connection pool for that origin (every
+  later same-origin fetch times out, even tiny ones). Fix: close the origin's
+  tabs (kills the renderer) and reopen.
+
+2026-07-25: both Greek templates were replaced 1:1 with the Έντυπα PWA
+documents/emails (see [forms-submit.md](forms-submit.md)); the stock EstatePrime
+originals are backed up in `%LOCALAPPDATA%\FourWalls\estateprime-template-backups\`.
+The English (lang 2) variants still hold the stock EstatePrime content.
+
+## SMS templates (internal web endpoints, mapped 2026-07-25)
+
+`/settings/sms#tab-templates` lists the system SMS templates by **slug** (not
+numeric id): `new_appointment`, `appointment_reminder`, `new_contact`, … The
+editor lives at `/settings/sms/view/{slug}/{lang}` (lang **1 = Greek,
+2 = English (UK)**). Same mechanics as the document templates — same-origin
+POSTs with the session cookie, no CSRF, all three actions POST **to the view
+URL itself**, `application/x-www-form-urlencoded`:
+
+- `load_template=true` → `{success, content, variables}` — `content` is the
+  raw Twig one-liner (empty string when unset), `variables` the sample data.
+- `preview=true&content=…&variables=<json>` → server-side Twig render,
+  `{success, content, chars}` — `chars` is the rendered SMS length.
+- `save=true&content=…` → `{success}` — saves that language slot only.
+
+Variables (per `load_template`): `contact.{id,first_name,last_name,full_name,
+email}`, `appointment.{id,title,is_remote,meeting_url,address.{address,
+latitude,longitude},date_starts,date_ends,time_starts,time_ends,duration,
+is_full_day,category_id}`, `user.{id,first_name,last_name,email,phone}`,
+`office.{name,address,email,phone}`, `system.{current_time,current_date,
+current_date_formatted}`.
+
+Notes:
+
+- **«Αυτόματη αποστολή» (Ενεργή/Ανενεργή) is separate from content** — it's the
+  list page's Ρυθμίσεις modal (`editTemplate('slug')`), not the editor. Filling
+  content does not enable sending.
+- The SMS **provider is unconfigured** (`#tab-settings`: `provider`, `api_key`,
+  `sender` ≤11 chars) — no SMS goes out until it's set up.
+- 2026-07-25: both appointment SMS (`new_appointment`, `appointment_reminder`)
+  were written EL+EN mirroring the appointment emails; sources in
+  [../crm/](../crm/README.md) (`*.sms.twig`). Auto-send left Ανενεργή.
+
 ## Other resources (exist, unused)
 
 Calendar, Communication, Contracts, Expenses, External Listings, Files,
