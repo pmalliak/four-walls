@@ -530,12 +530,19 @@ export async function applyWatermark(request, env, url) {
 		// whatever the phone shot, and a fixed width would look twice as
 		// big on one as on the other. Insets scale too, so a crop that
 		// removes a mark costs a big slice of the photo with it.
-		let frameW = 2048;
+		let frameW = 2048, frameH = 1536;
 		try {
 			const info = await env.IMAGES.info(new Blob([bytes]).stream());
 			if (info?.width) frameW = info.width;
+			if (info?.height) frameH = info.height;
 		} catch { /* not a format info() understands — keep the 2K assumption */ }
-		const inset = Math.round(frameW * 0.035);
+		// Scale off the LONG edge, not the width: a portrait shot is just as
+		// big on screen as a landscape one, but its width is ~25% smaller, so
+		// a width-based mark came out visibly too small on verticals. The cap
+		// keeps it sane on extremely tall/narrow crops.
+		const base = Math.max(frameW, frameH);
+		const markW = (share, cap) => Math.min(Math.round(base * share), Math.round(frameW * cap));
+		const inset = Math.round(Math.min(frameW, frameH) * 0.035);
 
 		let pipeline = env.IMAGES.input(new Blob([bytes]).stream());
 
@@ -546,7 +553,7 @@ export async function applyWatermark(request, env, url) {
 			const logoRes = await env.ASSETS.fetch(new URL("/images/logo/fourwalls_watermark.png", url.origin));
 			if (!logoRes.ok) throw new Error(`logo asset HTTP ${logoRes.status}`);
 			pipeline = pipeline.draw(
-				env.IMAGES.input(logoRes.body).transform({ width: Math.round(frameW * 0.29) }),
+				env.IMAGES.input(logoRes.body).transform({ width: markW(0.29, 0.42) }),
 				{ bottom: inset, right: inset, opacity: 0.9 },
 			);
 		}
@@ -559,7 +566,7 @@ export async function applyWatermark(request, env, url) {
 			const noticeRes = await env.ASSETS.fetch(new URL("/images/logo/fourwalls_staged_notice.png", url.origin));
 			if (!noticeRes.ok) throw new Error(`notice asset HTTP ${noticeRes.status}`);
 			pipeline = pipeline.draw(
-				env.IMAGES.input(noticeRes.body).transform({ width: Math.round(frameW * 0.25) }),
+				env.IMAGES.input(noticeRes.body).transform({ width: markW(0.25, 0.40) }),
 				{ bottom: inset, left: inset, opacity: 0.92 },
 			);
 		}
