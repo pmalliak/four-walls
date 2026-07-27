@@ -105,6 +105,30 @@ and reviewable. Two options change the property's *true condition* and are
 | `remove_people` | Αφαίρεση ανθρώπων & αντανακλάσεων | on | omits |
 | `repair_damage` | Επιδιόρθωση φθορών | **off** | **actively tells the model to PRESERVE every crack/stain/wear** |
 | `virtual_staging` | Εικονική επίπλωση κενών χώρων | **off** | tells the model to add nothing not physically present |
+| `watermark` | Λογότυπο κάτω δεξιά | **off** | not a prompt fragment at all — see below |
+
+### Watermark (`watermark`)
+
+Deliberately **not** part of the Gemini prompt: a generative model renders a
+logo unreliably, and the declutter pass would happily wipe one off. Instead
+the Worker draws it deterministically **after** the AI step:
+
+```
+Gemini → POST {{1.watermark_url}} (signed, apex) → Drive enhanced/
+```
+
+`finalize` mints `watermark_url` (HMAC + 6 h expiry, same scheme as the photo
+URLs) and Make POSTs every edited image to it. The endpoint reads the batch's
+own `meta.json` from R2 and either draws the logo (Cloudflare **Images
+binding**, `env.IMAGES.draw()`, ~15% frame width, 90% opacity, bottom-right)
+or passes the bytes through untouched — so the scenario needs **no router**,
+and batches without the option burn zero Images transformations. It
+**fails open**: a missing binding, missing asset or Images error logs a
+warning and returns the unwatermarked photo rather than killing the batch.
+
+The asset is [images/logo/fourwalls_watermark.png](../images/logo/fourwalls_watermark.png)
+— white wordmark + pink cube on transparency with a soft shadow baked in (no
+solid box); see docs/brand.md for how to regenerate it.
 
 So the default behaviour can never quietly hide a real defect. A permanent HARD
 RULES clause forbids altering walls/doors/windows/floors/views regardless.
