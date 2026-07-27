@@ -47,6 +47,8 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 .opt .o-d{color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.4;}
 .ghdr{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 2px 2px;}
 .ghdr.warn{color:#c2410c;}
+.opt.sub{margin-left:26px;border-top:1px dashed #e3e7ee;}
+.opt.sub .o-t{font-size:13.5px;}
 #aiGroup.off{opacity:.4;pointer-events:none;}
 #aiGroup.off input{filter:grayscale(1);}
 /* photos */
@@ -109,6 +111,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		<div class="ghdr warn">Προσοχή — αλλάζουν την πραγματική εικόνα</div>
 		<div class="hintline" style="margin-top:2px">Ενεργοποιήστε τα μόνο όταν πρέπει· από προεπιλογή οι φθορές παραμένουν ορατές ώστε να μην παραπλανούμε τον πελάτη.</div>
 		<div id="optsWarn"></div>
+		<label class="opt sub" id="noticeRow" hidden><input type="checkbox" id="noticeBox" checked><div><div class="o-t">Σήμανση εικονικής επίπλωσης</div><div class="o-d">Διακριτική ένδειξη κάτω αριστερά ότι τα έπιπλα είναι πρόταση και δεν υπάρχουν στον χώρο</div></div></label>
 		</div>
 	</div>
 
@@ -176,6 +179,8 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			lab.className = "opt" + (o.warn ? " warn" : "");
 			var cb = document.createElement("input");
 			cb.type = "checkbox"; cb.checked = o.on; cb.dataset.key = o.key;
+			// marker the disclaimer row keys off (see syncNotice)
+			if (o.key === "virtual_staging") cb.setAttribute("data-k-staging", "1");
 			var box = document.createElement("div");
 			var t = document.createElement("div"); t.className = "o-t"; t.textContent = o.label;
 			var d = document.createElement("div"); d.className = "o-d"; d.textContent = o.desc;
@@ -193,14 +198,27 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			[].slice.call(document.querySelectorAll("#aiGroup input[type=checkbox]:checked"))
 				.forEach(function(c){ if (c.dataset.key) out.push(c.dataset.key); });
 		}
+		// Only meaningful alongside virtual_staging, and only when the row
+		// is actually showing — an unticked-then-hidden box must not leak.
+		if (out.indexOf("virtual_staging") !== -1 && $("noticeBox").checked) out.push("staging_notice");
 		if ($("wmBox").checked) out.push("watermark");
 		return out;
+	}
+	/* The disclaimer row appears (pre-ticked) the moment virtual staging is
+	   chosen, and the consultant can still switch it off. */
+	function syncNotice(){
+		var staging = document.querySelector('#aiGroup input[data-k-staging]');
+		var on = !!(staging && staging.checked) && $("aiToggle").checked;
+		$("noticeRow").hidden = !on;
+		if (on && !$("noticeRow").dataset.seen) { $("noticeBox").checked = true; $("noticeRow").dataset.seen = "1"; }
+		if (!on) delete $("noticeRow").dataset.seen;
 	}
 	/* Master toggle <-> AI checkboxes stay in sync in both directions:
 	   turning it off greys the group out, ticking anything inside turns it
 	   back on (so a tick can never be silently ignored). */
 	function syncAi(){
 		$("aiGroup").classList.toggle("off", !$("aiToggle").checked);
+		syncNotice();
 	}
 	function selectedModel(){
 		var r = document.querySelector('input[name=model]:checked');
@@ -352,7 +370,8 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 	renderOptions();
 	$("aiToggle").onchange = syncAi;
 	$("aiGroup").addEventListener("change", function(e){
-		if (e.target.checked && !$("aiToggle").checked) { $("aiToggle").checked = true; syncAi(); }
+		if (e.target.checked && !$("aiToggle").checked) { $("aiToggle").checked = true; }
+		syncAi();
 	});
 	syncAi();
 	$("pickBtn").onclick = openSheet;

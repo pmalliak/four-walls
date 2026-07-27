@@ -79,7 +79,11 @@ const SAFE_FRAGMENTS = {
 const AI_OPTIONS = new Set([
 	...Object.keys(SAFE_FRAGMENTS), "repair_damage", "virtual_staging",
 ]);
-const KNOWN_OPTIONS = new Set([...AI_OPTIONS, "watermark"]);
+/* `staging_notice` is an overlay too, not an AI edit: when a room has been
+   virtually furnished the photo should SAY so, so the form offers it
+   (ticked) the moment «Εικονική επίπλωση» is chosen. Drawn bottom-left by
+   applyWatermark(), opposite the logo. */
+const KNOWN_OPTIONS = new Set([...AI_OPTIONS, "watermark", "staging_notice"]);
 
 /* Model tiers the form may pick. The CLIENT sends only the tier key; the
    real Gemini model name is resolved HERE, so the browser can never inject
@@ -118,6 +122,7 @@ const OPTION_LABELS_EL = {
 	remove_people: "Αφαίρεση ανθρώπων & αντανακλάσεων",
 	repair_damage: "Επιδιόρθωση φθορών",
 	virtual_staging: "Εικονική επίπλωση κενών χώρων",
+	staging_notice: "Σήμανση εικονικής επίπλωσης",
 	watermark: "Λογότυπο κάτω δεξιά",
 };
 
@@ -510,41 +515,59 @@ export async function applyWatermark(request, env, url) {
 		});
 
 	const meta = await env.PHOTO_BUCKET.get(`photos/${batchId}/meta.json`).then((o) => o?.json()).catch(() => null);
-	if (!meta?.options?.includes("watermark")) return passthrough();
+	const opts = meta?.options || [];
+	const wantsLogo = opts.includes("watermark");
+	const wantsNotice = opts.includes("staging_notice");
+	if (!wantsLogo && !wantsNotice) return passthrough();
 
 	if (!env.IMAGES) {
-		console.warn("photos: watermark requested but IMAGES binding missing — passing through");
+		console.warn("photos: overlay requested but IMAGES binding missing — passing through");
 		return passthrough();
 	}
 	try {
-		// Transparent PNG, white wordmark + pink cube, with a soft shadow
-		// baked in so it reads on both a bright floor and dark furniture —
-		// no solid box behind it (see docs/brand.md for how it is generated).
-		const logoRes = await env.ASSETS.fetch(new URL("/images/logo/fourwalls_watermark.png", url.origin));
-		if (!logoRes.ok) throw new Error(`logo asset HTTP ${logoRes.status}`);
-		// Size the mark RELATIVE to the frame, not in fixed pixels: the AI
+		// Size overlays RELATIVE to the frame, not in fixed pixels: the AI
 		// route hands us a 2K render while the logo-only route carries
 		// whatever the phone shot, and a fixed width would look twice as
-		// big on one as on the other. Inset scales too, so the mark always
-		// sits well clear of both edges — cropping it out costs a big slice
-		// of the photo.
+		// big on one as on the other. Insets scale too, so a crop that
+		// removes a mark costs a big slice of the photo with it.
 		let frameW = 2048;
 		try {
 			const info = await env.IMAGES.info(new Blob([bytes]).stream());
 			if (info?.width) frameW = info.width;
 		} catch { /* not a format info() understands — keep the 2K assumption */ }
-		const markW = Math.round(frameW * 0.29);
 		const inset = Math.round(frameW * 0.035);
 
-		const out = await env.IMAGES.input(new Blob([bytes]).stream())
-			.draw(
-				env.IMAGES.input(logoRes.body).transform({ width: markW }),
+		let pipeline = env.IMAGES.input(new Blob([bytes]).stream());
+
+		if (wantsLogo) {
+			// Transparent PNG, white wordmark + pink cube, soft shadow baked
+			// in so it reads on a bright floor and on dark furniture alike —
+			// no solid box (docs/brand.md covers how it is generated).
+			const logoRes = await env.ASSETS.fetch(new URL("/images/logo/fourwalls_watermark.png", url.origin));
+			if (!logoRes.ok) throw new Error(`logo asset HTTP ${logoRes.status}`);
+			pipeline = pipeline.draw(
+				env.IMAGES.input(logoRes.body).transform({ width: Math.round(frameW * 0.29) }),
 				{ bottom: inset, right: inset, opacity: 0.9 },
-			)
-			.output({ format: "image/png" });
+			);
+		}
+
+		if (wantsNotice) {
+			// Deliberately smaller than the logo and on the opposite corner:
+			// it must be legible without dominating the photo. Unlike the
+			// logo this one sits on a translucent plate — a disclaimer that
+			// disappears against a bright floor would be worthless.
+			const noticeRes = await env.ASSETS.fetch(new URL("/images/logo/fourwalls_staged_notice.png", url.origin));
+			if (!noticeRes.ok) throw new Error(`notice asset HTTP ${noticeRes.status}`);
+			pipeline = pipeline.draw(
+				env.IMAGES.input(noticeRes.body).transform({ width: Math.round(frameW * 0.25) }),
+				{ bottom: inset, left: inset, opacity: 0.92 },
+			);
+		}
+
+		const out = await pipeline.output({ format: "image/png" });
 		return out.response();
 	} catch (err) {
-		console.warn(`photos: watermark failed for ${batchId}, passing through: ${String(err)}`);
+		console.warn(`photos: overlay failed for ${batchId}, passing through: ${String(err)}`);
 		return passthrough();
 	}
 }
