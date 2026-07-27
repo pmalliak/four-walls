@@ -105,7 +105,8 @@ and reviewable. Two options change the property's *true condition* and are
 | `remove_people` | Αφαίρεση ανθρώπων & αντανακλάσεων | on | omits |
 | `repair_damage` | Επιδιόρθωση φθορών | **off** | **actively tells the model to PRESERVE every crack/stain/wear** |
 | `virtual_staging` | Εικονική επίπλωση κενών χώρων | **off** | tells the model to add nothing not physically present |
-| `watermark` | Λογότυπο κάτω δεξιά | **off** | not a prompt fragment at all — see below |
+| `watermark` | Λογότυπο κάτω δεξιά | **on** | not a prompt fragment at all — see below |
+| `staging_notice` | Σήμανση εικονικής επίπλωσης | on, but only offered while `virtual_staging` is ticked | overlay, not a prompt fragment |
 
 ### Two-pass inventory (grounding)
 
@@ -153,6 +154,20 @@ warning and returns the unwatermarked photo rather than killing the batch.
 The asset is [images/logo/fourwalls_watermark.png](../images/logo/fourwalls_watermark.png)
 — white wordmark + pink cube on transparency with a soft shadow baked in (no
 solid box); see docs/brand.md for how to regenerate it.
+
+### Staged-photo disclaimer (`staging_notice`)
+
+Ticking «Εικονική επίπλωση» reveals a **pre-ticked** sub-option that stamps
+«ΕΙΚΟΝΙΚΗ ΕΠΙΠΛΩΣΗ — Τα έπιπλα και τα διακοσμητικά δεν υπάρχουν στον χώρο»
+bottom-**left**, opposite the logo; the consultant can still switch it off.
+A staged photo should say it is staged.
+
+Same draw path as the logo, at **25% of the frame** (smaller than the logo's
+29%) so it stays legible without dominating. Unlike the logo it sits on a
+translucent navy plate with a pink rule — white text with a shadow alone was
+unreadable on a bright floor, and an unreadable disclaimer is worthless.
+Asset: [images/logo/fourwalls_staged_notice.png](../images/logo/fourwalls_staged_notice.png)
+(compact two-line plate; regenerate the same way as the watermark).
 
 So the default behaviour can never quietly hide a real defect. A permanent HARD
 RULES clause forbids altering walls/doors/windows/floors/views regardless.
