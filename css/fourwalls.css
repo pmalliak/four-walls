@@ -1146,6 +1146,15 @@ body.fw-popup-lock {
 .fw-request-closed .btn-nine {
   display: inline-block;
 }
+/* The «Στην αρχική» button is an <a> inside .fw-legal, whose `.fw-legal a`
+   rule paints links pink — that made pink text on the pink button (invisible).
+   Force the theme button's white label + no underline back. */
+.fw-request-closed .btn-nine,
+.fw-request-closed .btn-nine:hover,
+.fw-request-closed .btn-nine:focus {
+  color: #ffffff;
+  text-decoration: none;
+}
 .fw-request-closed .fw-rc-messages:not(:empty) {
   margin-bottom: 18px;
   font-size: 16px;

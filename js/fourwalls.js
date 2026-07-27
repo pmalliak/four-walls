@@ -394,7 +394,8 @@
         "κουμπί) και πατήστε ξανά «Επιβεβαίωση».",
       sending: "Αποστολή...",
       optH1: "Διακοπή προτάσεων",
-      optIntro: "Επιβεβαιώστε ότι δεν επιθυμείτε άλλες προτάσεις ακινήτων και θα σταματήσουμε να σας τις στέλνουμε."
+      optIntro: "Επιβεβαιώστε ότι δεν επιθυμείτε άλλες προτάσεις ακινήτων και θα σταματήσουμε να σας τις στέλνουμε.",
+      optDone: "Λάβαμε την ενημέρωσή σας και σταματάμε να σας στέλνουμε προτάσεις ακινήτων. Θα χαρούμε να σας εξυπηρετήσουμε ξανά όποτε μας χρειαστείτε."
     },
     en: {
       errorHtml:
@@ -405,7 +406,8 @@
         "button) and press “Confirm” again.",
       sending: "Sending...",
       optH1: "Stop suggestions",
-      optIntro: "Confirm that you no longer wish to receive property suggestions and we will stop sending them."
+      optIntro: "Confirm that you no longer wish to receive property suggestions and we will stop sending them.",
+      optDone: "We have received your update and will stop sending you property suggestions. We would be glad to help you again whenever you need us."
     }
   })[LANG];
   var ERROR_HTML = STR.errorHtml;
@@ -430,8 +432,10 @@
     // to a plain «stop sending me suggestions».
     var h1 = document.getElementById("fw-rc-h1");
     var intro = document.getElementById("fw-rc-intro");
+    var doneMsg = document.getElementById("fw-rc-done-msg");
     if (h1) h1.textContent = STR.optH1;
     if (intro) intro.textContent = STR.optIntro;
+    if (doneMsg) doneMsg.textContent = STR.optDone;
   }
 
   var messages = document.getElementById("fw-rc-messages");
