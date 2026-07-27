@@ -569,6 +569,56 @@ export async function servePhotoFile(request, env, url) {
    FAIL-OPEN on any hiccup (missing binding, logo asset, Images error):
    an unwatermarked photo in Drive beats a dead batch — the failure is
    logged for the Observability tab. */
+/* Pixel dimensions straight out of the file header — PNG, JPEG and WebP,
+   the only three formats that reach this endpoint (the form re-encodes
+   uploads through a canvas, Gemini returns PNG). Returns null for anything
+   else so the caller can fall back. */
+function imageSize(bytes) {
+	const b = new Uint8Array(bytes);
+	const dv = new DataView(bytes);
+	// PNG — IHDR is always the first chunk, width/height at 16..23.
+	if (b.length > 24 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) {
+		return { width: dv.getUint32(16), height: dv.getUint32(20) };
+	}
+	// JPEG — walk the marker chain to the first SOFn. C4/C8/CC sit in that
+	// range but are Huffman/arithmetic tables, not frame headers.
+	if (b.length > 4 && b[0] === 0xff && b[1] === 0xd8) {
+		let i = 2;
+		while (i + 9 < b.length) {
+			if (b[i] !== 0xff) { i++; continue; }
+			const marker = b[i + 1];
+			if (marker === 0xff || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd8)) { i += 2; continue; }
+			if (marker === 0xd9 || marker === 0xda) break; // end of image / start of scan
+			const len = dv.getUint16(i + 2);
+			if (len < 2) break;
+			if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+				return { height: dv.getUint16(i + 5), width: dv.getUint16(i + 7) };
+			}
+			i += 2 + len;
+		}
+	}
+	// WebP — RIFF....WEBP, then a VP8 / VP8L / VP8X chunk, each with its own
+	// little-endian encoding of the size.
+	if (b.length > 30 && b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46
+		&& b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) {
+		const fourcc = String.fromCharCode(b[12], b[13], b[14], b[15]);
+		if (fourcc === "VP8 ") {
+			return { width: dv.getUint16(26, true) & 0x3fff, height: dv.getUint16(28, true) & 0x3fff };
+		}
+		if (fourcc === "VP8L") {
+			const bits = dv.getUint32(21, true);
+			return { width: (bits & 0x3fff) + 1, height: ((bits >> 14) & 0x3fff) + 1 };
+		}
+		if (fourcc === "VP8X") {
+			return {
+				width: (b[24] | (b[25] << 8) | (b[26] << 16)) + 1,
+				height: (b[27] | (b[28] << 8) | (b[29] << 16)) + 1,
+			};
+		}
+	}
+	return null;
+}
+
 export async function applyWatermark(request, env, url) {
 	if (request.method !== "POST") {
 		return new Response("Method Not Allowed", { status: 405, headers: { "Allow": "POST" } });
@@ -620,12 +670,33 @@ export async function applyWatermark(request, env, url) {
 		// whatever the phone shot, and a fixed width would look twice as
 		// big on one as on the other. Insets scale too, so a crop that
 		// removes a mark costs a big slice of the photo with it.
-		let frameW = 2048, frameH = 1536;
-		try {
-			const info = await env.IMAGES.info(new Blob([bytes]).stream());
-			if (info?.width) frameW = info.width;
-			if (info?.height) frameH = info.height;
-		} catch { /* not a format info() understands — keep the 2K assumption */ }
+		// Read the dimensions out of the file ourselves first. IMAGES.info()
+		// was silently failing on the multi-megabyte PNGs the AI route
+		// produces, and the 2048-wide fallback then sized the logo for a
+		// frame narrower than the real one: 594 px drawn on a 2730 px render
+		// is 21.8% of the width where the logo-only route (whose JPEG info()
+		// handled fine) got the full 29%. Same batch, same option, visibly
+		// different mark — spotted 2026-07-27. A header parse cannot fail
+		// this way, costs nothing, and needs no binding.
+		let frameW = 0, frameH = 0;
+		const header = imageSize(bytes);
+		if (header) {
+			frameW = header.width;
+			frameH = header.height;
+		} else {
+			try {
+				const info = await env.IMAGES.info(new Blob([bytes]).stream());
+				if (info?.width) frameW = info.width;
+				if (info?.height) frameH = info.height;
+			} catch { /* fall through to the assumption below */ }
+		}
+		if (!frameW || !frameH) {
+			// Last resort. Log it: a wrong frame size is not a crash, it is a
+			// mark that quietly comes out the wrong size.
+			console.warn(`photos: could not determine image size for ${batchId} (${contentType}, ${bytes.byteLength}B) — overlay sized for an assumed 2048x1536`);
+			frameW = 2048;
+			frameH = 1536;
+		}
 		// Scale off the LONG edge, not the width: a portrait shot is just as
 		// big on screen as a landscape one, but its width is ~25% smaller, so
 		// a width-based mark came out visibly too small on verticals. The cap

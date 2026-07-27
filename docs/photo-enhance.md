@@ -245,6 +245,17 @@ worthless.
 just as large on screen as a landscape one but ~25% narrower, so width-based
 sizing made the marks visibly too small on verticals; the share of the width
 is capped so very tall crops stay sane.
+
+Which makes the frame size load-bearing, so `applyWatermark()` parses it out
+of the **file header itself** (`imageSize()` — PNG IHDR, JPEG SOFn, WebP
+VP8/VP8L/VP8X) and only falls back to `IMAGES.info()`, then to an assumed
+2048×1536, if that fails. It used to call `info()` first, which was quietly
+failing on the multi-megabyte PNGs the AI route produces: the logo was then
+sized for a 2048-wide frame and drawn on a ~2730-wide render, coming out at
+**21.8%** of the width where the logo-only route (JPEG, `info()` fine) got
+the full **29%**. Same batch, same option, visibly smaller mark — reported
+2026-07-27, and invisible from the code because it fails *plausibly*. The
+last-resort branch now logs a warning for the Observability tab.
 Asset: [images/logo/fourwalls_staged_notice.png](../images/logo/fourwalls_staged_notice.png)
 (compact two-line plate; regenerate the same way as the watermark).
 
