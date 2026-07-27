@@ -436,6 +436,23 @@
 		var listings = feed.listings;
 		var params = new URLSearchParams(window.location.search);
 
+		/* «Οι προτάσεις μας για εσάς»: a recommendation email — via its
+		   EstatePrime listing/batch page, which redirects here — lands with
+		   ?codes=a,b,c. Scope the grid to exactly those listing codes, with a
+		   banner and a «δείτε όλα» escape link. */
+		var codesParam = (params.get("codes") || "").trim();
+		var codesSet = codesParam
+			? new Set(codesParam.split(",").map(function (s) { return s.trim(); }).filter(Boolean))
+			: null;
+		if (codesSet && grid) {
+			var recsBanner = document.createElement("div");
+			recsBanner.style.cssText = "background:#f7f8fa;border-left:3px solid #ff0062;border-radius:8px;padding:14px 18px;margin:0 0 24px;font-size:15px;line-height:1.6;color:#1c3457;";
+			recsBanner.innerHTML = (LANG === "en"
+				? 'These are the properties we selected for you. <a href="' + BASE + '/properties" style="color:#ff0062;font-weight:600;">See all our properties</a>'
+				: 'Αυτά είναι τα ακίνητα που επιλέξαμε για εσάς. <a href="' + BASE + '/properties" style="color:#ff0062;font-weight:600;">Δείτε όλα τα ακίνητά μας</a>');
+			grid.parentNode.insertBefore(recsBanner, grid);
+		}
+
 		var controls = {
 			transaction: document.getElementById("fw-f-transaction"),
 			type: document.getElementById("fw-f-type"),
@@ -498,6 +515,7 @@
 		function apply() {
 			var f = currentFilters();
 			var out = listings.filter(function (l) {
+				if (codesSet && !codesSet.has(String(l.code))) return false;
 				if (f.transaction && l.transaction !== f.transaction) return false;
 				if (f.type && l.category !== f.type) return false;
 				if (f.area) {
@@ -545,6 +563,7 @@
 
 			/* keep the URL shareable */
 			var qs = new URLSearchParams();
+			if (codesParam) qs.set("codes", codesParam);
 			Object.keys(f).forEach(function (k) { if (f[k]) qs.set(k, f[k]); });
 			var q = qs.toString();
 			history.replaceState(null, "", window.location.pathname + (q ? "?" + q : ""));

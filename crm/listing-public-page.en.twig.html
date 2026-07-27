@@ -389,6 +389,15 @@
 			}
 		}
 	</style>
+	<meta name="fw-redirect" content="{{ listing.code }}">
+	<script>
+	(function () {
+		if (!location.hostname || location.pathname.indexOf('/preview') !== -1) return;
+		var m = document.querySelector('meta[name="fw-redirect"]');
+		var v = m && m.content;
+		if (v) location.replace("https://four-walls.gr/en" + "/properties/" + encodeURIComponent(v));
+	})();
+	</script>
 </head>
 
 <body style="
