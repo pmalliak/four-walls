@@ -18,3 +18,5 @@ data/
 .claude/settings.local.json
 # macOS Finder cruft
 .DS_Store
+# scratch folder for eyeballing AI photo output (never published)
+see/

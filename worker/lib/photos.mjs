@@ -77,13 +77,16 @@ const SAFE_FRAGMENTS = {
    would happily "clean" one off), so the logo is drawn deterministically by
    applyWatermark() below, AFTER Gemini, via the Cloudflare Images binding. */
 const AI_OPTIONS = new Set([
-	...Object.keys(SAFE_FRAGMENTS), "repair_damage", "virtual_staging", "finish_works",
+	...Object.keys(SAFE_FRAGMENTS), "repair_damage", "virtual_staging",
+	"finish_works", "render_finished",
 ]);
 /* `staging_notice` is an overlay too, not an AI edit: when a room has been
    virtually furnished the photo should SAY so, so the form offers it
    (ticked) the moment «Εικονική επίπλωση» is chosen. Drawn bottom-left by
    applyWatermark(), opposite the logo. */
-const KNOWN_OPTIONS = new Set([...AI_OPTIONS, "watermark", "staging_notice", "works_notice"]);
+const KNOWN_OPTIONS = new Set([
+	...AI_OPTIONS, "watermark", "staging_notice", "works_notice", "render_notice",
+]);
 
 /* Model tiers the form may pick. The CLIENT sends only the tier key; the
    real Gemini model name is resolved HERE, so the browser can never inject
@@ -128,6 +131,8 @@ const OPTION_LABELS_EL = {
 	staging_notice: "Σήμανση εικονικής επίπλωσης",
 	finish_works: "Αποπεράτωση εργασιών σε εξέλιξη",
 	works_notice: "Σήμανση εργασιών σε εξέλιξη",
+	render_finished: "Απεικόνιση ολοκληρωμένου χώρου",
+	render_notice: "Σήμανση απεικόνισης",
 	watermark: "Λογότυπο κάτω δεξιά",
 };
 
@@ -142,7 +147,9 @@ function composePrompt(options) {
 		// A half-built room must not come back finished — unless the office
 		// deliberately asked for the after-the-works view, which then gets
 		// stamped with its own disclaimer (see finish_works / works_notice).
-		on.has("finish_works")
+		on.has("render_finished")
+			? "THIS PROPERTY IS AN UNFINISHED SHELL AND YOU ARE ASKED FOR A VISUALISATION OF IT COMPLETED. Deliver the finishes a developer would hand over, plainly and neutrally: level and finish the floors, plaster and paint walls and ceilings in a warm neutral white, fit skirting and door and window frames, glaze the openings, add simple ceiling lighting, and tile wet areas in plain neutral tiles. KEEP THE ARCHITECTURE UNTOUCHED: every column, beam, wall position, opening, staircase, level change and ceiling height stays exactly where it is, and the view through every opening is unchanged. You are dressing the shell, never redesigning the building. Restrained and photorealistic — an indicative standard finish, not a luxury showpiece."
+			: on.has("finish_works")
 			? "THIS PROPERTY IS MID-WORKS AND YOU ARE ASKED TO SHOW IT COMPLETED. Present the room as it will look once the current works are finished: hide exposed cabling and conduit behind the finished surface, fit the missing skirting and trims, finish and paint bare plaster in the same colour as the finished walls, remove protective film, building dust, debris, tools and materials, and complete the ceiling and lighting that are evidently being installed. Complete ONLY what is plainly already under way, and change nothing else: keep the exact same layout, dimensions, openings, fixtures, sanitary ware, tiles, marble, flooring and every material and colour already in place. You are finishing the works that were started, never redesigning or upgrading the property."
 			: "THIS IS A REAL, POSSIBLY UNFINISHED PROPERTY. If the room is mid-renovation or under construction — bare plaster, exposed cabling, missing skirting, unpainted or unfinished surfaces, protective film, building dust or debris — it must STAY that way. Never complete the works, never finish, paint, tile or install anything, and never present the space as more finished than it is.",
 		// The rule the model breaks most eagerly: it "upgrades" what it sees
@@ -157,17 +164,30 @@ function composePrompt(options) {
 	}
 
 	// Damage — the honesty clamp. Off (the default) must actively preserve.
+	// A shell being visualised complete is the one case where "keep every
+	// scuff" is self-contradictory (it is about to be plastered and painted),
+	// so there the clamp narrows to defects in the building's fabric.
 	lines.push(on.has("repair_damage")
 		? "- Repair visible surface damage: fill cracks, remove stains and water marks, and touch up peeling or scuffed paint so walls and surfaces look sound and freshly maintained."
+		: on.has("render_finished")
+		? "- Beyond the finishing authorised above, hide nothing: structural cracks, damp patches, water staining and any defect in the fabric of the building must remain clearly visible in the result."
 		: "- Preserve ALL visible damage exactly as it is: cracks, stains, water marks, peeling paint, scuffs and wear must remain clearly visible and unaltered. Do not hide or repair any defect.");
 
 	// Staging — off (the default) must add nothing. When on, the spec is
 	// deliberately detailed: v1's one-liner staged rooms too sparsely (a
 	// lone sofa, a bathroom with just a mirror) and let the model invent
 	// doors / turn a window into a balcony door (feedback 2026-07-25).
+	// On a bare shell the old wording talked the model out of the job: it
+	// forbade touching any surface (which the visualisation is explicitly
+	// completing) and keyed the room type off "visible fixtures", of which a
+	// shell has none — so it staged nothing and the notice went on a photo
+	// with no furniture in it (feedback 2026-07-27).
+	const stageLead = on.has("render_finished")
+		? "- Virtual staging: furnish the completed space with LOOSE, MOVABLE FURNISHINGS — things a stager could carry in and out in an afternoon. The completion authorised above gives you finished floors, walls and openings; dress that finished space, but build nothing further yourself. This room is an unfinished shell, so read its intended use from its size, shape, position, openings and any plumbing or electrical rough-ins, and furnish it as that room — a shell with no fixtures is still a bedroom, a living room or a kitchen, and must be furnished as one. Furnish fully and realistically, the way a professional home stager would present a listing — welcoming and lived-in, never minimal, never cluttered:"
+		: "- Virtual staging: add LOOSE, MOVABLE FURNISHINGS ONLY — things a stager could carry in and out in an afternoon. You are dressing the room, never building it: do not finish, renovate, retile, repaint or complete anything, and do not touch a single fixed surface or installation. Within that limit, furnish an empty or sparse room fully and realistically, the way a professional home stager would present a listing — welcoming and lived-in, never minimal, never cluttered. First identify each room's type from its visible fixtures, then furnish accordingly:";
 	lines.push(on.has("virtual_staging")
 		? [
-			"- Virtual staging: add LOOSE, MOVABLE FURNISHINGS ONLY — things a stager could carry in and out in an afternoon. You are dressing the room, never building it: do not finish, renovate, retile, repaint or complete anything, and do not touch a single fixed surface or installation. Within that limit, furnish an empty or sparse room fully and realistically, the way a professional home stager would present a listing — welcoming and lived-in, never minimal, never cluttered. First identify each room's type from its visible fixtures, then furnish accordingly:",
+			stageLead,
 			"  * Living room: a full sofa arrangement with cushions and a throw, coffee table, area rug, TV unit or bookcase, floor lamp, wall art and a plant.",
 			"  * Bedroom: a properly sized bed with made-up linens and pillows, nightstands with lamps, a rug and wall art.",
 			"  * Kitchen: small countertop appliances (coffee machine, kettle, toaster), a fruit bowl, a cutting board and a few tasteful jars — on existing counters only.",
@@ -184,14 +204,30 @@ function composePrompt(options) {
 	// unpredictably.
 	// Make substitutes the pass-1 survey for the token (see INVENTORY_PROMPT).
 	// Placed last so it is the freshest thing before the hard rules.
+	// The blanket "never add what is absent" is right for a normal listing
+	// photo and fatal for the three options that exist precisely to add
+	// something: on a shell the survey lists floors, paint and furniture as
+	// absent, and the model then refuses to stage or finish anything. Carve
+	// the sanctioned additions out instead of dropping the grounding.
+	const adding = on.has("virtual_staging") || on.has("finish_works") || on.has("render_finished");
 	lines.push(
 		"VERIFIED INVENTORY OF THIS EXACT PHOTOGRAPH, from a prior inspection of it — treat it as ground truth and trust it over your own expectations of what such a room usually contains: __INVENTORY__",
-		"Whatever that inventory lists as absent does not exist here: never add it. Whatever it lists as present must still be there afterwards, as the very same item — same type, style and material as described. The surfaces it describes are binding too: keep every tile, marble or stone pattern, floor covering, worktop and wall finish exactly as it is — do not re-tile, re-pattern, polish or otherwise restyle a single surface.",
+		adding
+			? "That inventory records the property's true condition; it is not a limit on the edits authorised above. Anything it lists as absent really is missing from the property, so never present it as an existing feature and never add it unless an instruction above explicitly asks you to. Whatever it lists as present must still be there afterwards, as the very same item — same type, style and material as described. The surfaces it describes are binding except where an instruction above explicitly asks you to finish them: otherwise keep every tile, marble or stone pattern, floor covering, worktop and wall finish exactly as it is — do not re-tile, re-pattern, polish or otherwise restyle a single surface."
+			: "Whatever that inventory lists as absent does not exist here: never add it. Whatever it lists as present must still be there afterwards, as the very same item — same type, style and material as described. The surfaces it describes are binding too: keep every tile, marble or stone pattern, floor covering, worktop and wall finish exactly as it is — do not re-tile, re-pattern, polish or otherwise restyle a single surface.",
 	);
 
-	lines.push(on.has("blur_windows")
-		? "HARD RULES: never add, remove, resize, relocate or reinterpret any permanent feature — walls, doors, balcony doors, windows, other openings, floors, ceilings, stairs, built-in cabinetry, or any plumbing/installed equipment (bathtub, shower, basin, toilet, bidet, radiator, fireplace, kitchen counter, sink, oven, hob, extractor hood, air-conditioning unit). Never REPLACE an existing one with a different type, model or style, and never ADD A PART to something that is already there: if a shower has only a wall mixer and a hand shower, do NOT give it an overhead or rain head; do not add a second tap, an extra radiator panel, another cupboard door or an extra lamp to a fitting. If a bathroom has no bathtub the edited photo must still have no bathtub, and if it has a corner shower tray that exact tray must still be there — not a nicer one. A window stays a window; a door stays a door. The ONLY permitted change through windows is the privacy obscuring requested above. The edited photo must not misrepresent the property itself."
-		: "HARD RULES: never add, remove, resize, relocate or reinterpret any permanent feature — walls, doors, balcony doors, windows, other openings, floors, ceilings, stairs, built-in cabinetry, or any plumbing/installed equipment (bathtub, shower, basin, toilet, bidet, radiator, fireplace, kitchen counter, sink, oven, hob, extractor hood, air-conditioning unit). Never REPLACE an existing one with a different type, model or style, and never ADD A PART to something that is already there: if a shower has only a wall mixer and a hand shower, do NOT give it an overhead or rain head; do not add a second tap, an extra radiator panel, another cupboard door or an extra lamp to a fitting. If a bathroom has no bathtub the edited photo must still have no bathtub, and if it has a corner shower tray that exact tray must still be there — not a nicer one. A window stays a window; a door stays a door. Never alter anything seen through windows. The edited photo must not misrepresent the property.");
+	// Last word in the prompt, so it has to agree with the options above.
+	// The default list forbids adding floors, ceilings and cabinetry — which
+	// is exactly what a visualisation is asked to do, so that variant locks
+	// the STRUCTURE instead and leaves the surfaces to the clause above.
+	const windowRule = on.has("blur_windows")
+		? "The ONLY permitted change through windows is the privacy obscuring requested above."
+		: "Never alter anything seen through windows.";
+	const noEquipment = "Never invent plumbing or installed equipment (bathtub, shower, basin, toilet, bidet, radiator, fireplace, kitchen counter, sink, oven, hob, extractor hood, air-conditioning unit).";
+	lines.push(on.has("render_finished")
+		? "HARD RULES: never add, remove, resize, relocate or reinterpret any part of the building itself — walls, columns, beams, doors, balcony doors, windows, other openings, staircases, level changes, ceiling heights, room dimensions or the layout. Finishing the SURFACES of what is already there is authorised above; changing what is there is not. " + noEquipment + " An unfinished bathroom or kitchen is handed over tiled and empty, not fitted out. A window stays a window; a door stays a door; an opening stays exactly the size and shape it is. " + windowRule + " The edited photo must not misrepresent the property itself."
+		: "HARD RULES: never add, remove, resize, relocate or reinterpret any permanent feature — walls, doors, balcony doors, windows, other openings, floors, ceilings, stairs, built-in cabinetry, or any plumbing/installed equipment (bathtub, shower, basin, toilet, bidet, radiator, fireplace, kitchen counter, sink, oven, hob, extractor hood, air-conditioning unit). Never REPLACE an existing one with a different type, model or style, and never ADD A PART to something that is already there: if a shower has only a wall mixer and a hand shower, do NOT give it an overhead or rain head; do not add a second tap, an extra radiator panel, another cupboard door or an extra lamp to a fitting. If a bathroom has no bathtub the edited photo must still have no bathtub, and if it has a corner shower tray that exact tray must still be there — not a nicer one. A window stays a window; a door stays a door. " + windowRule + " The edited photo must not misrepresent the property.");
 	return lines.join("\n");
 }
 
@@ -540,9 +576,11 @@ export async function applyWatermark(request, env, url) {
 	const opts = meta?.options || [];
 	const wantsLogo = opts.includes("watermark");
 	const notices = [
-		// Order matters when both are on: they stack down the top-left
-		// corner, works first because it describes the whole scene.
-		opts.includes("works_notice") ? "fourwalls_works_notice.png" : null,
+		// Order matters when several apply: they stack down the top-left
+		// corner, whole-scene claims first. A visualisation supersedes the
+		// mid-works notice — it is the stronger statement about the photo.
+		opts.includes("render_notice") ? "fourwalls_render_notice.png"
+			: opts.includes("works_notice") ? "fourwalls_works_notice.png" : null,
 		opts.includes("staging_notice") ? "fourwalls_staged_notice.png" : null,
 	].filter(Boolean);
 	if (!wantsLogo && !notices.length) return passthrough();

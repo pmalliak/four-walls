@@ -105,8 +105,50 @@ and reviewable. Two options change the property's *true condition* and are
 | `remove_people` | Αφαίρεση ανθρώπων & αντανακλάσεων | on | omits |
 | `repair_damage` | Επιδιόρθωση φθορών | **off** | **actively tells the model to PRESERVE every crack/stain/wear** |
 | `virtual_staging` | Εικονική επίπλωση κενών χώρων | **off** | tells the model to add nothing not physically present |
+| `finish_works` | Αποπεράτωση εργασιών σε εξέλιξη | **off** | (see the three-way clause below) |
+| `render_finished` | Απεικόνιση ολοκληρωμένου χώρου | **off** | (see the three-way clause below) |
 | `watermark` | Λογότυπο κάτω δεξιά | **on** | not a prompt fragment at all — see below |
 | `staging_notice` | Σήμανση εικονικής επίπλωσης | on, but only offered while `virtual_staging` is ticked | overlay, not a prompt fragment |
+| `render_notice` | Σήμανση απεικόνισης | **forced on** with `render_finished`, not removable | overlay, not a prompt fragment |
+
+### Unfinished properties: the three-way clause
+
+One clause, three mutually exclusive wordings, because the office needs all
+three and they contradict each other:
+
+- **neither option** — the default. A half-built room *stays* half-built:
+  "never complete the works, never finish, paint, tile or install anything".
+- **`finish_works`** — the property is mid-works and the works will be
+  finished as started. Hides cabling, debris, protective film and missing
+  trims; **layout, materials and fittings stay exactly as they are**. No
+  disclaimer: tidying away a cable tray is not a claim about the property.
+- **`render_finished`** — a bare shell shown as it would be handed over
+  (floors, paint, frames, glazing, plain tiling in wet areas). The finishes
+  are *invented*, so `render_notice` is mandatory and the form renders it as
+  a locked row rather than a checkbox.
+
+`render_finished` also rewrites three clauses that would otherwise cancel it
+out (fixed 2026-07-27, after a shell came back untouched):
+
+- the **inventory** clause. Pass 1 honestly reports floors/paint/doors as
+  absent, and "never add what the inventory lists as absent" then forbids the
+  entire job. It now reads "…never add it *unless an instruction above
+  explicitly asks you to*".
+- the **HARD RULES**, whose default list forbids adding floors, ceilings and
+  cabinetry. The `render_finished` variant locks the *structure* instead
+  (walls, columns, openings, dimensions, ceiling heights) and leaves the
+  surfaces to the clause above. Sanitary ware and appliances stay forbidden:
+  an unfinished bathroom is handed over **tiled and empty**.
+- the **damage clamp**, which narrows to defects in the fabric of the
+  building (structural cracks, damp, water staining) — "keep every scuff"
+  is meaningless on a wall that is about to be plastered.
+
+`virtual_staging` gets a second lead-in under `render_finished` too: the
+default one says *"identify each room's type from its visible fixtures"* and
+*"do not touch a single fixed surface"*, and a shell has no fixtures and is
+having its surfaces finished — so the model staged nothing while the notice
+was still stamped on. The shell variant tells it to read the intended use
+from size, position, openings and rough-ins instead.
 
 ### Two-pass inventory (grounding)
 
@@ -155,12 +197,25 @@ The asset is [images/logo/fourwalls_watermark.png](../images/logo/fourwalls_wate
 — white wordmark + pink cube on transparency with a soft shadow baked in (no
 solid box); see docs/brand.md for how to regenerate it.
 
-### Staged-photo disclaimer (`staging_notice`)
+### Disclaimer overlays (`staging_notice`, `render_notice`)
 
 Ticking «Εικονική επίπλωση» reveals a **pre-ticked** sub-option that stamps
-«ΕΙΚΟΝΙΚΗ ΕΠΙΠΛΩΣΗ — Τα έπιπλα και τα διακοσμητικά δεν υπάρχουν στον χώρο»
-**top-left**; the consultant can still switch it off. A staged photo should
-say it is staged.
+«ΕΙΚΟΝΙΚΗ ΕΠΙΠΛΩΣΗ — Κάποια έπιπλα και διακοσμητικά μπορεί να μην υπάρχουν
+στον χώρο» **top-left**; the consultant can still switch it off. A staged
+photo should say it is staged. The wording is deliberately *"κάποια … μπορεί
+να μην"*: a staged room often keeps some of its real furniture, so a flat
+«δεν υπάρχουν» would be wrong in the other direction.
+
+«Απεικόνιση» stamps «ΑΠΕΙΚΟΝΙΣΗ ΧΩΡΟΥ — Ενδεικτική απόδοση … μετά την
+ολοκλήρωση των εργασιών» and is **not removable** — its finishes are
+invented. Both rows are relocated by `renderOptions()` to sit **directly
+under the option that triggers them**; parked at the end of the group they
+read as belonging to whichever option happens to be last.
+
+Both stack top-left, `render_notice` first. A third plate,
+`fourwalls_works_notice.png`, is still supported by the Worker but no longer
+offered by the form: «Αποπεράτωση» changes nothing the buyer could be misled
+about.
 
 Same draw path as the logo, at **25%** of the long edge (the logo takes 29%)
 so brand reads first and the notice second. It sits **top**-left rather than
