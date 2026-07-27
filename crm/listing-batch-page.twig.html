@@ -21,8 +21,8 @@
 			background: #f1f2f3;
 			color: #2c2f34;
 			min-height: 100vh;
-			display: grid;
-			grid-template-rows: auto auto 1fr auto;
+			position: relative;
+			padding-bottom: 104px;
 		}
 
 		.header {
@@ -235,7 +235,11 @@
 		}
 
 		.footer {
-			margin-top: 20px;
+			position: absolute;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			margin-top: 0;
 			padding: 28px;
 			background: #ffffff;
 			border-top: 5px solid var(--navy);
@@ -324,11 +328,6 @@
 	</div>
 
 	<main class="container">
-		<div class="section-heading">
-			<span class="section-heading-icon">⌂</span>
-			<span>Επιλεγμένα ακίνητα</span>
-		</div>
-
 		{% if listings %}
 		<div class="grid">
 			{% for listing in listings %}

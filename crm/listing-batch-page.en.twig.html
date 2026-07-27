@@ -21,8 +21,8 @@
 			background: #f1f2f3;
 			color: #2c2f34;
 			min-height: 100vh;
-			display: grid;
-			grid-template-rows: auto auto 1fr auto;
+			position: relative;
+			padding-bottom: 104px;
 		}
 
 		.header {
@@ -235,7 +235,11 @@
 		}
 
 		.footer {
-			margin-top: 20px;
+			position: absolute;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			margin-top: 0;
 			padding: 28px;
 			background: #ffffff;
 			border-top: 5px solid var(--navy);
@@ -324,11 +328,6 @@
 	</div>
 
 	<main class="container">
-		<div class="section-heading">
-			<span class="section-heading-icon">⌂</span>
-			<span>Selected properties</span>
-		</div>
-
 		{% if listings %}
 		<div class="grid">
 			{% for listing in listings %}
@@ -359,7 +358,7 @@
 		<div class="empty-state">There are no property recommendations available at this time.</div>
 		{% endif %}
 			<div style="text-align:center; margin:34px 0 8px;">
-				<a href="https://four-walls.gr/properties?utm_source=estateprime&amp;utm_medium=batch_page" target="_blank" rel="noopener" style="display:inline-block; background:var(--navy); color:#ffffff; text-decoration:none; font-weight:700; padding:12px 26px; border-radius:8px;">See all our properties</a>
+				<a href="https://four-walls.gr/en/properties?utm_source=estateprime&amp;utm_medium=batch_page" target="_blank" rel="noopener" style="display:inline-block; background:var(--navy); color:#ffffff; text-decoration:none; font-weight:700; padding:12px 26px; border-radius:8px;">See all our properties</a>
 			</div>
 	</main>
 
