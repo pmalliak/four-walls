@@ -131,10 +131,10 @@ function composePrompt(options) {
 			"  * Living room: a full sofa arrangement with cushions and a throw, coffee table, area rug, TV unit or bookcase, floor lamp, wall art and a plant.",
 			"  * Bedroom: a properly sized bed with made-up linens and pillows, nightstands with lamps, a rug and wall art.",
 			"  * Kitchen: small countertop appliances (coffee machine, kettle, toaster), a fruit bowl, a cutting board and a few tasteful jars — on existing counters only.",
-			"  * Bathroom: folded towels on existing rails or shelves, a bath mat, soap dispensers and cosmetics by the basin, a small plant or candles.",
+			"  * Bathroom: folded towels on existing rails or shelves, a bath mat, soap dispensers and cosmetics by the basin, a small plant or candles — NEVER a bathtub, shower, basin, toilet, bidet or any other sanitary fixture: dress only what is already installed.",
 			"  * Dining area: a dining table with chairs and a simple centerpiece.",
 			"  In every room, also add curtains on the existing windows, a tasteful ceiling light fixture if the room lacks one, and rugs or plants as accents.",
-			"  STRICT while staging: add furniture, textiles, light fixtures and decor ONLY — NEVER invent doors, balcony doors, windows, openings or passages that are not in the photo; never turn a window into a balcony door or vice versa; every wall, opening and room dimension stays exactly as photographed; keep all furniture realistically scaled and do not misrepresent the room's true size or layout.",
+			"  STRICT while staging: add loose furniture, textiles, light fixtures and decor ONLY — NEVER invent doors, balcony doors, windows, openings or passages that are not in the photo; never turn a window into a balcony door or vice versa; NEVER add plumbing or built-in equipment (bathtub, shower, basin, toilet, bidet, radiator, fireplace, kitchen counter, cupboards, sink, oven, hob, extractor hood, air-conditioning unit); every wall, opening and room dimension stays exactly as photographed; keep all furniture realistically scaled and do not misrepresent the room's true size or layout.",
 		].join("\n")
 		: "- Do not add any furniture, appliances or decorative objects that are not already physically present in the photo.");
 
@@ -143,8 +143,8 @@ function composePrompt(options) {
 	// or the two instructions contradict and the model resolves it
 	// unpredictably.
 	lines.push(on.has("blur_windows")
-		? "HARD RULES: never add, remove, resize, relocate or reinterpret any permanent architectural feature — walls, doors, balcony doors, windows, other openings, floors, ceilings, stairs, built-in cabinetry. A window stays a window; a door stays a door. The ONLY permitted change through windows is the privacy obscuring requested above. The edited photo must not misrepresent the property itself."
-		: "HARD RULES: never add, remove, resize, relocate or reinterpret any permanent architectural feature — walls, doors, balcony doors, windows, other openings, floors, ceilings, stairs, built-in cabinetry. A window stays a window; a door stays a door. Never alter anything seen through windows. The edited photo must not misrepresent the property.");
+		? "HARD RULES: never add, remove, resize, relocate or reinterpret any permanent feature — walls, doors, balcony doors, windows, other openings, floors, ceilings, stairs, built-in cabinetry, or any plumbing/installed equipment (bathtub, shower, basin, toilet, bidet, radiator, fireplace, kitchen counter, sink, oven, hob, extractor hood, air-conditioning unit). If a bathroom has no bathtub, the edited photo must still have no bathtub. A window stays a window; a door stays a door. The ONLY permitted change through windows is the privacy obscuring requested above. The edited photo must not misrepresent the property itself."
+		: "HARD RULES: never add, remove, resize, relocate or reinterpret any permanent feature — walls, doors, balcony doors, windows, other openings, floors, ceilings, stairs, built-in cabinetry, or any plumbing/installed equipment (bathtub, shower, basin, toilet, bidet, radiator, fireplace, kitchen counter, sink, oven, hob, extractor hood, air-conditioning unit). If a bathroom has no bathtub, the edited photo must still have no bathtub. A window stays a window; a door stays a door. Never alter anything seen through windows. The edited photo must not misrepresent the property.");
 	return lines.join("\n");
 }
 
