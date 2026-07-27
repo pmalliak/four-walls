@@ -72,13 +72,14 @@ const SAFE_FRAGMENTS = {
 		"Remove any people and pets from the scene, and remove the photographer's reflection from mirrors, windows and glossy surfaces.",
 };
 
-/* `watermark` is deliberately NOT a prompt fragment: a generative model
-   reproduces logos unreliably (and declutter would happily "clean" one
-   off). The logo is drawn deterministically by applyWatermark() below,
-   AFTER Gemini, via the Cloudflare Images binding. */
-const KNOWN_OPTIONS = new Set([
-	...Object.keys(SAFE_FRAGMENTS), "repair_damage", "virtual_staging", "watermark",
+/* Everything the model is asked to do. `watermark` is deliberately NOT one
+   of these: a generative model reproduces logos unreliably (and declutter
+   would happily "clean" one off), so the logo is drawn deterministically by
+   applyWatermark() below, AFTER Gemini, via the Cloudflare Images binding. */
+const AI_OPTIONS = new Set([
+	...Object.keys(SAFE_FRAGMENTS), "repair_damage", "virtual_staging",
 ]);
+const KNOWN_OPTIONS = new Set([...AI_OPTIONS, "watermark"]);
 
 /* Model tiers the form may pick. The CLIENT sends only the tier key; the
    real Gemini model name is resolved HERE, so the browser can never inject
@@ -280,6 +281,10 @@ async function initBatch(request, env, url, email) {
 		model_tier: tier,
 		gemini_model: MODEL_TIERS[tier].model,
 		model_label: MODEL_TIERS[tier].label,
+		// Lets the Make scenario route: no AI edit ticked -> skip Gemini
+		// entirely (watermark-only, or a plain archive-to-Drive run).
+		ai: options.some((o) => AI_OPTIONS.has(o)),
+		watermark: options.includes("watermark"),
 		prompt: composePrompt(options),
 		count,
 	};
@@ -367,6 +372,7 @@ async function finalizeBatch(request, env, url, batchId) {
 		model_tier: meta.model_tier || DEFAULT_TIER,
 		gemini_model: meta.gemini_model || MODEL_TIERS[DEFAULT_TIER].model,
 		model_label: meta.model_label || MODEL_TIERS[DEFAULT_TIER].label,
+		ai: meta.ai ?? (meta.options || []).some((o) => AI_OPTIONS.has(o)),
 		watermark: !!(meta.options || []).includes("watermark"),
 		// Make POSTs every AI-edited image here; the endpoint draws the logo
 		// only when this batch ticked the option, else passes through — so
@@ -487,12 +493,12 @@ export async function applyWatermark(request, env, url) {
 		// no solid box behind it (see docs/brand.md for how it is generated).
 		const logoRes = await env.ASSETS.fetch(new URL("/images/logo/fourwalls_watermark.png", url.origin));
 		if (!logoRes.ok) throw new Error(`logo asset HTTP ${logoRes.status}`);
-		// ~15% of a 2K frame, inset from the corner, a touch translucent so
-		// it brands the photo without shouting over it.
+		// ~29% of a 2K frame, held well clear of both edges: a crop that
+		// removes the mark has to eat a big chunk of the photo with it.
 		const out = await env.IMAGES.input(new Blob([bytes]).stream())
 			.draw(
-				env.IMAGES.input(logoRes.body).transform({ width: 300 }),
-				{ bottom: 28, right: 28, opacity: 0.9 },
+				env.IMAGES.input(logoRes.body).transform({ width: 600 }),
+				{ bottom: 70, right: 70, opacity: 0.9 },
 			)
 			.output({ format: "image/png" });
 		return out.response();

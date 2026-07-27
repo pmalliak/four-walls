@@ -47,6 +47,8 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 .opt .o-d{color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.4;}
 .ghdr{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 2px 2px;}
 .ghdr.warn{color:#c2410c;}
+#aiGroup.off{opacity:.4;pointer-events:none;}
+#aiGroup.off input{filter:grayscale(1);}
 /* photos */
 .drop{border:1.5px dashed #b9c2cf;border-radius:12px;padding:20px 14px;text-align:center;background:#fcfcfd;cursor:pointer;display:block;}
 .drop:active{border-color:var(--pink);}
@@ -94,11 +96,20 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 	</div>
 
 	<div class="card">
-		<div class="sect">Τι να γίνει στις φωτογραφίες</div>
+		<div class="sect">Λογότυπο</div>
+		<label class="opt" style="border-top:0"><input type="checkbox" id="wmBox" checked><div><div class="o-t">Λογότυπο κάτω δεξιά</div><div class="o-d">Υδατογράφημα Four Walls στην τελική φωτογραφία — μπαίνει πάντα, ακόμη κι αν δεν ζητηθεί επεξεργασία AI</div></div></label>
+	</div>
+
+	<div class="card">
+		<div class="sect">Επεξεργασία με AI</div>
+		<label class="opt" style="border-top:0"><input type="checkbox" id="aiToggle" checked><div><div class="o-t">Ενεργή επεξεργασία με AI</div><div class="o-d">Κλείστε το για να ανέβουν οι φωτογραφίες χωρίς καμία AI επεξεργασία</div></div></label>
+		<div id="aiGroup">
+		<div class="ghdr">Βελτιώσεις</div>
 		<div id="optsSafe"></div>
 		<div class="ghdr warn">Προσοχή — αλλάζουν την πραγματική εικόνα</div>
 		<div class="hintline" style="margin-top:2px">Ενεργοποιήστε τα μόνο όταν πρέπει· από προεπιλογή οι φθορές παραμένουν ορατές ώστε να μην παραπλανούμε τον πελάτη.</div>
 		<div id="optsWarn"></div>
+		</div>
 	</div>
 
 	<div class="card">
@@ -144,7 +155,6 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		{key:"straighten",      label:"Ευθυγράμμιση & προοπτική",           desc:"Ίσιωμα κάθετων γραμμών και ορίζοντα", on:true},
 		{key:"blur_windows",    label:"Θόλωμα θέας παραθύρων",              desc:"Φωτεινή, θολή θέα ώστε να μην αναγνωρίζεται η τοποθεσία του ακινήτου", on:true},
 		{key:"remove_people",   label:"Αφαίρεση ανθρώπων & αντανακλάσεων",  desc:"Άτομα, κατοικίδια, αντανάκλαση του φωτογράφου", on:true},
-		{key:"watermark",       label:"Λογότυπο κάτω δεξιά",               desc:"Διακριτικό υδατογράφημα Four Walls στην τελική φωτογραφία", on:false},
 		{key:"repair_damage",   label:"Επιδιόρθωση φθορών",                 desc:"Ρωγμές, λεκέδες, ξεφλουδισμένη βαφή — μόνο αν θα αποκατασταθούν πραγματικά", on:false, warn:true},
 		{key:"virtual_staging", label:"Εικονική επίπλωση κενών χώρων",      desc:"Προσθήκη επίπλων σε άδειους χώρους — χρειάζεται ενημέρωση του αγοραστή", on:false, warn:true}
 	];
@@ -174,8 +184,23 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			(o.warn ? $("optsWarn") : $("optsSafe")).appendChild(lab);
 		});
 	}
+	/* The AI options only count when the master toggle is on; the logo is
+	   independent of it, so «λογότυπο μόνο» is a valid submission and the
+	   Make scenario skips Gemini for it. */
 	function selectedOptions(){
-		return [].slice.call(document.querySelectorAll(".opt input[type=checkbox]:checked")).map(function(c){ return c.dataset.key; });
+		var out = [];
+		if ($("aiToggle").checked) {
+			[].slice.call(document.querySelectorAll("#aiGroup input[type=checkbox]:checked"))
+				.forEach(function(c){ if (c.dataset.key) out.push(c.dataset.key); });
+		}
+		if ($("wmBox").checked) out.push("watermark");
+		return out;
+	}
+	/* Master toggle <-> AI checkboxes stay in sync in both directions:
+	   turning it off greys the group out, ticking anything inside turns it
+	   back on (so a tick can never be silently ignored). */
+	function syncAi(){
+		$("aiGroup").classList.toggle("off", !$("aiToggle").checked);
 	}
 	function selectedModel(){
 		var r = document.querySelector('input[name=model]:checked');
@@ -318,12 +343,18 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 	function reset(){
 		items.forEach(function(it){ URL.revokeObjectURL(it.url); });
 		items = []; selected = null; renderGrid(); renderChosen();
-		document.querySelectorAll(".opt input[type=checkbox]").forEach(function(c){ var o = OPTIONS.find(function(x){ return x.key===c.dataset.key; }); c.checked = !!(o&&o.on); });
+		document.querySelectorAll("#aiGroup input[type=checkbox]").forEach(function(c){ var o = OPTIONS.find(function(x){ return x.key===c.dataset.key; }); c.checked = !!(o&&o.on); });
+		$("aiToggle").checked = true; $("wmBox").checked = true; syncAi();
 		var nb2 = document.querySelector('input[name=model][value=nb2]'); if (nb2) nb2.checked = true;
 		show("ok", false); show("form", true); show("bar", true); window.scrollTo(0,0);
 	}
 
 	renderOptions();
+	$("aiToggle").onchange = syncAi;
+	$("aiGroup").addEventListener("change", function(e){
+		if (e.target.checked && !$("aiToggle").checked) { $("aiToggle").checked = true; syncAi(); }
+	});
+	syncAi();
 	$("pickBtn").onclick = openSheet;
 	$("file").onchange = function(e){ addFiles(e.target.files); e.target.value = ""; };
 	$("send").onclick = send;
