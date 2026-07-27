@@ -57,7 +57,7 @@ const EXT_FOR_MIME = {
 
 const SAFE_FRAGMENTS = {
 	declutter:
-		"Remove clutter and personal items — dishes, food, cables, chargers, laundry, shoes, toiletries, bins, fridge magnets, loose papers and small objects on counters, tables, beds and floors. Tidy and neatly arrange whatever furniture and textiles remain: straighten cushions, make beds, align chairs.",
+		"Remove clutter and personal items — dishes, food, cables, chargers, laundry, shoes, toiletries, bins, fridge magnets, loose papers and small objects on counters, tables, beds and floors. Tidy and neatly arrange whatever furniture and textiles remain: straighten cushions, make beds, align chairs. Remove only OBJECTS: the pattern of a material is never clutter — veining in marble or stone, grain in wood, speckle in terrazzo, the variation between tiles and the grout lines between them must all survive untouched. Do not smooth, even out, polish or clean any patterned surface.",
 	lighting:
 		"Improve exposure and colour: brighten the scene so it reads clean and airy, correct white balance to neutral, gently recover detail in blown-out windows and dark shadows, and keep colour natural and realistic — never oversaturated.",
 	straighten:
@@ -102,14 +102,16 @@ const DEFAULT_TIER = "nb2";
    a bathtub or swapping one shower for a nicer one — feeding it the other
    photos of the property as references would do the opposite, since a
    fixture seen in a reference tends to bleed into the edit. */
+// NOTE: no double quotes anywhere in this string — Make interpolates it
+// into a hand-written JSON body, and a stray " would break the request.
 const INVENTORY_PROMPT = [
-	"You are surveying ONE photograph of a property for a real-estate listing. Reply with a single short line of plain text and nothing else.",
-	"Format: <room type> | present: <items> | absent: <items>",
-	// NOTE: no double quotes anywhere in this string — Make interpolates it
-	// into a hand-written JSON body, and a stray " would break the request.
-	"In `present`, list every permanent fixture and every significant piece of furniture you can actually see, each with a couple of words on its type, style or material — for example: corner shower tray with clear glass screen; white rectangular basin on a wooden vanity unit; single-lever chrome mixer tap; grey two-seat fabric sofa.",
-	"In `absent`, name explicitly whichever of these are NOT in the room: bathtub, shower, toilet, bidet, basin, kitchen counter, cooker or hob, extractor hood, fireplace, radiator, air-conditioning unit, balcony door.",
-	"Report only what is visible in this photograph. Never guess about what might be out of frame, and never mention anything you cannot see.",
+	"You are surveying ONE photograph of a property for a real-estate listing, so that a photo editor can retouch it WITHOUT changing anything that is really there. Be precise and exhaustive; plain text only, no markdown.",
+	"Use exactly these four labelled sections, each on its own line:",
+	"ROOM: the room type.",
+	"SURFACES: every visible surface — floor, walls, ceiling, tiling, splashback, worktops, stair treads — naming for each one its material, finish and pattern, its colour, and the format or layout where it applies. Say for example: floor in large 60x60 grey marble-effect porcelain tiles with soft white veining, laid straight; walls in matt ivory paint; splashback in small white gloss metro tiles with grey grout.",
+	"FIXTURES AND FITTINGS: every permanent item and every significant piece of furniture, each with its type, style, material, colour and finish. Cover in particular the light fittings (shape, material, warm or cool light), the taps and shower fittings, door and cupboard handles, radiators, sockets and switches, window frames, curtains or blinds, and the kitchen or bathroom units. Say for example: three-arm black metal ceiling pendant with opal glass globes; brushed-nickel single-lever basin mixer; matt white handleless kitchen units with a light oak worktop.",
+	"ABSENT: name explicitly whichever of these are NOT in the room, so the editor knows not to invent them: bathtub, shower, toilet, bidet, basin, kitchen counter, cooker or hob, extractor hood, fireplace, radiator, air-conditioning unit, balcony door.",
+	"Two cautions. Natural pattern is not dirt: veining in marble or stone, grain in wood, speckle in terrazzo, variation between tiles and visible grout lines are all features of the material — record them as such rather than as stains. And report only what is visible in this photograph: never guess at what lies out of frame, and never mention anything you cannot actually see.",
 ].join(" ");
 
 /* Greek labels for the handoff email («Επεξεργασίες» row) — keep in sync
@@ -135,7 +137,7 @@ function composePrompt(options) {
 		// — one shower tray becomes a nicer shower tray, a tap becomes a
 		// different tap. That is a misrepresentation even though nothing was
 		// added or removed, so it is stated before any of the edits.
-		"PRESERVE EVERY OBJECT YOU KEEP, EXACTLY AS PHOTOGRAPHED: same type, model, shape, size, material, colour, finish, pattern and position. Never swap, restyle, modernise, upgrade or 'improve' anything that is already in the room — a shower stays that exact shower, a tap that exact tap, a tile that exact tile, a sofa that exact sofa, a door handle that exact door handle. Your only permitted changes are the ones listed below; everything else must survive the edit unchanged and recognisable as the same physical object.",
+		"PRESERVE EVERY OBJECT YOU KEEP, EXACTLY AS PHOTOGRAPHED: same type, model, shape, size, material, colour, finish, pattern and position. Never swap, restyle, modernise, upgrade or 'improve' anything that is already in the room — a shower stays that exact shower, a tap that exact tap, a tile that exact tile, a sofa that exact sofa, a light fitting that exact light fitting, a door handle that exact door handle. This applies just as strictly to surfaces: the marble or stone veining, the wood grain, the tile layout and its grout lines are the material's own pattern, NOT dirt to be cleaned away — reproduce them faithfully. Your only permitted changes are the ones listed below; everything else must survive the edit unchanged and recognisable as the same physical object.",
 	];
 
 	for (const key of Object.keys(SAFE_FRAGMENTS)) {
@@ -172,7 +174,7 @@ function composePrompt(options) {
 	// Placed last so it is the freshest thing before the hard rules.
 	lines.push(
 		"VERIFIED INVENTORY OF THIS EXACT PHOTOGRAPH, from a prior inspection of it — treat it as ground truth and trust it over your own expectations of what such a room usually contains: __INVENTORY__",
-		"Whatever that inventory lists as absent does not exist here: never add it. Whatever it lists as present must still be there afterwards, as the very same item — same type, style and material as described.",
+		"Whatever that inventory lists as absent does not exist here: never add it. Whatever it lists as present must still be there afterwards, as the very same item — same type, style and material as described. The surfaces it describes are binding too: keep every tile, marble or stone pattern, floor covering, worktop and wall finish exactly as it is — do not re-tile, re-pattern, polish or otherwise restyle a single surface.",
 	);
 
 	lines.push(on.has("blur_windows")
@@ -559,15 +561,18 @@ export async function applyWatermark(request, env, url) {
 		}
 
 		if (wantsNotice) {
-			// Deliberately smaller than the logo and on the opposite corner:
-			// it must be legible without dominating the photo. Unlike the
-			// logo this one sits on a translucent plate — a disclaimer that
-			// disappears against a bright floor would be worthless.
+			// TOP-left, not bottom-left: side by side at the bottom the two
+			// marks leave only ~120 px between them on a phone-portrait shot
+			// and read as one cramped strip. Up here the notice also reads
+			// as a label on the photo rather than as branding.
+			// Kept smaller than the logo (25% vs 29%) — brand first, notice
+			// second — but on a translucent plate, since a disclaimer that
+			// vanishes against a bright wall would be worthless.
 			const noticeRes = await env.ASSETS.fetch(new URL("/images/logo/fourwalls_staged_notice.png", url.origin));
 			if (!noticeRes.ok) throw new Error(`notice asset HTTP ${noticeRes.status}`);
 			pipeline = pipeline.draw(
 				env.IMAGES.input(noticeRes.body).transform({ width: markW(0.25, 0.40) }),
-				{ bottom: inset, left: inset, opacity: 0.92 },
+				{ top: inset, left: inset, opacity: 0.92 },
 			);
 		}
 
