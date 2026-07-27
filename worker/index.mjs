@@ -39,7 +39,7 @@ import { robotsResponse, sitemapResponse, serveListingPage, isProdHost } from ".
 import { requireAccess, isLocalDev, json } from "./lib/access.mjs";
 import { contactsIndex, contactDetail, listingsIndex } from "./lib/crm.mjs";
 import { handleFormSubmit } from "./lib/forms.mjs";
-import { handlePhotoApi, servePhotoFile } from "./lib/photos.mjs";
+import { handlePhotoApi, servePhotoFile, applyWatermark } from "./lib/photos.mjs";
 
 const FEED_KEY = "listings.json";
 const DEFAULT_WEBHOOK_PATH = "/listings"; // overridden by WEBHOOK_PATH var
@@ -89,7 +89,7 @@ export default {
 		// so only a signed-in consultant can stage originals and spend Gemini
 		// credits. The public download half (/api/photos/file/) is deliberately
 		// NOT here — Make fetches it from the apex with an HMAC signature.
-		if (pathname.startsWith("/api/photos/") && !pathname.startsWith("/api/photos/file/")) {
+		if (pathname.startsWith("/api/photos/") && !pathname.startsWith("/api/photos/file/") && !pathname.startsWith("/api/photos/watermark/")) {
 			if (!(url.hostname.startsWith("forms.") || isLocalDev(url, env))) {
 				return new Response("Not Found", { status: 404 });
 			}
@@ -137,6 +137,11 @@ export default {
 		// Lives on the apex precisely because that host has no Access in front.
 		if (pathname.startsWith("/api/photos/file/")) {
 			return servePhotoFile(request, env, url);
+		}
+		// Watermark stamping for the photo pipeline — same public/HMAC model
+		// as the file serving above; Make POSTs each AI-edited image here.
+		if (pathname.startsWith("/api/photos/watermark/")) {
+			return applyWatermark(request, env, url);
 		}
 		if (pathname === "/api/contact") {
 			return handleContact(request, env);

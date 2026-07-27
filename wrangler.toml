@@ -53,6 +53,13 @@ id = "faf7d0b092d94eb1bdb974c764e3191a"
 binding = "PHOTO_BUCKET"
 bucket_name = "four-walls-photos"
 
+# Cloudflare Images binding — draws the Four Walls logo bottom-right on
+# AI-edited photos when the batch ticked «Λογότυπο» (worker/lib/photos.mjs
+# applyWatermark). Free tier: 5.000 transformations/month; the endpoint
+# passes through untouched (0 transformations) when the option is off.
+[images]
+binding = "IMAGES"
+
 # Persistent logs in the dashboard (Worker → Observability tab). Console
 # output is kept queryable — no need for a live `wrangler tail`.
 [observability.logs]

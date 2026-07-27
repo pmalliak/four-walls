@@ -72,8 +72,12 @@ const SAFE_FRAGMENTS = {
 		"Remove any people and pets from the scene, and remove the photographer's reflection from mirrors, windows and glossy surfaces.",
 };
 
+/* `watermark` is deliberately NOT a prompt fragment: a generative model
+   reproduces logos unreliably (and declutter would happily "clean" one
+   off). The logo is drawn deterministically by applyWatermark() below,
+   AFTER Gemini, via the Cloudflare Images binding. */
 const KNOWN_OPTIONS = new Set([
-	...Object.keys(SAFE_FRAGMENTS), "repair_damage", "virtual_staging",
+	...Object.keys(SAFE_FRAGMENTS), "repair_damage", "virtual_staging", "watermark",
 ]);
 
 /* Model tiers the form may pick. The CLIENT sends only the tier key; the
@@ -97,6 +101,7 @@ const OPTION_LABELS_EL = {
 	remove_people: "Αφαίρεση ανθρώπων & αντανακλάσεων",
 	repair_damage: "Επιδιόρθωση φθορών",
 	virtual_staging: "Εικονική επίπλωση κενών χώρων",
+	watermark: "Λογότυπο κάτω δεξιά",
 };
 
 function composePrompt(options) {
@@ -349,6 +354,7 @@ async function finalizeBatch(request, env, url, batchId) {
 		});
 	}
 
+	const wmExp = Math.floor(Date.now() / 1000) + SIGNED_URL_TTL;
 	const payload = {
 		batch_id: batchId,
 		submitted_by: meta.submitted_by,
@@ -361,6 +367,11 @@ async function finalizeBatch(request, env, url, batchId) {
 		model_tier: meta.model_tier || DEFAULT_TIER,
 		gemini_model: meta.gemini_model || MODEL_TIERS[DEFAULT_TIER].model,
 		model_label: meta.model_label || MODEL_TIERS[DEFAULT_TIER].label,
+		watermark: !!(meta.options || []).includes("watermark"),
+		// Make POSTs every AI-edited image here; the endpoint draws the logo
+		// only when this batch ticked the option, else passes through — so
+		// the scenario needs no router. Signed like the file URLs.
+		watermark_url: `${origin}/api/photos/watermark/${batchId}?exp=${wmExp}&sig=${await hmac(env, `watermark/${batchId}\n${wmExp}`)}`,
 		prompt: meta.prompt,
 		count: photos.length,
 		photos,
@@ -419,4 +430,71 @@ export async function servePhotoFile(request, env, url) {
 			"Cache-Control": "private, no-store",
 		},
 	});
+}
+
+/* ----------------------------------------------------- watermarking
+
+   POST /api/photos/watermark/<batch>?exp=&sig=  (apex, HMAC-guarded)
+
+   Make POSTs every AI-edited image here before uploading it to Drive.
+   The batch's meta decides what happens:
+     - option ticked   -> the Four Walls logo is drawn bottom-right via
+                          the Cloudflare Images binding (deterministic —
+                          never ask a generative model to render a logo)
+     - option off      -> the bytes pass through untouched (zero Images
+                          transformations billed)
+   FAIL-OPEN on any hiccup (missing binding, logo asset, Images error):
+   an unwatermarked photo in Drive beats a dead batch — the failure is
+   logged for the Observability tab. */
+export async function applyWatermark(request, env, url) {
+	if (request.method !== "POST") {
+		return new Response("Method Not Allowed", { status: 405, headers: { "Allow": "POST" } });
+	}
+	if (!env.PHOTO_BUCKET || !env.PHOTO_SIGN_KEY) {
+		return new Response("Not configured", { status: 503 });
+	}
+	const m = url.pathname.match(/^\/api\/photos\/watermark\/([0-9a-f]{32})$/);
+	if (!m) return new Response("Not Found", { status: 404 });
+	const batchId = m[1];
+
+	const exp = Number(url.searchParams.get("exp") || 0);
+	const sig = url.searchParams.get("sig") || "";
+	if (!exp || exp < Math.floor(Date.now() / 1000)) {
+		return new Response("Link expired", { status: 410 });
+	}
+	const expected = await hmac(env, `watermark/${batchId}\n${exp}`);
+	if (!safeEqual(sig, expected)) return new Response("Forbidden", { status: 403 });
+
+	// Buffer the image so pass-through/fail-open can always replay it.
+	const bytes = await request.arrayBuffer();
+	if (!bytes.byteLength) return new Response("Empty body", { status: 400 });
+	const contentType = (request.headers.get("Content-Type") || "image/png").split(";")[0].trim();
+	const passthrough = () =>
+		new Response(bytes, {
+			headers: { "Content-Type": contentType, "Cache-Control": "private, no-store" },
+		});
+
+	const meta = await env.PHOTO_BUCKET.get(`photos/${batchId}/meta.json`).then((o) => o?.json()).catch(() => null);
+	if (!meta?.options?.includes("watermark")) return passthrough();
+
+	if (!env.IMAGES) {
+		console.warn("photos: watermark requested but IMAGES binding missing — passing through");
+		return passthrough();
+	}
+	try {
+		const logoRes = await env.ASSETS.fetch(new URL("/images/logo/fourwalls_logo_light.png", url.origin));
+		if (!logoRes.ok) throw new Error(`logo asset HTTP ${logoRes.status}`);
+		// Logo at a fixed 260px on the 2K output (~13% of the width), inset
+		// from the corner, slightly translucent so it brands without shouting.
+		const out = await env.IMAGES.input(new Blob([bytes]).stream())
+			.draw(
+				env.IMAGES.input(logoRes.body).transform({ width: 260 }),
+				{ bottom: 28, right: 28, opacity: 0.85 },
+			)
+			.output({ format: "image/png" });
+		return out.response();
+	} catch (err) {
+		console.warn(`photos: watermark failed for ${batchId}, passing through: ${String(err)}`);
+		return passthrough();
+	}
 }
