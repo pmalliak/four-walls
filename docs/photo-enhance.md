@@ -101,15 +101,23 @@ and reviewable. Two options change the property's *true condition* and are
 | `declutter` | Αφαίρεση ακαταστασίας | on | omits the fragment |
 | `lighting` | Βελτίωση φωτισμού & χρωμάτων | on | omits |
 | `straighten` | Ευθυγράμμιση & προοπτική | on | omits |
-| `blur_windows` | Θόλωμα θέας παραθύρων | on | window lockdown: "never alter anything seen through windows" |
-| `remove_people` | Αφαίρεση ανθρώπων & αντανακλάσεων | on | omits |
+| `blur_windows` | Θόλωμα θέας παραθύρων | off | window lockdown: "never alter anything seen through windows" |
+| `remove_people` | Αφαίρεση ανθρώπων & αντανακλάσεων | off | omits |
 | `repair_damage` | Επιδιόρθωση φθορών | **off** | **actively tells the model to PRESERVE every crack/stain/wear** |
-| `virtual_staging` | Εικονική επίπλωση κενών χώρων | **off** | tells the model to add nothing not physically present |
 | `finish_works` | Αποπεράτωση εργασιών σε εξέλιξη | **off** | (see the three-way clause below) |
 | `render_finished` | Απεικόνιση ολοκληρωμένου χώρου | **off** | (see the three-way clause below) |
+| `virtual_staging` | Εικονική επίπλωση κενών χώρων | **off** | tells the model to add nothing not physically present |
 | `watermark` | Λογότυπο κάτω δεξιά | **on** | not a prompt fragment at all — see below |
-| `staging_notice` | Σήμανση εικονικής επίπλωσης | on, but only offered while `virtual_staging` is ticked | overlay, not a prompt fragment |
+| `works_notice` | Σήμανση εργασιών σε εξέλιξη | on, offered only while `finish_works` is ticked | overlay, not a prompt fragment |
+| `staging_notice` | Σήμανση εικονικής επίπλωσης | on, offered only while `virtual_staging` is ticked | overlay, not a prompt fragment |
 | `render_notice` | Σήμανση απεικόνισης | **forced on** with `render_finished`, not removable | overlay, not a prompt fragment |
+
+The table order is the form's order, and the form's order is deliberate: the
+four flagged options run from least to most invention — repairs, finishing
+works, a full visualisation, then furniture. `blur_windows` and
+`remove_people` are safe edits but still start **off**: blurring the view
+throws away a selling point when the view *is* the selling point, and most
+photos have nobody in them to remove.
 
 ### Unfinished properties: the three-way clause
 
@@ -206,16 +214,23 @@ photo should say it is staged. The wording is deliberately *"κάποια … μ
 να μην"*: a staged room often keeps some of its real furniture, so a flat
 «δεν υπάρχουν» would be wrong in the other direction.
 
+«Αποπεράτωση» behaves the same way with «ΕΡΓΑΣΙΕΣ ΣΕ ΕΞΕΛΙΞΗ — Το ακίνητο
+είναι υπό κατασκευή / Δεν είναι η τελική του μορφή»: pre-ticked, removable.
+Its wording deliberately does **not** promise a finished space, because that
+option only completes work already under way.
+
 «Απεικόνιση» stamps «ΑΠΕΙΚΟΝΙΣΗ ΧΩΡΟΥ — Ενδεικτική απόδοση … μετά την
 ολοκλήρωση των εργασιών» and is **not removable** — its finishes are
-invented. Both rows are relocated by `renderOptions()` to sit **directly
-under the option that triggers them**; parked at the end of the group they
-read as belonging to whichever option happens to be last.
+invented.
 
-Both stack top-left, `render_notice` first. A third plate,
-`fourwalls_works_notice.png`, is still supported by the Worker but no longer
-offered by the form: «Αποπεράτωση» changes nothing the buyer could be misled
-about.
+All three rows are relocated by `renderOptions()` to sit **directly under
+the option that triggers them**; parked at the end of the group a disclaimer
+reads as belonging to whichever option happens to be last (that shipped once
+— the staging notice appeared to belong to «Αποπεράτωση»).
+
+They stack top-left. `render_notice` **supersedes** `works_notice` when both
+are sent: "this is how it will look finished" and "this is unfinished" on
+one photo cancel each other out.
 
 Same draw path as the logo, at **25%** of the long edge (the logo takes 29%)
 so brand reads first and the notice second. It sits **top**-left rather than

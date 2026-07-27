@@ -128,8 +128,9 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		<div class="ghdr warn">Προσοχή — αλλάζουν την πραγματική εικόνα</div>
 		<div class="hintline" style="margin-top:2px">Ενεργοποιήστε τα μόνο όταν πρέπει· από προεπιλογή οι φθορές παραμένουν ορατές ώστε να μην παραπλανούμε τον πελάτη.</div>
 		<div id="optsWarn"></div>
-		<label class="opt sub" id="noticeRow" hidden><input type="checkbox" id="noticeBox" checked><div><div class="o-t">Σήμανση εικονικής επίπλωσης</div><div class="o-d">Ένδειξη πάνω αριστερά ότι κάποια έπιπλα και διακοσμητικά μπορεί να μην υπάρχουν στον χώρο</div></div></label>
+		<label class="opt sub" id="worksRow" hidden><input type="checkbox" id="worksBox" checked><div><div class="o-t">Σήμανση εργασιών σε εξέλιξη</div><div class="o-d">Ένδειξη πάνω αριστερά: «ΕΡΓΑΣΙΕΣ ΣΕ ΕΞΕΛΙΞΗ — Το ακίνητο είναι υπό κατασκευή, δεν είναι η τελική του μορφή»</div></div></label>
 		<div class="opt sub locked" id="renderRow" hidden><span class="lock">✓</span><div><div class="o-t">Σήμανση απεικόνισης <span class="req">υποχρεωτική</span></div><div class="o-d">«ΑΠΕΙΚΟΝΙΣΗ ΧΩΡΟΥ — Ενδεικτική απόδοση του χώρου μετά την ολοκλήρωση των εργασιών». Τα τελειώματα είναι επινοημένα, οπότε η ένδειξη δεν αφαιρείται.</div></div></div>
+		<label class="opt sub" id="noticeRow" hidden><input type="checkbox" id="noticeBox" checked><div><div class="o-t">Σήμανση εικονικής επίπλωσης</div><div class="o-d">Ένδειξη πάνω αριστερά ότι κάποια έπιπλα και διακοσμητικά μπορεί να μην υπάρχουν στον χώρο</div></div></label>
 		</div>
 	</div>
 
@@ -175,12 +176,17 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		{key:"declutter",       label:"Αφαίρεση ακαταστασίας",              desc:"Μαζεύει σκόρπια αντικείμενα: πιάτα, καλώδια, ρούχα, παπούτσια, σκουπίδια, χαρτιά. Ισιώνει μαξιλάρια και στρώνει κρεβάτια. Δεν αγγίζει έπιπλα ούτε επιφάνειες.", on:true},
 		{key:"lighting",        label:"Βελτίωση φωτισμού & χρωμάτων",       desc:"Φωτίζει τον χώρο, διορθώνει τα χρώματα σε φυσικά, ανακτά λεπτομέρεια σε καμένα παράθυρα και σκοτεινές γωνίες.", on:true},
 		{key:"straighten",      label:"Ευθυγράμμιση & προοπτική",           desc:"Ισιώνει τις κάθετες γραμμές (τοίχοι, κάσες) και τον ορίζοντα, όταν η λήψη είναι στραβή.", on:true},
-		{key:"blur_windows",    label:"Θόλωμα θέας παραθύρων",              desc:"Κάνει τη θέα έξω από τα παράθυρα φωτεινή και θολή, ώστε να μην αναγνωρίζεται από ποιο κτίριο είναι η φωτογραφία.", on:true},
-		{key:"remove_people",   label:"Αφαίρεση ανθρώπων & αντανακλάσεων",  desc:"Σβήνει άτομα και κατοικίδια, καθώς και την αντανάκλαση του φωτογράφου σε καθρέφτες και τζάμια.", on:true},
+		/* Off by default although they are safe edits: blurring the view
+		   throws away a selling point when the view IS the selling point,
+		   and most photos have nobody in them to remove. */
+		{key:"blur_windows",    label:"Θόλωμα θέας παραθύρων",              desc:"Κάνει τη θέα έξω από τα παράθυρα φωτεινή και θολή, ώστε να μην αναγνωρίζεται από ποιο κτίριο είναι η φωτογραφία.", on:false},
+		{key:"remove_people",   label:"Αφαίρεση ανθρώπων & αντανακλάσεων",  desc:"Σβήνει άτομα και κατοικίδια, καθώς και την αντανάκλαση του φωτογράφου σε καθρέφτες και τζάμια.", on:false},
+		/* Ordered by how far each one moves the photo from reality:
+		   repairs → finishing works → a full visualisation → furniture. */
 		{key:"repair_damage",   label:"Επιδιόρθωση φθορών",                 desc:"Κλείνει ρωγμές, σβήνει λεκέδες και μπογιά που ξεφλουδίζει. Βάλ' το μόνο αν οι φθορές θα αποκατασταθούν όντως — αλλιώς η φωτογραφία κρύβει πραγματικό πρόβλημα.", on:false, warn:true},
-		{key:"virtual_staging", label:"Εικονική επίπλωση κενών χώρων",      desc:"Βάζει έπιπλα και διακοσμητικά σε άδειο χώρο (καναπέ, κρεβάτι, χαλιά, κουρτίνες, φωτιστικά). Δεν αλλάζει τοίχους, πλακάκια ή δάπεδα.", on:false, warn:true},
 		{key:"finish_works",    label:"Αποπεράτωση εργασιών σε εξέλιξη",    desc:"Κρύβει καλώδια, μπάζα, μεμβράνες και ημιτελείς λεπτομέρειες — η διάταξη και τα υλικά μένουν ως έχουν", on:false, warn:true},
-		{key:"render_finished", label:"Απεικόνιση ολοκληρωμένου χώρου",     desc:"Για γυμνό σκελετό: δάπεδα, βαφή, κουφώματα, πλακάκια — τα τελειώματα είναι επινοημένα, μπαίνει υποχρεωτικά σήμανση", on:false, warn:true}
+		{key:"render_finished", label:"Απεικόνιση ολοκληρωμένου χώρου",     desc:"Για γυμνό σκελετό: δάπεδα, βαφή, κουφώματα, πλακάκια — τα τελειώματα είναι επινοημένα, μπαίνει υποχρεωτικά σήμανση", on:false, warn:true},
+		{key:"virtual_staging", label:"Εικονική επίπλωση κενών χώρων",      desc:"Βάζει έπιπλα και διακοσμητικά σε άδειο χώρο (καναπέ, κρεβάτι, χαλιά, κουρτίνες, φωτιστικά). Δεν αλλάζει τοίχους, πλακάκια ή δάπεδα.", on:false, warn:true}
 	];
 	var MAX_EDGE = 3840, MAX_FILES = 60;
 	var selected = null, items = [], listingsCache = null;
@@ -229,6 +235,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 	   parent and may be switched off. Tidying away cables and debris does
 	   not need one — inventing furniture does. */
 	var NOTICES = [
+		{ parent:"finish_works",    row:"worksRow",  box:"worksBox",  key:"works_notice" },
 		{ parent:"virtual_staging", row:"noticeRow", box:"noticeBox", key:"staging_notice" }
 	];
 	/* Mandatory: a visualisation invents the finishes, so it always says so. */
