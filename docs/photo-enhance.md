@@ -159,13 +159,22 @@ solid box); see docs/brand.md for how to regenerate it.
 
 Ticking «Εικονική επίπλωση» reveals a **pre-ticked** sub-option that stamps
 «ΕΙΚΟΝΙΚΗ ΕΠΙΠΛΩΣΗ — Τα έπιπλα και τα διακοσμητικά δεν υπάρχουν στον χώρο»
-bottom-**left**, opposite the logo; the consultant can still switch it off.
-A staged photo should say it is staged.
+**top-left**; the consultant can still switch it off. A staged photo should
+say it is staged.
 
-Same draw path as the logo, at **25% of the frame** (smaller than the logo's
-29%) so it stays legible without dominating. Unlike the logo it sits on a
-translucent navy plate with a pink rule — white text with a shadow alone was
-unreadable on a bright floor, and an unreadable disclaimer is worthless.
+Same draw path as the logo, at **25%** of the long edge (the logo takes 29%)
+so brand reads first and the notice second. It sits **top**-left rather than
+opposite the logo because side by side along the bottom the two marks leave
+only ~120 px between them on a phone-portrait shot — cramped, and the notice
+starts competing with the branding instead of labelling the photo. Unlike the
+logo it sits on a translucent navy plate with a pink rule: white text with a
+shadow alone was unreadable on a bright wall, and an unreadable disclaimer is
+worthless.
+
+**Both overlays scale off the LONG edge**, not the width. A portrait shot is
+just as large on screen as a landscape one but ~25% narrower, so width-based
+sizing made the marks visibly too small on verticals; the share of the width
+is capped so very tall crops stay sane.
 Asset: [images/logo/fourwalls_staged_notice.png](../images/logo/fourwalls_staged_notice.png)
 (compact two-line plate; regenerate the same way as the watermark).
 
