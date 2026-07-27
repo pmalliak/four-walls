@@ -58,6 +58,24 @@ Gotchas learned 2026-07-24:
   gets intensive timer throttling (timers fire ~1/min) and the eval hangs forever. sg-fetch and
   crm-post now do one `eval` per item and pace from **node** (`sleep`), plus `Page.bringToFront`.
 
+Gotchas learned 2026-07-27:
+- **Imperva now stalls eval-context `fetch()` on spitogatos**: a `fetch('/api/search-enquiries/N')`
+  from `Runtime.evaluate` hangs FOREVER (even focused, un-minimized, un-throttled), while the
+  page's own XHRs still work. If `sg-fetch.mjs` hangs on the first id, kill it and use
+  **`sg-fetch-nav.mjs`** (same args): it navigates to `…?showDetailsId=N` per lead and captures
+  the page's own detail XHR via CDP `Network.getResponseBody` — literally clicking the notification.
+- **Spark Desktop dead ⇒ enumerate from the dashboard**: if Spark won't start (2026-07-27 it
+  refused to launch from any shell — instant silent exit 0, no log/crash — yet opened fine when
+  Panos clicked it), open `live.spitogatos.gr/leads/searchEnquiries` in the CDP tab and capture the
+  page's OWN `GET /api/search-enquiries?page=1&perPage=25&…` XHR via Network events (one page-load,
+  human-identical — NOT a bulk sweep). Page 1 covers ~25 leads ≈ several days; confirm the oldest
+  rows overlap `processed.json` so there is no gap, and cross-check with `enumerate.mjs` once Spark
+  is back. The list rows lack `rooms/floorNumber/elevator` detail — still run sg-fetch(-nav) per id.
+- **CRM eval fetches got slow, not stuck**: crm-post now takes ~30s per lead (Cloudflare), ~8min
+  for 15 — let it finish. Before assuming a hang or re-posting, read back
+  `GET /api/requests` (needs `Content-Type: application/json` even on GET, else 415) to see what
+  actually landed — a re-run of an already-landed POST would duplicate the ζήτηση.
+
 ## Auth split (important)
 - **`/api/*`** (contacts, locations, requests-read, verification) = **HTTP Basic** → run from **node**.
 - **`/requests/form` and `/communication/form`** (the create endpoints) = **session cookie** →
