@@ -92,6 +92,20 @@ const MODEL_TIERS = {
 };
 const DEFAULT_TIER = "nb2";
 
+/* Pass 1 of the edit: a cheap vision call that writes down what the room
+   ACTUALLY contains, which pass 2 then treats as ground truth. Grounding
+   the editor in an inventory of the real photo is what stops it inventing
+   a bathtub or swapping one shower for a nicer one — feeding it the other
+   photos of the property as references would do the opposite, since a
+   fixture seen in a reference tends to bleed into the edit. */
+const INVENTORY_PROMPT = [
+	"You are surveying ONE photograph of a property for a real-estate listing. Reply with a single short line of plain text and nothing else.",
+	"Format: <room type> | present: <items> | absent: <items>",
+	"In `present`, list every permanent fixture and every significant piece of furniture you can actually see, each with a couple of words on its type, style or material — e.g. \"corner shower tray with clear glass screen\", \"white rectangular basin on a wooden vanity unit\", \"single-lever chrome mixer tap\", \"grey two-seat fabric sofa\".",
+	"In `absent`, name explicitly whichever of these are NOT in the room: bathtub, shower, toilet, bidet, basin, kitchen counter, cooker or hob, extractor hood, fireplace, radiator, air-conditioning unit, balcony door.",
+	"Report only what is visible in this photograph. Never guess about what might be out of frame, and never mention anything you cannot see.",
+].join(" ");
+
 /* Greek labels for the handoff email («Επεξεργασίες» row) — keep in sync
    with the OPTIONS array in forms/enhance.html. */
 const OPTION_LABELS_EL = {
@@ -110,6 +124,11 @@ function composePrompt(options) {
 	const lines = [
 		"You are a professional real-estate photo editor preparing this photograph for a property listing.",
 		"Apply only the edits listed below. Keep the result fully photorealistic, keep the exact same framing and aspect ratio, and output the entire scene.",
+		// The rule the model breaks most eagerly: it "upgrades" what it sees
+		// — one shower tray becomes a nicer shower tray, a tap becomes a
+		// different tap. That is a misrepresentation even though nothing was
+		// added or removed, so it is stated before any of the edits.
+		"PRESERVE EVERY OBJECT YOU KEEP, EXACTLY AS PHOTOGRAPHED: same type, model, shape, size, material, colour, finish, pattern and position. Never swap, restyle, modernise, upgrade or 'improve' anything that is already in the room — a shower stays that exact shower, a tap that exact tap, a tile that exact tile, a sofa that exact sofa, a door handle that exact door handle. Your only permitted changes are the ones listed below; everything else must survive the edit unchanged and recognisable as the same physical object.",
 	];
 
 	for (const key of Object.keys(SAFE_FRAGMENTS)) {
@@ -142,9 +161,16 @@ function composePrompt(options) {
 	// only sanctioned exception to the windows rule. Spell it out both ways,
 	// or the two instructions contradict and the model resolves it
 	// unpredictably.
+	// Make substitutes the pass-1 survey for the token (see INVENTORY_PROMPT).
+	// Placed last so it is the freshest thing before the hard rules.
+	lines.push(
+		"VERIFIED INVENTORY OF THIS EXACT PHOTOGRAPH, from a prior inspection of it — treat it as ground truth and trust it over your own expectations of what such a room usually contains: __INVENTORY__",
+		"Whatever that inventory lists as absent does not exist here: never add it. Whatever it lists as present must still be there afterwards, as the very same item — same type, style and material as described.",
+	);
+
 	lines.push(on.has("blur_windows")
-		? "HARD RULES: never add, remove, resize, relocate or reinterpret any permanent feature — walls, doors, balcony doors, windows, other openings, floors, ceilings, stairs, built-in cabinetry, or any plumbing/installed equipment (bathtub, shower, basin, toilet, bidet, radiator, fireplace, kitchen counter, sink, oven, hob, extractor hood, air-conditioning unit). If a bathroom has no bathtub, the edited photo must still have no bathtub. A window stays a window; a door stays a door. The ONLY permitted change through windows is the privacy obscuring requested above. The edited photo must not misrepresent the property itself."
-		: "HARD RULES: never add, remove, resize, relocate or reinterpret any permanent feature — walls, doors, balcony doors, windows, other openings, floors, ceilings, stairs, built-in cabinetry, or any plumbing/installed equipment (bathtub, shower, basin, toilet, bidet, radiator, fireplace, kitchen counter, sink, oven, hob, extractor hood, air-conditioning unit). If a bathroom has no bathtub, the edited photo must still have no bathtub. A window stays a window; a door stays a door. Never alter anything seen through windows. The edited photo must not misrepresent the property.");
+		? "HARD RULES: never add, remove, resize, relocate or reinterpret any permanent feature — walls, doors, balcony doors, windows, other openings, floors, ceilings, stairs, built-in cabinetry, or any plumbing/installed equipment (bathtub, shower, basin, toilet, bidet, radiator, fireplace, kitchen counter, sink, oven, hob, extractor hood, air-conditioning unit). Never REPLACE an existing one with a different type, model or style either: if a bathroom has no bathtub the edited photo must still have no bathtub, and if it has a corner shower tray that exact tray must still be there — not a nicer one. A window stays a window; a door stays a door. The ONLY permitted change through windows is the privacy obscuring requested above. The edited photo must not misrepresent the property itself."
+		: "HARD RULES: never add, remove, resize, relocate or reinterpret any permanent feature — walls, doors, balcony doors, windows, other openings, floors, ceilings, stairs, built-in cabinetry, or any plumbing/installed equipment (bathtub, shower, basin, toilet, bidet, radiator, fireplace, kitchen counter, sink, oven, hob, extractor hood, air-conditioning unit). Never REPLACE an existing one with a different type, model or style either: if a bathroom has no bathtub the edited photo must still have no bathtub, and if it has a corner shower tray that exact tray must still be there — not a nicer one. A window stays a window; a door stays a door. Never alter anything seen through windows. The edited photo must not misrepresent the property.");
 	return lines.join("\n");
 }
 
@@ -286,6 +312,7 @@ async function initBatch(request, env, url, email) {
 		ai: options.some((o) => AI_OPTIONS.has(o)),
 		watermark: options.includes("watermark"),
 		prompt: composePrompt(options),
+		inventory_prompt: INVENTORY_PROMPT,
 		count,
 	};
 	await env.PHOTO_BUCKET.put(`photos/${batchId}/meta.json`, JSON.stringify(meta), {
