@@ -482,14 +482,17 @@ export async function applyWatermark(request, env, url) {
 		return passthrough();
 	}
 	try {
-		const logoRes = await env.ASSETS.fetch(new URL("/images/logo/fourwalls_logo_light.png", url.origin));
+		// Transparent PNG, white wordmark + pink cube, with a soft shadow
+		// baked in so it reads on both a bright floor and dark furniture —
+		// no solid box behind it (see docs/brand.md for how it is generated).
+		const logoRes = await env.ASSETS.fetch(new URL("/images/logo/fourwalls_watermark.png", url.origin));
 		if (!logoRes.ok) throw new Error(`logo asset HTTP ${logoRes.status}`);
-		// Logo at a fixed 260px on the 2K output (~13% of the width), inset
-		// from the corner, slightly translucent so it brands without shouting.
+		// ~15% of a 2K frame, inset from the corner, a touch translucent so
+		// it brands the photo without shouting over it.
 		const out = await env.IMAGES.input(new Blob([bytes]).stream())
 			.draw(
-				env.IMAGES.input(logoRes.body).transform({ width: 260 }),
-				{ bottom: 28, right: 28, opacity: 0.85 },
+				env.IMAGES.input(logoRes.body).transform({ width: 300 }),
+				{ bottom: 28, right: 28, opacity: 0.9 },
 			)
 			.output({ format: "image/png" });
 		return out.response();

@@ -27,7 +27,26 @@ sheet and the spare lockups (not referenced by any page) live in `brand/`, so
 | `fourwalls-brand.pdf` | `brand/` | Authoritative vector brand sheet |
 | `fourwalls_logo.svg` | `images/logo/` | **Header logo** — horizontal lockup, pink `#FF0062` icon ("cube") + black `#000000` "FOURWALLS", `viewBox="-23.08 -24.5 1048.06 189"` (~5.5:1) |
 | `fourwalls_logo_vertical.svg` | `brand/` | Stacked lockup (icon + wordmark + "REAL ESTATE" tagline) extracted from the brand PDF — the source for the favicons; wire it into the footer's optional `.footer-logo-vertical` if needed |
-| `fourwalls_logo_light.png` | `brand/` | Old light variant (white wordmark) — currently unreferenced |
+| `fourwalls_logo_light.png` | `brand/` | Old light variant (white wordmark) — unreferenced, and **do not reuse it**: the export carries two stray 8–9 px white specks above the wordmark (`x265-275, y33-35`), an artifact of the original PDF→PNG conversion |
+| `fourwalls_watermark.png` | `images/logo/` | **Photo watermark** — 600×131 white wordmark + pink cube on transparency, with a soft drop shadow baked in so it reads on both bright floors and dark furniture. Drawn bottom-right on AI-enhanced listing photos (docs/photo-enhance.md) |
+
+### Regenerating the photo watermark
+
+Never hand-edit the PNG — rebuild it from the vector so no export artifact
+creeps back in. From `images/logo/fourwalls_logo.svg`: recolour the wordmark
+`#000000` → `#ffffff`, pad the `viewBox` by ~26 units (otherwise the shadow is
+clipped at the export edge), wrap the content in a group carrying a shadow
+filter, then render at 600 px wide:
+
+```
+inkscape wm-shadow.svg --export-type=png --export-width=600 \
+  --export-filename=images/logo/fourwalls_watermark.png
+```
+
+**Inkscape does not implement `feDropShadow`** (it warns `unknown type` and
+silently drops the content — you get a ~1 KB empty PNG). Use the classic
+chain instead: `feGaussianBlur(SourceAlpha)` → `feOffset` →
+`feComponentTransfer` (alpha slope ≈ 0.6) → `feMerge` with `SourceGraphic`.
 
 The header logo is a **vector SVG**. It was rebuilt from the brand PDF to replace
 a raster PNG whose anti-aliased edges were white at low opacity — invisible on
