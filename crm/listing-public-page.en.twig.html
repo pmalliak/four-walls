@@ -116,8 +116,8 @@
 			align-items: center;
 			justify-content: center;
 			color: #ffffff;
-			background: var(--brand);
-			border: 1px solid var(--brand);
+			background: var(--navy);
+			border: 1px solid var(--navy);
 			border-radius: 7px;
 			margin-right: 0 !important;
 		}
@@ -395,6 +395,7 @@
 <body style="
 	--brand: #ff0062;
 	--graphite: #25282d;
+	--navy: #1c3457;
 ">
 
 	<!-- Top bar -->
@@ -527,10 +528,7 @@
 
 				{% if default_media %}
 				<div class="info-card p-4 mb-4">
-					<div class="section-title">
-						<i class="bi bi-play-circle me-2 brand-text"></i>Media
-					</div>
-
+					{% if tour_url or video_url %}
 					<div class="media-tabs">
 						{% if tour_url %}
 						<button type="button" class="media-tab{% if default_media == 'tour' %} active{% endif %}" data-media-tab="tour">
@@ -550,6 +548,7 @@
 						</button>
 						{% endif %}
 					</div>
+					{% endif %}
 
 					{% if tour_url %}
 					<div class="media-panel{% if default_media == 'tour' %} active{% endif %}" data-media-panel="tour">
@@ -897,18 +896,6 @@
 
 				<!-- Price card -->
 				<div class="info-card p-4 mb-4 text-center">
-					{% if listing.has_hidden_price %}
-					<p class="text-muted mb-0 fs-5">Price upon request</p>
-					{% else %}
-					<div class="price-tag">{{ listing.price | number_format(0, '.', ',') }} €</div>
-
-					{% if listing.is_negotiable %}
-					<small class="text-muted">Negotiable</small>
-					{% endif %}
-					{% endif %}
-
-					<hr>
-
 					<div class="d-flex justify-content-between text-muted" style="font-size:13px;">
 						<span>Code</span>
 						<strong class="text-dark">{{ listing.code }}</strong>
@@ -944,8 +931,6 @@
 					<h5 class="fw-bold mb-1">{{ user.first_name }} {{ user.last_name }}</h5>
 					{% endif %}
 
-					<p class="text-muted mb-3" style="font-size:13px;">{{ office.name }}</p>
-
 					{% if user.phone %}
 					<a href="tel:{{ user.phone }}" class="btn brand-bg text-white w-100 mb-2 fw-semibold">
 						<i class="bi bi-telephone me-2"></i>{{ user.phone }}
@@ -969,9 +954,7 @@
 				{% if office.name %}
 				<div class="info-card p-3 mb-4">
 					<div class="d-flex align-items-center gap-3">
-						{% if office.logo %}
-						
-						{% endif %}
+						<img src="https://four-walls.gr/images/fav-icon/icon.fw.svg" alt="Four Walls" style="height:40px;width:40px;object-fit:contain;">
 
 						<div>
 							<div class="fw-semibold" style="font-size:14px;">{{ company.name }}</div>
