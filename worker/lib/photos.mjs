@@ -77,13 +77,13 @@ const SAFE_FRAGMENTS = {
    would happily "clean" one off), so the logo is drawn deterministically by
    applyWatermark() below, AFTER Gemini, via the Cloudflare Images binding. */
 const AI_OPTIONS = new Set([
-	...Object.keys(SAFE_FRAGMENTS), "repair_damage", "virtual_staging",
+	...Object.keys(SAFE_FRAGMENTS), "repair_damage", "virtual_staging", "finish_works",
 ]);
 /* `staging_notice` is an overlay too, not an AI edit: when a room has been
    virtually furnished the photo should SAY so, so the form offers it
    (ticked) the moment «Εικονική επίπλωση» is chosen. Drawn bottom-left by
    applyWatermark(), opposite the logo. */
-const KNOWN_OPTIONS = new Set([...AI_OPTIONS, "watermark", "staging_notice"]);
+const KNOWN_OPTIONS = new Set([...AI_OPTIONS, "watermark", "staging_notice", "works_notice"]);
 
 /* Model tiers the form may pick. The CLIENT sends only the tier key; the
    real Gemini model name is resolved HERE, so the browser can never inject
@@ -126,6 +126,8 @@ const OPTION_LABELS_EL = {
 	repair_damage: "Επιδιόρθωση φθορών",
 	virtual_staging: "Εικονική επίπλωση κενών χώρων",
 	staging_notice: "Σήμανση εικονικής επίπλωσης",
+	finish_works: "Αποπεράτωση εργασιών σε εξέλιξη",
+	works_notice: "Σήμανση εργασιών σε εξέλιξη",
 	watermark: "Λογότυπο κάτω δεξιά",
 };
 
@@ -137,8 +139,12 @@ function composePrompt(options) {
 		// contact sheet of variations. Say this first and unmistakably.
 		"OUTPUT EXACTLY ONE IMAGE: the supplied photograph, retouched. Never a collage, grid, triptych, split screen, before-and-after pair or set of alternatives — one single edited frame, nothing beside it. Keep the original orientation and aspect ratio exactly: a portrait photo stays portrait, a landscape photo stays landscape, and you must not add borders, padding or panels.",
 		"Apply only the edits listed below. Keep the result fully photorealistic, keep the exact same framing, and output the entire scene.",
-		// A half-built room must not come back finished.
-		"THIS IS A REAL, POSSIBLY UNFINISHED PROPERTY. If the room is mid-renovation or under construction — bare plaster, exposed cabling, missing skirting, unpainted or unfinished surfaces, protective film, building dust or debris — it must STAY that way. Never complete the works, never finish, paint, tile or install anything, and never present the space as more finished than it is.",
+		// A half-built room must not come back finished — unless the office
+		// deliberately asked for the after-the-works view, which then gets
+		// stamped with its own disclaimer (see finish_works / works_notice).
+		on.has("finish_works")
+			? "THIS PROPERTY IS MID-WORKS AND YOU ARE ASKED TO SHOW IT COMPLETED. Present the room as it will look once the current works are finished: hide exposed cabling and conduit behind the finished surface, fit the missing skirting and trims, finish and paint bare plaster in the same colour as the finished walls, remove protective film, building dust, debris, tools and materials, and complete the ceiling and lighting that are evidently being installed. Complete ONLY what is plainly already under way, and change nothing else: keep the exact same layout, dimensions, openings, fixtures, sanitary ware, tiles, marble, flooring and every material and colour already in place. You are finishing the works that were started, never redesigning or upgrading the property."
+			: "THIS IS A REAL, POSSIBLY UNFINISHED PROPERTY. If the room is mid-renovation or under construction — bare plaster, exposed cabling, missing skirting, unpainted or unfinished surfaces, protective film, building dust or debris — it must STAY that way. Never complete the works, never finish, paint, tile or install anything, and never present the space as more finished than it is.",
 		// The rule the model breaks most eagerly: it "upgrades" what it sees
 		// — one shower tray becomes a nicer shower tray, a tap becomes a
 		// different tap. That is a misrepresentation even though nothing was
@@ -533,8 +539,13 @@ export async function applyWatermark(request, env, url) {
 	const meta = await env.PHOTO_BUCKET.get(`photos/${batchId}/meta.json`).then((o) => o?.json()).catch(() => null);
 	const opts = meta?.options || [];
 	const wantsLogo = opts.includes("watermark");
-	const wantsNotice = opts.includes("staging_notice");
-	if (!wantsLogo && !wantsNotice) return passthrough();
+	const notices = [
+		// Order matters when both are on: they stack down the top-left
+		// corner, works first because it describes the whole scene.
+		opts.includes("works_notice") ? "fourwalls_works_notice.png" : null,
+		opts.includes("staging_notice") ? "fourwalls_staged_notice.png" : null,
+	].filter(Boolean);
+	if (!wantsLogo && !notices.length) return passthrough();
 
 	if (!env.IMAGES) {
 		console.warn("photos: overlay requested but IMAGES binding missing — passing through");
@@ -574,19 +585,19 @@ export async function applyWatermark(request, env, url) {
 			);
 		}
 
-		if (wantsNotice) {
-			// TOP-left, not bottom-left: side by side at the bottom the two
-			// marks leave only ~120 px between them on a phone-portrait shot
-			// and read as one cramped strip. Up here the notice also reads
-			// as a label on the photo rather than as branding.
-			// Kept smaller than the logo (25% vs 29%) — brand first, notice
-			// second — but on a translucent plate, since a disclaimer that
-			// vanishes against a bright wall would be worthless.
-			const noticeRes = await env.ASSETS.fetch(new URL("/images/logo/fourwalls_staged_notice.png", url.origin));
-			if (!noticeRes.ok) throw new Error(`notice asset HTTP ${noticeRes.status}`);
+		// TOP-left, not bottom-left: side by side at the bottom the marks
+		// leave only ~120 px between them on a phone-portrait shot and read
+		// as one cramped strip. Up here a notice also reads as a label on
+		// the photo rather than as branding. Kept smaller than the logo
+		// (25% vs 29%) — brand first, notice second.
+		const noticeW = markW(0.25, 0.40);
+		const noticeH = Math.round(noticeW * (232 / 800)); // plate aspect
+		for (let i = 0; i < notices.length; i++) {
+			const res = await env.ASSETS.fetch(new URL(`/images/logo/${notices[i]}`, url.origin));
+			if (!res.ok) throw new Error(`notice asset HTTP ${res.status}`);
 			pipeline = pipeline.draw(
-				env.IMAGES.input(noticeRes.body).transform({ width: markW(0.25, 0.40) }),
-				{ top: inset, left: inset, opacity: 0.92 },
+				env.IMAGES.input(res.body).transform({ width: noticeW }),
+				{ top: inset + i * (noticeH + Math.round(inset * 0.4)), left: inset, opacity: 0.92 },
 			);
 		}
 
