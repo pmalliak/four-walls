@@ -92,22 +92,28 @@ input.invalid,select.invalid{border-color:var(--pink);background:#fff6f9}
 .seg{display:flex;flex-wrap:wrap;gap:8px}
 .seg button, .pill{
   font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;
-  padding:12px 15px;min-height:48px;border-radius:12px;border:1.5px solid var(--line);
+  padding:12px 15px;min-height:52px;border-radius:12px;border:1.5px solid var(--line);
   background:#fbfcfe;color:var(--ink);transition:.12s;line-height:1.15;
 }
 .seg button:active,.pill:active{transform:scale(.98)}
 .seg button.on{background:var(--navy);border-color:var(--navy);color:#fff}
 .seg.req.miss button{border-color:var(--pink)}
 
-/* Yes/No tri-state */
-.yn-row{display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:11px 14px;border:1.5px solid var(--line);border-radius:12px;background:#fbfcfe}
+/* Yes/No tri-state — ίδιο ύψος (52px) με input/select/stepper ώστε τα κουτιά
+   της ίδιας σειράς να ευθυγραμμίζονται */
+.yn-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;
+  padding:4px 12px;border:1.5px solid var(--line);border-radius:12px;background:#fbfcfe}
 .yn-row .lbl{font-size:14.5px;font-weight:600;color:var(--ink)}
 .yn{display:flex;gap:6px;flex:0 0 auto}
-.yn button{width:52px;min-height:42px;border-radius:10px;border:1.5px solid var(--line);
+.yn button{width:48px;min-height:40px;border-radius:10px;border:1.5px solid var(--line);
   background:#fff;font-family:inherit;font-weight:700;font-size:13.5px;color:var(--muted);cursor:pointer}
 .yn button.on.yes{background:var(--pink);border-color:var(--pink);color:#fff}
 .yn button.on.no{background:var(--navy);border-color:var(--navy);color:#fff}
+/* Το yn έχει την ετικέτα μέσα στο κουτί. Όταν μοιράζεται σειρά με πεδία που έχουν
+   ετικέτα από πάνω, το .pad-lab (μπαίνει από το alignYN) κρατά κενή τη σειρά της
+   ετικέτας, αλλιώς το κουτί ξεκινά ψηλότερα από τα διπλανά. */
+.f-yn.pad-lab::before{content:"";display:block;font-size:12.5px;line-height:1.4;height:1.4em}
+.f-yn.pad-lab .yn-row{flex:1}
 
 /* Category selector */
 .cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
@@ -505,7 +511,7 @@ function fieldHTML(f){
   if(f.t==="stepper")
     return `<div class="field" style="${full}">${lab}<div class="stepper" data-step="${f.k}"><button type="button" data-sd="-1">−</button><span class="val empty">—</span><button type="button" data-sd="1">+</button></div></div>`;
   if(f.t==="yn")
-    return `<div class="field" style="${full}"><div class="yn-row"><span class="lbl">${esc(f.l)}</span><span class="yn" data-yn="${f.k}"><button type="button" class="yes" data-v="yes">ΝΑΙ</button><button type="button" class="no" data-v="no">ΟΧΙ</button></span></div></div>`;
+    return `<div class="field${f.full?"":" f-yn"}" style="${full}"><div class="yn-row"><span class="lbl">${esc(f.l)}</span><span class="yn" data-yn="${f.k}"><button type="button" class="yes" data-v="yes">ΝΑΙ</button><button type="button" class="no" data-v="no">ΟΧΙ</button></span></div></div>`;
   return "";
 }
 function visibleSections(){ return SECTIONS.filter(sec=>!sec.when||sec.when(state)); }
@@ -516,8 +522,25 @@ function render(){
     const body=`<div class="grid ${flds.every(x=>x.t==='yn')?'yn':''}">${flds.map(fieldHTML).join("")}</div>`;
     return `<section class="card"><h2><span class="dot"></span>${esc(sec.title)}</h2>${sec.hint?`<p class="hint">${esc(sec.hint)}</p>`:""}${body}</section>`;
   }).join("");
-  reflect();
+  reflect(); alignYN();
 }
+/* Τα yn πεδία έχουν την ετικέτα μέσα στο κουτί, τα υπόλοιπα από πάνω. Όσα yn
+   πέφτουν στην ίδια σειρά του grid με πεδίο που έχει ετικέτα, παίρνουν .pad-lab
+   ώστε το κουτί τους να ξεκινά στο ίδιο ύψος. Αλλάζει με το πλάτος (πόσες
+   κολόνες χωρούν), γι' αυτό ξανατρέχει και στο resize. */
+function alignYN(){
+  document.querySelectorAll("#sections .grid").forEach(g=>{
+    const items=[...g.children];
+    items.forEach(f=>f.classList.remove("pad-lab"));
+    const rows=new Map(); // offsetTop (χωρίς spacers) -> πεδία της σειράς
+    items.forEach(f=>{ const t=Math.round(f.offsetTop); (rows.get(t)||rows.set(t,[]).get(t)).push(f); });
+    rows.forEach(row=>{
+      if(row.length<2||!row.some(f=>f.querySelector("label"))) return;
+      row.forEach(f=>{ if(f.classList.contains("f-yn"))f.classList.add("pad-lab"); });
+    });
+  });
+}
+let alignT; addEventListener("resize",()=>{ clearTimeout(alignT); alignT=setTimeout(alignYN,120); });
 function reflect(){
   document.querySelectorAll("#sections [name]").forEach(el=>{ const v=state[el.name]; if(v!=null&&typeof v!=="object")el.value=v; });
   document.querySelectorAll("#sections [data-seg]").forEach(seg=>{ const v=state[seg.dataset.seg]; seg.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.val===String(v??""))); });
