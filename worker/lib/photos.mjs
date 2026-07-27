@@ -101,7 +101,9 @@ const DEFAULT_TIER = "nb2";
 const INVENTORY_PROMPT = [
 	"You are surveying ONE photograph of a property for a real-estate listing. Reply with a single short line of plain text and nothing else.",
 	"Format: <room type> | present: <items> | absent: <items>",
-	"In `present`, list every permanent fixture and every significant piece of furniture you can actually see, each with a couple of words on its type, style or material — e.g. \"corner shower tray with clear glass screen\", \"white rectangular basin on a wooden vanity unit\", \"single-lever chrome mixer tap\", \"grey two-seat fabric sofa\".",
+	// NOTE: no double quotes anywhere in this string — Make interpolates it
+	// into a hand-written JSON body, and a stray " would break the request.
+	"In `present`, list every permanent fixture and every significant piece of furniture you can actually see, each with a couple of words on its type, style or material — for example: corner shower tray with clear glass screen; white rectangular basin on a wooden vanity unit; single-lever chrome mixer tap; grey two-seat fabric sofa.",
 	"In `absent`, name explicitly whichever of these are NOT in the room: bathtub, shower, toilet, bidet, basin, kitchen counter, cooker or hob, extractor hood, fireplace, radiator, air-conditioning unit, balcony door.",
 	"Report only what is visible in this photograph. Never guess about what might be out of frame, and never mention anything you cannot see.",
 ].join(" ");
