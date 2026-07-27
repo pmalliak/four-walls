@@ -293,6 +293,19 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		var m = (name.match(/\.(\w+)$/)||[])[1];
 		return ({jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp",heic:"image/heic",heif:"image/heif"})[(m||"").toLowerCase()] || "";
 	}
+	/* Gemini only accepts these output ratios; pick the closest one so the
+	   edit comes back the same shape as the shot. Left to decide for itself
+	   the model once answered a portrait photo with a landscape triptych. */
+	var RATIOS = [[1,1],[2,3],[3,2],[3,4],[4,3],[4,5],[5,4],[9,16],[16,9],[21,9]];
+	function nearestRatio(w, h){
+		if (!w || !h) return "";
+		var target = w/h, best = "", bestErr = Infinity;
+		RATIOS.forEach(function(r){
+			var err = Math.abs(Math.log((r[0]/r[1]) / target));
+			if (err < bestErr) { bestErr = err; best = r[0]+":"+r[1]; }
+		});
+		return best;
+	}
 	async function prepare(file){
 		try{
 			var bmp = await createImageBitmap(file, { imageOrientation:"from-image" });
@@ -302,9 +315,9 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			c.getContext("2d").drawImage(bmp,0,0,w,h);
 			bmp.close && bmp.close();
 			var blob = await new Promise(function(res){ c.toBlob(res,"image/jpeg",0.92); });
-			if (blob) return { blob:blob, type:"image/jpeg", name:file.name.replace(/\.\w+$/,"")+".jpg" };
+			if (blob) return { blob:blob, type:"image/jpeg", name:file.name.replace(/\.\w+$/,"")+".jpg", aspect:nearestRatio(w,h) };
 		}catch(e){ /* can't decode (e.g. HEIC on desktop) — send original */ }
-		return { blob:file, type:file.type||inferMime(file.name), name:file.name };
+		return { blob:file, type:file.type||inferMime(file.name), name:file.name, aspect:"" };
 	}
 	function fmtSize(n){ return n>=1048576 ? (n/1048576).toFixed(1)+" MB" : Math.round(n/1024)+" KB"; }
 	function renderGrid(){
@@ -345,7 +358,8 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 
 			await runPool(items, async function(it, idx){
 				var r = await fetch("/api/photos/upload/"+batchId+"/"+idx, { method:"PUT",
-					headers:{ "Content-Type":it.type, "X-Filename":encodeURIComponent(it.name) }, body: it.blob });
+					headers:{ "Content-Type":it.type, "X-Filename":encodeURIComponent(it.name),
+						"X-Aspect": it.aspect || "" }, body: it.blob });
 				if (!r.ok) throw new Error("upload " + r.status);
 			}, 3, function(done){ setProg(8 + Math.round(done/items.length*82), "Αποστολή " + done + "/" + items.length + " φωτογραφιών…"); });
 

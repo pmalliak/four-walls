@@ -111,7 +111,8 @@ const INVENTORY_PROMPT = [
 	"SURFACES: every visible surface — floor, walls, ceiling, tiling, splashback, worktops, stair treads — naming for each one its material, finish and pattern, its colour, and the format or layout where it applies. Say for example: floor in large 60x60 grey marble-effect porcelain tiles with soft white veining, laid straight; walls in matt ivory paint; splashback in small white gloss metro tiles with grey grout.",
 	"FIXTURES AND FITTINGS: every permanent item and every significant piece of furniture, each with its type, style, material, colour and finish. Be especially exact about small metalwork and lighting, because that is what gets silently redesigned: for every tap say whether it is a single-lever mixer or two separate taps, whether it is mounted on the basin, on the worktop or on the wall, its spout shape and its finish. For a shower, list its parts one by one and say which of them exist: a hand shower on a hose, a sliding rail, a fixed overhead or rain head, a bath spout, a thermostatic bar, a glass screen or curtain, the tray or tub. If the shower has only a wall mixer and a hand shower and NO overhead or rain head, say exactly that. Do the same for light fittings (shape, arm count, material, shade, warm or cool light), door and cupboard handles, radiators, sockets and switches, window frames, curtains or blinds, and the kitchen or bathroom units. Say for example: brushed-nickel single-lever basin mixer with a curved spout, mounted on the basin; chrome wall mixer with a hand shower on a 60 cm sliding rail and no overhead head; three-arm black metal ceiling pendant with opal glass globes.",
 	"ABSENT: name explicitly whichever of these are NOT in the room, so the editor knows not to invent them: bathtub, shower, toilet, bidet, basin, kitchen counter, cooker or hob, extractor hood, fireplace, radiator, air-conditioning unit, balcony door.",
-	"Two cautions. Natural pattern is not dirt: veining in marble or stone, grain in wood, speckle in terrazzo, variation between tiles and visible grout lines are all features of the material — record them as such rather than as stains. And report only what is visible in this photograph: never guess at what lies out of frame, and never mention anything you cannot actually see.",
+	"GLASS AND MIRRORS: list every glass or mirrored surface — shower screen, mirror, glazed door, window — and say what is reflected in it or seen through it. A reflection belongs to the glass; it is not a real object standing in the room, and it must be reproduced as the same reflection, not turned into something solid.",
+	"Three cautions. Natural pattern is not dirt: veining in marble or stone, grain in wood, speckle in terrazzo, variation between tiles and visible grout lines are all features of the material — record them as such rather than as stains. If the room is unfinished or mid-renovation, say so plainly and name what is unfinished (bare plaster, exposed cabling, missing skirting, protective film, dust or debris), because the editor must not tidy that away. And report only what is visible in this photograph: never guess at what lies out of frame, and never mention anything you cannot actually see.",
 ].join(" ");
 
 /* Greek labels for the handoff email («Επεξεργασίες» row) — keep in sync
@@ -132,7 +133,12 @@ function composePrompt(options) {
 	const on = new Set(options);
 	const lines = [
 		"You are a professional real-estate photo editor preparing this photograph for a property listing.",
-		"Apply only the edits listed below. Keep the result fully photorealistic, keep the exact same framing and aspect ratio, and output the entire scene.",
+		// It once answered a portrait photo with a landscape three-panel
+		// contact sheet of variations. Say this first and unmistakably.
+		"OUTPUT EXACTLY ONE IMAGE: the supplied photograph, retouched. Never a collage, grid, triptych, split screen, before-and-after pair or set of alternatives — one single edited frame, nothing beside it. Keep the original orientation and aspect ratio exactly: a portrait photo stays portrait, a landscape photo stays landscape, and you must not add borders, padding or panels.",
+		"Apply only the edits listed below. Keep the result fully photorealistic, keep the exact same framing, and output the entire scene.",
+		// A half-built room must not come back finished.
+		"THIS IS A REAL, POSSIBLY UNFINISHED PROPERTY. If the room is mid-renovation or under construction — bare plaster, exposed cabling, missing skirting, unpainted or unfinished surfaces, protective film, building dust or debris — it must STAY that way. Never complete the works, never finish, paint, tile or install anything, and never present the space as more finished than it is.",
 		// The rule the model breaks most eagerly: it "upgrades" what it sees
 		// — one shower tray becomes a nicer shower tray, a tap becomes a
 		// different tap. That is a misrepresentation even though nothing was
@@ -155,7 +161,7 @@ function composePrompt(options) {
 	// doors / turn a window into a balcony door (feedback 2026-07-25).
 	lines.push(on.has("virtual_staging")
 		? [
-			"- Virtual staging: furnish empty or sparse rooms completely and realistically, the way a professional home stager would present a listing — welcoming and lived-in, never minimal, never cluttered. First identify each room's type from its visible fixtures, then furnish accordingly:",
+			"- Virtual staging: add LOOSE, MOVABLE FURNISHINGS ONLY — things a stager could carry in and out in an afternoon. You are dressing the room, never building it: do not finish, renovate, retile, repaint or complete anything, and do not touch a single fixed surface or installation. Within that limit, furnish an empty or sparse room fully and realistically, the way a professional home stager would present a listing — welcoming and lived-in, never minimal, never cluttered. First identify each room's type from its visible fixtures, then furnish accordingly:",
 			"  * Living room: a full sofa arrangement with cushions and a throw, coffee table, area rug, TV unit or bookcase, floor lamp, wall art and a plant.",
 			"  * Bedroom: a properly sized bed with made-up linens and pillows, nightstands with lamps, a rug and wall art.",
 			"  * Kitchen: small countertop appliances (coffee machine, kettle, toaster), a fruit bowl, a cutting board and a few tasteful jars — on existing counters only.",
@@ -352,8 +358,15 @@ async function uploadOne(request, env, batchId, seqRaw) {
 
 	const safe = sanitizeName(request.headers.get("X-Filename"), mime);
 	const name = String(seq).padStart(3, "0") + "-" + safe;
+	// The browser measured the photo, so it can name the closest Gemini
+	// output ratio; pinning it stops the model reshaping a portrait shot
+	// (it once returned a landscape three-panel sheet). Whitelisted, since
+	// it is client input that ends up in an API request.
+	const rawAspect = String(request.headers.get("X-Aspect") || "");
+	const aspect = /^(1:1|2:3|3:2|3:4|4:3|4:5|5:4|9:16|16:9|21:9)$/.test(rawAspect) ? rawAspect : "";
 	await env.PHOTO_BUCKET.put(`photos/${batchId}/orig/${name}`, bytes, {
 		httpMetadata: { contentType: mime },
+		customMetadata: aspect ? { aspect } : undefined,
 	});
 	return json({ ok: true, name });
 }
@@ -391,6 +404,7 @@ async function finalizeBatch(request, env, url, batchId) {
 		photos.push({
 			name,
 			content_type: o.httpMetadata?.contentType || "image/jpeg",
+			aspect: o.customMetadata?.aspect || "",
 			url: await signedFileUrl(env, origin, batchId, name),
 		});
 	}
