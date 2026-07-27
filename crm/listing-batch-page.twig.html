@@ -360,6 +360,12 @@
 			<div style="text-align:center; margin:34px 0 8px;">
 				<a href="https://four-walls.gr/properties?utm_source=estateprime&amp;utm_medium=batch_page" target="_blank" rel="noopener" style="display:inline-block; background:var(--navy); color:#ffffff; text-decoration:none; font-weight:700; padding:12px 26px; border-radius:8px;">Δείτε όλα τα ακίνητά μας</a>
 			</div>
+
+			{% if contact.full_name %}
+			<div style="text-align:center; margin:6px 0 0;">
+				<a href="https://four-walls.gr/request-closed?e={{ contact.full_name|url_encode }}" style="font-size:12px; color:#6a6f76; text-decoration:underline;">Δεν θέλετε άλλες προτάσεις;</a>
+			</div>
+			{% endif %}
 	</main>
 
 	<footer class="footer">

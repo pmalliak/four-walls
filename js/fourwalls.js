@@ -392,7 +392,9 @@
       turnstile:
         "Περιμένετε να ολοκληρωθεί ο έλεγχος ασφαλείας (το πλαίσιο πάνω από το " +
         "κουμπί) και πατήστε ξανά «Επιβεβαίωση».",
-      sending: "Αποστολή..."
+      sending: "Αποστολή...",
+      optH1: "Διακοπή προτάσεων",
+      optIntro: "Επιβεβαιώστε ότι δεν επιθυμείτε άλλες προτάσεις ακινήτων και θα σταματήσουμε να σας τις στέλνουμε."
     },
     en: {
       errorHtml:
@@ -401,7 +403,9 @@
       turnstile:
         "Please wait for the security check to complete (the box above the " +
         "button) and press “Confirm” again.",
-      sending: "Sending..."
+      sending: "Sending...",
+      optH1: "Stop suggestions",
+      optIntro: "Confirm that you no longer wish to receive property suggestions and we will stop sending them."
     }
   })[LANG];
   var ERROR_HTML = STR.errorHtml;
@@ -410,12 +414,24 @@
   var params = new URLSearchParams(window.location.search);
   var requestId = (params.get("r") || "").slice(0, 20);
   var contactId = (params.get("c") || "").slice(0, 20);
+  // Optional free-text identifier (e=email or name) used by the
+  // recommendations email / batch page, which carry no request/contact id —
+  // it rides along to info@ in the comment so the office knows who opted out.
+  var optRef = (params.get("e") || "").slice(0, 120);
+  var hasRequest = /^\d+$/.test(requestId);
 
   // Show the request code back to the client only when it looks like one
   // of ours (digits) — never echo raw query text into the page.
-  if (/^\d+$/.test(requestId)) {
+  if (hasRequest) {
     document.getElementById("fw-rc-code").textContent = requestId;
     document.getElementById("fw-rc-meta").hidden = false;
+  } else if (optRef) {
+    // Opt-out mode (no ζήτηση): reframe the page from «finished your search»
+    // to a plain «stop sending me suggestions».
+    var h1 = document.getElementById("fw-rc-h1");
+    var intro = document.getElementById("fw-rc-intro");
+    if (h1) h1.textContent = STR.optH1;
+    if (intro) intro.textContent = STR.optIntro;
   }
 
   var messages = document.getElementById("fw-rc-messages");
@@ -432,11 +448,17 @@
     }
 
     var checked = form.querySelector('input[name="reason"]:checked');
+    var userComment = form.comment.value.trim();
+    // When there's no request/contact id (recommendations email / batch page),
+    // stamp the client's identifier onto the comment so info@ can act on it.
+    var comment = (optRef && !hasRequest)
+      ? "[" + (LANG === "en" ? "Client" : "Πελάτης") + ": " + optRef + "] " + userComment
+      : userComment;
     var payload = {
       request_id: requestId,
       contact_id: contactId,
       reason: checked ? checked.value : "",
-      comment: form.comment.value.trim(),
+      comment: comment,
       page: window.location.pathname + window.location.search,
       token: token,
       website: form.website ? form.website.value : ""
