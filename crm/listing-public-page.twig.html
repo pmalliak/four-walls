@@ -23,7 +23,7 @@
 
 		.brand-bar {
 			background: #ffffff;
-			border-bottom: 4px solid var(--brand);
+			border-bottom: 4px solid var(--navy);
 			box-shadow: 0 4px 16px rgba(25, 29, 34, .06);
 		}
 
@@ -141,7 +141,7 @@
 			background: #ffffff;
 			border-radius: 10px;
 			border: 1px solid #dfe3e7;
-			border-top: 5px solid var(--brand);
+			border-top: 5px solid var(--navy);
 			box-shadow: 0 5px 16px rgba(25, 29, 34, .055);
 			padding: 24px 26px;
 		}
@@ -526,77 +526,17 @@
 					{% set default_media = 'photos' %}
 				{% endif %}
 
-				{% if default_media %}
+								{% if has_photos %}
 				<div class="info-card p-4 mb-4">
-					{% if tour_url or video_url %}
-					<div class="media-tabs">
-						{% if tour_url %}
-						<button type="button" class="media-tab{% if default_media == 'tour' %} active{% endif %}" data-media-tab="tour">
-							<i class="bi bi-badge-3d me-1"></i>360° Tour
-						</button>
-						{% endif %}
-
-						{% if video_url %}
-						<button type="button" class="media-tab{% if default_media == 'video' %} active{% endif %}" data-media-tab="video">
-							<i class="bi bi-camera-video me-1"></i>Video
-						</button>
-						{% endif %}
-
-						{% if has_photos %}
-						<button type="button" class="media-tab{% if default_media == 'photos' %} active{% endif %}" data-media-tab="photos">
-							<i class="bi bi-images me-1"></i>Φωτογραφίες
-						</button>
-						{% endif %}
+					<div class="media-photo-frame">
+						<img id="main-photo" src="{{ listing.photos[0] }}" alt="{{ listing.title }}">
 					</div>
-					{% endif %}
 
-					{% if tour_url %}
-					<div class="media-panel{% if default_media == 'tour' %} active{% endif %}" data-media-panel="tour">
-						<div class="media-frame js-media-frame" data-url="{{ tour_url }}" data-type="tour">
-							<a href="{{ tour_url }}" target="_blank" rel="noopener" style="color:#fff;text-decoration:none;font-weight:600;">
-								Άνοιγμα 360° tour
-							</a>
-						</div>
-
-						<a href="{{ tour_url }}" target="_blank" rel="noopener" class="media-link">
-							Άνοιγμα 360° tour σε νέο παράθυρο
-						</a>
-					</div>
-					{% endif %}
-
-					{% if video_url %}
-					<div class="media-panel{% if default_media == 'video' %} active{% endif %}" data-media-panel="video">
-						<div class="media-frame js-media-frame"
-							 data-url="{{ video_url }}"
-							 data-type="video"
-							 {% if listing.photos[0] is defined %}data-poster="{{ listing.photos[0] }}"{% endif %}>
-							<a href="{{ video_url }}" target="_blank" rel="noopener" style="color:#fff;text-decoration:none;font-weight:600;">
-								Άνοιγμα video
-							</a>
-						</div>
-
-						<a href="{{ video_url }}" target="_blank" rel="noopener" class="media-link">
-							Άνοιγμα video σε νέο παράθυρο
-						</a>
-					</div>
-					{% endif %}
-
-					{% if has_photos %}
-					<div class="media-panel{% if default_media == 'photos' %} active{% endif %}" data-media-panel="photos">
-						<div class="media-photo-frame">
-							<img id="main-photo" src="{{ listing.photos[0] }}" alt="{{ listing.title }}">
-						</div>
-
-						{% if listing.photos|length > 1 %}
-						<div class="media-photo-thumbs">
-							{% for photo in listing.photos %}
-							<img src="{{ photo }}"
-								 class="media-photo-thumb{% if loop.index == 1 %} active{% endif %}"
-								 onclick="setMediaPhoto(this)"
-								 alt="Φωτογραφία {{ loop.index }}">
-							{% endfor %}
-						</div>
-						{% endif %}
+					{% if listing.photos|length > 1 %}
+					<div class="media-photo-thumbs">
+						{% for photo in listing.photos %}
+						<img src="{{ photo }}" class="media-photo-thumb{% if loop.index == 1 %} active{% endif %}" onclick="setMediaPhoto(this)" alt="{{ listing.title }}">
+						{% endfor %}
 					</div>
 					{% endif %}
 				</div>
