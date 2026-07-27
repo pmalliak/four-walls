@@ -924,19 +924,8 @@
 
 	<!-- Footer -->
 	<footer class="py-4 mt-4">
-		<div class="container">
-			<div class="row align-items-center">
-				<div class="col-md-6 text-muted" style="font-size:13px;">
-					© {{ company.name }}
-					{% if company.website and company.website != '#' %}
-					· <a href="{{ company.website }}" class="text-decoration-none">{{ company.website }}</a>
-					{% endif %}
-				</div>
-
-				<div class="col-md-6 text-end text-muted" style="font-size:12px;">
-					Κωδ. {{ listing.code }} · {{ column_value.subcategory(listing.subcategory) }} {{ column_value.for_availability(listing.availability) }}
-				</div>
-			</div>
+		<div class="container text-center text-muted" style="font-size:13px;">
+			© Four Walls Real Estate · <a href="https://four-walls.gr?utm_source=estateprime&amp;utm_medium=footer" class="text-decoration-none">four-walls.gr</a>
 		</div>
 	</footer>
 
