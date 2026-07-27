@@ -40,10 +40,40 @@ The matchings email ends with a **«σταματήστε τις προτάσει
   names, same URL. Photos are read `{{ listing.photos[0] }}` (bracket).
 
 Both families expose `listings` as an **array with `{% for %}`** — a ζήτηση or a
-recommendation batch can carry several listings. The buttons in
-`listing-recommendations` point at EstatePrime-hosted pages (`/l/…` single,
-`/b/…` batch) configured under **Ρυθμίσεις Ακινήτων → Δημόσια Σελίδα Ακινήτου /
-Σελίδα Πολλαπλών Ακινήτων** (still stock, unbranded — see below / TODO).
+recommendation batch can carry several listings.
+
+## The two hosted landing pages (where the email buttons go)
+
+The recommendation/matching emails link to **EstatePrime-hosted** pages, not to
+four-walls.gr: `listing.url` = `/l/…` (one property) and `batch.url` = `/b/…`
+(all properties in the batch). They are configured under **Ρυθμίσεις Ακινήτων**:
+
+| File (source copy) | CRM page | Slots |
+|---|---|---|
+| [`listing-public-page.twig.html`](listing-public-page.twig.html) / [`.en`](listing-public-page.en.twig.html) | Δημόσια Σελίδα Ακινήτου | `/settings/listings-public-page` (+`/2` = EN) |
+| [`listing-public-404.twig.html`](listing-public-404.twig.html) / [`.en`](listing-public-404.en.twig.html) | ” — «ακίνητο μη διαθέσιμο» | same page, `field: content_404` |
+| [`listing-batch-page.twig.html`](listing-batch-page.twig.html) / [`.en`](listing-batch-page.en.twig.html) | Σελίδα Πολλαπλών Ακινήτων | `/settings/listings-batch-page` (+`/2` = EN) |
+
+These are **web pages, not emails** (Bootstrap, real CSS/JS, gallery, Leaflet
+map). We **rethemed the EstatePrime stock templates in place** rather than
+rewrite: the whole colour system hangs off `--brand`, which stock sets to
+`{{ company.main_color }}`. Our version pins **`--brand: #ff0062`** (site pink,
+overriding whatever the CRM company colour is) and prepends **Manrope** to the
+font stack + a Google-Fonts `<link>` — everything else (structure, gallery JS,
+map) is untouched. Navy `#1C3457` accents come through the existing dark footer.
+
+Editors differ again (a third variant): **preview** `{preview_public_page|preview_batch_page:1, content, listing_id|batch_id, language_id}`,
+**save** `{save_public_page:1, language_id, field:'content'|'content_404', content}`
+for the public page / `{save_batch_page:1, language_id, content}` for the batch,
+POSTed to `_postUrl` (read `window._postUrl` / `window._langId` off the page).
+Public preview needs a real `listing_id` (grab one from `/listings`); the
+`.select-listings` tomselect does not auto-populate.
+
+**Re-applying after an EstatePrime update:** these files are the source of
+truth, but they are a retheme of EstatePrime's own markup — if the CRM ships a
+new stock template, re-run the retheme (swap `--brand` + font) rather than
+force-pasting the old file, or the new features are lost. The whole flow was
+driven headlessly through the dedicated CDP Edge (`.claude/skills/.../headless/cdp.mjs`).
 
 Data roots: documents get `valuation.*`; emails get `appointment.*`, `contact.*`,
 `user.*`, `office.*`, `company.*`; the matchings email also gets `request.*` and

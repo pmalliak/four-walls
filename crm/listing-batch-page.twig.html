@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="el">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+	<title>{{ company.name }} — Προτάσεις Ακινήτων</title>
+
+	<style>
+		*,
+		*::before,
+		*::after {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+
+		body {
+			font-family: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+			background: #f1f2f3;
+			color: #2c2f34;
+		}
+
+		.header {
+			background: #ffffff;
+			padding: 20px 28px 24px;
+			text-align: center;
+			border-bottom: 4px solid var(--brand);
+			box-shadow: 0 4px 16px rgba(25, 29, 34, .06);
+		}
+
+		.logo-wrap {
+			display: inline-block;
+			background: #ffffff;
+			padding: 7px 10px;
+			border: 1px solid #dfe3e7;
+			border-radius: 7px;
+			line-height: 0;
+		}
+
+		.header img {
+			display: block;
+			max-height: 58px;
+			max-width: 200px;
+			object-fit: contain;
+		}
+
+		.company-name {
+			display: inline-block;
+			color: var(--brand);
+			font-size: 22px;
+			font-weight: 800;
+			text-decoration: none;
+		}
+
+		.hero-wrap {
+			max-width: 1100px;
+			margin: 28px auto 0;
+			padding: 0 20px;
+		}
+
+		.hero {
+			background: #ffffff;
+			color: var(--graphite);
+			text-align: left;
+			padding: 34px 30px;
+			border-radius: 10px;
+			border: 1px solid #dfe3e7;
+			border-top: 5px solid var(--brand);
+			box-shadow: 0 5px 16px rgba(25, 29, 34, .055);
+		}
+
+		.hero h1 {
+			font-size: 2rem;
+			font-weight: 800;
+			margin-bottom: 8px;
+			color: var(--graphite);
+		}
+
+		.hero p {
+			color: #6f757d;
+			font-size: 1rem;
+			line-height: 1.6;
+		}
+
+		.container {
+			max-width: 1100px;
+			margin: 0 auto;
+			padding: 30px 20px 40px;
+		}
+
+		.section-heading {
+			display: flex;
+			align-items: center;
+			gap: 11px;
+			margin-bottom: 18px;
+			font-size: 18px;
+			font-weight: 800;
+			color: var(--graphite);
+		}
+
+		.section-heading-icon {
+			width: 32px;
+			height: 32px;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			flex: 0 0 32px;
+			color: #ffffff;
+			background: var(--brand);
+			border: 1px solid var(--brand);
+			border-radius: 7px;
+			font-size: 17px;
+		}
+
+		.section-heading::after {
+			content: "";
+			height: 1px;
+			background: #dfe3e7;
+			flex: 1;
+		}
+
+		.grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+			gap: 24px;
+		}
+
+		.card {
+			background: #ffffff;
+			border-radius: 10px;
+			overflow: hidden;
+			border: 1px solid #dfe3e7;
+			box-shadow: 0 4px 14px rgba(25, 29, 34, .045);
+			text-decoration: none;
+			color: inherit;
+			display: flex;
+			flex-direction: column;
+			transition: transform .2s, box-shadow .2s;
+		}
+
+		.card:hover {
+			transform: translateY(-3px);
+			box-shadow: 0 9px 24px rgba(25, 29, 34, .09);
+		}
+
+		.card:focus-visible {
+			outline: 3px solid var(--brand);
+			outline-offset: 3px;
+		}
+
+		.card-photo,
+		.card-no-photo {
+			width: 100%;
+			height: 205px;
+			background: #eceff1;
+		}
+
+		.card-photo {
+			object-fit: cover;
+			display: block;
+		}
+
+		.card-no-photo {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: var(--brand);
+			font-size: 2rem;
+		}
+
+		.card-body {
+			display: flex;
+			flex: 1;
+			flex-direction: column;
+			padding: 20px;
+			border-top: 4px solid var(--brand);
+		}
+
+		.card-code {
+			font-size: .75rem;
+			color: var(--brand);
+			font-weight: 750;
+			margin-bottom: 8px;
+			text-transform: uppercase;
+			letter-spacing: .2px;
+		}
+
+		.card-title {
+			font-size: 1rem;
+			font-weight: 750;
+			margin-bottom: 10px;
+			line-height: 1.45;
+			color: var(--graphite);
+		}
+
+		.card-price {
+			font-size: 1.25rem;
+			font-weight: 850;
+			color: var(--brand);
+			margin-bottom: 2px;
+		}
+
+		.card-btn {
+			display: inline-block;
+			align-self: flex-start;
+			margin-top: auto;
+			padding: 10px 20px;
+			background: var(--graphite);
+			color: #ffffff;
+			border: 1px solid var(--graphite);
+			border-radius: 6px;
+			font-size: .85rem;
+			font-weight: 800;
+		}
+
+		.card:hover .card-btn {
+			background: var(--brand);
+			border-color: var(--brand);
+			color: #ffffff;
+		}
+
+		.empty-state {
+			background: #ffffff;
+			border: 1px solid #dfe3e7;
+			border-top: 5px solid var(--brand);
+			border-radius: 10px;
+			padding: 26px;
+			color: #6f757d;
+			text-align: center;
+			box-shadow: 0 4px 14px rgba(25, 29, 34, .045);
+		}
+
+		.footer {
+			margin-top: 20px;
+			padding: 28px;
+			background: var(--graphite);
+			border-top: 5px solid var(--brand);
+			color: #c7cbd0;
+			text-align: center;
+			font-size: .85rem;
+		}
+
+		.footer a {
+			color: #ffffff;
+			font-weight: 700;
+			text-decoration: none;
+		}
+
+		@media (max-width: 600px) {
+			.header {
+				padding: 15px 18px 19px;
+			}
+
+			.header img {
+				max-height: 48px;
+				max-width: 170px;
+			}
+
+			.hero-wrap {
+				margin-top: 18px;
+			}
+
+			.hero {
+				padding: 28px 20px;
+			}
+
+			.hero h1 {
+				font-size: 1.45rem;
+			}
+
+			.container {
+				padding-top: 22px;
+			}
+
+			.grid {
+				grid-template-columns: 1fr;
+			}
+		}
+	</style>
+</head>
+
+<body style="
+	--brand: #ff0062;
+	--graphite: #25282d;
+">
+
+	<header class="header">
+		{% if company.website and company.website != '#' %}
+		<a href="{{ company.website }}">
+			{% if company.logo %}
+			<span class="logo-wrap">
+				<img src="{{ company.logo }}" alt="{{ company.name }}">
+			</span>
+			{% else %}
+			<span class="company-name">{{ company.name }}</span>
+			{% endif %}
+		</a>
+		{% else %}
+			{% if company.logo %}
+			<span class="logo-wrap">
+				<img src="{{ company.logo }}" alt="{{ company.name }}">
+			</span>
+			{% else %}
+			<span class="company-name">{{ company.name }}</span>
+			{% endif %}
+		{% endif %}
+	</header>
+
+	<div class="hero-wrap">
+		<section class="hero">
+			<h1>Προτάσεις Ακινήτων</h1>
+
+			{% if contact.full_name %}
+			<p>Επιλεγμένες προτάσεις για εσάς, {{ contact.full_name }}</p>
+			{% else %}
+			<p>{{ listings|length }} επιλεγμένα ακίνητα</p>
+			{% endif %}
+		</section>
+	</div>
+
+	<main class="container">
+		<div class="section-heading">
+			<span class="section-heading-icon">⌂</span>
+			<span>Επιλεγμένα ακίνητα</span>
+		</div>
+
+		{% if listings %}
+		<div class="grid">
+			{% for listing in listings %}
+			<a class="card" href="{{ listing.url }}">
+				{% if listing.photos[0] is defined %}
+				<img class="card-photo" src="{{ listing.photos[0] }}" alt="{{ listing.title }}">
+				{% else %}
+				<div class="card-no-photo" aria-hidden="true">⌂</div>
+				{% endif %}
+
+				<div class="card-body">
+					{% if listing.code %}
+					<div class="card-code">Κωδικός: {{ listing.code }}</div>
+					{% endif %}
+
+					<div class="card-title">{{ listing.title }}</div>
+
+					{% if listing.price %}
+					<div class="card-price">{{ listing.price }}</div>
+					{% endif %}
+
+					<span class="card-btn">Περισσότερα →</span>
+				</div>
+			</a>
+			{% endfor %}
+		</div>
+		{% else %}
+		<div class="empty-state">Δεν υπάρχουν διαθέσιμες προτάσεις ακινήτων αυτή τη στιγμή.</div>
+		{% endif %}
+	</main>
+
+	<footer class="footer">
+		<p>
+			{{ company.name }}
+			{% if company.website and company.website != '#' %}
+			&mdash; <a href="{{ company.website }}">{{ company.website }}</a>
+			{% endif %}
+		</p>
+
+		<p style="margin-top:6px;">{{ system.current_date }}</p>
+	</footer>
+
+</body>
+
+</html>

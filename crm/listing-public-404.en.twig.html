@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+	<title>Property unavailable | {{ company.name }}</title>
+
+	<style>
+		*,
+		*::before,
+		*::after {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+
+		body {
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: #f1f2f3;
+			font-family: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+			color: #2c2f34;
+			padding: 24px;
+		}
+
+		.page-card {
+			position: relative;
+			overflow: hidden;
+			width: 100%;
+			max-width: 520px;
+			background: #ffffff;
+			border-radius: 12px;
+			border: 1px solid #dfe3e7;
+			box-shadow: 0 8px 26px rgba(25, 29, 34, .08);
+			text-align: center;
+			padding: 46px 34px 38px;
+		}
+
+		.page-card::before {
+			content: "";
+			position: absolute;
+			left: 0;
+			right: 0;
+			top: 0;
+			height: 6px;
+			background: var(--brand);
+		}
+
+		.logo {
+			margin-bottom: 32px;
+		}
+
+		.logo-wrap {
+			display: inline-block;
+			background: #ffffff;
+			padding: 7px 10px;
+			border: 1px solid #dfe3e7;
+			border-radius: 7px;
+			line-height: 0;
+		}
+
+		.logo img {
+			display: block;
+			max-height: 54px;
+			max-width: 210px;
+			object-fit: contain;
+		}
+
+		.logo-text {
+			font-size: 21px;
+			font-weight: 800;
+			color: var(--brand);
+		}
+
+		.icon {
+			width: 76px;
+			height: 76px;
+			border-radius: 10px;
+			background: var(--brand);
+			border: 1px solid var(--brand);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin: 0 auto 24px;
+			color: #ffffff;
+			box-shadow: 5px 5px 0 var(--graphite);
+		}
+
+		.icon svg {
+			width: 35px;
+			height: 35px;
+			stroke: currentColor;
+		}
+
+		h1 {
+			font-size: 22px;
+			font-weight: 800;
+			margin-bottom: 14px;
+			color: var(--graphite);
+		}
+
+		.divider {
+			width: 48px;
+			height: 4px;
+			background: var(--brand);
+			border-radius: 2px;
+			margin: 0 auto 24px;
+		}
+
+		p {
+			font-size: 15px;
+			color: #6f757d;
+			line-height: 1.7;
+			margin-bottom: 30px;
+		}
+
+		.btn {
+			display: inline-block;
+			padding: 12px 28px;
+			background: var(--graphite);
+			color: #ffffff;
+			text-decoration: none;
+			border: 1px solid var(--graphite);
+			border-radius: 6px;
+			font-size: 14px;
+			font-weight: 750;
+			letter-spacing: .2px;
+			box-shadow: 0 4px 12px rgba(25, 29, 34, .12);
+		}
+
+		.btn:hover {
+			background: var(--brand);
+			border-color: var(--brand);
+			color: #ffffff;
+		}
+
+		.small-note {
+			margin-top: 22px;
+			font-size: 12px;
+			font-weight: 700;
+			color: #959ba3;
+			line-height: 1.5;
+		}
+
+		@media (max-width: 480px) {
+			.page-card {
+				padding: 38px 24px 32px;
+			}
+
+			h1 {
+				font-size: 20px;
+			}
+
+			p {
+				font-size: 14px;
+			}
+		}
+	</style>
+</head>
+
+<body style="
+	--brand: #ff0062;
+	--graphite: #25282d;
+">
+
+	<main class="page-card">
+		<div class="logo">
+			{% if company.logo %}
+			<span class="logo-wrap">
+				<img src="{{ company.logo }}" alt="{{ company.name }}">
+			</span>
+			{% else %}
+			<span class="logo-text">{{ company.name }}</span>
+			{% endif %}
+		</div>
+
+		<div class="icon">
+			<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" />
+				<path d="M9 21V12h6v9" />
+				<path d="M12 7.8v.01" />
+			</svg>
+		</div>
+
+		<h1>The property is not available</h1>
+		<div class="divider"></div>
+
+		<p>The link you followed is no longer active, or the property is not currently available.<br>Contact us and we will be happy to help you find a similar property.</p>
+
+		{% if company.website and company.website != '#' %}
+		<a href="{{ company.website }}" class="btn">Go to our website</a>
+		{% endif %}
+
+		<div class="small-note">{{ company.name }}</div>
+	</main>
+
+</body>
+
+</html>
