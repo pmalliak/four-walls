@@ -34,7 +34,7 @@
 
 							{% if listing.photos %}
 								<tr><td style="padding:0;">
-									<a href="{{ listing.url }}" style="display:block;"><img src="{{ listing.photos.0 }}" alt="{{ listing.title }}" width="480" style="width:100%; max-width:480px; height:auto; display:block; border:0;"></a>
+									<a href="{{ listing.url }}" style="display:block;"><img src="{{ listing.photos.0 }}" alt="{{ listing.title }}" width="480" style="width:100%; max-width:480px; height:300px; object-fit:cover; display:block; border:0;"></a>
 								</td></tr>
 							{% endif %}
 
