@@ -256,6 +256,33 @@ Field reference (from request 17/18):
   come straight from the lead's structured fields and free-text message. Source
   Spitogatos.gr, assigned to Μάνος, tags claude + spitogatos, contact linked.
 
+### Ματσαρίσματα ζήτησης — το tab «Ακίνητα» (mapped 2026-07-27)
+
+The matchings the CRM shows under a ζήτηση live at `/requests/listings/{id}`
+(«Ακίνητα(N)» tab). **The public API exposes none of this** — `GET /api/requests`
+returns criteria only (130 requests / 115 Ενεργές on 2026-07-27). The tab's data
+comes from the **listings datatable endpoint** and works headlessly with the
+session cookie (same auth family as `/requests/form`):
+
+- **`POST /listings`** (web path, `application/x-www-form-urlencoded`,
+  `X-Requested-With: XMLHttpRequest`). Minimal verified body:
+  `draw=1&start=0&length=50&tableData[show-table]=1&
+  tableData[listing_status]=active&tableData[request_id]={id}&
+  tableData[request_listing_filter]=new`.
+- `request_listing_filter` values (the tab pills' `data-filter`):
+  **`all | new | proposed | rejected`**. An unrecognized value (tried
+  `suggested`) did not error — don't trust unknown values, they behave like
+  no filter.
+- Response is datatable JSON: `recordsTotal`, `data[]` of **HTML cell
+  snippets**. Each row carries **`request_status`** (text «Νέο» /
+  «Προτεινόμενο» / …) — this is the per-request matching status — plus the
+  usual cells (`code` links to `/listings/view/{id}`, `price`, `size`,
+  `location`, `deal_status` badge…). Strip tags to read values.
+- `count_per_status` in the response counts **listing** statuses
+  (active/draft/…), NOT matching statuses.
+- «Σήμανση ως Προτεινόμενα» on the tab calls `proposeWithoutEmail()` — flips
+  Νέο → Προτεινόμενο without emailing the client (not yet driven headlessly).
+
 ## Document templates / Ψηφιακά Έντυπα (internal web endpoints, mapped 2026-07-25)
 
 `/settings/document-templates` lists the templates (1 = Υπόδειξη ακινήτου,
