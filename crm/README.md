@@ -15,7 +15,7 @@ and constraints:
 | [`request-matchings.en.twig.html`](request-matchings.en.twig.html) | Email (EN) | ” — English (UK) slot | ” |
 | [`listing-recommendations.twig.html`](listing-recommendations.twig.html) | Email (GR) | «Προτάσεις Ακινήτων» — προτάσεις ακινήτων σε επαφή | ” |
 | [`listing-recommendations.en.twig.html`](listing-recommendations.en.twig.html) | Email (EN) | ” — English (UK) slot | ” |
-| [`appointment-created.sms.twig`](appointment-created.sms.twig) | SMS (GR) | ραντεβού δημιουργήθηκε | plain text, one line |
+| [`appointment-created.sms.twig`](appointment-created.sms.twig) | SMS (GR) | ραντεβού δημιουργήθηκε | plain text, one line per detail |
 | [`appointment-reminder.sms.twig`](appointment-reminder.sms.twig) | SMS (GR) | υπενθύμιση ραντεβού | ” |
 | [`appointment-created.en.sms.twig`](appointment-created.en.sms.twig) | SMS (EN) | appointment booked | ” |
 | [`appointment-reminder.en.sms.twig`](appointment-reminder.en.sms.twig) | SMS (EN) | appointment reminder | ” |
@@ -121,7 +121,11 @@ and its subject is the plain wording. Revisit after a real English send.
 
 ## SMS templates (2026-07-25)
 
-The `.sms.twig` files mirror the appointment emails as plain-text one-liners.
+The `.sms.twig` files mirror the appointment emails as short plain-text
+messages in «paragraphs» separated by blank lines: heading, details
+(date/time, address, map link — one per line), and — **only on
+appointment-created** — the change/cancel phone. The reminder goes out ~1 hour
+before the appointment, so its change/cancel line was dropped (2026-07-27).
 They live in **Ρυθμίσεις → SMS → Πρότυπα** (editor
 `/settings/sms/view/{slug}/{lang}` — `new_appointment` / `appointment_reminder`,
 lang `1` = Ελληνικά, `2` = English (UK)); endpoint details in
@@ -132,24 +136,44 @@ lang `1` = Ελληνικά, `2` = English (UK)); endpoint details in
   emails ignore them too), `user.*`, `office.*`, `system.*`.
 - **Same dead-simple conditional structure** as the appointment emails
   (`is_full_day` if/else, `address.latitude` guard) and the EN copy dodges the
-  validator's Twig-keyword words (no `with/or/at/date`, no apostrophes) — the
-  four one-liners saved without tripping it, so whether the SMS save runs the
-  same validator is untested.
+  validator's Twig-keyword words (no `with/or/at/date`, no apostrophes) — all
+  four saved without tripping it, so whether the SMS save runs the same
+  validator is untested.
+- **Twig eats exactly one newline right after a block tag** (`{% if %}`,
+  `{% else %}`, `{% endif %}`) — verified live: a line break placed straight
+  after a tag glues the lines together («12:00Φιλικής Εταιρείας»). So after a
+  tag, write **n+1 newlines to get n** — that's why the created templates show
+  *two* blank lines before the closing phone line (the `{% endif %}` swallows
+  one) and why the no-address render still comes out with a single clean blank
+  line. Newlines after text or `{{ … }}` outputs pass through untouched.
 - **No `{# … #}` comments** — they'd inflate the editor char counter and risk
   the WAF; explanations stay here.
-- Each message ends with a **Google Maps στίγμα link**
+- Each message carries a **Google Maps στίγμα link**
   (`https://maps.google.com/?q={{ lat }},{{ lng }}`, inside the
-  `address.latitude` guard) — kept last so the URL stays clean for the phone's
-  link detection. A variable straight after `?q=` passes the validator; only
-  scheme-adjacent variables (`tel:{{ … }}`) fail.
+  `address.latitude` guard) — on its own line so the URL stays clean for the
+  phone's link detection. A variable straight after `?q=` passes the validator;
+  only scheme-adjacent variables (`tel:{{ … }}`) fail.
 - Greek renders as UCS-2 (67 chars/segment concatenated) — with the sample
-  address each message previews at 190–199 chars ≈ 3 segments (the reminder
-  greeting is the short «Υπενθύμιση ραντεβού…» precisely to stay under the
-  201-char / 3-segment boundary; real coordinates carry more decimals than the
-  sample's four).
-- «Αυτόματη αποστολή» (the list's Ρυθμίσεις modal) is **left Ανενεργή** and the
-  SMS provider (`#tab-settings`: provider, api_key, sender ≤11 chars) is
-  unconfigured — nothing sends until both are set.
+  address the created messages preview at 194/197 chars ≈ 3 segments (kept
+  under the 201-char / 3-segment boundary; real coordinates carry more
+  decimals than the sample's four) and the reminders at 149/151 ≈ 3 segments. In practice the provider (easysms.gr, configured 2026-07-27)
+  transliterates Greek to unaccented UPPERCASE GSM-7, which bills 160/153 per
+  segment instead — see the uppercase note below.
+- **Why received SMS arrive ALL-CAPS:** the easysms.gr API's `ucs` parameter
+  defaults to GSM encoding (`ucs=true` = Unicode); lowercase Greek doesn't
+  exist in GSM-7, so the gateway transliterates to unaccented uppercase —
+  the CRM editor/preview shows proper πεζά, the conversion happens at the
+  provider. Evidently EstatePrime doesn't pass `ucs=true`; getting lowercase
+  delivery means asking EstatePrime (tech@estateprime.gr) to expose/enable it,
+  or an easysms account-level default if one exists. Trade-off: uppercase GSM
+  bills 160/153 chars per segment (these messages = 2 segments), Unicode bills
+  70/67 (= 3 segments, +50% cost). Greek-only transliteration shouldn't touch
+  the Latin maps URL — but verify on a received SMS that the link stayed
+  lowercase and clickable before relying on it.
+- «Αυτόματη αποστολή» (the list's Ρυθμίσεις modal) was **left Ανενεργή** by us;
+  the SMS provider became configured on 2026-07-27 (`#tab-settings`: easysms.gr,
+  api_key, sender «FourWalls»), so flipping a template Ενεργή makes it really
+  send.
 
 ## Two visual systems (don't mix them)
 

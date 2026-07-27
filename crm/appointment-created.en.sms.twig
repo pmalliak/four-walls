@@ -1,1 +1,9 @@
-Your Four Walls appointment has been booked: {% if appointment.is_full_day %}{{ appointment.date_starts }}{% else %}{{ appointment.date_starts }}, {{ appointment.time_starts }}{% endif %}{% if appointment.address.latitude %} - {{ appointment.address.address }}{% endif %}. To make changes, call us on {{ user.phone }}
+Your Four Walls appointment has been booked:
+
+{% if appointment.is_full_day %}{{ appointment.date_starts }}{% else %}{{ appointment.date_starts }}, {{ appointment.time_starts }}{% endif %}{% if appointment.address.latitude %}
+
+{{ appointment.address.address }}
+Map: https://maps.google.com/?q={{ appointment.address.latitude }},{{ appointment.address.longitude }}{% endif %}
+
+
+To make changes, call us on {{ user.phone }}

@@ -321,7 +321,7 @@ POSTs with the session cookie, no CSRF, all three actions POST **to the view
 URL itself**, `application/x-www-form-urlencoded`:
 
 - `load_template=true` → `{success, content, variables}` — `content` is the
-  raw Twig one-liner (empty string when unset), `variables` the sample data.
+  raw plain-text Twig (empty string when unset), `variables` the sample data.
 - `preview=true&content=…&variables=<json>` → server-side Twig render,
   `{success, content, chars}` — `chars` is the rendered SMS length.
 - `save=true&content=…` → `{success}` — saves that language slot only.

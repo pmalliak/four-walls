@@ -1,1 +1,9 @@
-Το ραντεβού σας με τη Four Walls καταχωρήθηκε: {% if appointment.is_full_day %}{{ appointment.date_starts }}{% else %}{{ appointment.date_starts }} στις {{ appointment.time_starts }}{% endif %}{% if appointment.address.latitude %} - {{ appointment.address.address }}{% endif %}. Για αλλαγή ή ακύρωση: {{ user.phone }}
+Το ραντεβού σας με τη Four Walls καταχωρήθηκε:
+
+{% if appointment.is_full_day %}{{ appointment.date_starts }}{% else %}{{ appointment.date_starts }} στις {{ appointment.time_starts }}{% endif %}{% if appointment.address.latitude %}
+
+{{ appointment.address.address }}
+Χάρτης: https://maps.google.com/?q={{ appointment.address.latitude }},{{ appointment.address.longitude }}{% endif %}
+
+
+Για αλλαγή ή ακύρωση: {{ user.phone }}
