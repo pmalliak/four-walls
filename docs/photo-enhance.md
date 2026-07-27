@@ -107,6 +107,30 @@ and reviewable. Two options change the property's *true condition* and are
 | `virtual_staging` | Εικονική επίπλωση κενών χώρων | **off** | tells the model to add nothing not physically present |
 | `watermark` | Λογότυπο κάτω δεξιά | **off** | not a prompt fragment at all — see below |
 
+### Two-pass inventory (grounding)
+
+The AI route runs a cheap vision call **before** the edit: `makeApiCall` →
+`/v1beta/models/gemini-3.5-flash:generateContent` with the photo inline,
+using the Worker's `inventory_prompt`. Its one-line answer (room type,
+what is present, what is explicitly absent) is substituted for the
+`__INVENTORY__` token in the edit prompt, so the editor is told what the
+room really holds instead of guessing — the fix for invented bathtubs and
+swapped shower trays. Costs ~€0.001/photo.
+
+Feeding the property's *other* photos as reference images was considered
+and rejected: a fixture seen in a reference tends to bleed into the edit,
+making hallucination likelier, not rarer.
+
+**Two traps** (cost three failed attempts, 2026-07-27):
+- `makeApiCall`'s **body must be a JSON string**. Passing an object gets
+  stringified to `[object Object]` → `400 Invalid JSON payload received`.
+- Read the reply with explicit 1-based indices,
+  `{{18.body.candidates[1].content.parts[1].text}}`. The `[]` flatten form
+  yields a string, so `first(...)` on it throws *"is not a valid array"*,
+  which kills the whole route silently — folders created, nothing in them.
+- The Make MCP's `executions_get-detail` returns only `{status}`; the real
+  error text only shows in the Make UI.
+
 ### Watermark (`watermark`)
 
 Deliberately **not** part of the Gemini prompt: a generative model renders a
