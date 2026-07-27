@@ -62,6 +62,25 @@ overriding whatever the CRM company colour is) and prepends **Manrope** to the
 font stack + a Google-Fonts `<link>` — everything else (structure, gallery JS,
 map) is untouched. Navy `#1C3457` accents come through the existing dark footer.
 
+**Logo:** the stock templates pull `{{ company.logo }}` (a bare cube in CRM
+company settings) and `{{ office.logo }}` (an **Estate Prime** placeholder in
+office settings). We hardcode our real wordmark logo in the brand bars/headers
+— `src="https://four-walls.gr/images/logo/fourwalls_logo.svg"` (the same file
+the site header uses, served from our own domain) — and **drop the office.logo
+`<img>`** so the office card shows just «Four Walls / address / email», no Estate
+Prime badge. The alternative root fix is uploading the proper logo in the CRM
+company/office settings (then revert these to `{{ company.logo }}`); we chose the
+in-template hardcode for immediate, guaranteed control on these pages.
+
+**View tracking (why these pages beat linking to four-walls.gr):** the rendered
+page carries **no** client-side pixel/beacon (checked the live HTML — only a
+`referrerPolicy` on video embeds). Tracking is **server-side**: EstatePrime logs
+the GET to the `/l/…` and `/b/…` URLs, and a real send uses a per-recipient
+tokenised link (the `…/preview` URLs are the untracked preview variant), so the
+CRM can attribute a view to the specific contact. Linking to our own
+`/properties/<code>` would lose that per-client signal — confirm the exact
+behaviour from a real sent recommendation before switching.
+
 Editors differ again (a third variant): **preview** `{preview_public_page|preview_batch_page:1, content, listing_id|batch_id, language_id}`,
 **save** `{save_public_page:1, language_id, field:'content'|'content_404', content}`
 for the public page / `{save_batch_page:1, language_id, content}` for the batch,

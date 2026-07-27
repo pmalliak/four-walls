@@ -405,11 +405,11 @@
 					{% if company.logo %}
 						{% if company.website and company.website != '#' %}
 						<a href="{{ company.website }}" class="top-logo-wrap">
-							<img src="{{ company.logo }}" alt="{{ company.name }}" style="max-height:48px;max-width:180px;object-fit:contain;">
+							<img src="https://four-walls.gr/images/logo/fourwalls_logo.svg" alt="{{ company.name }}" style="max-height:48px;max-width:180px;object-fit:contain;">
 						</a>
 						{% else %}
 						<span class="top-logo-wrap">
-							<img src="{{ company.logo }}" alt="{{ company.name }}" style="max-height:48px;max-width:180px;object-fit:contain;">
+							<img src="https://four-walls.gr/images/logo/fourwalls_logo.svg" alt="{{ company.name }}" style="max-height:48px;max-width:180px;object-fit:contain;">
 						</span>
 						{% endif %}
 					{% else %}
@@ -970,7 +970,7 @@
 				<div class="info-card p-3 mb-4">
 					<div class="d-flex align-items-center gap-3">
 						{% if office.logo %}
-						<img src="{{ office.logo }}" alt="{{ office.name }}" style="height:40px;max-width:80px;object-fit:contain;">
+						
 						{% endif %}
 
 						<div>
