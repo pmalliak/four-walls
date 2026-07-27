@@ -47,6 +47,9 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 .opt .o-d{color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.4;}
 .ghdr{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 2px 2px;}
 .ghdr.warn{color:#c2410c;}
+/* .opt sets display:flex, which outranks the UA's [hidden]{display:none} —
+   without this the disclaimer row shows even while hidden. */
+.opt[hidden]{display:none;}
 .opt.sub{margin-left:26px;border-top:1px dashed #e3e7ee;}
 .opt.sub .o-t{font-size:13.5px;}
 #aiGroup.off{opacity:.4;pointer-events:none;}
