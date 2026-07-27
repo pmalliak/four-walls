@@ -493,12 +493,24 @@ export async function applyWatermark(request, env, url) {
 		// no solid box behind it (see docs/brand.md for how it is generated).
 		const logoRes = await env.ASSETS.fetch(new URL("/images/logo/fourwalls_watermark.png", url.origin));
 		if (!logoRes.ok) throw new Error(`logo asset HTTP ${logoRes.status}`);
-		// ~29% of a 2K frame, held well clear of both edges: a crop that
-		// removes the mark has to eat a big chunk of the photo with it.
+		// Size the mark RELATIVE to the frame, not in fixed pixels: the AI
+		// route hands us a 2K render while the logo-only route carries
+		// whatever the phone shot, and a fixed width would look twice as
+		// big on one as on the other. Inset scales too, so the mark always
+		// sits well clear of both edges — cropping it out costs a big slice
+		// of the photo.
+		let frameW = 2048;
+		try {
+			const info = await env.IMAGES.info(new Blob([bytes]).stream());
+			if (info?.width) frameW = info.width;
+		} catch { /* not a format info() understands — keep the 2K assumption */ }
+		const markW = Math.round(frameW * 0.29);
+		const inset = Math.round(frameW * 0.035);
+
 		const out = await env.IMAGES.input(new Blob([bytes]).stream())
 			.draw(
-				env.IMAGES.input(logoRes.body).transform({ width: 600 }),
-				{ bottom: 70, right: 70, opacity: 0.9 },
+				env.IMAGES.input(logoRes.body).transform({ width: markW }),
+				{ bottom: inset, right: inset, opacity: 0.9 },
 			)
 			.output({ format: "image/png" });
 		return out.response();
