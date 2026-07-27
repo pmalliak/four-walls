@@ -13,6 +13,8 @@ and constraints:
 | [`appointment-reminder.en.twig.html`](appointment-reminder.en.twig.html) | Email (EN) | appointment reminder | ” |
 | [`request-matchings.twig.html`](request-matchings.twig.html) | Email (GR) | νέα διασταύρωση ζήτησης – ακινήτων | ” |
 | [`request-matchings.en.twig.html`](request-matchings.en.twig.html) | Email (EN) | ” — English (UK) slot | ” |
+| [`listing-recommendations.twig.html`](listing-recommendations.twig.html) | Email (GR) | «Προτάσεις Ακινήτων» — προτάσεις ακινήτων σε επαφή | ” |
+| [`listing-recommendations.en.twig.html`](listing-recommendations.en.twig.html) | Email (EN) | ” — English (UK) slot | ” |
 | [`appointment-created.sms.twig`](appointment-created.sms.twig) | SMS (GR) | ραντεβού δημιουργήθηκε | plain text, one line |
 | [`appointment-reminder.sms.twig`](appointment-reminder.sms.twig) | SMS (GR) | υπενθύμιση ραντεβού | ” |
 | [`appointment-created.en.sms.twig`](appointment-created.en.sms.twig) | SMS (EN) | appointment booked | ” |
@@ -21,6 +23,27 @@ and constraints:
 The matchings email ends with a **«σταματήστε τις προτάσεις»** link to
 `/request-closed?r=…&c=…` — the client's opt-out, wired to Make; see
 [../docs/request-closed.md](../docs/request-closed.md).
+
+**Two different template families, two different editors** (learned 2026-07-27):
+
+- **`/settings/email-templates/view/new_request_matchings/{1,2}`** — the ζήτηση
+  διασταύρωση (request-matchings). Data roots: `contact`, `listings[]`,
+  **`request`**, **`user`**, **`office`**, `company`, `system`. Editor POSTs
+  `{preview:true,…}` to save/preview; save is `{save:true, content, subject}`.
+- **`/settings/listings-email-templates/view/{2,3}`** — «Προτάσεις Ακινήτων»
+  (listing-recommendations), sent **from listings** to a contact, **not** from a
+  ζήτηση. Data roots: `contact`, `listings[]`, **`batch`** (`batch.url` = a
+  hosted page with all the listings), `company`, `system` — **NO `request`, NO
+  `user`, NO `office`**, so no agent signature and the phone is hardcoded. Newer
+  editor: preview is `{preview_template:1,…}`, save is
+  `{save_template:1, title, subject, language_id, content}` — different param
+  names, same URL. Photos are read `{{ listing.photos[0] }}` (bracket).
+
+Both families expose `listings` as an **array with `{% for %}`** — a ζήτηση or a
+recommendation batch can carry several listings. The buttons in
+`listing-recommendations` point at EstatePrime-hosted pages (`/l/…` single,
+`/b/…` batch) configured under **Ρυθμίσεις Ακινήτων → Δημόσια Σελίδα Ακινήτου /
+Σελίδα Πολλαπλών Ακινήτων** (still stock, unbranded — see below / TODO).
 
 Data roots: documents get `valuation.*`; emails get `appointment.*`, `contact.*`,
 `user.*`, `office.*`, `company.*`; the matchings email also gets `request.*` and
@@ -65,8 +88,16 @@ lang `1` = Ελληνικά, `2` = English (UK)); endpoint details in
   same validator is untested.
 - **No `{# … #}` comments** — they'd inflate the editor char counter and risk
   the WAF; explanations stay here.
+- Each message ends with a **Google Maps στίγμα link**
+  (`https://maps.google.com/?q={{ lat }},{{ lng }}`, inside the
+  `address.latitude` guard) — kept last so the URL stays clean for the phone's
+  link detection. A variable straight after `?q=` passes the validator; only
+  scheme-adjacent variables (`tel:{{ … }}`) fail.
 - Greek renders as UCS-2 (67 chars/segment concatenated) — with the sample
-  address each message previews at ~145–150 chars ≈ 3 segments.
+  address each message previews at 190–199 chars ≈ 3 segments (the reminder
+  greeting is the short «Υπενθύμιση ραντεβού…» precisely to stay under the
+  201-char / 3-segment boundary; real coordinates carry more decimals than the
+  sample's four).
 - «Αυτόματη αποστολή» (the list's Ρυθμίσεις modal) is **left Ανενεργή** and the
   SMS provider (`#tab-settings`: provider, api_key, sender ≤11 chars) is
   unconfigured — nothing sends until both are set.
