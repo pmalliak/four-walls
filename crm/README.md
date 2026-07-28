@@ -84,16 +84,31 @@ CRM can attribute a view to the specific contact.
 — the client's browser hits `/l/…` / `/b/…` **top-level**, which is what solves
 the Cloudflare bot-challenge (`fourwalls.estateprime.gr` is behind one — a
 server-side/background ping just 403s, so we can't fake the view) and lets the
-CRM log it. Then these hosted templates **immediately bounce to our own site**:
-- public page → `four-walls.gr/properties/{{ listing.code }}` (code matches our
-  `/properties/<code>` routing 1:1, verified).
-- batch page → `four-walls.gr/properties?codes=` + every `listing.code`, and
-  `js/listings.fw.js` scopes the grid to those codes (banner «οι προτάσεις μας
-  για εσάς» + a «δείτε όλα» escape). EN pages → `/en/properties`.
+CRM log it. The **single-listing** page then **immediately bounces to our own
+site**: `four-walls.gr/properties/{{ listing.code }}` (code matches our
+`/properties/<code>` routing 1:1, verified). EN → `/en/properties/<code>`.
 
-The view is logged when EstatePrime **serves** the page (before the redirect
-runs), so it isn't lost. Two gotchas baked into the snippet:
-- the listing code / codes ride in a **`<meta name="fw-redirect">`**, NOT inline
+**The batch page deliberately does NOT redirect (2026-07-28).** If it bounced to
+our own grid, the client's per-listing drill-downs would happen on four-walls.gr
+and never re-hit EstatePrime — so the CRM would only log the batch *open*, not
+*which* properties the client viewed. Instead the batch page stays as the
+(branded) recommendations overview, and each card links to `{{ listing.url }}`
+(`/l/…`) → EstatePrime logs that individual view → the single-listing redirect
+then lands the client on our `/properties/<code>`. Net result: every view (batch
+open + each listing) is tracked, and every actual property page is on our site.
+The overview's «Δείτε όλα τα ακίνητά μας» CTA still links to `/properties` for
+browsing the full catalogue. (Direct per-listing buttons in the *email* likewise
+go through `/l/…`, so those are tracked too — the only untracked path was the
+batch → our-grid drill-down we removed.)
+
+`js/listings.fw.js` still supports a `?codes=` grid filter (scopes `/properties`
+to a set of codes, with a «οι προτάσεις μας για εσάς» banner + «δείτε όλα»
+escape) — currently unused by the redirect flow but kept as a building block for
+a future «see these on our site» link.
+
+The single-page view is logged when EstatePrime **serves** the page (before the
+redirect runs), so it isn't lost. Two gotchas baked into the snippet:
+- the listing code rides in a **`<meta name="fw-redirect">`**, NOT inline
   in the `<script>` — the save-WAF 403s a POST with `{{ }}` **inside** a
   `<script>` (SSTI signature); in a plain attribute it's fine.
 - redirect is skipped in the CRM editor preview: an srcdoc iframe has no
