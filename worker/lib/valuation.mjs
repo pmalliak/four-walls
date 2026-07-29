@@ -79,14 +79,22 @@ export async function handleValuation(request, env, url) {
 
 	// Πέρασμα 1: η εκτίμηση. Πέρασμα 2: αυστηρός έλεγχος της εκτίμησης
 	// (αριθμητική, σύγκριση με συγκριτικά και εύρη περιοχής, υπερβολές).
-	const draft = await askAI(env, PASS1_SYSTEM, dataBlock + "\n\n" + PASS1_ASK);
-	const draftJson = extractJson(draft);
-	const final = await askAI(
-		env,
-		PASS2_SYSTEM,
-		dataBlock + "\n\nΗ ΕΚΤΙΜΗΣΗ ΠΡΟΣ ΕΛΕΓΧΟ (JSON):\n" + JSON.stringify(draftJson) + "\n\n" + PASS2_ASK,
-	);
-	const v = extractJson(final);
+	// Μια αποτυχία εδώ (AI down, κακό JSON) γυρίζει καθαρό 502 ώστε το
+	// Make να τη δει ως σφάλμα και να παρκάρει το bundle στο DLQ.
+	let v;
+	try {
+		const draft = await askAI(env, PASS1_SYSTEM, dataBlock + "\n\n" + PASS1_ASK);
+		const draftJson = extractJson(draft);
+		const final = await askAI(
+			env,
+			PASS2_SYSTEM,
+			dataBlock + "\n\nΗ ΕΚΤΙΜΗΣΗ ΠΡΟΣ ΕΛΕΓΧΟ (JSON):\n" + JSON.stringify(draftJson) + "\n\n" + PASS2_ASK,
+		);
+		v = extractJson(final);
+	} catch (err) {
+		console.error(`valuation: AI failed for ref ${ref}: ${String(err)}`);
+		return json({ error: "valuation_failed", detail: String(err).slice(0, 200) }, 502);
+	}
 
 	const result = renderReport(prop, comps, stats, priceRow, v, payload);
 	await env.LISTINGS_KV.put(VALUATION_RES_PREFIX + ref, JSON.stringify(result), {
@@ -306,9 +314,16 @@ async function askGemini(env, system, user) {
 		throw new Error(`gemini HTTP ${res.status}: ${detail}`);
 	}
 	const body = await res.json();
-	const parts = body.candidates?.[0]?.content?.parts || [];
-	const text = parts.map((p) => p.text || "").join("\n");
-	if (!text) throw new Error(`gemini: empty response (finishReason ${body.candidates?.[0]?.finishReason})`);
+	const cand = body.candidates?.[0];
+	// Η απάντηση μπορεί να έρθει σπασμένη σε πολλά parts (και με κομμάτια
+	// «σκέψης» με p.thought=true). Κρατάμε μόνο το καθαρό κείμενο και το
+	// ενώνουμε ΧΩΡΙΣ διαχωριστικό: ένα "\n" στη μέση ενός string literal
+	// χαλάει το JSON.
+	const text = (cand?.content?.parts || [])
+		.filter((p) => !p.thought && typeof p.text === "string")
+		.map((p) => p.text)
+		.join("");
+	if (!text) throw new Error(`gemini: empty response (finishReason ${cand?.finishReason})`);
 	return text;
 }
 
@@ -346,7 +361,13 @@ function extractJson(s) {
 	const a = s.indexOf("{");
 	const b = s.lastIndexOf("}");
 	if (a === -1 || b <= a) throw new Error("valuation: no JSON in model output");
-	return JSON.parse(s.slice(a, b + 1));
+	try {
+		return JSON.parse(s.slice(a, b + 1));
+	} catch (err) {
+		// Το πρόβλημα φαίνεται μόνο με το πραγματικό κείμενο μπροστά σου.
+		console.error(`valuation: bad JSON (${s.length} chars): ${s.slice(0, 400)}`);
+		throw err;
+	}
 }
 
 /* ------------------------------------------------------------------ */
