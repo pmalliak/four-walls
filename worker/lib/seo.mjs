@@ -87,18 +87,18 @@ export function isProdHost(hostname) {
 	return hostname === "four-walls.gr" || hostname === "www.four-walls.gr";
 }
 
-function fmtNumber(n, lang = "el") {
+export function fmtNumber(n, lang = "el") {
 	return new Intl.NumberFormat(lang === "en" ? "en-GB" : "el-GR").format(n);
 }
 
-function subcategoryLabel(l, lang = "el") {
+export function subcategoryLabel(l, lang = "el") {
 	const map = SUBCATEGORY[lang];
 	return map[l.subcategory] || map[l.category] || l.subcategory || "";
 }
 
 /* Location field in the requested language, Greek fallback per field —
    same rule as loc() in js/listings.fw.js. */
-function locField(l, key, lang) {
+export function locField(l, key, lang) {
 	const loc = l.location || {};
 	return (lang === "en" && loc[key + "_en"]) || loc[key] || null;
 }
@@ -109,7 +109,7 @@ function listingKey(l) {
 	return l.code || l.id;
 }
 
-function canonicalUrl(l, lang = "el") {
+export function canonicalUrl(l, lang = "el") {
 	return SITE.origin + (lang === "en" ? "/en" : "") +
 		"/properties/" + encodeURIComponent(listingKey(l));
 }
@@ -117,7 +117,7 @@ function canonicalUrl(l, lang = "el") {
 /* Byte-identical to the client's document.title (js/listings.fw.js
    initDetail) so the runtime overwrite changes nothing — in BOTH
    languages (client: heading + ", " + loc(l, "area")). */
-function listingTitle(l, lang = "el") {
+export function listingTitle(l, lang = "el") {
 	const sqm = lang === "en" ? " m²" : " τ.μ.";
 	const heading = subcategoryLabel(l, lang) + (l.area != null ? " " + fmtNumber(l.area, lang) + sqm : "");
 	const area = locField(l, "area", lang);

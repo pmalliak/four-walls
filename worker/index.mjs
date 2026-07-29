@@ -40,6 +40,7 @@ import { requireAccess, isLocalDev, json } from "./lib/access.mjs";
 import { contactsIndex, contactDetail, listingsIndex } from "./lib/crm.mjs";
 import { handleFormSubmit } from "./lib/forms.mjs";
 import { handlePhotoApi, servePhotoFile, applyWatermark } from "./lib/photos.mjs";
+import { handleLeadReply } from "./lib/lead-reply.mjs";
 
 const FEED_KEY = "listings.json";
 const DEFAULT_WEBHOOK_PATH = "/listings"; // overridden by WEBHOOK_PATH var
@@ -168,6 +169,12 @@ export default {
 		}
 		if (pathname === "/api/request-closed") {
 			return handleRequestClosed(request, env);
+		}
+		// Builds the «λάβαμε το αίτημά σας» mail for a Spitogatos lead
+		// (availability + similar listings straight from the feed). Make
+		// fetches it and sends it — see docs/spitogatos-leads.md.
+		if (pathname === "/api/lead-reply") {
+			return handleLeadReply(request, env, url);
 		}
 		// Tracked outbound links from our emails/CRM: /go?to=/path&c=<campaign>.
 		// Logs one structured "email_click" line (queryable in the Worker's

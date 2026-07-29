@@ -337,6 +337,36 @@
 		return parts.join(", ");
 	}
 
+	/* How well `x` stands in for `base`, higher is better. Used for the
+	   «Παρόμοια ακίνητα» row on a detail page; the caller has already
+	   fixed transaction + category, so this only ranks what is left.
+
+	   Location dominates on purpose: someone looking at a studio in
+	   Τριανδρία wants another studio in Τριανδρία, not a cheaper one in
+	   Εύοσμο. Price and size then decay linearly to zero at ±100% of the
+	   base value, so a listing at double the price scores nothing there
+	   but can still make the row on location alone.
+
+	   Careful with the field names: `area` on the listing is the SIZE in
+	   τ.μ., while the neighbourhood/district is `location.area`.
+	   The Worker mirrors this function for the lead-reply email
+	   (worker/lib/lead-reply.mjs) — keep the two in step. */
+	function similarityScore(base, x) {
+		var score = 0;
+		var bArea = base.location.area, xArea = x.location.area;
+		if (bArea && xArea && bArea === xArea) score += 100;
+		var bHood = base.location.neighbourhood, xHood = x.location.neighbourhood;
+		if (bHood && xHood && bHood === xHood) score += 40;
+		if (base.subcategory && base.subcategory === x.subcategory) score += 30;
+		if (base.price > 0 && x.price > 0) {
+			score += 40 * Math.max(0, 1 - Math.abs(x.price - base.price) / base.price);
+		}
+		if (base.area > 0 && x.area > 0) {
+			score += 30 * Math.max(0, 1 - Math.abs(x.area - base.area) / base.area);
+		}
+		return score;
+	}
+
 	/* Detail-page URL — path style with the listing's public code, the
 	   «Κωδικός» shown on the listing (/properties/2341241). The Worker
 	   (and tools/preview-server.js locally) rewrites these paths to
@@ -889,12 +919,15 @@
 		var msg = document.getElementById("fw-inquiry-msg");
 		if (msg) msg.placeholder = STR.inquiry(l.code || title);
 
-		/* similar listings: same transaction + category, closest price */
+		/* similar listings: same transaction + category is the hard filter,
+		   then the best three by score (see similarityScore). */
 		var similar = feed.listings.filter(function (x) {
 			return x.id !== l.id && x.transaction === l.transaction && x.category === l.category;
+		}).map(function (x) {
+			return { l: x, s: similarityScore(l, x) };
 		}).sort(function (a, b) {
-			return Math.abs((a.price ?? 0) - (l.price ?? 0)) - Math.abs((b.price ?? 0) - (l.price ?? 0));
-		}).slice(0, 3);
+			return b.s - a.s;
+		}).slice(0, 3).map(function (x) { return x.l; });
 		var simRow = document.getElementById("fw-similar");
 		simRow.textContent = "";
 		if (!similar.length) hide("fw-similar-block");
