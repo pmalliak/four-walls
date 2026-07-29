@@ -27,6 +27,7 @@ deeper, one topic per file:
 | [estateprime-crm-ui.md](estateprime-crm-ui.md) | EstatePrime CRM **UI map** for browser automation: when the API can't do it, the «Νέα ζήτηση» form field map, navigation quirks |
 | [forms-crm.md](forms-crm.md) | Έντυπα CRM pickers: Access setup, key split, contact field map, upstream limits |
 | [forms-submit.md](forms-submit.md) | Έντυπα submit: PWA → Worker → Make router → client email + PDF; the PDF-capture trap |
+| [forms-prosfora.md](forms-prosfora.md) | Προσφορά πελάτη: η μόνη φόρμα χωρίς έντυπο/PDF, CRM pickers μέσω `FWCrm`, email «ΝΕΑ ΠΡΟΣΦΟΡΑ» στο info@ |
 | [forms-katachorisi-crm.md](forms-katachorisi-crm.md) | Καταχώριση ακινήτου: CRM-aligned schema (πεδία/slugs 1:1 με το EstatePrime), το `crm` payload, area ids, ο δρόμος για το auto-create |
 | [request-closed.md](request-closed.md) | «Ολοκλήρωσα την αναζήτηση»: matchings email → `/request-closed` → Worker → Make → email to info@ |
 | [request-matchings.md](request-matchings.md) | Νέα ακίνητα σε ζητήσεις: σάρωση του tab «Ακίνητα» όλων των ενεργών ζητήσεων → digest email στη γραμματεία |

@@ -16,7 +16,13 @@ forms.four-walls.gr ──▶ Cloudflare Access ──▶ Worker (worker/index.m
 
 Code: [worker/lib/crm.mjs](../worker/lib/crm.mjs) (server) +
 [forms/_crm.fw.js](../forms/_crm.fw.js) (picker UI, loaded by
-`ypodeixi.html` and `anathesi.html`).
+`ypodeixi.html`, `anathesi.html`, `apodeixi.html` and `prosfora.html`).
+
+The file attaches itself by finding known `data-k` fields, so a page without
+them gets no buttons. For those, the same two sheets are exposed as a callback
+API: `FWCrm.pickListing(cb)` and `FWCrm.pickContact(cb)`, which hand back the
+raw listing record and the full contact detail respectively. That is how
+[the προσφορά page](forms-prosfora.md) picks without having a form to fill.
 
 ## Design rules
 
