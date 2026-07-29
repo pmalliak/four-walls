@@ -24,8 +24,10 @@ import { renderDocPdf } from "./pdfrender.mjs";
    text. Adding a form means adding it here AND adding a router branch:
    an id with no branch is silently dropped by Make, a branch with no id
    is refused below, and neither failure is visible to the consultant.
-   (katachorisi has no CONFIG; it sets `form` in its payload by hand.) */
-const FORM_IDS = new Set(["anathesi", "ypodeixi", "apodeixi", "katachorisi"]);
+   (katachorisi has no CONFIG; it sets `form` in its payload by hand, and
+   prosfora carries no document at all: no signatures, no PDF, just an
+   internal message to info@ that a client made an offer.) */
+const FORM_IDS = new Set(["anathesi", "ypodeixi", "apodeixi", "katachorisi", "prosfora"]);
 
 /* A signed contract with the logo lands around 200-600 KB of base64. The
    cap is loose enough for a five-property υπόδειξη and still refuses a

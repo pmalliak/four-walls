@@ -452,6 +452,39 @@
 		});
 	}
 
+	/* ----------------------------------------------------------- public */
+
+	/* The same two sheets, minus the auto-attach: a page with no data-k
+	   fields (η προσφορά) opens them and gets the record in a callback.
+	   Keeps one implementation of the search, the «↻» refresh and the
+	   stale-tolerant caching instead of a second copy per page. */
+	window.FWCrm = {
+		pickListing: function (cb) {
+			openSheet({
+				placeholder: "Κωδικός, διεύθυνση ή περιοχή…",
+				load: loadListings,
+				onPick: function (row) {
+					cb(row.raw);
+				},
+			});
+		},
+		pickContact: function (cb) {
+			openSheet({
+				placeholder: "Όνομα, τηλέφωνο ή email…",
+				load: loadContacts,
+				onPick: async function (row) {
+					try {
+						var c = await getJson("/api/crm/contacts/" + row.id);
+						if (c) cb(c);
+					} catch (err) {
+						toast(err.message || "Σφάλμα.");
+					}
+				},
+			});
+		},
+		money: money,
+	};
+
 	/* ------------------------------------------------------------ boot */
 
 	var CSS =
