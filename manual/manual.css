@@ -120,6 +120,7 @@ a { color: #b8004a; }
 .tag.day { background: #e4ecfa; color: #24487f; }        /* μέσα στην ημέρα */
 .tag.info { background: #eaf3ea; color: #2f6b3a; }       /* απλή ενημέρωση */
 .tag.freq { background: #f1f2f5; color: #4b5563; }       /* συχνότητα */
+.tag.fold { background: #e7e2f7; color: #4a3a86; }       /* πάει σε φάκελο, όχι στα εισερχόμενα */
 
 /* «Στο CRM»: τι έχει ήδη δημιουργηθεί μόνο του και τι λείπει.
    auto = μπήκε μόνο του · later = μπαίνει με την πρωινή επεξεργασία
