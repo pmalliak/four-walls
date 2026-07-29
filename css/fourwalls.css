@@ -734,16 +734,19 @@
   max-width: 327px;
   bottom: -14px;
 }
-.fw-empty-cta .fw-cta-alt {
+/* Generic «ή κάντε αυτό» line under a primary CTA — born in the empty
+   grid state, now reused wherever a page offers the ζήτηση/ανάθεση
+   forms as the quieter second option (index banner, service pages). */
+.fw-cta-alt {
   font-size: 16px;
   margin-bottom: 0;
 }
-.fw-empty-cta .fw-cta-alt a {
+.fw-cta-alt a {
   color: #ff0062;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.fw-empty-cta .fw-cta-alt a:hover {
+.fw-cta-alt a:hover {
   color: #1c3457;
 }
 /* Below ~768px the heading wraps to two lines, which collapses the span
@@ -1412,6 +1415,31 @@ body.fw-popup-lock {
   border-color: #ffffff;
   background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
+}
+
+/* Seven menu items since «Ζητάω/Αναθέτω ακίνητο» joined: the theme's
+   18px/18px-margin links wrapped the two-word items onto 2-3 lines.
+   Keep every label on one line and tighten spacing as the viewport
+   narrows instead. Below 992px the menu is the burger — untouched. */
+@media (min-width: 992px) {
+  .theme-main-menu .navbar-nav .nav-item .nav-link {
+    white-space: nowrap;
+  }
+}
+@media (min-width: 992px) and (max-width: 1399.98px) {
+  .theme-main-menu .navbar-nav .nav-item .nav-link {
+    font-size: 16px;
+    margin: 0 11px;
+  }
+}
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .theme-main-menu .navbar-nav .nav-item .nav-link {
+    font-size: 15px;
+    margin: 0 6px;
+  }
+  .theme-main-menu .logo img {
+    height: 34px;
+  }
 }
 
 /* Contact form: one line above the fields steering property-seekers to

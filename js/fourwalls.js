@@ -711,6 +711,15 @@
     return el && el.value ? el.value.trim() : "";
   }
 
+  /* The renting service page links here as /list-property?transaction=rent —
+     preselect the pill so the owner does not land on «Πώληση» by default. */
+  (function prefill() {
+    var tx = new URLSearchParams(window.location.search).get("transaction");
+    if (tx !== "rent" && tx !== "sale") return;
+    var radio = form.querySelector('input[name="transaction"][value="' + tx + '"]');
+    if (radio) radio.checked = true;
+  })();
+
   form.addEventListener("submit", function (e) {
     e.preventDefault();
 
