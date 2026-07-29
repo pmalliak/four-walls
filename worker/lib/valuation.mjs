@@ -23,7 +23,8 @@
    τιμολόγησης, όχι έκθεση για τράπεζα ή δικαστήριο.
 
    Χρειάζεται το secret ANTHROPIC_API_KEY (wrangler secret put).
-   Προαιρετικά VALUATION_MODEL (default claude-sonnet-5).
+   Προαιρετικά VALUATION_MODEL (default claude-opus-5· για φθηνότερο,
+   βάλε claude-sonnet-5 στο [vars] του wrangler.toml).
    ===================================================================== */
 
 import { AREA_PRICES, AREA_PRICES_META, findAreaPrices } from "./area-prices.mjs";
@@ -35,7 +36,7 @@ export const VALUATION_TTL_SECONDS = 2 * 24 * 3600;
 
 const FEED_KEY = "listings.json"; // ίδιο με FEED_KEY στο worker/index.mjs
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-const DEFAULT_MODEL = "claude-sonnet-5";
+const DEFAULT_MODEL = "claude-opus-5";
 
 export async function handleValuation(request, env, url) {
 	if (request.method !== "GET") return json({ error: "method_not_allowed" }, 405);
@@ -285,7 +286,9 @@ async function askClaude(env, system, user) {
 		},
 		body: JSON.stringify({
 			model: env.VALUATION_MODEL || DEFAULT_MODEL,
-			max_tokens: 3000,
+			// Στο Opus 5 το thinking είναι ενεργό από προεπιλογή και μετράει
+			// ΜΕΣΑ στο max_tokens, οπότε το όριο θέλει αέρα πάνω από το JSON.
+			max_tokens: 8000,
 			system,
 			messages: [{ role: "user", content: user }],
 		}),
@@ -295,6 +298,9 @@ async function askClaude(env, system, user) {
 		throw new Error(`anthropic HTTP ${res.status}: ${detail}`);
 	}
 	const body = await res.json();
+	if (body.stop_reason === "refusal") {
+		throw new Error("anthropic refusal (stop_reason)");
+	}
 	return (body.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
 }
 

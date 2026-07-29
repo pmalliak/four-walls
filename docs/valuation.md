@@ -70,9 +70,10 @@ xe.gr στατιστικά) και την εικόνα του γραφείου·
 | | |
 |---|---|
 | `ANTHROPIC_API_KEY` | **Απαραίτητο.** `npx wrangler secret put ANTHROPIC_API_KEY` (και στο `.dev.vars` για local). Χωρίς αυτό το endpoint γυρίζει 503 `not_configured`. |
-| `VALUATION_MODEL` | Προαιρετικό var, default `claude-sonnet-5`. |
+| `VALUATION_MODEL` | Προαιρετικό var, default `claude-opus-5` ($5/$25 ανά 1M tokens). Για φθηνότερο βάλε `claude-sonnet-5` ($3/$15, εισαγωγική $2/$10 έως 31/08/2026). |
 
-Κόστος: δύο κλήσεις Sonnet ανά εκτίμηση, χοντρικά **€0,05-0,10 ανά report**.
+Κόστος: δύο κλήσεις ανά εκτίμηση, ~12k tokens input + ~3k output συνολικά.
+Με Opus 5 χοντρικά **€0,10-0,15 ανά report**, με Sonnet 5 **€0,05-0,08**.
 Τα retries δεν ξαναχρεώνουν (cache ανά ref).
 
 ## Δοκιμή / debugging
