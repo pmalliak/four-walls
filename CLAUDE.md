@@ -20,7 +20,7 @@ front-ends** (no backend, no build step, no `package.json`):
    (see [docs/forms-submit.md](docs/forms-submit.md)).
 
 Live listings: **EstatePrime CRM → Cloudflare Worker → `/data/listings.json`**
-(webhook-triggered + nightly cron; **live CRM data in prod** — the repo's
+(webhook-triggered + 15-minute cron; **live CRM data in prod** — the repo's
 `data/listings.json` is still template sample data). The same Worker hosts the site. See [docs/listings-feed.md](docs/listings-feed.md).
 
 The office automation (leads, έντυπα, φωτογραφίες, ειδοποιήσεις) runs on

@@ -75,8 +75,10 @@ head_sampling_rate = 1
 persist = true
 
 [triggers]
-# Nightly reconciliation rebuild — 03:15 UTC = 05:15/06:15 Θεσσαλονίκη.
-crons = ["15 3 * * *"]
+# Reconciliation rebuild every 15 minutes. EstatePrime does NOT fire the
+# webhook on status-only changes (verified live 2026-07-30), so this cron
+# is what actually removes deactivated listings from the site.
+crons = ["*/15 * * * *"]
 
 [vars]
 # "1" = feed from sample data (dev); "0" = live EstatePrime API.

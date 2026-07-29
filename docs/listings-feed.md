@@ -5,9 +5,9 @@ a JSON feed. One Cloudflare Worker (`worker/index.mjs`) does everything —
 there is **no separate app** for the webhook:
 
 ```
-EstatePrime CRM ──webhook──▶ POST /webhooks/estateprime ─┐
+EstatePrime CRM ──webhook──▶ POST /listings (WEBHOOK_PATH) ─┐
                                                          │ re-fetch ALL listings
-nightly cron (03:15 UTC) ────────────────────────────────┤ from the CRM API
+15-minute reconcile cron ────────────────────────────────┤ from the CRM API
                                                          ▼
                                               Workers KV: listings.json
                                                          ▲
@@ -20,7 +20,10 @@ Design rules:
 - **The webhook payload is ignored on purpose.** It is a "something changed"
   signal; the Worker re-fetches the full listing set from the API (source of
   truth). Regeneration is idempotent, so webhook bursts are harmless.
-- **The nightly cron is the safety net** for missed webhook deliveries.
+- **The 15-minute cron is the main removal path, not just a safety net.**
+  EstatePrime fires no webhook on a status-only change (Ενεργό → Ανενεργό,
+  verified live 2026-07-30), so a deactivated listing leaves the site on the
+  next quarter-hour tick. The cron also covers missed webhook deliveries.
 - **Every active listing is published — no whitelist.** The CRM's Spitogatos
   integration pushes all `status: active` stock to the portal, so the site
   mirrors the portal by publishing the same set. (Until 2026-07-16 a
@@ -121,8 +124,12 @@ Finally register the webhook in EstatePrime (suggested name
 `fourwalls-site-listings-sync`):
 
 ```
-https://<domain-or-workers.dev>/webhooks/estateprime?key=<WEBHOOK_KEY value>
+https://<domain-or-workers.dev>/listings?key=<WEBHOOK_KEY value>
 ```
+
+The path comes from the `WEBHOOK_PATH` var in `wrangler.toml` (currently
+`/listings`); the registered production URL is
+`https://webhooks.four-walls.gr/listings`.
 
 The `?key=` in the URL is the guaranteed auth path. The Worker *also* accepts
 the token via `Authorization` (raw or Bearer), `X-Webhook-Token`, or
@@ -135,7 +142,8 @@ sends one of those with the same secret, that works too.
   *names* it carried (never values) — use this on the first real EstatePrime
   delivery to discover their token mechanism, then tighten `tokenFrom()` in
   `worker/index.mjs` to just that one spot.
-- **Force a rebuild:** `curl -X POST "https://…/webhooks/estateprime?key=…"`.
+- **Force a rebuild:** `curl -X POST "https://…/listings?key=…"` (the
+  production `WEBHOOK_KEY` — the value in `.dev.vars` is a dev placeholder).
 - **Feed status:** `GET /data/listings.json` returns 503 until the first
   generation (webhook, cron, or manual curl above).
 
@@ -152,7 +160,9 @@ sends one of those with the same secret, that works too.
 3. Set `SAMPLE_DATA = "0"` in `wrangler.toml`, push to `main` (that deploys),
    and trigger a rebuild (curl above).
 4. Verify EstatePrime fires events for **create, update AND sell/withdraw** —
-   without a withdraw event, sold listings linger until the nightly cron.
+   verified 2026-07-30: a status-only change (Ενεργό → Ανενεργό) fires **no
+   webhook**, which is why the cron runs every 15 minutes (see
+   [estateprime-api.md](estateprime-api.md#webhook-live-observed-2026-07-09-not-in-the-yaml)).
 
 ## Local development
 

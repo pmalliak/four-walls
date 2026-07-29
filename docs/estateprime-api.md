@@ -129,6 +129,12 @@ publishes all active stock. See [listings-feed.md](listings-feed.md).
   Worker re-fetches everything.
 - No `User-Agent`; sender is a datacenter IP — zone Bot Fight Mode blocks it
   on custom domains, hence the registered URL is the workers.dev one.
+- **A status-only change fires NO webhook** (verified live 2026-07-30:
+  Ενεργό → Ανενεργό and back, the API showed the new `status` within
+  seconds but nothing called the Worker). Deactivated listings therefore
+  leave the site only via the 15-minute reconciliation cron. Which actions
+  DO fire the webhook is still unmapped (one arrived 2026-07-29 23:50 EEST,
+  likely from a field edit).
 
 ## Contacts (used by the Έντυπα pickers, not by the feed)
 
