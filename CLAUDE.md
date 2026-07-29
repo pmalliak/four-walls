@@ -27,7 +27,11 @@ The office automation (leads, έντυπα, φωτογραφίες, ειδοπο
 **Make**. Every scenario is mirrored in [make/](make/) as its blueprint JSON:
 read [make/INDEX.md](make/INDEX.md) to see what each one does, and change a
 scenario with `make-pull` → edit JSON → `make-push` instead of rebuilding
-modules by hand in the UI. See [docs/make-scenarios.md](docs/make-scenarios.md).
+modules by hand in the UI. **Every Make change ends with `node
+tools/make-pull.mjs` and a commit**, whoever made it and however (script, MCP,
+or by hand in the UI): a stale snapshot means the next push silently
+overwrites work that never reached git. See
+[docs/make-scenarios.md](docs/make-scenarios.md).
 
 ## Deploy
 

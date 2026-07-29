@@ -43,6 +43,24 @@ node tools/make-push.mjs 6604242      # dry run: τυπώνει ποια modules
 node tools/make-push.mjs 6604242 --yes
 ```
 
+## Ο κανόνας
+
+> **Καμία αλλαγή στο Make δεν τελειώνει χωρίς `node tools/make-pull.mjs` και
+> commit.** Ισχύει ό,τι κι αν την έκανε: το `make-push.mjs`, το MCP του Make,
+> ή το χέρι μέσα στο UI.
+
+Αν το snapshot μείνει πίσω, δύο πράγματα χαλάνε αθόρυβα:
+
+- το επόμενο push γράφει πάνω στην αλλαγή που δεν πρόλαβε να μπει στο git και
+  τη σβήνει (το PATCH αντικαθιστά ΟΛΟ το blueprint, δεν κάνει merge),
+- το `INDEX.md` λέει ψέματα για το τι τρέχει.
+
+Γρήγορος έλεγχος πριν κλείσεις μια δουλειά που άγγιξε το Make:
+
+```bash
+node tools/make-pull.mjs --check      # exit 1 αν το live διαφέρει από το repo
+```
+
 Η κανονική ροή για μια αλλαγή:
 
 1. `node tools/make-pull.mjs` (ξεκίνα πάντα από το live, μπορεί κάποιος να
