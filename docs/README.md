@@ -25,11 +25,13 @@ deeper, one topic per file:
 | [seo.md](seo.md) | SEO: FW:HEAD blocks, per-listing Worker injection, JSON-LD, sitemap/robots, go-live checklist |
 | [estateprime-api.md](estateprime-api.md) | EstatePrime CRM API: auth, listings endpoint, enums, webhook behaviour, contact/communication/request creation |
 | [estateprime-crm-ui.md](estateprime-crm-ui.md) | EstatePrime CRM **UI map** for browser automation: when the API can't do it, the «Νέα ζήτηση» form field map, navigation quirks |
+| [make-scenarios.md](make-scenarios.md) | Τα σενάρια του Make στο git: `make/` blueprints, `make-pull` / `make-push`, το `MAKE_API_TOKEN`, οι παγίδες του blueprint |
 | [spitogatos-leads.md](spitogatos-leads.md) | Spitogatos leads → CRM μέσω Make: ποιο scenario πιάνει τι, οι δύο παραλλαγές του email «Πελάτης για ακίνητό σου», το parsing ονόματος/τηλεφώνου, τα tags |
 | [forms-crm.md](forms-crm.md) | Έντυπα CRM pickers: Access setup, key split, contact field map, upstream limits |
 | [forms-submit.md](forms-submit.md) | Έντυπα submit: PWA → Worker → Make router → client email + PDF; the PDF-capture trap |
 | [forms-prosfora.md](forms-prosfora.md) | Προσφορά πελάτη: η μόνη φόρμα χωρίς έντυπο/PDF, CRM pickers μέσω `FWCrm`, email «ΝΕΑ ΠΡΟΣΦΟΡΑ» στο info@ |
 | [forms-katachorisi-crm.md](forms-katachorisi-crm.md) | Καταχώριση ακινήτου: CRM-aligned schema (πεδία/slugs 1:1 με το EstatePrime), το `crm` payload, area ids, ο δρόμος για το auto-create |
+| [site-request-form.md](site-request-form.md) | Ζήτηση ακινήτου από το site (`/request`): φόρμα → Worker → Make → email «ΝΕΑ ΖΗΤΗΣΗ», οι περιοχές από ελεύθερο κείμενο, γιατί δεν γράφεται μόνη της στο CRM |
 | [request-closed.md](request-closed.md) | «Ολοκλήρωσα την αναζήτηση»: matchings email → `/request-closed` → Worker → Make → email to info@ |
 | [request-matchings.md](request-matchings.md) | Νέα ακίνητα σε ζητήσεις: σάρωση του tab «Ακίνητα» όλων των ενεργών ζητήσεων → digest email στη γραμματεία |
 | [photo-enhance.md](photo-enhance.md) | AI photo enhancement: enhance.html → Worker/R2 → Make (Gemini "Nano Banana") → Google Drive + email; the edit toggles and Make build recipe |

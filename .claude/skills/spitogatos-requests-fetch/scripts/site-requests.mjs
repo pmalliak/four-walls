@@ -240,12 +240,22 @@ const rows = await loadLocations();
 
 const worklist = [];
 const skipped = [];
+const seen = new Set();
 for (const e of emails) {
-	const leadId = `site-${e.emailId}`;
-	if (doneSet.has(leadId)) { skipped.push({ id: leadId, why: "already processed" }); continue; }
-
 	const l = parseEmail(e.emailId, e.date);
-	if (!l.name || (!l.phone && !l.email)) { skipped.push({ id: leadId, why: "email δεν διαβάστηκε (όνομα/επικοινωνία λείπουν)" }); continue; }
+	if (!l.name || (!l.phone && !l.email)) {
+		skipped.push({ id: `site-${e.emailId}`, why: "email δεν διαβάστηκε (όνομα/επικοινωνία λείπουν)" });
+		continue;
+	}
+
+	/* The office mails itself, so Spark lists every ζήτηση twice (Sent and
+	   Inbox copies, different ids). Keying on the email id would file the
+	   same ζήτηση twice — key on what the lead actually is instead, which
+	   also keeps leadIds stable if the mailbox is ever re-indexed. */
+	const leadId = `site-${e.date.replace(/[^\d]/g, "")}-${String(l.phone || l.email).replace(/[^0-9a-zA-Z]/g, "").slice(-10)}`;
+	if (seen.has(leadId)) continue;
+	seen.add(leadId);
+	if (doneSet.has(leadId)) { skipped.push({ id: leadId, why: "already processed" }); continue; }
 
 	const warnings = [];
 	const areas = resolveAreas(rows, l.areas, warnings);
