@@ -75,6 +75,15 @@ apex (`worker/lib/seo.mjs`). Μην βάλεις εκεί κωδικούς ή σ
 > σκέτο `{{1.data.entoleas_email}}` / `{{1.data.katavallon_email}}`.
 > Κενό email σημαίνει αποτυχία στο DLQ, όχι αντίγραφο στη γραμματεία.
 
+## Τοπική προεπισκόπηση
+
+Ο `tools/preview-server.js` σερβίρει τη ρίζα του repo, οπότε οι σελίδες
+ζουν στο `localhost:5173/manual/` και τα **root-absolute links δείχνουν
+λάθος** (`/emails` πάει στο site, όχι στο εγχειρίδιο). Είναι αναμενόμενο:
+τα links γράφονται για το `docs.four-walls.gr`, όπου το `/manual` prefix
+δεν υπάρχει. Για πιστό έλεγχο διαδρομών χρειάζεται `wrangler dev` με
+hostname `docs.*`· για έλεγχο εμφάνισης αρκεί ο preview server.
+
 ## Συντήρηση
 
 - Οι σελίδες είναι **αυτοτελείς**: δεν περνούν από `sync-partials.js`,
