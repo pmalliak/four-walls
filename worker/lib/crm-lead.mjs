@@ -45,10 +45,11 @@ function api(env) {
 		"Content-Type": "application/json",
 		"Accept": "application/json",
 		/* Worker fetches carry no User-Agent by default, and EstatePrime's
-		   edge answers UA-less POSTs with 403 «Access denied» while the
-		   same request from a browser or node sails through (seen live
-		   2026-07-29; the feed's GETs pass either way). */
-		"User-Agent": "four-walls.gr worker (site lead forms)",
+		   edge answers such POSTs with 403 «Access denied» while the same
+		   request from a browser or node sails through (seen live
+		   2026-07-29; the feed's GETs pass either way). A custom UA string
+		   was still refused — only a browser-shaped one passes. */
+		"User-Agent": "Mozilla/5.0 (compatible; FourWallsSite/1.0; +https://four-walls.gr)",
 	};
 	return {
 		get: async (path) => {
