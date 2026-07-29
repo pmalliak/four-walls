@@ -134,10 +134,12 @@ a { color: #b8004a; }
 .crm.auto b  { color: #1c7a37; }
 .crm.later { background: #fff2e2; border: 1px solid #f2ce9a; color: #7d4f18; }
 .crm.later b { color: #a05a06; }
-.crm.none  { background: #fdeeee; border: 1px solid #f0bcbc; color: #8c2f2f; }
-.crm.none b  { color: #b02525; }
-.crm.na    { background: #f2f4f7; border: 1px solid var(--line); color: #5a6472; }
-.crm.na b    { color: #46536b; }
+/* Το «τίποτα» δεν είναι κίνδυνος, είναι πληροφορία: μένει ουδέτερο ώστε
+   το κόκκινο να σημαίνει αποκλειστικά «κανόνας» (.warn). */
+.crm.none  { background: #eef1f6; border: 1px solid #ccd6e4; color: #46536b; }
+.crm.none b  { color: #33415c; }
+.crm.na    { background: #f4f5f7; border: 1px solid var(--line); color: #6b7280; }
+.crm.na b    { color: #5a6472; }
 
 /* Σύνοψη σε δύο λίστες: θέλει ενέργεια / δεν κάνεις τίποτα */
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
