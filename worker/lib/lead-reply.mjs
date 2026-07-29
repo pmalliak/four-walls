@@ -11,7 +11,7 @@
    properties) also comes from the live feed, so nobody maintains a
    second copy of the listing data.
 
-   GET /api/lead-reply?code=2400001&lang=el&name=Ιωάννα
+   GET /api/lead-reply?code=2400001&lang=el
      -> { found, available, subject, html, text, listing, similar }
    Add &format=html to eyeball the mail in a browser.
 
@@ -22,10 +22,12 @@
    ακίνητα» row.
 
    PUBLIC BUT INERT: it only echoes data that is already public on the
-   site, sends nothing itself, and refuses to carry attacker text —
-   `name` is filtered down to letters/spaces (see safeName) so the URL
-   cannot be turned into a four-walls.gr-hosted message. Make calls it
-   server-side and does the actual sending.
+   site, sends nothing itself, and carries NO free text at all — the
+   query string is a listing code and a language, so the URL cannot be
+   turned into a four-walls.gr-hosted message. (The visitor's name used
+   to greet them, but Greek needs the vocative and the portal only gives
+   us the nominative: «Καλησπέρα Κώστας» reads wrong, so the mail opens
+   with «Καλησπέρα σας».) Make calls it server-side and sends the result.
    ===================================================================== */
 
 import { SITE } from "./pages-meta.mjs";
@@ -41,7 +43,7 @@ const STR = {
 		subjectNoCode: "Το αίτημά σας για ακίνητο",
 		preheaderAvail: "Λάβαμε το αίτημά σας. Το ακίνητο είναι διαθέσιμο.",
 		preheaderGone: "Λάβαμε το αίτημά σας. Το ακίνητο δεν είναι πλέον διαθέσιμο.",
-		hi: (n) => (n ? `Καλησπέρα ${n},` : "Καλησπέρα σας,"),
+		hi: "Καλησπέρα σας,",
 		thanks: "σας ευχαριστούμε για το ενδιαφέρον σας. Λάβαμε το αίτημά σας για το παρακάτω ακίνητο.",
 		/* No card follows when the listing is gone, so «παρακάτω» would
 		   point at nothing. */
@@ -62,8 +64,11 @@ const STR = {
 		similarTitle: "Παρόμοια ακίνητα",
 		nearbyTitle: "Άλλα ακίνητα που ίσως σας ενδιαφέρουν",
 		ctaAll: "ΔΕΙΤΕ ΟΛΑ ΤΑ ΑΚΙΝΗΤΑ ΜΑΣ",
-		askTitle: "Δεν είναι αυτό που ψάχνετε;",
-		askBody: "Πείτε μας τι ακίνητο θέλετε, περιοχή, τιμή και χαρακτηριστικά, και ψάχνουμε εμείς για εσάς. Μόλις βρούμε κάτι που ταιριάζει, θα το μάθετε πρώτοι.",
+		/* The reader has just asked to VISIT a property, so «δεν είναι αυτό
+		   που ψάχνετε;» would answer a question nobody asked. The invitation
+		   is to tell us the whole brief, so we can keep looking. */
+		askTitle: "Να ψάχνουμε κι εμείς για εσάς;",
+		askBody: "Πείτε μας τι ακριβώς ψάχνετε, περιοχή, τιμή και χαρακτηριστικά, ώστε να ξέρουμε τι σας ταιριάζει. Θα σας ενημερώνουμε μόλις βρίσκουμε ακίνητα που ταιριάζουν.",
 		askCta: "ΠΕΙΤΕ ΜΑΣ ΤΙ ΨΑΧΝΕΤΕ",
 		call: (t) => `Αν βιάζεστε, καλέστε μας στο <strong style="color:#FF1462;">${t}</strong> ή απαντήστε σε αυτό το email.`,
 		regards: "Με εκτίμηση,",
@@ -78,7 +83,7 @@ const STR = {
 		subjectNoCode: "Your property enquiry",
 		preheaderAvail: "We received your enquiry. The property is available.",
 		preheaderGone: "We received your enquiry. That property is no longer available.",
-		hi: (n) => (n ? `Hello ${n},` : "Hello,"),
+		hi: "Hello,",
 		thanks: "thank you for your interest. We have received your enquiry about the property below.",
 		thanksNoCard: (c) => (c
 			? `thank you for your interest. We have received your enquiry about property #${c}.`
@@ -93,9 +98,9 @@ const STR = {
 		similarTitle: "Similar properties",
 		nearbyTitle: "Other properties you may like",
 		ctaAll: "SEE ALL OUR PROPERTIES",
-		askTitle: "Not quite what you are after?",
-		askBody: "Tell us what you are looking for, area, price and features, and we will do the searching. The moment something matches, you hear it from us first.",
-		askCta: "TELL US WHAT YOU WANT",
+		askTitle: "Shall we keep an eye out for you?",
+		askBody: "Tell us exactly what you are after, area, price and features, so we know what suits you. We will let you know as soon as something matches.",
+		askCta: "TELL US WHAT YOU ARE LOOKING FOR",
 		call: (t) => `If you are in a hurry, call us on <strong style="color:#FF1462;">${t}</strong> or just reply to this email.`,
 		regards: "Kind regards,",
 		team: "The Four Walls Real Estate team",
@@ -110,18 +115,6 @@ const PHONE_HREF = "+306907483463";
 
 const esc = (s) => String(s ?? "")
 	.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-
-/* The visitor's first name is the only free text in the mail, and the
-   URL that carries it is public. Letters, spaces, apostrophes and
-   hyphens only (Greek + Latin, accents included), and only the FIRST
-   word is used — enough for «Καλησπέρα Ιωάννα», useless as a vehicle
-   for a link or a sentence. */
-function safeName(raw) {
-	const n = String(raw ?? "").trim().slice(0, 60);
-	if (!/^[\p{L}][\p{L} '’.\-]*$/u.test(n)) return "";
-	const first = n.split(/\s+/)[0];
-	return first.length > 24 ? "" : first;
-}
 
 /* Tracked link, so the office can see in Observability which of these
    mails actually pulled someone back to the site (same /go route the
@@ -222,7 +215,7 @@ function statusLine({ S, code, available, similar }) {
 	return similar.length ? S.gone : S.goneEmpty;
 }
 
-function buildHtml({ lang, name, listing, similar, available, strictMatch, code }) {
+function buildHtml({ lang, listing, similar, available, strictMatch, code }) {
 	const S = STR[lang];
 	const preheader = !code ? S.preheaderUnknown : (available ? S.preheaderAvail : S.preheaderGone);
 	const allUrl = track(lang === "en" ? "/en/properties" : "/properties", "lead_reply_all");
@@ -246,7 +239,7 @@ function buildHtml({ lang, name, listing, similar, available, strictMatch, code 
 				<tr><td style="height:3px; background:#FF1462;"></td></tr>
 
 				<tr><td style="padding:18px 20px 4px 20px; font-size:14px; line-height:1.7; color:#16233A;">
-					<p style="margin:0 0 10px 0;">${esc(S.hi(name))}</p>
+					<p style="margin:0 0 10px 0;">${esc(S.hi)}</p>
 					<p style="margin:0 0 12px 0;">${esc(listing ? S.thanks : S.thanksNoCard(code))}</p>
 				</td></tr>
 
@@ -309,9 +302,9 @@ function buildHtml({ lang, name, listing, similar, available, strictMatch, code 
 /* Plain-text alternative — some clients show it, and it is what lands in
    the CRM communication comment when the office wants to see what the
    client was told. */
-function buildText({ lang, name, listing, similar, available, strictMatch, code }) {
+function buildText({ lang, listing, similar, available, strictMatch, code }) {
 	const S = STR[lang];
-	const lines = [S.hi(name), "", listing ? S.thanks : S.thanksNoCard(code), ""];
+	const lines = [S.hi, "", listing ? S.thanks : S.thanksNoCard(code), ""];
 	if (listing) {
 		lines.push(`${listingTitle(listing, lang)} — ${priceLabel(listing, lang)}`.trim());
 		if (listing.code) lines.push(`${S.code}: ${listing.code}`);
@@ -338,7 +331,6 @@ export async function handleLeadReply(request, env, url) {
 	}
 	const lang = url.searchParams.get("lang") === "en" ? "en" : "el";
 	const code = String(url.searchParams.get("code") || "").trim().slice(0, 24);
-	const name = safeName(url.searchParams.get("name"));
 	const wantsHtml = url.searchParams.get("format") === "html";
 
 	let feed = null;
@@ -361,9 +353,12 @@ export async function handleLeadReply(request, env, url) {
 	let similar = [];
 	let strictMatch = false;
 	if (listing) {
+		/* Strict only. If nothing is genuinely close we show nothing: the
+		   reader already found a property they like, so padding the mail
+		   with near-misses adds noise, and the ζήτηση invitation below is
+		   the better ask (Panos, 2026-07-29). */
 		similar = pickSimilar(listings, listing, 3, true);
 		strictMatch = similar.length > 0;
-		if (!similar.length) similar = pickSimilar(listings, listing, 3, false);
 	} else {
 		const t = url.searchParams.get("transaction");
 		const c = url.searchParams.get("category");
@@ -376,7 +371,7 @@ export async function handleLeadReply(request, env, url) {
 	const subject = code
 		? (available ? S.subjectAvail(code) : S.subjectGone(code))
 		: S.subjectNoCode;
-	const ctx = { lang, name, listing, similar, available, strictMatch, code };
+	const ctx = { lang, listing, similar, available, strictMatch, code };
 	const html = buildHtml(ctx);
 
 	if (wantsHtml) {
