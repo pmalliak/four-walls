@@ -64,7 +64,17 @@ const spark = (args) => {
 /* ---- 1. find the «ΝΕΑ ΖΗΤΗΣΗ» emails -------------------------------------
    Spark's subject: filter matches Latin only (SKILL.md, 2026-07-29), so we
    scope by sender and grep the listing ourselves. The mail is sent by the
-   office to itself, so from == to == info@four-walls.gr.                    */
+   office to itself, so from == to == info@four-walls.gr.
+
+   `--in <account>` covers EVERY folder of that account, Sent included, which
+   is why the same ζήτηση can come back twice (see the leadId comment below).
+   Narrowing to `:Inbox` would kill the duplicates but is the fragile choice:
+   the Zoho filter that files Spitogatos mail into `Inbox/Spitogatos` already
+   proved that mail moves out of the Inbox without anyone telling us, and a
+   skill that then silently sees nothing is worse than one that sees a lead
+   twice and keeps it once. Note the copies are not even consistent — of the
+   two test ζητήσεις on 2026-07-29, one had an Inbox+Sent pair and the other
+   only an Inbox copy.                                                       */
 const emails = [];
 for (let page = 1; page <= 20; page++) {
 	const out = spark(["search", "--filter", `from:info@four-walls.gr after:${after}`,
