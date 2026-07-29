@@ -63,6 +63,23 @@ available_from, monthly_maintenance, orientation, youtube_url,
 virtual_tour_url, …` and arrays `features` / `view` / `flooring` /
 `positioning` (slug strings, e.g. `has_security_door`).
 
+- **Amenity vocabulary.** There is no lookup endpoint for these slugs
+  (`/listings/custom-fields` returns `[]`), so the only way to enumerate them
+  is to sweep the listings. Across all 130 listings on 2026-07-29 the account
+  used **57** distinct slugs: 43 `features`, 4 `view` (`city, mountain,
+  openspace, sea`), 5 `positioning` (`is_corner, is_front_facing, is_interior,
+  is_three_sided, is_through`), 5 `flooring` (`ceramic_tile, marble, mosaic,
+  tile, wood` — note `tile` and `ceramic_tile` are separate options). The
+  Greek/English labels for all 57 live in the `FEATURES` map in
+  `js/listings.fw.js`, which **drops anything it cannot translate** rather
+  than printing the raw slug. Re-run the sweep if the office adds a checkbox:
+
+  ```bash
+  curl -s -H "Authorization: Basic <base64 key:secret>" \
+    -H "Content-Type: application/json" \
+    "https://<subdomain>.estateprime.gr/api/listings?page=1"   # …2, 3
+  ```
+
 - **`translations`**: `[{ language_id, title, description }]` —
   `language_id` **1 = Greek, 2 = English**.
 - **`location`**: nested `area_level1..3` objects (`{id, name_el, name_en,

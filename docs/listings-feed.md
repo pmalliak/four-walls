@@ -86,6 +86,17 @@ must fall back to the Greek field — the English site does this per field.
 Prices are raw numbers — € formatting with `.` thousands separators happens at
 render time (see [localization.md](localization.md)).
 
+`features` / `view` / `positioning` / `flooring` pass through as **raw CRM
+slugs** (`has_balcony`, `is_through`, `ceramic_tile`, …). The front-end turns
+them into the «Παροχές & χαρακτηριστικά» list through the `FEATURES` map in
+`js/listings.fw.js`, which carries all 57 slugs the account uses in both
+languages. **A slug missing from that map is not rendered** — the earlier
+fallback (strip the `has_`/`is_` prefix, underscores to spaces) leaked raw
+English onto Greek pages («air condition», «through», «luxurious»). If an
+amenity stops showing up, add it to both maps; see
+[estateprime-api.md](estateprime-api.md#real-listing-fields-captured-from-the-live-api-2026-07-09)
+for the sweep that enumerates the vocabulary.
+
 ## Deploy & setup (one-time)
 
 ```bash

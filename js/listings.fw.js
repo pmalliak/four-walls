@@ -85,6 +85,14 @@
 		}
 	})[LANG];
 
+	/* Every slug the CRM's «Επιπλέον χαρακτηριστικά» checkboxes can produce,
+	   swept off the live API across all 130 listings (2026-07-29): 43
+	   `features` + 4 `view` + 5 `positioning` + 5 `flooring`. Anything not
+	   listed here is DROPPED rather than shown, because the old fallback
+	   (de-prefix the slug, underscores to spaces) put raw English on a Greek
+	   page — «air condition», «through», «luxurious» sat next to «Τζάκι». If
+	   a listing loses an amenity it should have, the slug is new: add it to
+	   BOTH maps rather than resurrecting the fallback. */
 	var FEATURES = ({
 		el: {
 			has_security_door: "Πόρτα ασφαλείας", has_storage_room: "Αποθήκη",
@@ -94,10 +102,31 @@
 			pets_allowed: "Δεκτά κατοικίδια", is_penthouse: "Ρετιρέ",
 			has_awnings: "Τέντες", is_painted: "Βαμμένο", has_fiber: "Οπτική ίνα",
 			has_night_electricity: "Νυχτερινό ρεύμα", has_private_pool: "Ιδιωτική πισίνα",
+			has_air_condition: "Κλιματισμός", has_balcony: "Βεράντα",
+			has_electrical_appliances: "Ηλεκτρικές συσκευές", has_radiators: "Σώματα καλοριφέρ",
+			has_underfloor_heating: "Ενδοδαπέδια θέρμανση", has_solar_heater: "Ηλιακός θερμοσίφωνας",
+			has_thermal_insulation: "Θερμομόνωση",
+			has_external_thermal_insulation: "Εξωτερική θερμομόνωση",
+			has_false_ceiling: "Ψευδοροφή", has_structured_wiring: "Δομημένη καλωδίωση",
+			has_fire_detectors: "Πυρανίχνευση", has_bbq: "Ψησταριά",
+			has_power_now: "Ηλεκτροδοτείται",
+			is_bright: "Φωτεινό", is_luxurious: "Πολυτελές", is_equipped: "Εξοπλισμένο",
+			is_investment: "Επενδυτικό", is_vacation_home: "Εξοχική κατοικία",
+			is_whole_floor: "Ολόκληρος όροφος", is_buildable: "Οικοδομήσιμο",
+			is_legally_conforming: "Νομιμοποιημένο",
+			suitable_for_students: "Κατάλληλο για φοιτητές",
+			suitable_for_families: "Κατάλληλο για οικογένειες",
+			/* what the rent covers */
+			includes_free_electricity: "Ρεύμα στο ενοίκιο",
+			includes_free_water: "Νερό στο ενοίκιο",
+			includes_free_internet: "Internet στο ενοίκιο",
+			includes_free_shared_expenses: "Κοινόχρηστα στο ενοίκιο",
 			/* view */ mountain: "Θέα βουνό", openspace: "Ανοιχτωσιά", sea: "Θέα θάλασσα",
+			city: "Θέα πόλη",
 			/* positioning */ is_front_facing: "Προσόψεως", is_corner: "Γωνιακό",
-			is_interior: "Εσωτερικό",
-			/* flooring */ marble: "Δάπεδο: μάρμαρο", ceramic_tile: "Δάπεδο: πλακάκι",
+			is_interior: "Εσωτερικό", is_through: "Διαμπερές", is_three_sided: "Τριφατσάτο",
+			/* flooring */ marble: "Δάπεδο: μάρμαρο", tile: "Δάπεδο: πλακάκι",
+			ceramic_tile: "Δάπεδο: κεραμικό πλακάκι",
 			wood: "Δάπεδο: ξύλο", mosaic: "Δάπεδο: μωσαϊκό"
 		},
 		en: {
@@ -108,10 +137,31 @@
 			pets_allowed: "Pets allowed", is_penthouse: "Penthouse",
 			has_awnings: "Awnings", is_painted: "Freshly painted", has_fiber: "Fibre broadband",
 			has_night_electricity: "Off-peak electricity", has_private_pool: "Private pool",
+			has_air_condition: "Air conditioning", has_balcony: "Balcony",
+			has_electrical_appliances: "White goods included", has_radiators: "Radiators",
+			has_underfloor_heating: "Underfloor heating", has_solar_heater: "Solar water heater",
+			has_thermal_insulation: "Thermal insulation",
+			has_external_thermal_insulation: "External thermal insulation",
+			has_false_ceiling: "Suspended ceiling", has_structured_wiring: "Structured wiring",
+			has_fire_detectors: "Smoke detectors", has_bbq: "Barbecue",
+			has_power_now: "Electricity connected",
+			is_bright: "Bright", is_luxurious: "Luxury", is_equipped: "Fully equipped",
+			is_investment: "Investment opportunity", is_vacation_home: "Holiday home",
+			is_whole_floor: "Whole floor", is_buildable: "Buildable",
+			is_legally_conforming: "Planning-compliant",
+			suitable_for_students: "Suitable for students",
+			suitable_for_families: "Suitable for families",
+			/* what the rent covers */
+			includes_free_electricity: "Electricity included",
+			includes_free_water: "Water included",
+			includes_free_internet: "Internet included",
+			includes_free_shared_expenses: "Shared expenses included",
 			/* view */ mountain: "Mountain view", openspace: "Unobstructed view", sea: "Sea view",
+			city: "City view",
 			/* positioning */ is_front_facing: "Front-facing", is_corner: "Corner property",
-			is_interior: "Interior-facing",
-			/* flooring */ marble: "Flooring: marble", ceramic_tile: "Flooring: tiles",
+			is_interior: "Interior-facing", is_through: "Dual aspect", is_three_sided: "Three-sided",
+			/* flooring */ marble: "Flooring: marble", tile: "Flooring: tiles",
+			ceramic_tile: "Flooring: ceramic tiles",
 			wood: "Flooring: wood", mosaic: "Flooring: mosaic"
 		}
 	})[LANG];
@@ -862,14 +912,17 @@
 				det.appendChild(li);
 			});
 
-		/* amenities (features + view + positioning + flooring) */
-		var slugs = [].concat(l.features || [], l.view || [], l.positioning || [], l.flooring || []);
+		/* amenities (features + view + positioning + flooring) — untranslated
+		   slugs are skipped, see the FEATURES map. */
+		var labels = [].concat(l.features || [], l.view || [], l.positioning || [], l.flooring || [])
+			.map(function (slug) { return FEATURES[slug]; })
+			.filter(Boolean);
 		var am = document.getElementById("fw-amenities");
 		am.textContent = "";
-		slugs.forEach(function (slug) {
-			am.appendChild(el("li", null, FEATURES[slug] || slug.replace(/^(has|is)_/, "").replace(/_/g, " ")));
+		labels.forEach(function (label) {
+			am.appendChild(el("li", null, label));
 		});
-		if (!slugs.length) hide("fw-amenities-block");
+		if (!labels.length) hide("fw-amenities-block");
 
 		/* nearby ("Κοντινά σημεία" / "What's nearby") — parsed by the Worker
 		   from the description into [{label, value}]; prefer the page
