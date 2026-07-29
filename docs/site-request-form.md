@@ -27,42 +27,54 @@
 ## Η διαδρομή
 
 ```
-φόρμα ──POST /api/property-*──► Worker ─┬─► CRM: επαφή + επικοινωνία (crm-lead.mjs)
-                                        └─► MAKE_CONTACT_WEBHOOK ──► Make router (form=zitisi|anathesi)
-                                                                        └─► email στο γραφείο
+φόρμα ──POST /api/property-*──► Worker ──MAKE_CONTACT_WEBHOOK──► Make router (form=zitisi|anathesi)
+        (Turnstile, sanitise,                                      ├─► CRM: dedupe → επαφή → επικοινωνία
+         summary + έτοιμα πεδία CRM)                               └─► email στο γραφείο (με «Επαφή #id»)
 ```
 
 - **Client**: [js/fourwalls.js](../js/fourwalls.js), μπλοκ «Property request»
   και «Property assignment». Ελέγχουν μόνο όνομα + ένα κανάλι επικοινωνίας·
   τα σοβαρά τα ξαναελέγχει ο Worker.
 - **Worker**: Turnstile, sanitise σε **slugs του CRM**, σύνθεση `summary`
-  (οι γραμμές που θα έγραφε ο άνθρωπος), και το CRM write **πριν** από το
-  webhook, ώστε το email να γράφει «Επαφή #id». Το CRM write είναι
-  best-effort: αν αποτύχει (429, hiccup), το email βγαίνει με κόκκινη
-  ένδειξη «ΔΕΝ καταχωρήθηκε» και η υποβολή του επισκέπτη ΔΕΝ χαλάει.
+  (οι γραμμές που θα έγραφε ο άνθρωπος) και τα **έτοιμα υλικά της
+  εγγραφής** για το Make: `searchKey`, `phoneDigits`, `phoneJson`/`emailJson`
+  (έτοιμα row-objects), `summaryLine`/`crmFirst`/`crmLast` (μία γραμμή,
+  χωρίς εισαγωγικά, γιατί το Make χτίζει raw JSON).
 - **Make**: σενάριο «Site - Φόρμα επικοινωνίας» (6530594), router σε
-  `form`: `zitisi` → email ζήτησης, `anathesi` → email ανάθεσης, αλλιώς το
-  παλιό email επικοινωνίας.
+  `form`. Οι κλάδοι zitisi/anathesi τρέχουν την ίδια αλυσίδα CRM με τα
+  Spitogatos scenarios και μετά στέλνουν το email· ο τρίτος κλάδος είναι
+  η παλιά φόρμα επικοινωνίας.
 
-## Τι γράφεται στο CRM (worker/lib/crm-lead.mjs)
+## Γιατί το CRM write το κάνει το Make και όχι ο Worker
 
-Το public API του EstatePrime ΜΠΟΡΕΙ να γράψει επαφές και επικοινωνίες
-(αυτά χρησιμοποιεί ήδη το Make), και ο Worker έχει τα secrets για το feed.
-Οπότε:
+Δοκιμάστηκε πρώτα στον Worker (πιο κοντά στη φόρμα, κώδικας στο git) και
+**απέτυχε**: το EstatePrime απαντά **403 «Access denied» σε κάθε POST που
+ξεκινά από Cloudflare Worker** (2026-07-30), με ή χωρίς User-Agent,
+οποιονδήποτε User-Agent. Τα **GET** από τον ίδιο Worker περνούν (feed,
+pickers), και το ίδιο POST από node ή από το Make δουλεύει, άρα το edge
+τους κόβει συγκεκριμένα τα Worker-originated writes με κριτήριο που δεν
+ελέγχουμε. Λεπτομέρειες: [estateprime-api.md](estateprime-api.md).
 
-1. **Dedupe** με `?search=` σε τηλέφωνο (εθνικά ψηφία) και μετά email.
+## Τι γράφεται στο CRM (κλάδοι του Make)
+
+1. **Dedupe** με `?search=` στο `searchKey` (τα 10 τελευταία ψηφία του
+   τηλεφώνου, αλλιώς το email).
 2. **Επαφή** αν δεν υπάρχει: `is_lead`, `is_active`, Μάνος (`users:[2]`,
    `created_by:2`), `source_id: 7` («Άλλο κανάλι» — δεν υπάρχει πηγή
    «Website», δες εκκρεμότητες), σημειώσεις = σύνοψη + σελίδα.
 3. **Εισερχόμενη επικοινωνία** πάντα (και σε reused επαφή): channel 2,
    Μάνος, ημερομηνία Αθήνας, σχόλια = σύνοψη.
 
+Το email δείχνει το αποτέλεσμα στη γραμμή «Επαφή CRM»: «Επαφή #id (νέα)»,
+«(υπήρχε ήδη)», ή κόκκινο «ΔΕΝ καταχωρήθηκε» αν η αλυσίδα σκόνταψε (τα
+CRM modules έχουν error-handlers ώστε το email να βγαίνει ΠΑΝΤΑ).
+
 Η **ζήτηση** (record) μένει χειροκίνητη: το public `POST /api/requests`
 είναι σπασμένο (200 χωρίς εγγραφή) και το εσωτερικό `/requests/form` θέλει
 session cookie, δηλαδή browser. Την καταχωρεί η γραμματεία από το email
 (κουμπί «Καταχώριση ζήτησης») ή το skill `spitogatos-requests-fetch`
-βήμα **7β** (π.χ. Σαββατοκύριακο). Το 7β πλέον **δεν γράφει επικοινωνία**
-(τη γράφει ο Worker στην υποβολή) — μόνο τη ζήτηση.
+βήμα **7β** (π.χ. Σαββατοκύριακο). Το 7β **δεν γράφει επικοινωνία**
+(γράφτηκε ήδη στη ροή της φόρμας) — μόνο τη ζήτηση.
 
 ## Tags στο CRM
 

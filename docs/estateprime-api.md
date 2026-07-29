@@ -185,6 +185,15 @@ Traps that cost real debugging time, all verified 2026-07-17:
 - **No update endpoint in the public API**: only `GET`, `POST` (create) and
   `DELETE`. Edits go through the CRM's own page endpoint, see below.
 - **The API rate-limits (`429`)**, threshold undocumented.
+- **POSTs from a Cloudflare Worker get `403 {"error_message":"Access
+  denied."}`** (2026-07-30) — every write attempt from the four-walls
+  Worker was refused regardless of User-Agent (none, custom, and
+  browser-shaped all tried), while **GETs from the same Worker pass**
+  (the feed and the Έντυπα pickers run on them daily) and the identical
+  POST from node or Make succeeds. Whatever their edge keys on
+  (`cf-worker` subrequest header / Workers egress), it is not something
+  the Worker controls: **route CRM writes through Make** (the site lead
+  forms do) or any non-Worker runtime.
 
 ### Editing a contact: `POST /contacts/view/{id}` (internal, mapped 2026-07-29)
 
