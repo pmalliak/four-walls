@@ -30,6 +30,7 @@ deeper, one topic per file:
 | [forms-crm.md](forms-crm.md) | Έντυπα CRM pickers: Access setup, key split, contact field map, upstream limits |
 | [forms-submit.md](forms-submit.md) | Έντυπα submit: PWA → Worker → Make router → client email + PDF; the PDF-capture trap |
 | [forms-prosfora.md](forms-prosfora.md) | Προσφορά πελάτη: η μόνη φόρμα χωρίς έντυπο/PDF, CRM pickers μέσω `FWCrm`, email «ΝΕΑ ΠΡΟΣΦΟΡΑ» στο info@ |
+| [valuation.md](valuation.md) | Εκτίμηση αξίας ακινήτου (ΔΟΚΙΜΑΣΤΙΚΟ): φόρμα → Worker (Claude ×2, συγκριτικά, τιμές περιοχών) → report στο info@· το `ANTHROPIC_API_KEY` |
 | [forms-katachorisi-crm.md](forms-katachorisi-crm.md) | Καταχώριση ακινήτου: CRM-aligned schema (πεδία/slugs 1:1 με το EstatePrime), το `crm` payload, area ids, ο δρόμος για το auto-create |
 | [site-request-form.md](site-request-form.md) | Ζήτηση + ανάθεση από το site (`/request`, `/list-property`): φόρμες → Worker (αυτόματη επαφή+επικοινωνία στο CRM) → Make → email στη γραμματεία, tags, εκκρεμείς αποφάσεις |
 | [request-closed.md](request-closed.md) | «Ολοκλήρωσα την αναζήτηση»: matchings email → `/request-closed` → Worker → Make → email to info@ |

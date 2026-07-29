@@ -18,6 +18,7 @@
 
 import { json } from "./access.mjs";
 import { renderDocPdf } from "./pdfrender.mjs";
+import { VALUATION_REQ_PREFIX, VALUATION_TTL_SECONDS } from "./valuation.mjs";
 
 /* The Make scenario routes on this exact string, so it is a contract
    between each form's CONFIG.id and the scenario's filters — not free
@@ -27,7 +28,7 @@ import { renderDocPdf } from "./pdfrender.mjs";
    (katachorisi has no CONFIG; it sets `form` in its payload by hand, and
    prosfora carries no document at all: no signatures, no PDF, just an
    internal message to info@ that a client made an offer.) */
-const FORM_IDS = new Set(["anathesi", "ypodeixi", "apodeixi", "katachorisi", "prosfora"]);
+const FORM_IDS = new Set(["anathesi", "ypodeixi", "apodeixi", "katachorisi", "prosfora", "ektimisi"]);
 
 /* A signed contract with the logo lands around 200-600 KB of base64. The
    cap is loose enough for a five-property υπόδειξη and still refuses a
@@ -89,6 +90,18 @@ export async function handleFormSubmit(request, env, email) {
 		} catch (err) {
 			console.warn(`forms: server PDF render failed, keeping client PDF: ${String(err)}`);
 		}
+	}
+
+	// Εκτίμηση: το AI δεν τρέχει εδώ (θα κρατούσε το tablet δεκάδες
+	// δευτερόλεπτα και τα retries του outbox θα το ξαναχρέωναν). Το
+	// payload παρκάρει στο KV με τυχαίο ref και το Make καλεί μετά το
+	// /api/valuation?ref=… με την ησυχία του (worker/lib/valuation.mjs).
+	if (form === "ektimisi") {
+		const ref = crypto.randomUUID();
+		payload.valuation_ref = ref;
+		await env.LISTINGS_KV.put(VALUATION_REQ_PREFIX + ref, JSON.stringify(payload), {
+			expirationTtl: VALUATION_TTL_SECONDS,
+		});
 	}
 
 	const fwd = await fetch(env.MAKE_FORMS_WEBHOOK, {

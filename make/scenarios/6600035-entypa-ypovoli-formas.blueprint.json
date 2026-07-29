@@ -1784,6 +1784,365 @@
 							}
 						}
 					]
+				},
+				{
+					"flow": [
+						{
+							"id": 20,
+							"filter": {
+								"name": "εκτίμηση",
+								"conditions": [
+									[
+										{
+											"a": "{{1.form}}",
+											"b": "ektimisi",
+											"o": "text:equal"
+										},
+										{
+											"a": "{{1.valuation_ref}}",
+											"o": "exist"
+										}
+									]
+								]
+							},
+							"mapper": {
+								"qs": [],
+								"url": "https://four-walls.gr/api/valuation?ref={{encodeURL(1.valuation_ref)}}",
+								"gzip": true,
+								"method": "get",
+								"headers": [],
+								"timeout": "300",
+								"useMtls": false,
+								"authPass": "",
+								"authUser": "",
+								"bodyType": "raw",
+								"serializeUrl": false,
+								"shareCookies": false,
+								"parseResponse": true,
+								"followRedirect": true,
+								"useQuerystring": false,
+								"followAllRedirects": false,
+								"rejectUnauthorized": true
+							},
+							"module": "http:ActionSendData",
+							"version": 3,
+							"metadata": {
+								"restore": {
+									"expect": {
+										"qs": {
+											"mode": "chose"
+										},
+										"method": {
+											"mode": "chose",
+											"label": "GET"
+										},
+										"headers": {
+											"mode": "chose"
+										},
+										"bodyType": {
+											"label": "Raw"
+										}
+									}
+								},
+								"designer": {
+									"x": 0,
+									"y": 960,
+									"name": "Site: φτιάξε το report εκτίμησης"
+								},
+								"parameters": [
+									{
+										"name": "handleErrors",
+										"type": "boolean",
+										"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"handleErrors": true
+							}
+						},
+						{
+							"id": 21,
+							"filter": {
+								"name": "Μόνο αν γύρισε report",
+								"conditions": [
+									[
+										{
+											"a": "{{20.data.html}}",
+											"o": "exist"
+										}
+									]
+								]
+							},
+							"mapper": {
+								"cc": [
+									"panos@four-walls.gr",
+									"manos@four-walls.gr"
+								],
+								"to": [
+									"info@four-walls.gr"
+								],
+								"bcc": [],
+								"from": "info@four-walls.gr",
+								"html": "{{20.data.html}}",
+								"sender": "",
+								"headers": [],
+								"replyTo": "",
+								"subject": "{{20.data.subject}}",
+								"priority": "normal",
+								"inReplyTo": "",
+								"references": [],
+								"attachments": [],
+								"contentType": "html"
+							},
+							"module": "email:ActionSendEmail",
+							"version": 7,
+							"metadata": {
+								"expect": [
+									{
+										"name": "to",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email address",
+											"required": true
+										},
+										"type": "array",
+										"label": "To",
+										"required": true
+									},
+									{
+										"name": "subject",
+										"type": "text",
+										"label": "Subject"
+									},
+									{
+										"name": "contentType",
+										"type": "select",
+										"label": "Content Type",
+										"required": true,
+										"validate": {
+											"enum": [
+												"html",
+												"text"
+											]
+										}
+									},
+									{
+										"name": "attachments",
+										"spec": [
+											{
+												"name": "fileName",
+												"type": "filename",
+												"label": "File name",
+												"required": true,
+												"semantic": "file:name"
+											},
+											{
+												"name": "data",
+												"type": "buffer",
+												"label": "Data",
+												"required": true,
+												"semantic": "file:data"
+											},
+											{
+												"name": "cid",
+												"type": "text",
+												"label": "Content-ID"
+											}
+										],
+										"type": "array",
+										"label": "Attachments"
+									},
+									{
+										"name": "cc",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email address"
+										},
+										"type": "array",
+										"label": "Copy recipient"
+									},
+									{
+										"name": "bcc",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email address"
+										},
+										"type": "array",
+										"label": "Blind copy recipient"
+									},
+									{
+										"name": "from",
+										"type": "text",
+										"label": "From"
+									},
+									{
+										"name": "sender",
+										"type": "text",
+										"label": "Sender"
+									},
+									{
+										"name": "replyTo",
+										"type": "text",
+										"label": "Reply-To"
+									},
+									{
+										"name": "inReplyTo",
+										"type": "text",
+										"label": "In-Reply-To"
+									},
+									{
+										"name": "references",
+										"spec": {
+											"name": "value",
+											"type": "text",
+											"label": "Reference",
+											"required": true
+										},
+										"type": "array",
+										"label": "References"
+									},
+									{
+										"name": "priority",
+										"type": "select",
+										"label": "Priority",
+										"validate": {
+											"enum": [
+												"high",
+												"normal",
+												"low"
+											]
+										}
+									},
+									{
+										"name": "headers",
+										"spec": [
+											{
+												"name": "key",
+												"type": "text",
+												"label": "Key",
+												"required": true
+											},
+											{
+												"name": "value",
+												"type": "text",
+												"label": "Value",
+												"required": true
+											}
+										],
+										"type": "array",
+										"label": "Headers"
+									},
+									{
+										"name": "html",
+										"type": "text",
+										"label": "Content"
+									}
+								],
+								"restore": {
+									"expect": {
+										"cc": {
+											"mode": "chose",
+											"items": [
+												null,
+												null
+											]
+										},
+										"to": {
+											"mode": "chose",
+											"items": [
+												null
+											]
+										},
+										"bcc": {
+											"mode": "chose"
+										},
+										"priority": {
+											"label": "Normal"
+										},
+										"references": {
+											"mode": "chose"
+										},
+										"attachments": {
+											"mode": "chose"
+										},
+										"contentType": {
+											"label": "HTML"
+										}
+									},
+									"parameters": {
+										"folder": {
+											"label": "Sent"
+										},
+										"account": {
+											"data": {
+												"scoped": "true",
+												"connection": "smtp"
+											},
+											"label": "Zoho SMTP (SMTP info@four-walls.gr)"
+										},
+										"accountImap": {
+											"data": {
+												"scoped": "true",
+												"connection": "imap"
+											},
+											"label": "Zoho IMAP (IMAP info@four-walls.gr)"
+										},
+										"saveAfterSent": {
+											"label": "Yes"
+										}
+									}
+								},
+								"designer": {
+									"x": 300,
+									"y": 960,
+									"name": "Εκτίμηση · γραφείο"
+								},
+								"parameters": [
+									{
+										"name": "account",
+										"type": "account:smtp,google-restricted,microsoft-smtp-imap",
+										"label": "Connection",
+										"required": true
+									},
+									{
+										"name": "saveAfterSent",
+										"type": "select",
+										"label": "Save message after sending",
+										"required": true,
+										"validate": {
+											"enum": [
+												true,
+												false
+											]
+										}
+									},
+									{
+										"name": "accountImap",
+										"type": "account:imap,google-restricted,microsoft-smtp-imap",
+										"label": "Connection",
+										"required": true
+									},
+									{
+										"name": "folder",
+										"type": "select",
+										"label": "Folder",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"folder": "Sent",
+								"account": 8845630,
+								"accountImap": 8845636,
+								"saveAfterSent": true
+							}
+						}
+					]
 				}
 			],
 			"version": 1,

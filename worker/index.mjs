@@ -43,6 +43,7 @@ import { handlePhotoApi, servePhotoFile, applyWatermark } from "./lib/photos.mjs
 import { handleLeadReply } from "./lib/lead-reply.mjs";
 import { handlePropertyRequest } from "./lib/property-request.mjs";
 import { handlePropertyAssignment } from "./lib/property-assignment.mjs";
+import { handleValuation } from "./lib/valuation.mjs";
 
 const FEED_KEY = "listings.json";
 const DEFAULT_WEBHOOK_PATH = "/listings"; // overridden by WEBHOOK_PATH var
@@ -177,6 +178,13 @@ export default {
 		// fetches it and sends it — see docs/spitogatos-leads.md.
 		if (pathname === "/api/lead-reply") {
 			return handleLeadReply(request, env, url);
+		}
+		// Εκτίμηση αξίας ακινήτου: το Make τραβάει το έτοιμο report για
+		// ένα ektimisi submit (το ref μπήκε στο payload από forms.mjs).
+		// Δύο κλήσεις Claude ανά ref, με cache ώστε retries να μην
+		// ξαναχρεώνουν. Βλ. docs/valuation.md.
+		if (pathname === "/api/valuation") {
+			return handleValuation(request, env, url);
 		}
 		// Our own ζήτηση form (/request): criteria + contact details ->
 		// Make -> email to the office. See docs/site-request-form.md.

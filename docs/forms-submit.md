@@ -28,7 +28,7 @@ string is a contract between each form's `CONFIG.id` and the scenario's filters.
 
 ```jsonc
 {
-  "form": "anathesi",              // anathesi | ypodeixi | apodeixi | katachorisi | prosfora
+  "form": "anathesi",              // anathesi | ypodeixi | apodeixi | katachorisi | prosfora | ektimisi
   "title": "Εντολή Ανάθεσης",
   "submitted_at": "…",             // the tablet's clock — can be wrong
   "data":       { /* every data-k field */ },
@@ -50,12 +50,15 @@ the Make templates read (`transaction_type`, `subtype`, `address`, `tk`,
 `region`, `area`), and `data.send_to_client` stays **boolean** because the
 client-email filter compares against the text `"true"`.
 
-`prosfora` is the one entry with **no document at all**: no signatures, no
-`pdf_base64`, no `doc_html`. It is an internal note that a client made an
-offer on a listing, so its `data` is just the picked listing, the picked
-contact, the amount and the notes (see
-[forms-prosfora.md](forms-prosfora.md)). Everything else in the pipeline is
-shared: same POST, same Access stamp, same outbox.
+`prosfora` and `ektimisi` are the two entries with **no document at all**: no
+signatures, no `pdf_base64`, no `doc_html`. The προσφορά is an internal note
+that a client made an offer on a listing (see
+[forms-prosfora.md](forms-prosfora.md)); the εκτίμηση (ΔΟΚΙΜΑΣΤΙΚΟ) is a
+property-details payload that the Worker parks in KV under a random
+`valuation_ref` before forwarding, so Make can later fetch the finished AI
+report from `/api/valuation?ref=…` (see [valuation.md](valuation.md)).
+Everything else in the pipeline is shared: same POST, same Access stamp, same
+outbox.
 
 **Adding a form** means adding its id to `FORM_IDS` in
 [../worker/lib/forms.mjs](../worker/lib/forms.mjs) **and** a router branch in
@@ -120,6 +123,7 @@ jsPDF fails to load, but the email module's attachment mapping requires
 | katachorisi (always) | `info@` — internal «ΓΙΑ ΚΑΤΑΧΩΡΙΣΗ» reminder to enter listing+contact | cc `panos@` + `manos@` |
 | katachorisi (ΝΑΙ on the form) | `owner_email` — client-facing confirmation | bcc `panos@` + `manos@` |
 | prosfora | `info@` — internal «ΝΕΑ ΠΡΟΣΦΟΡΑ» notice to record the offer | cc `panos@` + `manos@` |
+| ektimisi | `info@` — the AI valuation report (subject «ΕΚΤΙΜΗΣΗ · …»), fetched from `/api/valuation` | cc `panos@` + `manos@` |
 
 The προσφορά never mails the client: an offer is the office's information,
 and the interested party already knows what they offered.
