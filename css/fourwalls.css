@@ -1075,7 +1075,38 @@ body.fw-popup-lock {
 @media (min-width: 992px) {
   #fw-overview li {
     flex: 1 1 0;
+    padding-left: 22px;
+    padding-right: 22px;
   }
+  /* The theme parks the slanted divider at `left:-25%`, i.e. a quarter of the
+     way INSIDE the previous segment — fine for its short demo labels, but
+     «3 υπνοδωμάτια» centred in the segment runs straight through it. Move it
+     onto the seam between the two segments, where a divider belongs. */
+  #fw-overview li:before {
+    left: 0;
+  }
+}
+/* Each stat reads as one block: glyph on top, label under it, both centred
+   in the segment. Left-aligned text inside equal-width segments left the
+   labels drifting away from the slanted dividers that are supposed to
+   separate them. */
+#fw-overview li {
+  text-align: center;
+}
+#fw-overview li .icon {
+  display: block;
+  width: 30px;
+  height: 30px;
+  margin: 0 auto 14px;
+}
+
+/* Listing-card stat row (τ.μ. · υπν. · μπάνια) ----------------------- *
+ * The card glyphs come from the same 24px brand set as the overview strip;
+ * scale them down to sit on the 16px label line. */
+.listing-card-one .feature .icon {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
 }
 
 /* =====================================================================

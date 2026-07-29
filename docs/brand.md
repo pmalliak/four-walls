@@ -95,6 +95,38 @@ Every site page carries the same three `<link>` lines in `<head>` (SVG first,
 PNG fallback, apple-touch-icon). The Έντυπα PWA (`forms/`) has its own separate
 icon set (`forms/icon-*.png`, navy background) — don't mix the two.
 
+## Listing stat icons (`images/icon/*.fw.svg`)
+
+The stat glyphs on the listing cards and on the «Με μια ματιά» strip of a
+property page are our own set, drawn to one spec so they read as a family:
+**24 viewBox, `stroke="#1C3457"`, `stroke-width` 1.5, round caps/joins, no
+fill** (same recipe as `icon_mail/phone/clock.fw.svg`). `js/listings.fw.js`
+builds the `<img>` src as `images/icon/<name>.fw.svg`.
+
+| Name | Stands for |
+|------|------------|
+| `area` | Εμβαδόν (τ.μ.) |
+| `bed` | Υπνοδωμάτια |
+| `bath` | Μπάνια |
+| `stairs` | Όροφος |
+| `home` | Type: any residential category |
+| `building` | Type: office/store/warehouse/… (commercial) |
+| `land` | Type: plot/parcel/island/air |
+| `parking` | Type: parking space |
+
+The type glyph is picked by `TYPE_ICON` / `typeIcon()` in `js/listings.fw.js`;
+a category missing from that map falls back to `home`.
+
+The Homy template's own equivalents (`template/images/icon/icon_04-06`,
+`icon_47-51`) were **never copied into `images/`** — the pages referenced them
+for months and silently rendered broken images, which is why the strip looked
+like bare text with a gap above it. Anything under `template/` is reference
+only; if a page needs a template icon, copy it in and rename it `*.fw.svg`.
+
+Keep them legible at **30 px** (the size the overview strip renders at): thin
+dashes and small inner detail disappear at that scale — check a screenshot
+before committing a new glyph, not just the 90 px preview.
+
 ## Working with the brand PDF (vector extraction)
 
 **Inkscape** (installed at `C:\Program Files\Inkscape\bin\inkscape.com`, v1.4.4)

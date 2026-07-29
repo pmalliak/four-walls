@@ -282,10 +282,26 @@
 	   before these dynamic nodes exist. */
 	function icon(name, className) {
 		var img = document.createElement("img");
-		img.src = "images/icon/" + name + ".svg";
+		img.src = "images/icon/" + name + ".fw.svg";
 		img.alt = "";
 		img.className = className || "icon";
 		return img;
+	}
+
+	/* Which glyph stands for the listing's type in the overview strip.
+	   Four buckets is the whole set — every EstatePrime category maps to a
+	   home, a commercial building, bare land or a parking space. */
+	var TYPE_ICON = {
+		office: "building", store: "building", warehouse: "building",
+		hotel: "building", commercial_building: "building", hall: "building",
+		industrial_space: "building", craft_space: "building",
+		other_commercial: "building", business: "building",
+		plot: "land", parcel: "land", island: "land", air: "land",
+		parking: "parking"
+	};
+
+	function typeIcon(l) {
+		return TYPE_ICON[l.subcategory] || TYPE_ICON[l.category] || "home";
 	}
 
 	function fmtNumber(n) {
@@ -439,9 +455,9 @@
 			img.alt = cardTitle + (shortAddress(l) ? ", " + shortAddress(l) : "") + STR.photoOf(i + 1);
 		});
 		var feats = col.querySelector(".feature");
-		[[l.area != null, "icon_04", fmtNumber(l.area) + STR.sqm],
-		 [l.bedrooms != null && l.bedrooms > 0, "icon_05", l.bedrooms + STR.bdShort],
-		 [l.bathrooms != null && l.bathrooms > 0, "icon_06", STR.baths(l.bathrooms)]]
+		[[l.area != null, "area", fmtNumber(l.area) + STR.sqm],
+		 [l.bedrooms != null && l.bedrooms > 0, "bed", l.bedrooms + STR.bdShort],
+		 [l.bathrooms != null && l.bathrooms > 0, "bath", STR.baths(l.bathrooms)]]
 			.forEach(function (row) {
 				if (!row[0]) return;
 				var li = el("li", "d-flex align-items-center");
@@ -803,11 +819,11 @@
 		/* overview strip */
 		var ov = document.getElementById("fw-overview");
 		ov.textContent = "";
-		[[l.area != null, "icon_47", fmtNumber(l.area) + STR.sqm],
-		 [l.bedrooms != null && l.bedrooms > 0, "icon_48", STR.beds(l.bedrooms)],
-		 [l.bathrooms != null && l.bathrooms > 0, "icon_49", STR.baths(l.bathrooms)],
-		 [floorLabel(l.floor) != null, "stairs.fw", STR.floorLabel + floorLabel(l.floor)],
-		 [true, "icon_51", subcategoryLabel(l)]]
+		[[l.area != null, "area", fmtNumber(l.area) + STR.sqm],
+		 [l.bedrooms != null && l.bedrooms > 0, "bed", STR.beds(l.bedrooms)],
+		 [l.bathrooms != null && l.bathrooms > 0, "bath", STR.baths(l.bathrooms)],
+		 [floorLabel(l.floor) != null, "stairs", STR.floorLabel + floorLabel(l.floor)],
+		 [true, typeIcon(l), subcategoryLabel(l)]]
 			.forEach(function (row) {
 				if (!row[0]) return;
 				var li = document.createElement("li");
