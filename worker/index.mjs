@@ -41,6 +41,7 @@ import { contactsIndex, contactDetail, listingsIndex } from "./lib/crm.mjs";
 import { handleFormSubmit } from "./lib/forms.mjs";
 import { handlePhotoApi, servePhotoFile, applyWatermark } from "./lib/photos.mjs";
 import { handleLeadReply } from "./lib/lead-reply.mjs";
+import { handlePropertyRequest } from "./lib/property-request.mjs";
 
 const FEED_KEY = "listings.json";
 const DEFAULT_WEBHOOK_PATH = "/listings"; // overridden by WEBHOOK_PATH var
@@ -175,6 +176,11 @@ export default {
 		// fetches it and sends it — see docs/spitogatos-leads.md.
 		if (pathname === "/api/lead-reply") {
 			return handleLeadReply(request, env, url);
+		}
+		// Our own ζήτηση form (/request): criteria + contact details ->
+		// Make -> email to the office. See docs/site-request-form.md.
+		if (pathname === "/api/property-request") {
+			return handlePropertyRequest(request, env);
 		}
 		// Tracked outbound links from our emails/CRM: /go?to=/path&c=<campaign>.
 		// Logs one structured "email_click" line (queryable in the Worker's

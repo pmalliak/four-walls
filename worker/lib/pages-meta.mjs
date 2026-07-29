@@ -126,6 +126,15 @@ export const PAGES_META = {
 		title: "Cookies · Four Walls Real Estate",
 		description: "Ενημέρωση για τα cookies στον ιστότοπο της Four Walls — ποια χρησιμοποιούνται και πώς να τα διαχειριστείτε.",
 	},
+	/* Our own ζήτηση form: the visitor describes what they are after and
+	   the office gets an email. Every ζήτηση used to arrive through
+	   Spitogatos; this is the one that costs nothing. In the sitemap on
+	   purpose — it is a landing page we want found. */
+	"request.html": {
+		path: "/request",
+		title: "Ζήτηση ακινήτου · Four Walls Real Estate",
+		description: "Πείτε μας τι ακίνητο ψάχνετε στη Θεσσαλονίκη, περιοχή, τιμή και χαρακτηριστικά, και ψάχνουμε εμείς για εσάς.",
+	},
 	/* Landing page for the «ολοκλήρωσα την αναζήτηση» link in the CRM
 	   matchings email (crm/request-matchings.twig.html). Reachable only
 	   from that email — kept out of the sitemap, and Greek-only for now
@@ -225,6 +234,11 @@ export const PAGES_META = {
 		path: "/en/cookies",
 		title: "Cookies · Four Walls Real Estate",
 		description: "How the Four Walls website uses cookies — which ones are set and how to manage them.",
+	},
+	"en/request.html": {
+		path: "/en/request",
+		title: "Property Request · Four Walls Real Estate",
+		description: "Tell us what you are looking for in Thessaloniki, area, price and features, and we will do the searching for you.",
 	},
 	/* English twin of request-closed.html — the landing page of the
 	   opt-out link in the English matchings email. Same rules: reachable

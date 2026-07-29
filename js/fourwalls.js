@@ -500,6 +500,137 @@
   });
 })();
 
+/* Property request: «πείτε μας τι ψάχνετε» ----------------------------- *
+ * /request (and /en/request) is our own ζήτηση form — until it existed,
+ * every demand lead came through Spitogatos. The criteria POST as JSON
+ * to the Worker's /api/property-request, which verifies the Turnstile
+ * token, composes the summary the office reads, and relays to Make.
+ * Validation is deliberately thin and lives here only as a courtesy:
+ * the Worker re-checks everything, since anything client-side is a
+ * suggestion, not a guarantee. On localhost the POST is simulated so
+ * the done state can be seen without mailing the office.               */
+(function () {
+  "use strict";
+  var form = document.getElementById("fw-request-form");
+  if (!form) return;
+
+  var ENDPOINT = "/api/property-request";
+  var IS_LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+  var LANG = /^en\b/i.test(document.documentElement.lang || "") ? "en" : "el";
+  var STR = ({
+    el: {
+      errorHtml:
+        '<div class="alert alert-danger">Η ζήτηση δεν στάλθηκε — δοκιμάστε ξανά σε λίγο, ' +
+        'ή γράψτε μας στο <a href="mailto:info@four-walls.gr">info@four-walls.gr</a>.</div>',
+      turnstile:
+        '<div class="alert alert-danger">Περιμένετε να ολοκληρωθεί ο έλεγχος ασφαλείας ' +
+        '(το πλαίσιο πάνω από το κουμπί) και πατήστε ξανά «Στείλτε τη ζήτηση».</div>',
+      missing:
+        '<div class="alert alert-danger">Συμπληρώστε το ονοματεπώνυμό σας και ' +
+        'τουλάχιστον ένα τηλέφωνο ή email.</div>',
+      sending: "Αποστολή..."
+    },
+    en: {
+      errorHtml:
+        '<div class="alert alert-danger">Your request was not sent — please try again shortly, ' +
+        'or email us at <a href="mailto:info@four-walls.gr">info@four-walls.gr</a>.</div>',
+      turnstile:
+        '<div class="alert alert-danger">Please wait for the security check (the box above ' +
+        'the button) to finish, then press «Send my request» again.</div>',
+      missing:
+        '<div class="alert alert-danger">Please fill in your name and at least one of ' +
+        'phone or email.</div>',
+      sending: "Sending..."
+    }
+  })[LANG];
+
+  var messages = document.getElementById("fw-rq-messages");
+  var btn = form.querySelector("button[type=submit]");
+
+  function val(name) {
+    var el = form.elements[name];
+    return el && el.value ? el.value.trim() : "";
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    var name = val("name");
+    var phone = val("phone");
+    var email = val("email");
+    if (!name || (!phone && !email)) {
+      messages.innerHTML = STR.missing;
+      (form.elements.name || form).focus();
+      return;
+    }
+
+    var tokenField = form.querySelector('input[name="cf-turnstile-response"]');
+    var token = tokenField ? tokenField.value : "";
+    if (!token && !IS_LOCAL) {
+      messages.innerHTML = STR.turnstile;
+      return;
+    }
+
+    var transaction = form.querySelector('input[name="transaction"]:checked');
+    var features = Array.prototype.map.call(
+      form.querySelectorAll('input[name="features"]:checked'),
+      function (c) { return c.value; }
+    );
+
+    var payload = {
+      name: name,
+      phone: phone,
+      email: email,
+      transaction: transaction ? transaction.value : "rent",
+      category: val("category"),
+      subcategory: val("subcategory"),
+      areas: val("areas"),
+      priceMin: val("priceMin"),
+      priceMax: val("priceMax"),
+      sizeMin: val("sizeMin"),
+      sizeMax: val("sizeMax"),
+      bedroomsMin: val("bedroomsMin"),
+      floorMin: val("floorMin"),
+      features: features,
+      message: val("message"),
+      lang: LANG,
+      page: window.location.pathname,
+      token: token,
+      website: form.website ? form.website.value : ""
+    };
+
+    var label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = STR.sending;
+    messages.innerHTML = "";
+
+    var send = IS_LOCAL
+      ? new Promise(function (resolve) {
+          setTimeout(function () { resolve({ ok: true }); }, 500);
+        })
+      : fetch(ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+    send
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        document.getElementById("fw-request").hidden = true;
+        var done = document.getElementById("fw-rq-done");
+        done.hidden = false;
+        done.scrollIntoView({ block: "center" });
+      })
+      .catch(function () {
+        if (window.turnstile) window.turnstile.reset();
+        btn.disabled = false;
+        btn.textContent = label;
+        messages.innerHTML = STR.errorHtml;
+      });
+  });
+})();
+
 /* Snappy scroll-to-top ------------------------------------------------ *
  * Bootstrap sets `:root { scroll-behavior: smooth }`, so every programmatic
  * scrollTop write (the theme's jQuery $.animate, and any scrollTo) gets
