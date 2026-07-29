@@ -52,11 +52,17 @@ let st = await waitFor(tab, stateExpr, { timeoutMs: 45000, everyMs: 1500, label:
 console.log('state:', st);
 
 if (st === 'mfa') {
-	// Poll Spark for the verification code (email lands at info@four-walls.gr within ~1min)
+	// Poll Spark for the verification code (email lands at info@four-walls.gr within ~1min).
+	// `search --in <account>` covers ALL folders of the account, not just the Inbox: the Zoho
+	// filter «Remove from Inbox Spitogatos Notifications» drops every notifications@spitogatos.gr
+	// mail straight into Inbox/Spitogatos, so an Inbox-only listing would never see the code.
+	// Page size is generous because a day carries ~5-10 Spitogatos mails and the subject filter
+	// is useless here (Spark's `subject:` matches Latin only, Greek returns nothing).
 	let code = null, src = null;
 	for (let i = 0; i < 30 && !code; i++) {
-		const list = sparkOut(['emails', '--filter', 'from:notifications@spitogatos.gr newer_than:1d',
-			'--page-size', '10', 'info@four-walls.gr']);
+		const list = sparkOut(['search', '--in', 'info@four-walls.gr',
+			'--filter', 'from:notifications@spitogatos.gr newer_than:1d',
+			'--page-size', '50', '--order', 'descending']);
 		for (const l of list.split('\n')) {
 			if (!l.includes('Κωδικός επαλήθευσης')) continue;
 			const id = l.match(/^\s*(\d+)/)?.[1];

@@ -83,8 +83,18 @@ Gotchas learned 2026-07-27:
   run from a **browser same-origin `fetch`** on the CRM tab. The public `POST /api/requests` and
   `POST /api/communication` request-link are BROKEN — never use them to create.
 
+Gotchas learned 2026-07-29:
+- **Spitogatos mail no longer lands in the Inbox.** The Zoho filter «Remove from Inbox Spitogatos
+  Notifications» (`From contains notifications@spitogatos.gr` → move to `Inbox/Spitogatos`) files
+  every notification, ζητήσεις **and** the 2FA «Κωδικός επαλήθευσης», into that folder. Read mail
+  with `spark search` (covers all folders when `--in` is omitted, or all folders of one account
+  with `--in info@four-walls.gr`), **never** `spark emails <account>`, which lists the Inbox only.
+  `enumerate.mjs` was already fine; `sg-login.mjs` was switched over. Spark's `subject:` filter
+  matches Latin only (Greek subjects return zero rows), so scope by sender plus a big `--page-size`.
+
 ## Anti-scraping rule
-Enumerate leads from **emails** (Spark, `info@four-walls.gr`, pushed to inbox = zero risk). Fetch
+Enumerate leads from **emails** (Spark, `info@four-walls.gr`, folder `Inbox/Spitogatos`, pushed by
+the portal = zero risk). Fetch
 each lead's detail with **one paced** `GET /api/search-enquiries/{id}` (mimics clicking a
 notification). **Do NOT bulk-sweep** the `/api/search-enquiries` list endpoint. Emails and the
 dashboard are verified 1:1 identical.
