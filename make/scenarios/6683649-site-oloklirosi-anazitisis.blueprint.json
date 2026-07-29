@@ -1,0 +1,222 @@
+{
+	"flow": [
+		{
+			"id": 1,
+			"mapper": {},
+			"module": "gateway:CustomWebHook",
+			"version": 1,
+			"metadata": {
+				"restore": {
+					"parameters": {
+						"hook": {
+							"data": {
+								"editable": "true"
+							},
+							"label": "Site — ολοκλήρωση αναζήτησης"
+						}
+					}
+				},
+				"designer": {
+					"x": 0,
+					"y": 0,
+					"name": "Ολοκλήρωση αναζήτησης"
+				},
+				"parameters": [
+					{
+						"name": "hook",
+						"type": "hook:gateway-webhook",
+						"label": "Webhook",
+						"required": true
+					},
+					{
+						"name": "maxResults",
+						"type": "number",
+						"label": "Maximum number of results"
+					}
+				]
+			},
+			"parameters": {
+				"hook": 3441770,
+				"maxResults": 1
+			}
+		},
+		{
+			"id": 2,
+			"mapper": {
+				"content": "<!DOCTYPE html>\r\n<html lang=\"el\">\r\n<head>\r\n<meta charset=\"utf-8\">\r\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n</head>\r\n<body style=\"margin:0; padding:0; background:#f4f5f7; font-family:Arial,sans-serif;\">\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f4f5f7; padding:16px 0;\">\r\n<tr><td align=\"center\">\r\n<table role=\"presentation\" width=\"520\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:520px; width:100%; background:#ffffff; border-radius:8px; overflow:hidden;\">\r\n\r\n<tr><td style=\"background:#16233A; padding:12px 20px; color:#ffffff; font-size:15px; font-weight:bold; letter-spacing:1px;\">ΟΛΟΚΛΗΡΩΣΗ ΑΝΑΖΗΤΗΣΗΣ - ΚΛΕΙΣΤΕ ΤΗ ΖΗΤΗΣΗ</td></tr>\r\n<tr><td style=\"height:3px; background:#FF1462;\"></td></tr>\r\n\r\n<tr><td style=\"padding:16px 20px 8px 20px; font-size:14px; line-height:1.7; color:#16233A;\">\r\n<p style=\"margin:0 0 12px 0;\">Ο πελατης πατησε «σταματηστε τις προτασεις» στη σελιδα /request-closed. Η ζητηση <strong>δεν</strong> κλεινει αυτοματα - κλειστε τη στο CRM.</p>\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"font-size:14px; line-height:1.7; color:#16233A;\">\r\n<tr><td style=\"color:#777777; width:140px; padding:2px 0; vertical-align:top;\">Ζήτηση</td><td style=\"padding:2px 0; font-weight:bold;\">{{ifempty(1.request_id; \"— ΑΓΝΩΣΤΗ, ψάξτε την από τον παραλήπτη\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Επαφή</td><td style=\"padding:2px 0; font-weight:bold;\">{{ifempty(1.contact_id; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Λόγος</td><td style=\"padding:2px 0; font-weight:bold;\">{{ifempty(1.reason; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Σχόλιο</td><td style=\"padding:2px 0;\">{{ifempty(replace(1.comment; \"/\\r?\\n/g\"; \"<br>\"); \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Ημ/νία</td><td style=\"padding:2px 0;\">{{formatDate(1.received_at; \"DD/MM/YYYY HH:mm\")}}</td></tr>\r\n</table>\r\n\r\n<a href=\"https://fourwalls.estateprime.gr/requests/view/{{1.request_id}}\" style=\"display:block; background:#FF1462; color:#ffffff; text-align:center; padding:14px; border-radius:6px; font-weight:bold; text-decoration:none; font-size:15px; margin:16px 0 14px 0;\">Άνοιγμα ζήτησης στο CRM</a>\r\n</td></tr>\r\n\r\n</table>\r\n</td></tr>\r\n</table>\r\n</body>\r\n</html>",
+				"subject": "ΟΛΟΚΛΗΡΩΣΗ ΑΝΑΖΗΤΗΣΗΣ · Ζητηση {{ifempty(1.request_id; \"—\")}}",
+				"encoding": "UTF-8",
+				"accountId": "5796850000000008002",
+				"ccAddress": [],
+				"toAddress": [
+					"info@four-walls.gr"
+				],
+				"bccAddress": [],
+				"mailFormat": "html",
+				"fromAddress": "info@four-walls.gr"
+			},
+			"module": "zoho-mail:sendMail",
+			"version": 1,
+			"metadata": {
+				"expect": [
+					{
+						"name": "accountId",
+						"type": "select",
+						"label": "Account ID",
+						"required": true
+					},
+					{
+						"name": "fromAddress",
+						"type": "email",
+						"label": "From Address",
+						"required": true
+					},
+					{
+						"name": "toAddress",
+						"spec": {
+							"name": "value",
+							"type": "email",
+							"label": "Email",
+							"required": true
+						},
+						"type": "array",
+						"label": "To Address",
+						"required": true
+					},
+					{
+						"name": "content",
+						"type": "text",
+						"label": "Content"
+					},
+					{
+						"name": "ccAddress",
+						"spec": {
+							"name": "value",
+							"type": "email",
+							"label": "Email"
+						},
+						"type": "array",
+						"label": "CC Address"
+					},
+					{
+						"name": "bccAddress",
+						"spec": {
+							"name": "value",
+							"type": "email",
+							"label": "Email"
+						},
+						"type": "array",
+						"label": "BCC Address"
+					},
+					{
+						"name": "subject",
+						"type": "text",
+						"label": "Subject"
+					},
+					{
+						"name": "encoding",
+						"type": "select",
+						"label": "Encoding",
+						"validate": {
+							"enum": [
+								"Big5",
+								"EUC-JP",
+								"EUC-KR",
+								"GB2312",
+								"ISO-2022-JP",
+								"ISO-8859-1",
+								"KOI8-R",
+								"Shift_JIS",
+								"US-ASCII",
+								"UTF-8",
+								"WINDOWS-1251",
+								"WINDOWS-1250",
+								"X-WINDOWS-ISO2022JP"
+							]
+						}
+					},
+					{
+						"name": "mailFormat",
+						"type": "select",
+						"label": "Mail Format",
+						"validate": {
+							"enum": [
+								"plaintext",
+								"html"
+							]
+						}
+					},
+					{
+						"name": "askReceipt",
+						"type": "boolean",
+						"label": "Ask Receipt"
+					}
+				],
+				"restore": {
+					"expect": {
+						"encoding": {
+							"label": "UTF-8"
+						},
+						"accountId": {
+							"mode": "chose",
+							"label": "info@four-walls.gr"
+						},
+						"toAddress": {
+							"items": [
+								null
+							]
+						},
+						"mailFormat": {
+							"label": "HTML"
+						}
+					},
+					"parameters": {
+						"__IMTCONN__": {
+							"data": {
+								"scoped": "true",
+								"connection": "zoho-mail"
+							},
+							"label": "My Zoho Mail connection"
+						}
+					}
+				},
+				"designer": {
+					"x": 300,
+					"y": 0,
+					"name": "Email στο info@"
+				},
+				"parameters": [
+					{
+						"name": "__IMTCONN__",
+						"type": "account:zoho-mail",
+						"label": "Connection",
+						"required": true
+					}
+				]
+			},
+			"parameters": {
+				"__IMTCONN__": 8711103
+			}
+		}
+	],
+	"name": "Site - Ολοκλήρωση αναζήτησης",
+	"metadata": {
+		"instant": true,
+		"version": 1,
+		"designer": {
+			"orphans": []
+		},
+		"scenario": {
+			"dlq": true,
+			"slots": null,
+			"dataloss": false,
+			"maxErrors": 3,
+			"autoCommit": true,
+			"roundtrips": 1,
+			"sequential": false,
+			"confidential": false,
+			"freshVariables": false,
+			"autoCommitTriggerLast": true
+		}
+	}
+}

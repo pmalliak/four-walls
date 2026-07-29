@@ -1,0 +1,550 @@
+{
+	"flow": [
+		{
+			"id": 1,
+			"mapper": {},
+			"module": "gateway:CustomWebHook",
+			"version": 1,
+			"metadata": {
+				"designer": {
+					"x": -1500,
+					"y": 0,
+					"name": "Photo batch (enhance.html)"
+				}
+			},
+			"parameters": {
+				"hook": 3443497
+			}
+		},
+		{
+			"id": 10,
+			"mapper": {
+				"path": "/Four Walls/photos/{{if(1.has_property; 1.property.code; \"Χωρίς ακίνητο\")}}",
+				"driveType": "drive"
+			},
+			"module": "google-drive:recognizeAFileFolderPath",
+			"onerror": [
+				{
+					"id": 11,
+					"mapper": {
+						"name": "{{if(1.has_property; 1.property.code; \"Χωρίς ακίνητο\")}}",
+						"shared": false,
+						"folderId": "1DANxedmDht08vJ8NjAMEPbMh2YQCaj24",
+						"destination": "drive"
+					},
+					"module": "google-drive:createAFolder",
+					"version": 4,
+					"metadata": {
+						"designer": {
+							"x": -1200,
+							"y": 300,
+							"name": "Νέος φάκελος ακινήτου"
+						}
+					},
+					"parameters": {
+						"__IMTCONN__": 9265298
+					}
+				},
+				{
+					"id": 12,
+					"mapper": {
+						"id": "{{11.id}}"
+					},
+					"module": "builtin:Resume",
+					"version": 1,
+					"metadata": {
+						"designer": {
+							"x": -900,
+							"y": 300,
+							"name": "Συνέχισε με τον νέο"
+						}
+					}
+				}
+			],
+			"version": 4,
+			"metadata": {
+				"designer": {
+					"x": -1200,
+					"y": 0,
+					"name": "Φάκελος ακινήτου (find-or-create)"
+				}
+			},
+			"parameters": {
+				"__IMTCONN__": 9265298
+			}
+		},
+		{
+			"id": 2,
+			"mapper": {
+				"name": "{{substring(1.submitted_at; 0; 10)}} · {{substring(1.batch_id; 0; 6)}}",
+				"shared": false,
+				"folderId": "{{10.id}}",
+				"destination": "drive"
+			},
+			"module": "google-drive:createAFolder",
+			"version": 4,
+			"metadata": {
+				"designer": {
+					"x": -900,
+					"y": 0,
+					"name": "Φάκελος upload"
+				}
+			},
+			"parameters": {
+				"__IMTCONN__": 9265298
+			}
+		},
+		{
+			"id": 13,
+			"mapper": {
+				"name": "enhanced",
+				"shared": false,
+				"folderId": "{{2.id}}",
+				"destination": "drive"
+			},
+			"module": "google-drive:createAFolder",
+			"version": 4,
+			"metadata": {
+				"designer": {
+					"x": -600,
+					"y": -150,
+					"name": "Υποφάκελος enhanced"
+				}
+			},
+			"parameters": {
+				"__IMTCONN__": 9265298
+			}
+		},
+		{
+			"id": 14,
+			"mapper": {
+				"name": "originals",
+				"shared": false,
+				"folderId": "{{2.id}}",
+				"destination": "drive"
+			},
+			"module": "google-drive:createAFolder",
+			"version": 4,
+			"metadata": {
+				"designer": {
+					"x": -600,
+					"y": 150,
+					"name": "Υποφάκελος originals"
+				}
+			},
+			"parameters": {
+				"__IMTCONN__": 9265298
+			}
+		},
+		{
+			"id": 3,
+			"mapper": {
+				"array": "{{1.photos}}"
+			},
+			"module": "builtin:BasicFeeder",
+			"version": 1,
+			"metadata": {
+				"designer": {
+					"x": -300,
+					"y": 0,
+					"name": "Κάθε φωτογραφία"
+				}
+			},
+			"parameters": {}
+		},
+		{
+			"id": 4,
+			"mapper": {
+				"url": "{{3.url}}",
+				"shareCookies": false,
+				"stopOnHttpError": true
+			},
+			"module": "http:DownloadFile",
+			"version": 4,
+			"metadata": {
+				"designer": {
+					"x": 0,
+					"y": 0,
+					"name": "Λήψη από R2"
+				}
+			},
+			"parameters": {
+				"authenticationType": "noAuth"
+			}
+		},
+		{
+			"id": 20,
+			"mapper": null,
+			"module": "builtin:BasicRouter",
+			"routes": [
+				{
+					"flow": [
+						{
+							"id": 18,
+							"filter": {
+								"name": "με AI",
+								"conditions": [
+									[
+										{
+											"a": "{{1.ai}}",
+											"b": "true",
+											"o": "boolean:equal"
+										}
+									]
+								]
+							},
+							"mapper": {
+								"qs": [],
+								"url": "/v1beta/models/gemini-pro-latest:generateContent",
+								"body": "{\"contents\":[{\"parts\":[{\"text\":\"{{1.inventory_prompt}}\"},{\"inline_data\":{\"mime_type\":\"{{ifempty(3.content_type; \"image/jpeg\")}}\",\"data\":\"{{base64(4.data)}}\"}}]}],\"generationConfig\":{\"temperature\":0,\"maxOutputTokens\":1200},\"safetySettings\":[]}",
+								"method": "POST",
+								"headers": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								]
+							},
+							"module": "gemini-ai:makeApiCall",
+							"version": 1,
+							"metadata": {
+								"designer": {
+									"x": 600,
+									"y": -420,
+									"name": "1. Καταγραφή χώρου (Pro vision)"
+								}
+							},
+							"parameters": {
+								"__IMTCONN__": 9267097
+							}
+						},
+						{
+							"id": 5,
+							"mapper": {
+								"model": "{{ifempty(1.gemini_model; \"gemini-3.1-flash-image\")}}",
+								"images": [
+									{
+										"data": "{{4.data}}",
+										"fileName": "{{3.name}}",
+										"mimeType": "{{ifempty(3.content_type; \"image/jpeg\")}}",
+										"resolution": "",
+										"upload_format": "base64"
+									}
+								],
+								"prompt": "{{replace(1.prompt; \"__INVENTORY__\"; ifempty(18.body.candidates[1].content.parts[1].text; \"(δεν έγινε καταγραφή — βασίσου αποκλειστικά σε ό,τι φαίνεται στη φωτογραφία)\"))}}",
+								"response_format": {
+									"mimeType": "",
+									"imageSize": "2K",
+									"aspectRatio": "{{3.aspect}}"
+								}
+							},
+							"module": "gemini-ai:generateAnImageV2",
+							"version": 1,
+							"metadata": {
+								"designer": {
+									"x": 900,
+									"y": -420,
+									"name": "2. Gemini · επεξεργασία @ 2K (κλειδωμένες αναλογίες)"
+								}
+							},
+							"parameters": {
+								"__IMTCONN__": 9267097
+							}
+						},
+						{
+							"id": 15,
+							"mapper": {
+								"url": "{{1.watermark_url}}",
+								"method": "post",
+								"headers": [],
+								"timeout": 120,
+								"contentType": "custom",
+								"shareCookies": false,
+								"parseResponse": false,
+								"allowRedirects": true,
+								"rawBodyContent": "{{5.data}}",
+								"queryParameters": [],
+								"stopOnHttpError": true,
+								"contentTypeValue": "image/png",
+								"requestCompressedContent": false
+							},
+							"module": "http:MakeRequest",
+							"version": 4,
+							"metadata": {
+								"designer": {
+									"x": 1200,
+									"y": -420,
+									"name": "Υδατογράφημα / σήμανση"
+								}
+							},
+							"parameters": {
+								"authenticationType": "noAuth"
+							}
+						},
+						{
+							"id": 6,
+							"mapper": {
+								"data": "{{15.data}}",
+								"select": "map",
+								"convert": false,
+								"filename": "{{replace(3.name; \"/\\.\\w+$/\"; \"\")}}.png",
+								"folderId": "{{13.id}}"
+							},
+							"module": "google-drive:uploadAFile",
+							"version": 4,
+							"metadata": {
+								"designer": {
+									"x": 1500,
+									"y": -500,
+									"name": "→ enhanced/"
+								}
+							},
+							"parameters": {
+								"__IMTCONN__": 9265298
+							}
+						},
+						{
+							"id": 7,
+							"mapper": {
+								"data": "{{4.data}}",
+								"select": "map",
+								"convert": false,
+								"filename": "{{3.name}}",
+								"folderId": "{{14.id}}"
+							},
+							"module": "google-drive:uploadAFile",
+							"version": 4,
+							"metadata": {
+								"designer": {
+									"x": 1800,
+									"y": -500,
+									"name": "→ originals/"
+								}
+							},
+							"parameters": {
+								"__IMTCONN__": 9265298
+							}
+						}
+					]
+				},
+				{
+					"flow": [
+						{
+							"id": 21,
+							"filter": {
+								"name": "μόνο λογότυπο",
+								"conditions": [
+									[
+										{
+											"a": "{{1.ai}}",
+											"b": "false",
+											"o": "boolean:equal"
+										},
+										{
+											"a": "{{1.watermark}}",
+											"b": "true",
+											"o": "boolean:equal"
+										}
+									]
+								]
+							},
+							"mapper": {
+								"url": "{{1.watermark_url}}",
+								"method": "post",
+								"headers": [],
+								"timeout": 120,
+								"contentType": "custom",
+								"shareCookies": false,
+								"parseResponse": false,
+								"allowRedirects": true,
+								"rawBodyContent": "{{4.data}}",
+								"queryParameters": [],
+								"stopOnHttpError": true,
+								"contentTypeValue": "{{ifempty(3.content_type; \"image/jpeg\")}}",
+								"requestCompressedContent": false
+							},
+							"module": "http:MakeRequest",
+							"version": 4,
+							"metadata": {
+								"designer": {
+									"x": 600,
+									"y": 0,
+									"name": "Υδατογράφημα στο πρωτότυπο"
+								}
+							},
+							"parameters": {
+								"authenticationType": "noAuth"
+							}
+						},
+						{
+							"id": 22,
+							"mapper": {
+								"data": "{{21.data}}",
+								"select": "map",
+								"convert": false,
+								"filename": "{{replace(3.name; \"/\\.\\w+$/\"; \"\")}}.png",
+								"folderId": "{{13.id}}"
+							},
+							"module": "google-drive:uploadAFile",
+							"version": 4,
+							"metadata": {
+								"designer": {
+									"x": 900,
+									"y": -60,
+									"name": "→ enhanced/"
+								}
+							},
+							"parameters": {
+								"__IMTCONN__": 9265298
+							}
+						},
+						{
+							"id": 23,
+							"mapper": {
+								"data": "{{4.data}}",
+								"select": "map",
+								"convert": false,
+								"filename": "{{3.name}}",
+								"folderId": "{{14.id}}"
+							},
+							"module": "google-drive:uploadAFile",
+							"version": 4,
+							"metadata": {
+								"designer": {
+									"x": 1200,
+									"y": 60,
+									"name": "→ originals/"
+								}
+							},
+							"parameters": {
+								"__IMTCONN__": 9265298
+							}
+						}
+					]
+				},
+				{
+					"flow": [
+						{
+							"id": 24,
+							"filter": {
+								"name": "σκέτη αρχειοθέτηση",
+								"conditions": [
+									[
+										{
+											"a": "{{1.ai}}",
+											"b": "false",
+											"o": "boolean:equal"
+										},
+										{
+											"a": "{{1.watermark}}",
+											"b": "false",
+											"o": "boolean:equal"
+										}
+									]
+								]
+							},
+							"mapper": {
+								"data": "{{4.data}}",
+								"select": "map",
+								"convert": false,
+								"filename": "{{3.name}}",
+								"folderId": "{{14.id}}"
+							},
+							"module": "google-drive:uploadAFile",
+							"version": 4,
+							"metadata": {
+								"designer": {
+									"x": 600,
+									"y": 300,
+									"name": "→ originals/ (μόνο)"
+								}
+							},
+							"parameters": {
+								"__IMTCONN__": 9265298
+							}
+						}
+					]
+				}
+			],
+			"version": 1,
+			"metadata": {
+				"designer": {
+					"x": 300,
+					"y": 0,
+					"name": "AI; Λογότυπο; Αρχειοθέτηση;"
+				}
+			}
+		},
+		{
+			"id": 8,
+			"mapper": {},
+			"module": "builtin:BasicAggregator",
+			"version": 1,
+			"metadata": {
+				"designer": {
+					"x": 2100,
+					"y": 0,
+					"name": "Όλες μαζί"
+				}
+			},
+			"parameters": {
+				"feeder": 3
+			}
+		},
+		{
+			"id": 9,
+			"mapper": {
+				"cc": [
+					"panos@four-walls.gr",
+					"manos@four-walls.gr"
+				],
+				"to": [
+					"info@four-walls.gr"
+				],
+				"bcc": [],
+				"from": "info@four-walls.gr",
+				"html": "<!DOCTYPE html><html lang='el'><head><meta charset='utf-8'></head><body style='margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background:#f4f5f7;padding:18px 0;'><tr><td align='center'><table role='presentation' width='560' cellpadding='0' cellspacing='0' style='max-width:560px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;'><tr><td style='background:#16233A;padding:16px 24px 6px 24px;'><span style='font-weight:bold;font-size:15px;letter-spacing:3px;color:#ffffff;'>FOUR WALLS</span><span style='font-weight:bold;font-size:10px;letter-spacing:2px;color:#FF1462;padding-left:8px;'>REAL ESTATE</span></td></tr><tr><td style='background:#16233A;padding:0 24px 14px 24px;color:#ffffff;font-size:16px;font-weight:bold;letter-spacing:1px;'>ΦΩΤΟΓΡΑΦΙΕΣ ΑΚΙΝΗΤΟΥ</td></tr><tr><td style='height:3px;background:#FF1462;'></td></tr><tr><td style='padding:22px 24px 4px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 12px 0;'>Ετοιμάστηκαν <strong>{{1.count}} φωτογραφίες</strong>.</p></td></tr><tr><td style='padding:0 24px 6px 24px;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='font-size:14px;line-height:1.7;color:#16233A;border-top:1px solid #e6e9ef;border-bottom:1px solid #e6e9ef;'><tr><td style='color:#777777;width:150px;padding:6px 0 2px 0;vertical-align:top;'>Ακίνητο</td><td style='padding:6px 0 2px 0;font-weight:bold;'>{{if(1.has_property; 1.property.code + \" · \" + 1.property.address; \"Δεν επιλέχθηκε\")}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Επεξεργασίες</td><td style='padding:2px 0;'>{{ifempty(1.options_label; \"Καμία — μόνο αρχειοθέτηση\")}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Μοντέλο</td><td style='padding:2px 0;'>{{if(1.ai; ifempty(1.model_label; 1.gemini_model); \"— (χωρίς AI)\")}}</td></tr><tr><td style='color:#777777;padding:2px 0 6px 0;vertical-align:top;'>Αποστολή από</td><td style='padding:2px 0 6px 0;'>{{1.submitted_by}}</td></tr></table></td></tr><tr><td style='padding:16px 24px 4px 24px;'><table role='presentation' cellpadding='0' cellspacing='0'><tr><td style='background:#FF1462;border-radius:4px;'><a href='{{2.webViewLink}}' style='display:block;padding:11px 22px;font-size:13.5px;font-weight:bold;color:#ffffff;text-decoration:none;letter-spacing:0.4px;'>ΑΝΟΙΓΜΑ ΦΑΚΕΛΟΥ ΣΤΟ DRIVE</a></td></tr></table></td></tr><tr><td style='padding:10px 24px 4px 24px;font-size:13.5px;line-height:1.6;color:#16233A;'><p style='margin:0 0 6px 0;'>{{if(1.has_property; \"CRM: <a href='\" + 1.links.crm + \"' style='color:#FF1462;'>άνοιγμα του ακινήτου</a> για να ανεβούν οι τελικές.\"; \"Το ακίνητο δεν έχει καταχωρηθεί — <a href='\" + 1.links.crmCreate + \"' style='color:#FF1462;'>δημιουργία καταχώρισης στο CRM</a>.\")}}</p></td></tr><tr><td style='padding:8px 24px 20px 24px;font-size:12.5px;line-height:1.6;color:#777777;'><p style='margin:0;'>Ο φάκελος έχει δύο υποφακέλους: <strong>enhanced</strong> (οι τελικές για το CRM) και <strong>originals</strong> (οι πρωτότυπες, για σύγκριση). <strong style='color:#16233A;'>Ελέγξτε τις πριν ανεβούν στο CRM</strong> — η AI επεξεργασία δεν πρέπει να παραπλανά για την πραγματική κατάσταση του ακινήτου.</p></td></tr><tr><td style='background:#16233A;padding:16px 24px;'><p style='margin:0;font-size:12px;line-height:1.6;color:#cdd3de;'><strong style='color:#ffffff;'>Four Walls Real Estate</strong> · Φραγκίνη 9, Θεσσαλονίκη · <a href='mailto:info@four-walls.gr' style='color:#ffffff;text-decoration:underline;'>info@four-walls.gr</a></p></td></tr></table></td></tr></table></body></html>",
+				"sender": "",
+				"headers": [],
+				"replyTo": "info@four-walls.gr",
+				"subject": "Φωτογραφίες · {{if(1.has_property; 1.property.code; \"χωρίς ακίνητο\")}} · {{1.count}} φωτ.",
+				"priority": "normal",
+				"inReplyTo": "",
+				"references": [],
+				"attachments": [],
+				"contentType": "html"
+			},
+			"module": "email:ActionSendEmail",
+			"version": 7,
+			"metadata": {
+				"designer": {
+					"x": 2400,
+					"y": 0,
+					"name": "Email · info@ (cc Πάνος, Μάνος)"
+				}
+			},
+			"parameters": {
+				"folder": "Sent",
+				"account": 8845630,
+				"accountImap": 8845636,
+				"saveAfterSent": true
+			}
+		}
+	],
+	"name": "Photos — AI enhance",
+	"metadata": {
+		"instant": true,
+		"version": 1,
+		"scenario": {
+			"dlq": true,
+			"dataloss": false,
+			"maxErrors": 3,
+			"autoCommit": true,
+			"roundtrips": 1,
+			"sequential": false,
+			"confidential": false,
+			"freshVariables": false,
+			"autoCommitTriggerLast": true
+		}
+	}
+}

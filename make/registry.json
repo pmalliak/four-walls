@@ -1,0 +1,122 @@
+{
+	"team": 2060918,
+	"zone": "eu1.make.com",
+	"connections": [
+		{
+			"id": 9273443,
+			"name": "Company Gemini AI connection",
+			"accountName": "gemini-ai-q9zyjp",
+			"accountLabel": "Gemini AI"
+		},
+		{
+			"id": 8906663,
+			"name": "Estate Prime - Four Walls",
+			"accountName": "app#estateprime-vr2xrk",
+			"accountLabel": "App runtime basic"
+		},
+		{
+			"id": 9267097,
+			"name": "Gemini AI connection",
+			"accountName": "gemini-ai-q9zyjp",
+			"accountLabel": "Gemini AI"
+		},
+		{
+			"id": 9265298,
+			"name": "Google Drive connection",
+			"accountName": "google-drive",
+			"accountLabel": "Google Drive"
+		},
+		{
+			"id": 8685569,
+			"name": "Make's AI Provider (default)",
+			"accountName": "ai-provider",
+			"accountLabel": "Make's AI Provider"
+		},
+		{
+			"id": 8845624,
+			"name": "My Others (SMTP) connection",
+			"accountName": "smtp",
+			"accountLabel": "Others (SMTP)"
+		},
+		{
+			"id": 8711103,
+			"name": "My Zoho Mail connection",
+			"accountName": "zoho-mail",
+			"accountLabel": "Zoho Mail"
+		},
+		{
+			"id": 8845636,
+			"name": "Zoho IMAP",
+			"accountName": "imap",
+			"accountLabel": "Others (IMAP)"
+		},
+		{
+			"id": 8845630,
+			"name": "Zoho SMTP",
+			"accountName": "smtp",
+			"accountLabel": "Others (SMTP)"
+		}
+	],
+	"keys": [
+		{
+			"id": 199013,
+			"name": "Estate Prime Auth"
+		},
+		{
+			"id": 199011,
+			"name": "My HTTP Basic Auth key"
+		}
+	],
+	"hooks": [
+		{
+			"id": 3326123,
+			"name": "Four Walls Leads - info@",
+			"type": "mail",
+			"scenarioId": 6405443,
+			"udid": "(κρυφό)"
+		},
+		{
+			"id": 3379174,
+			"name": "Four Walls contact form",
+			"type": "web",
+			"scenarioId": 6530594,
+			"udid": "(κρυφό)"
+		},
+		{
+			"id": 3407683,
+			"name": "Έντυπα PWA — υποβολή φόρμας",
+			"type": "web",
+			"scenarioId": 6600035,
+			"udid": "(κρυφό)"
+		},
+		{
+			"id": 3409412,
+			"name": "Spitogatos - Ενδιαφερόμενοι πελάτες",
+			"type": "mail",
+			"scenarioId": 6604242,
+			"udid": "(κρυφό)"
+		},
+		{
+			"id": 3441770,
+			"name": "Site — ολοκλήρωση αναζήτησης",
+			"type": "web",
+			"scenarioId": 6683649,
+			"udid": "(κρυφό)"
+		},
+		{
+			"id": 3443497,
+			"name": "Photos — AI enhance",
+			"type": "web",
+			"scenarioId": 6688477,
+			"udid": "(κρυφό)"
+		},
+		{
+			"id": 3457244,
+			"name": "CRM — νέα ακίνητα σε ζητήσεις",
+			"type": "web",
+			"scenarioId": 6722234,
+			"udid": "(κρυφό)"
+		}
+	],
+	"dataStores": []
+}

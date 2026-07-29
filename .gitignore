@@ -20,3 +20,5 @@ data/
 .DS_Store
 # scratch folder for eyeballing AI photo output (never published)
 see/
+# live Make blueprints fetched by make-push.mjs just to diff against
+make/.live/

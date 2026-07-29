@@ -23,6 +23,12 @@ Live listings: **EstatePrime CRM → Cloudflare Worker → `/data/listings.json`
 (webhook-triggered + nightly cron; **live CRM data in prod** — the repo's
 `data/listings.json` is still template sample data). The same Worker hosts the site. See [docs/listings-feed.md](docs/listings-feed.md).
 
+The office automation (leads, έντυπα, φωτογραφίες, ειδοποιήσεις) runs on
+**Make**. Every scenario is mirrored in [make/](make/) as its blueprint JSON:
+read [make/INDEX.md](make/INDEX.md) to see what each one does, and change a
+scenario with `make-pull` → edit JSON → `make-push` instead of rebuilding
+modules by hand in the UI. See [docs/make-scenarios.md](docs/make-scenarios.md).
+
 ## Deploy
 
 **`git push` to `main` is the deploy.** The Worker is connected to the GitHub

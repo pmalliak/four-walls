@@ -40,3 +40,5 @@ css/bootstrap-icons.css
 css/bootstrap-icons.min.css
 # scratch folder for eyeballing AI photo output
 see
+# Make scenario blueprints kept under version control (see docs/make-scenarios.md)
+make

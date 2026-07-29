@@ -1,0 +1,112 @@
+# Τα σενάρια του Make στο git
+
+Όλη η αυτοματοποίηση του γραφείου (leads, έντυπα, φωτογραφίες, ειδοποιήσεις)
+ζει σε **σενάρια του Make**. Το Make δεν έχει git: κάθε αλλαγή γίνεται με το
+ποντίκι μέσα στο UI και δεν αφήνει ίχνος που να διαβάζεται.
+
+Γι' αυτό ο φάκελος **[../make/](../make/)** κρατάει ένα αντίγραφο κάθε
+σεναρίου (το «blueprint», δηλαδή όλο το σενάριο σε JSON) μέσα στο repo.
+
+## Τι λύνει
+
+| Πριν | Τώρα |
+|---|---|
+| Για να αλλάξω ένα module έπρεπε να το σβήσω και να το ξαναφτιάξω από την αρχή | Ανοίγω το JSON, αλλάζω τη γραμμή, το ανεβάζω |
+| Δεν φαινόταν τι άλλαξε και πότε | `git diff` / `git log` πάνω στα blueprints |
+| Μια λάθος αλλαγή δεν γύριζε πίσω | `git checkout` το παλιό blueprint και push |
+| Έπρεπε να ανοίγω το Make για να θυμηθώ τι κάνει ένα σενάριο | Διαβάζω το [../make/INDEX.md](../make/INDEX.md) |
+
+## Ο φάκελος
+
+```
+make/
+  INDEX.md                        # όλα τα σενάρια σε έναν πίνακα + δέντρο modules (παράγεται)
+  registry.json                   # τι σημαίνουν τα IDs μέσα στα blueprints (connections, keys, hooks)
+  scenarios/
+    6600035-entypa-ypovoli-formas.blueprint.json
+    6604242-spitogatos-endiaferon-gia-akinito.blueprint.json
+    ...
+  .live/                          # προσωρινό: το live blueprint για diff (gitignored)
+```
+
+Τα `*.blueprint.json` είναι **σκέτα blueprints**, ακριβώς όπως τα δίνει το
+Make. Δηλαδή ανοίγουν και με το χέρι: Make → σενάριο → ⋯ → *Import Blueprint*.
+
+## Οι εντολές
+
+```bash
+node tools/make-pull.mjs              # Make → git (όλα τα σενάρια + INDEX.md + registry.json)
+node tools/make-pull.mjs 6604242      # μόνο ένα
+node tools/make-pull.mjs --check      # exit 1 αν το live διαφέρει από το repo
+
+node tools/make-push.mjs 6604242      # dry run: τυπώνει ποια modules θα άλλαζαν
+node tools/make-push.mjs 6604242 --yes
+```
+
+Η κανονική ροή για μια αλλαγή:
+
+1. `node tools/make-pull.mjs` (ξεκίνα πάντα από το live, μπορεί κάποιος να
+   πείραξε κάτι στο UI)
+2. Άλλαξε το JSON στο `make/scenarios/…`
+3. `node tools/make-push.mjs <id>` και κοίτα το dry run
+4. `node tools/make-push.mjs <id> --yes`
+5. `node tools/make-pull.mjs` ξανά (το Make κανονικοποιεί κάποια πεδία, ώστε
+   το repo να δείχνει ό,τι πραγματικά τρέχει), μετά commit
+
+## Το token
+
+Χρειάζεται **`MAKE_API_TOKEN`** στο `.dev.vars` (δεν μπαίνει ποτέ στο git).
+Φτιάχνεται στο <https://eu1.make.com/user/api> → *Add token*, με scopes:
+
+`scenarios:read`, `scenarios:write`, `connections:read`, `keys:read`,
+`hooks:read`, `datastores:read`, `teams:read`
+
+Προαιρετικά `MAKE_TEAM_ID` (default `2060918`, η ομάδα «Four Walls») και
+`MAKE_ZONE` (default `eu1.make.com`).
+
+## Τι ΔΕΝ υπάρχει μέσα στα blueprints
+
+Κανένα μυστικό. Τα credentials είναι μόνο **αναφορές σε IDs** που ζουν στο
+Make:
+
+| Στο blueprint | Τι είναι |
+|---|---|
+| `"key": 199013` | keychain entry «Estate Prime Auth» (το Basic auth του CRM) |
+| `"__IMTCONN__": 8711103` | η σύνδεση Zoho Mail |
+| `"hook": 3409412` | το webhook/mailhook (το ID, όχι το μυστικό URL) |
+
+Το `make/registry.json` κρατάει τη μετάφραση αυτών των αριθμών σε ονόματα.
+Γι' αυτό ένα blueprint είναι ασφαλές στο git, αλλά **δεν είναι πλήρες backup**:
+αν χαθεί ο λογαριασμός, τα connections και τα keys ξαναφτιάχνονται με το χέρι
+και τα IDs αλλάζουν.
+
+## Παγίδες
+
+- **Το push αντικαθιστά ΟΛΟ το blueprint.** Δεν κάνει merge. Αν κάποιος
+  πείραξε το σενάριο στο UI μετά το τελευταίο pull, το push σβήνει εκείνη την
+  αλλαγή. Το dry run του `make-push.mjs` τυπώνει πάντα τι διαφέρει από το live
+  — διάβασέ το πριν βάλεις `--yes`.
+- **Τα module `id` είναι το κλειδί.** Μέσα σε ένα blueprint κάθε module έχει
+  σταθερό αριθμητικό `id` και τα mappings αναφέρονται σε αυτό (`{{20.data…}}`).
+  Αν αλλάξεις το `id` ενός module, σπάνε όλες οι αναφορές προς αυτό.
+- **Τα `metadata.expect` / `metadata.restore` είναι θόρυβος του UI** (labels,
+  θέσεις στον καμβά, schema των πεδίων). Δεν πειράζουν, μην τα σβήσεις: το
+  Make τα θέλει για να ζωγραφίσει σωστά το σενάριο.
+- **`metadata.designer.x/y`** είναι η θέση του module στον καμβά. Αν προσθέσεις
+  module, δώσε του συντεταγμένες αλλιώς πέφτει πάνω σε άλλο.
+- **Ένα σενάριο ανά αρχείο, το όνομα το φτιάχνει το script** (`<id>-<slug>`).
+  Αν μετονομαστεί το σενάριο στο Make, το επόμενο pull γράφει νέο αρχείο και
+  σβήνει το παλιό.
+
+## Ποιο σενάριο κάνει τι
+
+Ο πίνακας ζει στο [../make/INDEX.md](../make/INDEX.md) και ενημερώνεται μόνος
+του σε κάθε pull. Οι λεπτομέρειες ανά ροή είναι στα δικά τους docs:
+
+| Σενάριο | Doc |
+|---|---|
+| Έντυπα — υποβολή φόρμας | [forms-submit.md](forms-submit.md), [forms-prosfora.md](forms-prosfora.md) |
+| Spitogatos — ανάθεση / ενδιαφέρον | [spitogatos-leads.md](spitogatos-leads.md) |
+| Site — φόρμα επικοινωνίας / ολοκλήρωση αναζήτησης | [request-closed.md](request-closed.md) |
+| CRM — νέα ακίνητα σε ζητήσεις | [request-matchings.md](request-matchings.md) |
+| Photos — AI enhance | [photo-enhance.md](photo-enhance.md) |

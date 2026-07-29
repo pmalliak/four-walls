@@ -1,0 +1,1671 @@
+{
+	"flow": [
+		{
+			"id": 2,
+			"mapper": {},
+			"module": "gateway:CustomMailHook",
+			"version": 1,
+			"metadata": {
+				"restore": {
+					"parameters": {
+						"hook": {
+							"data": {
+								"editable": "false"
+							},
+							"label": "Four Walls Leads - info@"
+						}
+					}
+				},
+				"advanced": true,
+				"designer": {
+					"x": 0,
+					"y": 1500,
+					"name": "Mailhook"
+				},
+				"parameters": [
+					{
+						"name": "hook",
+						"type": "hook:gateway-mailhook",
+						"label": "Mailhook",
+						"required": true
+					},
+					{
+						"name": "maxResults",
+						"type": "number",
+						"label": "Maximum number of results"
+					}
+				]
+			},
+			"parameters": {
+				"hook": 3326123,
+				"maxResults": 1
+			}
+		},
+		{
+			"id": 3,
+			"mapper": {
+				"scope": "roundtrip",
+				"variables": [
+					{
+						"name": "clientEmail",
+						"value": "{{replace(replace(if(contains(ifempty(get(2.headers; \"reply-to\"); \"\"); \"<\"); trim(replace(ifempty(get(2.headers; \"reply-to\"); \"\"); \"/[\\s\\S]*<([^>]*)>[\\s\\S]*/\"; \"$1\")); trim(ifempty(get(2.headers; \"reply-to\"); \"\"))); \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}"
+					},
+					{
+						"name": "name",
+						"value": "{{if(contains(2.text; \"Ονοματεπώνυμο:\"); replace(replace(trim(replace(2.text; \"/[\\s\\S]*?Ονοματεπώνυμο:[^\\S\\r\\n]*([^\\r\\n]*)[\\s\\S]*/\"; \"$1\")); \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\"); \"\")}}"
+					},
+					{
+						"name": "phoneRaw",
+						"value": "{{if(contains(2.text; \"Τηλέφωνο:\"); replace(replace(trim(replace(2.text; \"/[\\s\\S]*?Τηλέφωνο:[^\\S\\r\\n]*([^\\r\\n]*)[\\s\\S]*/\"; \"$1\")); \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\"); \"\")}}"
+					},
+					{
+						"name": "dealType",
+						"value": "{{if(contains(2.text; \"Διατίθεται Ακίνητο για:\"); replace(replace(trim(replace(2.text; \"/[\\s\\S]*?Διατίθεται Ακίνητο για:[^\\S\\r\\n]*([^\\r\\n]*)[\\s\\S]*/\"; \"$1\")); \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\"); \"\")}}"
+					},
+					{
+						"name": "propType",
+						"value": "{{if(contains(2.text; \"Είδος Ακινήτου:\"); replace(replace(trim(replace(2.text; \"/[\\s\\S]*?Είδος Ακινήτου:[^\\S\\r\\n]*([^\\r\\n]*)[\\s\\S]*/\"; \"$1\")); \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\"); \"\")}}"
+					},
+					{
+						"name": "price",
+						"value": "{{if(contains(2.text; \"Ενδεικτική Τιμή:\"); \"€ \" + replace(replace(2.text; \"/[\\s\\S]*?Ενδεικτική Τιμή:([^\\r\\n]*)[\\s\\S]*/\"; \"$1\"); \"/[^\\d.,]/g\"; \"\"); \"\")}}"
+					},
+					{
+						"name": "area",
+						"value": "{{if(contains(2.text; \"Εμβαδό:\"); replace(replace(trim(replace(2.text; \"/[\\s\\S]*?Εμβαδό:[^\\S\\r\\n]*([^\\r\\n]*)[\\s\\S]*/\"; \"$1\")); \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\"); \"\")}}"
+					},
+					{
+						"name": "availability",
+						"value": "{{if(contains(2.text; \"Διαθεσιμότητα:\"); replace(replace(trim(replace(2.text; \"/[\\s\\S]*?Διαθεσιμότητα:[^\\S\\r\\n]*([^\\r\\n]*)[\\s\\S]*/\"; \"$1\")); \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\"); \"\")}}"
+					},
+					{
+						"name": "region",
+						"value": "{{if(contains(2.text; \"Δήμος Κοινότητα:\"); replace(replace(trim(replace(2.text; \"/[\\s\\S]*?Δήμος Κοινότητα:[^\\S\\r\\n]*([^\\r\\n]*)[\\s\\S]*/\"; \"$1\")); \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\"); \"\")}}"
+					},
+					{
+						"name": "message",
+						"value": "{{if(contains(2.text; \"Μήνυμα:\"); replace(replace(trim(replace(2.text; \"/[\\s\\S]*?Μήνυμα:[^\\S\\r\\n]*([^\\r\\n]*)[\\s\\S]*/\"; \"$1\")); \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\"); \"\")}}"
+					},
+					{
+						"name": "leadUrl",
+						"value": "{{if(contains(2.html; \"showDetailsId=\"); \"https://live.spitogatos.gr/leads/entrustmentEnquiries?showDetailsId=\" + replace(2.html; \"/[\\s\\S]*?showDetailsId=(\\d+)[\\s\\S]*/\"; \"$1\"); \"\")}}"
+					},
+					{
+						"name": "listingUrl",
+						"value": "{{if(contains(2.html; \"https://www.spitogatos.gr/listing/details/\"); replace(replace(trim(replace(2.html; \"/[\\s\\S]*?(https:\\/\\/www\\.spitogatos\\.gr\\/listing\\/details\\/\\d+)[\\s\\S]*/\"; \"$1\")); \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\"); \"\")}}"
+					},
+					{
+						"name": "listingDesc",
+						"value": "{{if(contains(2.html; \"agent-card__bottom\"); trim(replace(replace(2.html; \"/[\\s\\S]*?agent-card__bottom[\\s\\S]*?<p[^>]*>([\\s\\S]*?)<\\/p>[\\s\\S]*/\"; \"$1\"); \"/<[^>]*>/g\"; \" \")); \"\")}}"
+					},
+					{
+						"name": "greeting",
+						"value": "{{if(parseNumber(formatDate(now; \"H\"; \"Europe/Athens\"); \".\") >= 5 and parseNumber(formatDate(now; \"H\"; \"Europe/Athens\"); \".\") < 12; \"Καλημέρα\"; \"Καλησπέρα\")}}"
+					},
+					{
+						"name": "callTiming",
+						"value": "{{if(parseNumber(formatDate(now; \"H\"; \"Europe/Athens\"); \".\") >= 8 and parseNumber(formatDate(now; \"H\"; \"Europe/Athens\"); \".\") < 22; \"μέσα στα επόμενα λεπτά\"; \"το συντομότερο δυνατό\")}}"
+					},
+					{
+						"name": "phoneDigits",
+						"value": "{{if(contains(2.text; \"Τηλέφωνο:\"); replace(replace(trim(replace(2.text; \"/[\\s\\S]*?Τηλέφωνο:[^\\S\\r\\n]*([^\\r\\n]*)[\\s\\S]*/\"; \"$1\")); \"/[^0-9]/g\"; \"\"); \"/^0+/\"; \"\"); \"\")}}"
+					},
+					{
+						"name": "phoneJson",
+						"value": "{\"type\": \"mobile-personal\", \"number\": \"{{if(length(if(contains(2.text; \"Τηλέφωνο:\"); replace(replace(trim(replace(2.text; \"/[\\s\\S]*?Τηλέφωνο:[^\\S\\r\\n]*([^\\r\\n]*)[\\s\\S]*/\"; \"$1\")); \"/[^0-9]/g\"; \"\"); \"/^0+/\"; \"\"); \"\")) >= 12; \"+\" + if(contains(2.text; \"Τηλέφωνο:\"); replace(replace(trim(replace(2.text; \"/[\\s\\S]*?Τηλέφωνο:[^\\S\\r\\n]*([^\\r\\n]*)[\\s\\S]*/\"; \"$1\")); \"/[^0-9]/g\"; \"\"); \"/^0+/\"; \"\"); \"\"); \"+30\" + if(contains(2.text; \"Τηλέφωνο:\"); replace(replace(trim(replace(2.text; \"/[\\s\\S]*?Τηλέφωνο:[^\\S\\r\\n]*([^\\r\\n]*)[\\s\\S]*/\"; \"$1\")); \"/[^0-9]/g\"; \"\"); \"/^0+/\"; \"\"); \"\"))}}\", \"notes\": \"Spitogatos\"}"
+					}
+				]
+			},
+			"module": "util:SetVariables",
+			"version": 1,
+			"metadata": {
+				"expect": [
+					{
+						"name": "variables",
+						"spec": {
+							"name": "value",
+							"spec": [
+								{
+									"name": "name",
+									"type": "text",
+									"label": "Variable name",
+									"required": true
+								},
+								{
+									"name": "value",
+									"type": "any",
+									"label": "Variable value"
+								}
+							],
+							"type": "collection",
+							"label": "Variable"
+						},
+						"type": "array",
+						"label": "Variables",
+						"validate": {
+							"unique": {
+								"by": "name"
+							}
+						}
+					},
+					{
+						"name": "scope",
+						"type": "select",
+						"label": "Variable lifetime",
+						"required": true,
+						"validate": {
+							"enum": [
+								"roundtrip",
+								"execution"
+							]
+						}
+					}
+				],
+				"restore": {
+					"expect": {
+						"scope": {
+							"label": "One cycle"
+						},
+						"variables": {
+							"items": [
+								null,
+								null,
+								null,
+								null,
+								null,
+								null,
+								null,
+								null,
+								null,
+								null,
+								null,
+								null,
+								null,
+								null,
+								null,
+								null,
+								null
+							]
+						}
+					}
+				},
+				"designer": {
+					"x": 300,
+					"y": 1500,
+					"name": "Set Variables"
+				},
+				"interface": [
+					{
+						"name": "clientEmail",
+						"type": "any",
+						"label": "clientEmail"
+					},
+					{
+						"name": "name",
+						"type": "any",
+						"label": "name"
+					},
+					{
+						"name": "phoneRaw",
+						"type": "any",
+						"label": "phoneRaw"
+					},
+					{
+						"name": "dealType",
+						"type": "any",
+						"label": "dealType"
+					},
+					{
+						"name": "propType",
+						"type": "any",
+						"label": "propType"
+					},
+					{
+						"name": "price",
+						"type": "any",
+						"label": "price"
+					},
+					{
+						"name": "area",
+						"type": "any",
+						"label": "area"
+					},
+					{
+						"name": "availability",
+						"type": "any",
+						"label": "availability"
+					},
+					{
+						"name": "region",
+						"type": "any",
+						"label": "region"
+					},
+					{
+						"name": "message",
+						"type": "any",
+						"label": "message"
+					},
+					{
+						"name": "leadUrl",
+						"type": "any",
+						"label": "leadUrl"
+					},
+					{
+						"name": "listingUrl",
+						"type": "any",
+						"label": "listingUrl"
+					},
+					{
+						"name": "listingDesc",
+						"type": "any",
+						"label": "listingDesc"
+					},
+					{
+						"name": "greeting",
+						"type": "any",
+						"label": "greeting"
+					},
+					{
+						"name": "callTiming",
+						"type": "any",
+						"label": "callTiming"
+					},
+					{
+						"name": "phoneDigits",
+						"type": "any",
+						"label": "phoneDigits"
+					},
+					{
+						"name": "phoneJson",
+						"type": "any",
+						"label": "phoneJson"
+					}
+				]
+			},
+			"parameters": {}
+		},
+		{
+			"id": 50,
+			"mapper": null,
+			"module": "builtin:BasicRouter",
+			"routes": [
+				{
+					"flow": [
+						{
+							"id": 45,
+							"mapper": {
+								"qs": [],
+								"url": "https://fourwalls.estateprime.gr/api/contacts?search={{encodeURL(if(length(replace(3.phoneRaw; \"/[^0-9+]/g\"; \"\")) >= 10; replace(3.phoneRaw; \"/[^0-9+]/g\"; \"\"); 3.clientEmail))}}",
+								"gzip": true,
+								"method": "get",
+								"headers": [
+									{
+										"name": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"timeout": "",
+								"useMtls": false,
+								"authPass": "",
+								"authUser": "",
+								"serializeUrl": false,
+								"shareCookies": false,
+								"parseResponse": true,
+								"followRedirect": true,
+								"useQuerystring": false,
+								"followAllRedirects": false,
+								"rejectUnauthorized": true
+							},
+							"module": "http:ActionSendDataBasicAuth",
+							"onerror": [
+								{
+									"id": 51,
+									"mapper": {},
+									"module": "builtin:Ignore",
+									"version": 1,
+									"metadata": {
+										"designer": {
+											"x": 1200,
+											"y": 1800
+										}
+									},
+									"parameters": {}
+								}
+							],
+							"version": 3,
+							"metadata": {
+								"restore": {
+									"expect": {
+										"qs": {
+											"mode": "chose"
+										},
+										"method": {
+											"mode": "chose",
+											"label": "GET"
+										},
+										"headers": {
+											"mode": "chose",
+											"items": [
+												null
+											]
+										}
+									},
+									"parameters": {
+										"key": {
+											"label": "Estate Prime Auth"
+										}
+									}
+								},
+								"designer": {
+									"x": 900,
+									"y": 900,
+									"name": "EstatePrime: Αναζήτηση επαφής"
+								},
+								"parameters": [
+									{
+										"name": "key",
+										"type": "keychain:basicauth",
+										"label": "Key",
+										"required": true
+									},
+									{
+										"name": "handleErrors",
+										"type": "boolean",
+										"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"key": 199013,
+								"handleErrors": false
+							}
+						},
+						{
+							"id": 60,
+							"mapper": null,
+							"module": "builtin:BasicIfElse",
+							"version": 1,
+							"branches": [
+								{
+									"flow": [
+										{
+											"id": 40,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/contacts",
+												"data": "{\"first_name\": \"{{first(split(3.name; space))}}\", \"last_name\": \"{{join(slice(split(3.name; space); 1); space)}}\", \"is_lead\": true, \"is_company\": false, \"is_active\": true, \"source_id\": 3, \"created_by\": 2, \"office_id\": 1, \"language_id\": 1, \"country\": \"GR\", \"users\": [2], \"tags\": [4, 9, 11], \"phones\": [{{if(length(3.phoneDigits) > 0; 3.phoneJson; \"\")}}], \"emails\": [{\"type\": \"personal\", \"email\": \"{{3.clientEmail}}\", \"notes\": \"Spitogatos\"}], \"notes\": \"Spitogatos αίτηση ανάθεσης: {{3.dealType}} — {{3.propType}}, {{3.area}} τ.μ., {{3.region}}, ενδεικτική τιμή {{3.price}}, διαθεσιμότητα {{3.availability}}. Μήνυμα: {{3.message}}. Lead: {{3.leadUrl}} {{if(length(3.listingUrl) > 0; \"Αγγελία: \" + 3.listingUrl; \"\")}}\"}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 41,
+													"mapper": {},
+													"module": "builtin:Ignore",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 1800,
+															"y": 600
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 1500,
+													"y": 300,
+													"name": "EstatePrime: Δημιουργία επαφής"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
+										},
+										{
+											"id": 55,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/communication",
+												"data": "{\"contact_id\": {{40.data.data.id}}, \"channel\": 2, \"type\": \"incoming\", \"user_id\": 2, \"store_id\": 1, \"communication_date\": \"{{formatDate(now; \"YYYY-MM-DD HH:mm:ss\"; \"Europe/Athens\")}}\", \"tags\": [5, 8], \"comments\": \"Spitogatos αίτηση ανάθεσης: {{3.dealType}} — {{3.propType}}, {{3.area}} τ.μ., {{3.region}}, ενδεικτική τιμή {{3.price}}, διαθεσιμότητα {{3.availability}}. Μήνυμα: {{3.message}}. Lead: {{3.leadUrl}} {{if(length(3.listingUrl) > 0; \"Αγγελία: \" + 3.listingUrl; \"\")}}\"}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 61,
+													"mapper": {},
+													"module": "builtin:Ignore",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 2100,
+															"y": 300
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 1800,
+													"y": 150,
+													"name": "EstatePrime: Επικοινωνία (νέα επαφή)"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
+										},
+										{
+											"id": 57,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/communication",
+												"data": "{\"contact_id\": {{40.data.data.id}}, \"channel\": 2, \"type\": \"outgoing\", \"user_id\": 2, \"store_id\": 1, \"communication_date\": \"{{formatDate(now; \"YYYY-MM-DD HH:mm:ss\"; \"Europe/Athens\")}}\", \"tags\": [5, 8], \"comments\": \"Στάλθηκε αυτόματη απάντηση (email) στον πελάτη μετά την αίτηση ανάθεσης Spitogatos: {{if(contains(lower(3.dealType); \"πώλησ\"); \"0% προμήθεια με αποκλειστική ανάθεση (πώληση)\"; if(contains(lower(3.dealType); \"ενοικίασ\"); \"0% προμήθεια με αποκλειστική ανάθεση (ενοικίαση)\"; \"δωρεάν εκτίμηση σε 48 ώρες\"))}}. Ακίνητο: {{3.propType}}, {{3.area}} τ.μ., {{3.region}}. Ο πελάτης ενημερώθηκε ότι θα επικοινωνήσει ο Μάνος {{3.callTiming}}.\"}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 63,
+													"mapper": {},
+													"module": "builtin:Ignore",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 2400,
+															"y": 0
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 2100,
+													"y": 0,
+													"name": "EstatePrime: Απάντηση (νέα επαφή)"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
+										}
+									],
+									"type": "condition",
+									"label": "Νέα επαφή",
+									"merge": false,
+									"conditions": [
+										[
+											{
+												"a": "{{45.data.total_results}}",
+												"b": "0",
+												"o": "number:equal"
+											}
+										]
+									]
+								},
+								{
+									"flow": [
+										{
+											"id": 56,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/communication",
+												"data": "{\"contact_id\": {{45.data.data[1].id}}, \"channel\": 2, \"type\": \"incoming\", \"user_id\": 2, \"store_id\": 1, \"communication_date\": \"{{formatDate(now; \"YYYY-MM-DD HH:mm:ss\"; \"Europe/Athens\")}}\", \"tags\": [5, 8], \"comments\": \"Spitogatos αίτηση ανάθεσης: {{3.dealType}} — {{3.propType}}, {{3.area}} τ.μ., {{3.region}}, ενδεικτική τιμή {{3.price}}, διαθεσιμότητα {{3.availability}}. Μήνυμα: {{3.message}}. Lead: {{3.leadUrl}} {{if(length(3.listingUrl) > 0; \"Αγγελία: \" + 3.listingUrl; \"\")}}\"}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 62,
+													"mapper": {},
+													"module": "builtin:Ignore",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 1800,
+															"y": 1200
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 1500,
+													"y": 1050,
+													"name": "EstatePrime: Επικοινωνία (υπάρχουσα)"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
+										},
+										{
+											"id": 58,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/communication",
+												"data": "{\"contact_id\": {{45.data.data[1].id}}, \"channel\": 2, \"type\": \"outgoing\", \"user_id\": 2, \"store_id\": 1, \"communication_date\": \"{{formatDate(now; \"YYYY-MM-DD HH:mm:ss\"; \"Europe/Athens\")}}\", \"tags\": [5, 8], \"comments\": \"Στάλθηκε αυτόματη απάντηση (email) στον πελάτη μετά την αίτηση ανάθεσης Spitogatos: {{if(contains(lower(3.dealType); \"πώλησ\"); \"0% προμήθεια με αποκλειστική ανάθεση (πώληση)\"; if(contains(lower(3.dealType); \"ενοικίασ\"); \"0% προμήθεια με αποκλειστική ανάθεση (ενοικίαση)\"; \"δωρεάν εκτίμηση σε 48 ώρες\"))}}. Ακίνητο: {{3.propType}}, {{3.area}} τ.μ., {{3.region}}. Ο πελάτης ενημερώθηκε ότι θα επικοινωνήσει ο Μάνος {{3.callTiming}}.\"}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 64,
+													"mapper": {},
+													"module": "builtin:Ignore",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 2100,
+															"y": 900
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 1800,
+													"y": 900,
+													"name": "EstatePrime: Απάντηση (υπάρχουσα)"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
+										}
+									],
+									"type": "condition",
+									"label": "Υπάρχουσα επαφή",
+									"merge": false,
+									"conditions": [
+										[
+											{
+												"a": "{{45.data.total_results}}",
+												"b": "0",
+												"o": "number:greater"
+											}
+										]
+									]
+								},
+								{
+									"flow": [
+										{
+											"id": 65,
+											"filter": null,
+											"module": "placeholder:Placeholder",
+											"metadata": {
+												"designer": {
+													"x": 1500,
+													"y": 1500
+												}
+											}
+										}
+									],
+									"type": "else",
+									"label": "",
+									"merge": false,
+									"disabled": false
+								}
+							],
+							"metadata": {
+								"designer": {
+									"x": 1200,
+									"y": 750
+								}
+							}
+						}
+					]
+				},
+				{
+					"flow": [
+						{
+							"id": 30,
+							"mapper": {
+								"content": "<!DOCTYPE html>\r\n<html lang=\"el\">\r\n<head>\r\n<meta charset=\"utf-8\">\r\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n</head>\r\n<body style=\"margin:0; padding:0; background:#f4f5f7; font-family:Arial,sans-serif;\">\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f4f5f7; padding:16px 0;\">\r\n<tr><td align=\"center\">\r\n<table role=\"presentation\" width=\"520\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:520px; width:100%; background:#ffffff; border-radius:8px; overflow:hidden;\">\r\n\r\n<tr><td style=\"background:#16233A; padding:12px 20px; color:#ffffff; font-size:15px; font-weight:bold; letter-spacing:1px;\">ΝΕΟ LEAD SPITOGATOS</td></tr>\r\n<tr><td style=\"height:3px; background:#FF1462;\"></td></tr>\r\n\r\n<tr><td style=\"padding:16px 20px 8px 20px;\">\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"font-size:14px; line-height:1.7; color:#16233A;\">\r\n<tr><td style=\"color:#777777; width:140px; padding:2px 0; vertical-align:top;\">Τύπος</td><td style=\"padding:2px 0; font-weight:bold;\">{{3.dealType}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Ακίνητο</td><td style=\"padding:2px 0;\">{{3.propType}} · {{3.area}} τ.μ.</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Περιοχή</td><td style=\"padding:2px 0;\">{{3.region}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Ενδεικτική τιμή</td><td style=\"padding:2px 0;\">{{3.price}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Διαθεσιμότητα</td><td style=\"padding:2px 0;\">{{3.availability}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Όνομα</td><td style=\"padding:2px 0; font-weight:bold;\">{{3.name}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Τηλέφωνο</td><td style=\"padding:2px 0; font-weight:bold;\">{{3.phoneRaw}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Email</td><td style=\"padding:2px 0;\">{{3.clientEmail}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Μήνυμα</td><td style=\"padding:2px 0;\">{{3.message}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Αγγελία</td><td style=\"padding:2px 0;\"><a href=\"{{3.listingUrl}}\" style=\"color:#FF1462;\">{{3.listingUrl}}</a></td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Περιγραφή</td><td style=\"padding:2px 0; font-size:12px; color:#555555;\">{{if(length(3.listingDesc) > 400; substring(3.listingDesc; 0; 400) + \"…\"; 3.listingDesc)}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Επαφή CRM</td><td style=\"padding:2px 0;\">Αυτόματα: νέα επαφή αν δεν βρεθεί (αναζήτηση: {{3.phoneRaw}} / {{3.clientEmail}})</td></tr>\r\n</table>\r\n\r\n<a href=\"{{3.leadUrl}}\" style=\"display:block; background:#FF1462; color:#ffffff; text-align:center; padding:14px; border-radius:6px; font-weight:bold; text-decoration:none; font-size:15px; margin:16px 0 6px 0;\">Άνοιξε το lead στο Spitogatos</a>\r\n<p style=\"font-size:12px; color:#777777; margin:8px 0 14px 0; line-height:1.5;\">Αν λείπει το τηλέφωνο, θα το βρεις μέσα στο lead ή στην αγγελία. Ο πελάτης έχει ενημερωθεί ότι θα επικοινωνήσεις {{3.callTiming}}.</p>\r\n</td></tr>\r\n\r\n</table>\r\n</td></tr>\r\n</table>\r\n</body>\r\n</html>",
+								"subject": "ΝΕΟ LEAD · {{3.dealType}} · {{3.propType}} · {{3.region}}",
+								"encoding": "UTF-8",
+								"accountId": "5796850000000008002",
+								"ccAddress": [
+									"panos@four-walls.gr",
+									"manos@four-walls.gr"
+								],
+								"toAddress": [
+									"info@four-walls.gr"
+								],
+								"bccAddress": [],
+								"mailFormat": "html",
+								"fromAddress": "{{var.input.senderEmail}}"
+							},
+							"module": "zoho-mail:sendMail",
+							"onerror": [
+								{
+									"id": 31,
+									"mapper": {},
+									"module": "builtin:Resume",
+									"version": 1,
+									"metadata": {
+										"designer": {
+											"x": 1200,
+											"y": 3000
+										}
+									},
+									"parameters": {}
+								}
+							],
+							"version": 1,
+							"metadata": {
+								"expect": [
+									{
+										"name": "accountId",
+										"type": "select",
+										"label": "Account ID",
+										"required": true
+									},
+									{
+										"name": "fromAddress",
+										"type": "email",
+										"label": "From Address",
+										"required": true
+									},
+									{
+										"name": "toAddress",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email",
+											"required": true
+										},
+										"type": "array",
+										"label": "To Address",
+										"required": true
+									},
+									{
+										"name": "content",
+										"type": "text",
+										"label": "Content"
+									},
+									{
+										"name": "ccAddress",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email"
+										},
+										"type": "array",
+										"label": "CC Address"
+									},
+									{
+										"name": "bccAddress",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email"
+										},
+										"type": "array",
+										"label": "BCC Address"
+									},
+									{
+										"name": "subject",
+										"type": "text",
+										"label": "Subject"
+									},
+									{
+										"name": "encoding",
+										"type": "select",
+										"label": "Encoding",
+										"validate": {
+											"enum": [
+												"Big5",
+												"EUC-JP",
+												"EUC-KR",
+												"GB2312",
+												"ISO-2022-JP",
+												"ISO-8859-1",
+												"KOI8-R",
+												"Shift_JIS",
+												"US-ASCII",
+												"UTF-8",
+												"WINDOWS-1251",
+												"WINDOWS-1250",
+												"X-WINDOWS-ISO2022JP"
+											]
+										}
+									},
+									{
+										"name": "mailFormat",
+										"type": "select",
+										"label": "Mail Format",
+										"validate": {
+											"enum": [
+												"plaintext",
+												"html"
+											]
+										}
+									},
+									{
+										"name": "askReceipt",
+										"type": "boolean",
+										"label": "Ask Receipt"
+									}
+								],
+								"restore": {
+									"expect": {
+										"encoding": {
+											"label": "UTF-8"
+										},
+										"accountId": {
+											"mode": "chose",
+											"label": "info@four-walls.gr"
+										},
+										"ccAddress": {
+											"items": [
+												null,
+												null
+											]
+										},
+										"toAddress": {
+											"items": [
+												null
+											]
+										},
+										"mailFormat": {
+											"label": "HTML"
+										}
+									},
+									"parameters": {
+										"__IMTCONN__": {
+											"data": {
+												"scoped": "true",
+												"connection": "zoho-mail"
+											},
+											"label": "My Zoho Mail connection"
+										}
+									}
+								},
+								"designer": {
+									"x": 900,
+									"y": 2550,
+									"name": "Notification"
+								},
+								"parameters": [
+									{
+										"name": "__IMTCONN__",
+										"type": "account:zoho-mail",
+										"label": "Connection",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"__IMTCONN__": 8711103
+							}
+						},
+						{
+							"id": 35,
+							"mapper": null,
+							"module": "builtin:BasicIfElse",
+							"version": 1,
+							"branches": [
+								{
+									"flow": [
+										{
+											"id": 4,
+											"mapper": {
+												"content": "<!DOCTYPE html>\r\n<html lang=\"el\">\r\n<head>\r\n<meta charset=\"utf-8\">\r\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n<style>\r\n@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Manrope:wght@400;500;600&display=swap');\r\n</style>\r\n</head>\r\n<body style=\"margin:0; padding:0; background:#eef0f4; font-family:'Manrope',Arial,sans-serif; color:#16233A;\">\r\n\r\n<div style=\"display:none; max-height:0; overflow:hidden; mso-hide:all;\">Με αποκλειστική ανάθεση δεν επιβαρύνεστε με καμία προμήθεια. Δωρεάν εκτίμηση σε 48 ώρες.</div>\r\n\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#eef0f4; padding:24px 0;\">\r\n<tr><td align=\"center\">\r\n<table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px; width:100%; background:#ffffff; border-radius:10px; overflow:hidden;\">\r\n\r\n<tr><td style=\"background:#16233A; padding:14px 28px;\">\r\n<span style=\"font-family:'Montserrat',Arial,sans-serif; font-weight:700; font-size:15px; letter-spacing:4px; color:#ffffff;\">FOUR WALLS</span>\r\n<span style=\"font-family:'Montserrat',Arial,sans-serif; font-weight:600; font-size:10px; letter-spacing:3px; color:#FF1462; padding-left:10px;\">REAL ESTATE</span>\r\n</td></tr>\r\n\r\n<tr><td style=\"height:3px; background:#FF1462;\"></td></tr>\r\n\r\n<tr><td style=\"padding:32px 28px 8px 28px;\">\r\n<p style=\"margin:0 0 18px 0; font-size:16px; line-height:1.6;\">{{3.greeting}} σας,</p>\r\n<p style=\"margin:0 0 18px 0; font-size:16px; line-height:1.6;\">Λάβαμε το αίτημά σας στο Spitogatos σχετικά με την <strong>πώληση</strong> του ακινήτου σας ({{3.propType}}, {{3.area}} τ.μ., περιοχή {{3.region}}) και θα χαρούμε να την αναλάβουμε.</p>\r\n\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:0 0 18px 0;\">\r\n<tr><td style=\"border-left:3px solid #FF1462; background:#FBF5F7; padding:14px 18px; font-size:15px; line-height:1.6;\">\r\n<strong>Με ανάθεση της ως άνω πώλησης κατ' αποκλειστικότητα στο γραφείο μας δεν επιβαρύνεστε με καμία προμήθεια.</strong> Σε αυτήν την περίπτωση εισπράττουμε αμοιβή μόνο από τον αγοραστή, επομένως εσείς εισπράττετε ολόκληρο το τίμημα της πώλησης.\r\n</td></tr>\r\n</table>\r\n\r\n<p style=\"margin:0 0 20px 0; font-size:16px; line-height:1.6;\">Είμαστε η Four Walls, μεσιτικό γραφείο στο κέντρο της Θεσσαλονίκης. Διατηρούμε μικρό χαρτοφυλάκιο, ώστε να αφιερώνουμε τον χρόνο και την προσοχή που αξίζει κάθε ανάθεση, με προσωπική εξυπηρέτηση σε κάθε στάδιο της διαδικασίας. Τι αναλαμβάνουμε:</p>\r\n</td></tr>\r\n\r\n<tr><td style=\"padding:0 28px;\">\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">\r\n<tr><td style=\"padding:0 0 14px 0; font-size:15px; line-height:1.55;\"><strong style=\"color:#FF1462;\">Δωρεάν εκτίμηση σε 48 ώρες.</strong> Ρεαλιστική τιμή με βάση πραγματικά δεδομένα των ακινήτων της γειτονιάς σας, όχι γενικές εκτιμήσεις.</td></tr>\r\n<tr><td style=\"padding:0 0 14px 0; font-size:15px; line-height:1.55;\"><strong style=\"color:#FF1462;\">Ένας άνθρωπος από την αρχή ως το τέλος.</strong> Συνεργάζεστε απευθείας με τον Μάνο, από την πρώτη συνάντηση μέχρι το συμβόλαιο.</td></tr>\r\n<tr><td style=\"padding:0 0 18px 0; font-size:15px; line-height:1.55;\"><strong style=\"color:#FF1462;\">Επαγγελματική προβολή.</strong> Ποιοτικές φωτογραφίες και προβολή στο site μας, στο Spitogatos και σε διεθνή δίκτυα.</td></tr>\r\n</table>\r\n</td></tr>\r\n\r\n<tr><td style=\"padding:0 28px 6px 28px;\">\r\n<p style=\"margin:0 0 18px 0; font-size:16px; line-height:1.6;\">Ο συνεργάτης μας, ο Μάνος, θα επικοινωνήσει μαζί σας {{3.callTiming}}. Αν προτιμάτε, μπορείτε να μας καλέσετε κι εσείς στο +30 6907 483 463.</p>\r\n</td></tr>\r\n\r\n<tr><td style=\"padding:0 28px 28px 28px;\" align=\"center\">\r\n<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr>\r\n<td style=\"background:#FF1462; border-radius:6px;\">\r\n<a href=\"tel:+306907483463\" style=\"display:inline-block; padding:13px 30px; font-family:'Montserrat',Arial,sans-serif; font-weight:600; font-size:15px; color:#ffffff; text-decoration:none;\">Κλείστε δωρεάν εκτίμηση</a>\r\n</td>\r\n</tr></table>\r\n<p style=\"margin:14px 0 0 0; font-size:14px; line-height:1.5; color:#555;\">Χωρίς καμία δέσμευση.</p>\r\n</td></tr>\r\n\r\n<tr><td style=\"background:#16233A; padding:18px 28px;\">\r\n<p style=\"margin:0; font-size:12px; line-height:1.7; color:#cdd3de;\">\r\n<strong style=\"color:#ffffff;\">Four Walls Real Estate</strong> · <a href=\"tel:+306907483463\" style=\"color:#ffffff; text-decoration:underline;\">+30 6907 483 463</a> · <a href=\"mailto:info@four-walls.gr\" style=\"color:#ffffff; text-decoration:underline;\">info@four-walls.gr</a><br>\nΦραγκίνη 9, Θεσσαλονίκη · <a href=\"https://four-walls.gr/go?to=/&amp;c=CAMPAIGN\" style=\"color:#ffffff; text-decoration:underline;\">four-walls.gr</a>\r\n</p>\r\n</td></tr>\r\n\r\n</table>\r\n</td></tr>\r\n</table>\r\n</body>\r\n</html>",
+												"subject": "Για την πώληση του ακινήτου σας: 0% προμήθεια με αποκλειστική ανάθεση",
+												"encoding": "UTF-8",
+												"accountId": "5796850000000008002",
+												"ccAddress": [],
+												"toAddress": [
+													"{{3.clientEmail}}"
+												],
+												"bccAddress": [
+													"panos@four-walls.gr"
+												],
+												"mailFormat": "html",
+												"fromAddress": "{{var.input.senderEmail}}"
+											},
+											"module": "zoho-mail:sendMail",
+											"version": 1,
+											"metadata": {
+												"expect": [
+													{
+														"name": "accountId",
+														"type": "select",
+														"label": "Account ID",
+														"required": true
+													},
+													{
+														"name": "fromAddress",
+														"type": "email",
+														"label": "From Address",
+														"required": true
+													},
+													{
+														"name": "toAddress",
+														"spec": {
+															"name": "value",
+															"type": "email",
+															"label": "Email",
+															"required": true
+														},
+														"type": "array",
+														"label": "To Address",
+														"required": true
+													},
+													{
+														"name": "content",
+														"type": "text",
+														"label": "Content"
+													},
+													{
+														"name": "ccAddress",
+														"spec": {
+															"name": "value",
+															"type": "email",
+															"label": "Email"
+														},
+														"type": "array",
+														"label": "CC Address"
+													},
+													{
+														"name": "bccAddress",
+														"spec": {
+															"name": "value",
+															"type": "email",
+															"label": "Email"
+														},
+														"type": "array",
+														"label": "BCC Address"
+													},
+													{
+														"name": "subject",
+														"type": "text",
+														"label": "Subject"
+													},
+													{
+														"name": "encoding",
+														"type": "select",
+														"label": "Encoding",
+														"validate": {
+															"enum": [
+																"Big5",
+																"EUC-JP",
+																"EUC-KR",
+																"GB2312",
+																"ISO-2022-JP",
+																"ISO-8859-1",
+																"KOI8-R",
+																"Shift_JIS",
+																"US-ASCII",
+																"UTF-8",
+																"WINDOWS-1251",
+																"WINDOWS-1250",
+																"X-WINDOWS-ISO2022JP"
+															]
+														}
+													},
+													{
+														"name": "mailFormat",
+														"type": "select",
+														"label": "Mail Format",
+														"validate": {
+															"enum": [
+																"plaintext",
+																"html"
+															]
+														}
+													},
+													{
+														"name": "askReceipt",
+														"type": "boolean",
+														"label": "Ask Receipt"
+													}
+												],
+												"restore": {
+													"expect": {
+														"encoding": {
+															"label": "UTF-8"
+														},
+														"accountId": {
+															"mode": "chose",
+															"label": "info@four-walls.gr"
+														},
+														"toAddress": {
+															"items": [
+																null
+															]
+														},
+														"bccAddress": {
+															"items": [
+																null
+															]
+														},
+														"mailFormat": {
+															"label": "HTML"
+														}
+													},
+													"parameters": {
+														"__IMTCONN__": {
+															"data": {
+																"scoped": "true",
+																"connection": "zoho-mail"
+															},
+															"label": "My Zoho Mail connection"
+														}
+													}
+												},
+												"designer": {
+													"x": 1500,
+													"y": 2100,
+													"name": "Send to Client (Sale)"
+												},
+												"parameters": [
+													{
+														"name": "__IMTCONN__",
+														"type": "account:zoho-mail",
+														"label": "Connection",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"__IMTCONN__": 8711103
+											}
+										}
+									],
+									"type": "condition",
+									"label": "Πώληση",
+									"merge": false,
+									"conditions": [
+										[
+											{
+												"a": "{{3.dealType}}",
+												"b": "πώλησ",
+												"o": "text:contain:ci"
+											}
+										]
+									]
+								},
+								{
+									"flow": [
+										{
+											"id": 7,
+											"mapper": {
+												"content": "<!DOCTYPE html>\r\n<html lang=\"el\">\r\n<head>\r\n<meta charset=\"utf-8\">\r\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n<style>\r\n@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Manrope:wght@400;500;600&display=swap');\r\n</style>\r\n</head>\r\n<body style=\"margin:0; padding:0; background:#eef0f4; font-family:'Manrope',Arial,sans-serif; color:#16233A;\">\r\n\r\n<div style=\"display:none; max-height:0; overflow:hidden; mso-hide:all;\">Με αποκλειστική ανάθεση δεν επιβαρύνεστε με καμία προμήθεια. Αξιόπιστοι, φιλτραρισμένοι υποψήφιοι ενοικιαστές.</div>\r\n\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#eef0f4; padding:24px 0;\">\r\n<tr><td align=\"center\">\r\n<table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px; width:100%; background:#ffffff; border-radius:10px; overflow:hidden;\">\r\n\r\n<tr><td style=\"background:#16233A; padding:14px 28px;\">\r\n<span style=\"font-family:'Montserrat',Arial,sans-serif; font-weight:700; font-size:15px; letter-spacing:4px; color:#ffffff;\">FOUR WALLS</span>\r\n<span style=\"font-family:'Montserrat',Arial,sans-serif; font-weight:600; font-size:10px; letter-spacing:3px; color:#FF1462; padding-left:10px;\">REAL ESTATE</span>\r\n</td></tr>\r\n\r\n<tr><td style=\"height:3px; background:#FF1462;\"></td></tr>\r\n\r\n<tr><td style=\"padding:32px 28px 8px 28px;\">\r\n<p style=\"margin:0 0 18px 0; font-size:16px; line-height:1.6;\">{{3.greeting}} σας,</p>\r\n<p style=\"margin:0 0 18px 0; font-size:16px; line-height:1.6;\">Λάβαμε το αίτημά σας στο Spitogatos σχετικά με την <strong>ενοικίαση</strong> του ακινήτου σας ({{3.propType}}, {{3.area}} τ.μ., περιοχή {{3.region}}) και θα χαρούμε να την αναλάβουμε.</p>\r\n\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:0 0 18px 0;\">\r\n<tr><td style=\"border-left:3px solid #FF1462; background:#FBF5F7; padding:14px 18px; font-size:15px; line-height:1.6;\">\r\n<strong>Με ανάθεση της ως άνω μίσθωσης κατ' αποκλειστικότητα στο γραφείο μας δεν επιβαρύνεστε με καμία προμήθεια.</strong> Σε αυτήν την περίπτωση εισπράττουμε αμοιβή μόνο από τον μισθωτή, επομένως εσείς δεν έχετε καμία οικονομική επιβάρυνση.\r\n</td></tr>\r\n</table>\r\n\r\n<p style=\"margin:0 0 20px 0; font-size:16px; line-height:1.6;\">Είμαστε η Four Walls, μεσιτικό γραφείο στο κέντρο της Θεσσαλονίκης. Διατηρούμε μικρό χαρτοφυλάκιο, ώστε να αφιερώνουμε τον χρόνο και την προσοχή που αξίζει κάθε ανάθεση, με προσωπική εξυπηρέτηση σε κάθε στάδιο της διαδικασίας. Τι αναλαμβάνουμε:</p>\r\n</td></tr>\r\n\r\n<tr><td style=\"padding:0 28px;\">\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">\r\n<tr><td style=\"padding:0 0 14px 0; font-size:15px; line-height:1.55;\"><strong style=\"color:#FF1462;\">Ρεαλιστική εκτίμηση μισθώματος σε 48 ώρες.</strong> Με βάση πραγματικά μισθώματα των ακινήτων της γειτονιάς σας, όχι γενικές εκτιμήσεις.</td></tr>\r\n<tr><td style=\"padding:0 0 14px 0; font-size:15px; line-height:1.55;\"><strong style=\"color:#FF1462;\">Φιλτράρισμα υποψήφιων ενοικιαστών.</strong> Διαχειριζόμαστε όλες τις κλήσεις και τα ερωτήματα και σας φέρνουμε σε επαφή μόνο με σοβαρούς και αξιόπιστους υποψήφιους.</td></tr>\r\n<tr><td style=\"padding:0 0 18px 0; font-size:15px; line-height:1.55;\"><strong style=\"color:#FF1462;\">Ένας άνθρωπος από την αρχή ως το τέλος.</strong> Συνεργάζεστε απευθείας με τον Μάνο, από την πρώτη επίσκεψη μέχρι το μισθωτήριο.</td></tr>\r\n</table>\r\n</td></tr>\r\n\r\n<tr><td style=\"padding:0 28px 6px 28px;\">\r\n<p style=\"margin:0 0 18px 0; font-size:16px; line-height:1.6;\">Ο συνεργάτης μας, ο Μάνος, θα επικοινωνήσει μαζί σας {{3.callTiming}}. Αν προτιμάτε, μπορείτε να μας καλέσετε κι εσείς στο +30 6907 483 463.</p>\r\n</td></tr>\r\n\r\n<tr><td style=\"padding:0 28px 28px 28px;\" align=\"center\">\r\n<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr>\r\n<td style=\"background:#FF1462; border-radius:6px;\">\r\n<a href=\"tel:+306907483463\" style=\"display:inline-block; padding:13px 30px; font-family:'Montserrat',Arial,sans-serif; font-weight:600; font-size:15px; color:#ffffff; text-decoration:none;\">Κλείστε δωρεάν εκτίμηση</a>\r\n</td>\r\n</tr></table>\r\n<p style=\"margin:14px 0 0 0; font-size:14px; line-height:1.5; color:#555;\">Χωρίς καμία δέσμευση.</p>\r\n</td></tr>\r\n\r\n<tr><td style=\"background:#16233A; padding:18px 28px;\">\r\n<p style=\"margin:0; font-size:12px; line-height:1.7; color:#cdd3de;\">\r\n<strong style=\"color:#ffffff;\">Four Walls Real Estate</strong> · <a href=\"tel:+306907483463\" style=\"color:#ffffff; text-decoration:underline;\">+30 6907 483 463</a> · <a href=\"mailto:info@four-walls.gr\" style=\"color:#ffffff; text-decoration:underline;\">info@four-walls.gr</a><br>\nΦραγκίνη 9, Θεσσαλονίκη · <a href=\"https://four-walls.gr/go?to=/&amp;c=CAMPAIGN\" style=\"color:#ffffff; text-decoration:underline;\">four-walls.gr</a>\r\n</p>\r\n</td></tr>\r\n\r\n</table>\r\n</td></tr>\r\n</table>\r\n</body>\r\n</html>",
+												"subject": "Για την ενοικίαση του ακινήτου σας: 0% προμήθεια με αποκλειστική ανάθεση",
+												"encoding": "UTF-8",
+												"accountId": "5796850000000008002",
+												"ccAddress": [],
+												"toAddress": [
+													"{{3.clientEmail}}"
+												],
+												"bccAddress": [
+													"panos@four-walls.gr"
+												],
+												"mailFormat": "html",
+												"fromAddress": "{{var.input.senderEmail}}"
+											},
+											"module": "zoho-mail:sendMail",
+											"version": 1,
+											"metadata": {
+												"expect": [
+													{
+														"name": "accountId",
+														"type": "select",
+														"label": "Account ID",
+														"required": true
+													},
+													{
+														"name": "fromAddress",
+														"type": "email",
+														"label": "From Address",
+														"required": true
+													},
+													{
+														"name": "toAddress",
+														"spec": {
+															"name": "value",
+															"type": "email",
+															"label": "Email",
+															"required": true
+														},
+														"type": "array",
+														"label": "To Address",
+														"required": true
+													},
+													{
+														"name": "content",
+														"type": "text",
+														"label": "Content"
+													},
+													{
+														"name": "ccAddress",
+														"spec": {
+															"name": "value",
+															"type": "email",
+															"label": "Email"
+														},
+														"type": "array",
+														"label": "CC Address"
+													},
+													{
+														"name": "bccAddress",
+														"spec": {
+															"name": "value",
+															"type": "email",
+															"label": "Email"
+														},
+														"type": "array",
+														"label": "BCC Address"
+													},
+													{
+														"name": "subject",
+														"type": "text",
+														"label": "Subject"
+													},
+													{
+														"name": "encoding",
+														"type": "select",
+														"label": "Encoding",
+														"validate": {
+															"enum": [
+																"Big5",
+																"EUC-JP",
+																"EUC-KR",
+																"GB2312",
+																"ISO-2022-JP",
+																"ISO-8859-1",
+																"KOI8-R",
+																"Shift_JIS",
+																"US-ASCII",
+																"UTF-8",
+																"WINDOWS-1251",
+																"WINDOWS-1250",
+																"X-WINDOWS-ISO2022JP"
+															]
+														}
+													},
+													{
+														"name": "mailFormat",
+														"type": "select",
+														"label": "Mail Format",
+														"validate": {
+															"enum": [
+																"plaintext",
+																"html"
+															]
+														}
+													},
+													{
+														"name": "askReceipt",
+														"type": "boolean",
+														"label": "Ask Receipt"
+													}
+												],
+												"restore": {
+													"expect": {
+														"encoding": {
+															"label": "UTF-8"
+														},
+														"accountId": {
+															"mode": "chose",
+															"label": "info@four-walls.gr"
+														},
+														"toAddress": {
+															"items": [
+																null
+															]
+														},
+														"bccAddress": {
+															"items": [
+																null
+															]
+														},
+														"mailFormat": {
+															"label": "HTML"
+														}
+													},
+													"parameters": {
+														"__IMTCONN__": {
+															"data": {
+																"scoped": "true",
+																"connection": "zoho-mail"
+															},
+															"label": "My Zoho Mail connection"
+														}
+													}
+												},
+												"designer": {
+													"x": 1500,
+													"y": 2400,
+													"name": "Send to Client (Rent)"
+												},
+												"parameters": [
+													{
+														"name": "__IMTCONN__",
+														"type": "account:zoho-mail",
+														"label": "Connection",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"__IMTCONN__": 8711103
+											}
+										}
+									],
+									"type": "condition",
+									"label": "Ενοικίαση",
+									"merge": false,
+									"conditions": [
+										[
+											{
+												"a": "{{3.dealType}}",
+												"b": "ενοικίασ",
+												"o": "text:contain:ci"
+											}
+										]
+									]
+								},
+								{
+									"flow": [
+										{
+											"id": 25,
+											"mapper": {
+												"content": "<!DOCTYPE html>\r\n<html lang=\"el\">\r\n<head>\r\n<meta charset=\"utf-8\">\r\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n<style>\r\n@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Manrope:wght@400;500;600&display=swap');\r\n</style>\r\n</head>\r\n<body style=\"margin:0; padding:0; background:#eef0f4; font-family:'Manrope',Arial,sans-serif; color:#16233A;\">\r\n\r\n<div style=\"display:none; max-height:0; overflow:hidden; mso-hide:all;\">Δωρεάν εκτίμηση σε 48 ώρες και άμεση τηλεφωνική επικοινωνία από τον Μάνο.</div>\r\n\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#eef0f4; padding:24px 0;\">\r\n<tr><td align=\"center\">\r\n<table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px; width:100%; background:#ffffff; border-radius:10px; overflow:hidden;\">\r\n\r\n<tr><td style=\"background:#16233A; padding:14px 28px;\">\r\n<span style=\"font-family:'Montserrat',Arial,sans-serif; font-weight:700; font-size:15px; letter-spacing:4px; color:#ffffff;\">FOUR WALLS</span>\r\n<span style=\"font-family:'Montserrat',Arial,sans-serif; font-weight:600; font-size:10px; letter-spacing:3px; color:#FF1462; padding-left:10px;\">REAL ESTATE</span>\r\n</td></tr>\r\n\r\n<tr><td style=\"height:3px; background:#FF1462;\"></td></tr>\r\n\r\n<tr><td style=\"padding:32px 28px 8px 28px;\">\r\n<p style=\"margin:0 0 18px 0; font-size:16px; line-height:1.6;\">{{3.greeting}} σας,</p>\r\n<p style=\"margin:0 0 18px 0; font-size:16px; line-height:1.6;\">Λάβαμε μόλις το αίτημά σας για <strong>{{3.dealType}}</strong> του ακινήτου σας ({{3.propType}}, {{3.region}}). Μπορούμε να σας δώσουμε <strong>δωρεάν ρεαλιστική εκτίμηση μέσα σε 48 ώρες</strong>, και ο συνεργάτης μας, ο Μάνος, θα σας καλέσει {{3.callTiming}}.</p>\r\n<p style=\"margin:0 0 20px 0; font-size:16px; line-height:1.6;\">Είμαστε μεσιτικό γραφείο στο κέντρο της Θεσσαλονίκης, με προσωπική επαφή και βαθιά γνώση της τοπικής αγοράς. Τι σημαίνει αυτό για εσάς:</p>\r\n</td></tr>\r\n\r\n<tr><td style=\"padding:0 28px;\">\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">\r\n<tr><td style=\"padding:0 0 14px 0; font-size:15px; line-height:1.55;\"><strong style=\"color:#FF1462;\">Δωρεάν εκτίμηση σε 48 ώρες.</strong> Ρεαλιστική τιμή με βάση πραγματικά δεδομένα των ακινήτων της γειτονιάς σας, όχι γενικές εκτιμήσεις.</td></tr>\r\n<tr><td style=\"padding:0 0 14px 0; font-size:15px; line-height:1.55;\"><strong style=\"color:#FF1462;\">Ένας άνθρωπος από την αρχή ως το τέλος.</strong> Συνεργάζεστε απευθείας με τον Μάνο, χωρίς αλυσίδες ραντεβού με διαφορετικούς υπαλλήλους.</td></tr>\r\n<tr><td style=\"padding:0 0 22px 0; font-size:15px; line-height:1.55;\"><strong style=\"color:#FF1462;\">Επαγγελματική προβολή.</strong> Ποιοτικές φωτογραφίες και προβολή στο site μας, στο Spitogatos, στο XE και σε διεθνή δίκτυα.</td></tr>\r\n</table>\r\n</td></tr>\r\n\r\n<tr><td style=\"padding:0 28px 28px 28px;\" align=\"center\">\r\n<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr>\r\n<td style=\"background:#FF1462; border-radius:6px;\">\r\n<a href=\"tel:+306907483463\" style=\"display:inline-block; padding:13px 30px; font-family:'Montserrat',Arial,sans-serif; font-weight:600; font-size:15px; color:#ffffff; text-decoration:none;\">Κλείστε δωρεάν εκτίμηση</a>\r\n</td>\r\n</tr></table>\r\n<p style=\"margin:14px 0 0 0; font-size:14px; line-height:1.5; color:#555;\">Χωρίς καμία δέσμευση.</p>\r\n</td></tr>\r\n\r\n<tr><td style=\"background:#16233A; padding:18px 28px;\">\r\n<p style=\"margin:0; font-size:12px; line-height:1.7; color:#cdd3de;\">\r\n<strong style=\"color:#ffffff;\">Four Walls Real Estate</strong> · <a href=\"tel:+306907483463\" style=\"color:#ffffff; text-decoration:underline;\">+30 6907 483 463</a> · <a href=\"mailto:info@four-walls.gr\" style=\"color:#ffffff; text-decoration:underline;\">info@four-walls.gr</a><br>\nΦραγκίνη 9, Θεσσαλονίκη · <a href=\"https://four-walls.gr/go?to=/&amp;c=CAMPAIGN\" style=\"color:#ffffff; text-decoration:underline;\">four-walls.gr</a>\r\n</p>\r\n</td></tr>\r\n\r\n</table>\r\n</td></tr>\r\n</table>\r\n</body>\r\n</html>",
+												"subject": "Για το ακίνητό σας: δωρεάν εκτίμηση σε 48 ώρες",
+												"encoding": "UTF-8",
+												"accountId": "5796850000000008002",
+												"ccAddress": [],
+												"toAddress": [
+													"{{3.clientEmail}}"
+												],
+												"bccAddress": [
+													"panos@four-walls.gr"
+												],
+												"mailFormat": "html",
+												"fromAddress": "{{var.input.senderEmail}}"
+											},
+											"module": "zoho-mail:sendMail",
+											"version": 1,
+											"metadata": {
+												"expect": [
+													{
+														"name": "accountId",
+														"type": "select",
+														"label": "Account ID",
+														"required": true
+													},
+													{
+														"name": "fromAddress",
+														"type": "email",
+														"label": "From Address",
+														"required": true
+													},
+													{
+														"name": "toAddress",
+														"spec": {
+															"name": "value",
+															"type": "email",
+															"label": "Email",
+															"required": true
+														},
+														"type": "array",
+														"label": "To Address",
+														"required": true
+													},
+													{
+														"name": "content",
+														"type": "text",
+														"label": "Content"
+													},
+													{
+														"name": "ccAddress",
+														"spec": {
+															"name": "value",
+															"type": "email",
+															"label": "Email"
+														},
+														"type": "array",
+														"label": "CC Address"
+													},
+													{
+														"name": "bccAddress",
+														"spec": {
+															"name": "value",
+															"type": "email",
+															"label": "Email"
+														},
+														"type": "array",
+														"label": "BCC Address"
+													},
+													{
+														"name": "subject",
+														"type": "text",
+														"label": "Subject"
+													},
+													{
+														"name": "encoding",
+														"type": "select",
+														"label": "Encoding",
+														"validate": {
+															"enum": [
+																"Big5",
+																"EUC-JP",
+																"EUC-KR",
+																"GB2312",
+																"ISO-2022-JP",
+																"ISO-8859-1",
+																"KOI8-R",
+																"Shift_JIS",
+																"US-ASCII",
+																"UTF-8",
+																"WINDOWS-1251",
+																"WINDOWS-1250",
+																"X-WINDOWS-ISO2022JP"
+															]
+														}
+													},
+													{
+														"name": "mailFormat",
+														"type": "select",
+														"label": "Mail Format",
+														"validate": {
+															"enum": [
+																"plaintext",
+																"html"
+															]
+														}
+													},
+													{
+														"name": "askReceipt",
+														"type": "boolean",
+														"label": "Ask Receipt"
+													}
+												],
+												"restore": {
+													"expect": {
+														"encoding": {
+															"label": "UTF-8"
+														},
+														"accountId": {
+															"mode": "chose",
+															"label": "info@four-walls.gr"
+														},
+														"toAddress": {
+															"items": [
+																null
+															]
+														},
+														"bccAddress": {
+															"items": [
+																null
+															]
+														},
+														"mailFormat": {
+															"label": "HTML"
+														}
+													},
+													"parameters": {
+														"__IMTCONN__": {
+															"data": {
+																"scoped": "true",
+																"connection": "zoho-mail"
+															},
+															"label": "My Zoho Mail connection"
+														}
+													}
+												},
+												"designer": {
+													"x": 1500,
+													"y": 2700,
+													"name": "Send to Client (Fallback)"
+												},
+												"parameters": [
+													{
+														"name": "__IMTCONN__",
+														"type": "account:zoho-mail",
+														"label": "Connection",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"__IMTCONN__": 8711103
+											}
+										}
+									],
+									"type": "else",
+									"label": "",
+									"merge": false,
+									"disabled": false
+								}
+							],
+							"metadata": {
+								"designer": {
+									"x": 1200,
+									"y": 2400
+								}
+							}
+						}
+					]
+				}
+			],
+			"version": 1,
+			"metadata": {
+				"designer": {
+					"x": 600,
+					"y": 1500
+				}
+			}
+		}
+	],
+	"name": "Spitogatos - Αίτηση ανάθεσης",
+	"metadata": {
+		"instant": true,
+		"version": 1,
+		"designer": {
+			"orphans": []
+		},
+		"scenario": {
+			"dlq": false,
+			"slots": null,
+			"dataloss": false,
+			"maxErrors": 3,
+			"autoCommit": true,
+			"roundtrips": 1,
+			"sequential": false,
+			"confidential": false,
+			"freshVariables": false,
+			"autoCommitTriggerLast": true
+		}
+	}
+}

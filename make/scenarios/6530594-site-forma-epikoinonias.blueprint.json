@@ -1,0 +1,426 @@
+{
+	"flow": [
+		{
+			"id": 1,
+			"mapper": {},
+			"module": "gateway:CustomWebHook",
+			"version": 1,
+			"metadata": {
+				"restore": {
+					"parameters": {
+						"hook": {
+							"data": {
+								"editable": "true"
+							},
+							"label": "Four Walls contact form"
+						}
+					}
+				},
+				"designer": {
+					"x": 0,
+					"y": 0,
+					"name": "Φόρμα επικοινωνίας / ζήτησης"
+				},
+				"parameters": [
+					{
+						"name": "hook",
+						"type": "hook:gateway-webhook",
+						"label": "Webhook",
+						"required": true
+					},
+					{
+						"name": "maxResults",
+						"type": "number",
+						"label": "Maximum number of results"
+					}
+				]
+			},
+			"parameters": {
+				"hook": 3379174,
+				"maxResults": 1
+			}
+		},
+		{
+			"id": 10,
+			"mapper": null,
+			"module": "builtin:BasicRouter",
+			"routes": [
+				{
+					"flow": [
+						{
+							"id": 3,
+							"filter": {
+								"name": "Μόνο ζητήσεις",
+								"conditions": [
+									[
+										{
+											"a": "{{1.form}}",
+											"b": "zitisi",
+											"o": "text:equal"
+										}
+									]
+								]
+							},
+							"mapper": {
+								"content": "<!DOCTYPE html>\r\n<html lang=\"el\">\r\n<head>\r\n<meta charset=\"utf-8\">\r\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n</head>\r\n<body style=\"margin:0; padding:0; background:#f4f5f7; font-family:Arial,sans-serif;\">\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f4f5f7; padding:16px 0;\">\r\n<tr><td align=\"center\">\r\n<table role=\"presentation\" width=\"560\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:560px; width:100%; background:#ffffff; border-radius:8px; overflow:hidden;\">\r\n\r\n<tr><td style=\"background:#16233A; padding:12px 20px; color:#ffffff; font-size:15px; font-weight:bold; letter-spacing:1px;\">ΝΕΑ ΖΗΤΗΣΗ · ΑΠΟ ΤΟ SITE ΜΑΣ</td></tr>\r\n<tr><td style=\"height:3px; background:#FF1462;\"></td></tr>\r\n\r\n<tr><td style=\"padding:16px 20px 8px 20px;\">\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"font-size:14px; line-height:1.7; color:#16233A;\">\r\n<tr><td style=\"color:#777777; width:150px; padding:2px 0; vertical-align:top;\">Όνομα</td><td style=\"padding:2px 0; font-weight:bold;\">{{1.name}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Τηλέφωνο</td><td style=\"padding:2px 0; font-weight:bold; color:#FF1462;\">{{ifempty(1.phone; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Email</td><td style=\"padding:2px 0;\">{{if(length(1.email) > 0; \"<a href='mailto:\" + 1.email + \"' style='color:#16233A;'>\" + 1.email + \"</a>\"; \"—\")}}</td></tr>\r\n<tr><td colspan=\"2\" style=\"padding:8px 0 2px 0;\"><div style=\"height:1px; background:#eceef2;\"></div></td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Ζητάει</td><td style=\"padding:2px 0; font-weight:bold;\">{{1.transactionLabel}} · {{1.categoryLabel}}{{if(length(1.subcategoryLabel) > 0; \" · \" + 1.subcategoryLabel; \"\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Περιοχές</td><td style=\"padding:2px 0;\">{{ifempty(1.areas; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Τιμή</td><td style=\"padding:2px 0;\">{{if(length(1.priceMin) > 0; 1.priceMin + \" – \"; \"έως \")}}{{ifempty(1.priceMax; \"χωρίς όριο\")}} €</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Εμβαδόν</td><td style=\"padding:2px 0;\">{{if(length(1.sizeMin) > 0; \"από \" + 1.sizeMin; \"\")}}{{if(length(1.sizeMax) > 0; \" έως \" + 1.sizeMax; \"\")}}{{if(length(1.sizeMin) + length(1.sizeMax) > 0; \" τ.μ.\"; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Υπνοδωμάτια</td><td style=\"padding:2px 0;\">{{if(length(1.bedroomsMin) > 0; \"από \" + 1.bedroomsMin; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Όροφος</td><td style=\"padding:2px 0;\">{{if(length(1.floorMin) > 0; \"από \" + 1.floorMin; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Χαρακτηριστικά</td><td style=\"padding:2px 0;\">{{ifempty(1.featuresLabel; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Σχόλια</td><td style=\"padding:2px 0;\">{{ifempty(replace(1.comment; \"/\\r?\\n/g\"; \"<br>\"); \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Γλώσσα / σελίδα</td><td style=\"padding:2px 0;\">{{1.lang}} · four-walls.gr{{1.page}}</td></tr>\r\n</table>\r\n\r\n<a href=\"https://fourwalls.estateprime.gr/requests/form\" style=\"display:block; background:#FF1462; color:#ffffff; text-align:center; padding:14px; border-radius:6px; font-weight:bold; text-decoration:none; font-size:15px; margin:16px 0 6px 0;\">Καταχώριση ζήτησης στο CRM</a>\r\n<p style=\"font-size:12px; color:#777777; margin:8px 0 14px 0; line-height:1.5;\">Η ζήτηση <strong>δεν έχει καταχωρηθεί αυτόματα</strong> στο CRM (το EstatePrime δεν έχει ακόμα endpoint για δημιουργία ζήτησης). Καταχώρισέ τη με το παραπάνω κουμπί και πάρε τηλέφωνο τον πελάτη.</p>\r\n</td></tr>\r\n\r\n</table>\r\n</td></tr>\r\n</table>\r\n</body>\r\n</html>",
+								"subject": "ΝΕΑ ΖΗΤΗΣΗ · {{1.transactionLabel}} · {{1.categoryLabel}}{{if(length(1.areas) > 0; \" · \" + 1.areas; \"\")}} · {{1.name}}",
+								"encoding": "UTF-8",
+								"accountId": "5796850000000008002",
+								"ccAddress": [],
+								"toAddress": [
+									"info@four-walls.gr"
+								],
+								"bccAddress": [],
+								"mailFormat": "html",
+								"fromAddress": "info@four-walls.gr"
+							},
+							"module": "zoho-mail:sendMail",
+							"version": 1,
+							"metadata": {
+								"expect": [
+									{
+										"name": "accountId",
+										"type": "select",
+										"label": "Account ID",
+										"required": true
+									},
+									{
+										"name": "fromAddress",
+										"type": "email",
+										"label": "From Address",
+										"required": true
+									},
+									{
+										"name": "toAddress",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email",
+											"required": true
+										},
+										"type": "array",
+										"label": "To Address",
+										"required": true
+									},
+									{
+										"name": "content",
+										"type": "text",
+										"label": "Content"
+									},
+									{
+										"name": "ccAddress",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email"
+										},
+										"type": "array",
+										"label": "CC Address"
+									},
+									{
+										"name": "bccAddress",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email"
+										},
+										"type": "array",
+										"label": "BCC Address"
+									},
+									{
+										"name": "subject",
+										"type": "text",
+										"label": "Subject"
+									},
+									{
+										"name": "encoding",
+										"type": "select",
+										"label": "Encoding",
+										"validate": {
+											"enum": [
+												"Big5",
+												"EUC-JP",
+												"EUC-KR",
+												"GB2312",
+												"ISO-2022-JP",
+												"ISO-8859-1",
+												"KOI8-R",
+												"Shift_JIS",
+												"US-ASCII",
+												"UTF-8",
+												"WINDOWS-1251",
+												"WINDOWS-1250",
+												"X-WINDOWS-ISO2022JP"
+											]
+										}
+									},
+									{
+										"name": "mailFormat",
+										"type": "select",
+										"label": "Mail Format",
+										"validate": {
+											"enum": [
+												"plaintext",
+												"html"
+											]
+										}
+									},
+									{
+										"name": "askReceipt",
+										"type": "boolean",
+										"label": "Ask Receipt"
+									}
+								],
+								"restore": {
+									"expect": {
+										"encoding": {
+											"label": "UTF-8"
+										},
+										"accountId": {
+											"mode": "chose",
+											"label": "info@four-walls.gr"
+										},
+										"toAddress": {
+											"items": [
+												null
+											]
+										},
+										"mailFormat": {
+											"label": "HTML"
+										}
+									},
+									"parameters": {
+										"__IMTCONN__": {
+											"data": {
+												"scoped": "true",
+												"connection": "zoho-mail"
+											},
+											"label": "My Zoho Mail connection"
+										}
+									}
+								},
+								"designer": {
+									"x": 600,
+									"y": -150,
+									"name": "Email ζήτησης στη γραμματεία"
+								},
+								"parameters": [
+									{
+										"name": "__IMTCONN__",
+										"type": "account:zoho-mail",
+										"label": "Connection",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"__IMTCONN__": 8711103
+							}
+						}
+					]
+				},
+				{
+					"flow": [
+						{
+							"id": 2,
+							"filter": {
+								"name": "Κανονική επικοινωνία",
+								"conditions": [
+									[
+										{
+											"a": "{{1.form}}",
+											"b": "zitisi",
+											"o": "text:notequal"
+										}
+									]
+								]
+							},
+							"mapper": {
+								"content": "<!DOCTYPE html>\r\n<html lang=\"el\">\r\n<head>\r\n<meta charset=\"utf-8\">\r\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n</head>\r\n<body style=\"margin:0; padding:0; background:#f4f5f7; font-family:Arial,sans-serif;\">\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f4f5f7; padding:16px 0;\">\r\n<tr><td align=\"center\">\r\n<table role=\"presentation\" width=\"520\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:520px; width:100%; background:#ffffff; border-radius:8px; overflow:hidden;\">\r\n\r\n<tr><td style=\"background:#16233A; padding:12px 20px; color:#ffffff; font-size:15px; font-weight:bold; letter-spacing:1px;\">ΝΕΟ ΜΗΝΥΜΑ - ΦΟΡΜΑ ΕΠΙΚΟΙΝΩΝΙΑΣ</td></tr>\r\n<tr><td style=\"height:3px; background:#FF1462;\"></td></tr>\r\n\r\n<tr><td style=\"padding:16px 20px 8px 20px;\">\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"font-size:14px; line-height:1.7; color:#16233A;\">\r\n<tr><td style=\"color:#777777; width:140px; padding:2px 0; vertical-align:top;\">Όνομα</td><td style=\"padding:2px 0; font-weight:bold;\">{{1.name}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Email</td><td style=\"padding:2px 0; font-weight:bold;\"><a href=\"mailto:{{1.email}}\" style=\"color:#16233A;\">{{1.email}}</a></td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Τηλέφωνο</td><td style=\"padding:2px 0; font-weight:bold;\">{{ifempty(1.phone; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Μήνυμα</td><td style=\"padding:2px 0;\">{{replace(1.message; \"/\\r?\\n/g\"; \"<br>\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Σελίδα</td><td style=\"padding:2px 0;\"><a href=\"https://four-walls.gr{{1.page}}\" style=\"color:#FF1462;\">four-walls.gr{{1.page}}</a></td></tr>\r\n</table>\r\n\r\n<a href=\"mailto:{{1.email}}\" style=\"display:block; background:#FF1462; color:#ffffff; text-align:center; padding:14px; border-radius:6px; font-weight:bold; text-decoration:none; font-size:15px; margin:16px 0 14px 0;\">Απάντηση στο μήνυμα</a>\r\n</td></tr>\r\n\r\n</table>\r\n</td></tr>\r\n</table>\r\n</body>\r\n</html>",
+								"subject": "ΝΕΟ ΜΗΝΥΜΑ · Φόρμα επικοινωνίας · {{1.name}}",
+								"encoding": "UTF-8",
+								"accountId": "5796850000000008002",
+								"ccAddress": [],
+								"toAddress": [
+									"info@four-walls.gr"
+								],
+								"bccAddress": [],
+								"mailFormat": "html",
+								"fromAddress": "info@four-walls.gr"
+							},
+							"module": "zoho-mail:sendMail",
+							"version": 1,
+							"metadata": {
+								"expect": [
+									{
+										"name": "accountId",
+										"type": "select",
+										"label": "Account ID",
+										"required": true
+									},
+									{
+										"name": "fromAddress",
+										"type": "email",
+										"label": "From Address",
+										"required": true
+									},
+									{
+										"name": "toAddress",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email",
+											"required": true
+										},
+										"type": "array",
+										"label": "To Address",
+										"required": true
+									},
+									{
+										"name": "content",
+										"type": "text",
+										"label": "Content"
+									},
+									{
+										"name": "ccAddress",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email"
+										},
+										"type": "array",
+										"label": "CC Address"
+									},
+									{
+										"name": "bccAddress",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email"
+										},
+										"type": "array",
+										"label": "BCC Address"
+									},
+									{
+										"name": "subject",
+										"type": "text",
+										"label": "Subject"
+									},
+									{
+										"name": "encoding",
+										"type": "select",
+										"label": "Encoding",
+										"validate": {
+											"enum": [
+												"Big5",
+												"EUC-JP",
+												"EUC-KR",
+												"GB2312",
+												"ISO-2022-JP",
+												"ISO-8859-1",
+												"KOI8-R",
+												"Shift_JIS",
+												"US-ASCII",
+												"UTF-8",
+												"WINDOWS-1251",
+												"WINDOWS-1250",
+												"X-WINDOWS-ISO2022JP"
+											]
+										}
+									},
+									{
+										"name": "mailFormat",
+										"type": "select",
+										"label": "Mail Format",
+										"validate": {
+											"enum": [
+												"plaintext",
+												"html"
+											]
+										}
+									},
+									{
+										"name": "askReceipt",
+										"type": "boolean",
+										"label": "Ask Receipt"
+									}
+								],
+								"restore": {
+									"expect": {
+										"encoding": {
+											"label": "UTF-8"
+										},
+										"accountId": {
+											"mode": "chose",
+											"label": "info@four-walls.gr"
+										},
+										"toAddress": {
+											"items": [
+												null
+											]
+										},
+										"mailFormat": {
+											"label": "HTML"
+										}
+									},
+									"parameters": {
+										"__IMTCONN__": {
+											"data": {
+												"scoped": "true",
+												"connection": "zoho-mail"
+											},
+											"label": "My Zoho Mail connection"
+										}
+									}
+								},
+								"designer": {
+									"x": 600,
+									"y": 150,
+									"name": "Email στον Πάνο"
+								},
+								"parameters": [
+									{
+										"name": "__IMTCONN__",
+										"type": "account:zoho-mail",
+										"label": "Connection",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"__IMTCONN__": 8711103
+							}
+						}
+					]
+				}
+			],
+			"version": 1,
+			"metadata": {
+				"designer": {
+					"x": 300,
+					"y": 0
+				}
+			}
+		}
+	],
+	"name": "Site - Φόρμα επικοινωνίας",
+	"metadata": {
+		"instant": true,
+		"version": 1,
+		"designer": {
+			"orphans": []
+		},
+		"scenario": {
+			"dlq": false,
+			"slots": null,
+			"dataloss": false,
+			"maxErrors": 3,
+			"autoCommit": true,
+			"roundtrips": 1,
+			"sequential": false,
+			"confidential": false,
+			"freshVariables": false,
+			"autoCommitTriggerLast": true
+		}
+	}
+}

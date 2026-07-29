@@ -1,0 +1,208 @@
+{
+	"flow": [
+		{
+			"id": 1,
+			"mapper": {},
+			"module": "gateway:CustomWebHook",
+			"version": 1,
+			"metadata": {
+				"restore": {
+					"parameters": {
+						"hook": {
+							"data": {
+								"editable": "true"
+							},
+							"label": "CRM — νέα ακίνητα σε ζητήσεις"
+						}
+					}
+				},
+				"designer": {
+					"x": 0,
+					"y": 0,
+					"name": "Νέα ακίνητα σε ζητήσεις"
+				},
+				"parameters": [
+					{
+						"name": "hook",
+						"type": "hook:gateway-webhook",
+						"label": "Webhook",
+						"required": true
+					},
+					{
+						"name": "maxResults",
+						"type": "number",
+						"label": "Maximum number of results"
+					}
+				]
+			},
+			"parameters": {
+				"hook": 3457244,
+				"maxResults": 1
+			}
+		},
+		{
+			"id": 2,
+			"mapper": {
+				"content": "{{1.html}}",
+				"subject": "{{1.subject}}",
+				"encoding": "UTF-8",
+				"accountId": "5796850000000008002",
+				"ccAddress": [
+					"manos@four-walls.gr",
+					"panos@four-walls.gr"
+				],
+				"toAddress": [
+					"info@four-walls.gr"
+				],
+				"bccAddress": [],
+				"mailFormat": "html",
+				"fromAddress": "info@four-walls.gr"
+			},
+			"module": "zoho-mail:sendMail",
+			"version": 1,
+			"metadata": {
+				"expect": [
+					{
+						"name": "accountId",
+						"type": "select",
+						"label": "Account ID",
+						"required": true
+					},
+					{
+						"name": "fromAddress",
+						"type": "email",
+						"label": "From Address",
+						"required": true
+					},
+					{
+						"name": "toAddress",
+						"spec": {
+							"name": "value",
+							"type": "email",
+							"label": "Email",
+							"required": true
+						},
+						"type": "array",
+						"label": "To Address",
+						"required": true
+					},
+					{
+						"name": "content",
+						"type": "text",
+						"label": "Content"
+					},
+					{
+						"name": "ccAddress",
+						"spec": {
+							"name": "value",
+							"type": "email",
+							"label": "Email"
+						},
+						"type": "array",
+						"label": "CC Address"
+					},
+					{
+						"name": "bccAddress",
+						"spec": {
+							"name": "value",
+							"type": "email",
+							"label": "Email"
+						},
+						"type": "array",
+						"label": "BCC Address"
+					},
+					{
+						"name": "subject",
+						"type": "text",
+						"label": "Subject"
+					},
+					{
+						"name": "encoding",
+						"type": "select",
+						"label": "Encoding"
+					},
+					{
+						"name": "mailFormat",
+						"type": "select",
+						"label": "Mail Format"
+					},
+					{
+						"name": "askReceipt",
+						"type": "boolean",
+						"label": "Ask Receipt"
+					}
+				],
+				"restore": {
+					"expect": {
+						"encoding": {
+							"label": "UTF-8"
+						},
+						"accountId": {
+							"mode": "chose",
+							"label": "info@four-walls.gr"
+						},
+						"ccAddress": {
+							"items": [
+								null,
+								null
+							]
+						},
+						"toAddress": {
+							"items": [
+								null
+							]
+						},
+						"mailFormat": {
+							"label": "HTML"
+						}
+					},
+					"parameters": {
+						"__IMTCONN__": {
+							"data": {
+								"scoped": "true",
+								"connection": "zoho-mail"
+							},
+							"label": "My Zoho Mail connection"
+						}
+					}
+				},
+				"designer": {
+					"x": 300,
+					"y": 0,
+					"name": "Email στο info@"
+				},
+				"parameters": [
+					{
+						"name": "__IMTCONN__",
+						"type": "account:zoho-mail",
+						"label": "Connection",
+						"required": true
+					}
+				]
+			},
+			"parameters": {
+				"__IMTCONN__": 8711103
+			}
+		}
+	],
+	"name": "CRM - Νέα ακίνητα σε ζητήσεις",
+	"metadata": {
+		"instant": true,
+		"version": 1,
+		"designer": {
+			"orphans": []
+		},
+		"scenario": {
+			"dlq": true,
+			"slots": null,
+			"dataloss": false,
+			"maxErrors": 3,
+			"autoCommit": true,
+			"roundtrips": 1,
+			"sequential": false,
+			"confidential": false,
+			"freshVariables": false,
+			"autoCommitTriggerLast": true
+		}
+	}
+}
