@@ -157,17 +157,6 @@ a { color: #b8004a; }
 .split li span { color: var(--muted); }
 @media (max-width: 640px) { .split { grid-template-columns: 1fr; } }
 
-/* Συγκεντρωτικός πίνακας «τι μπαίνει μόνο του» */
-.sumwrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line);
-	border-radius: 16px; padding: 6px 6px 2px; margin: 14px 0; }
-table.sum { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 15px; }
-table.sum th, table.sum td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); }
-table.sum th { color: var(--navy); font-weight: 800; font-size: 14px; }
-table.sum tr:last-child td { border-bottom: 0; }
-table.sum td.y { color: #1c7a37; font-weight: 700; }
-table.sum td.n { color: #b02525; font-weight: 700; }
-table.sum td.l { color: #a05a06; font-weight: 700; }
-
 /* «Τι κάνουμε»: η οδηγία, όταν την έχουμε */
 .action {
 	background: #f3f7ff; border: 1px solid #cfe0f7; border-left: 4px solid var(--pink);
