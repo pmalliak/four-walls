@@ -19,7 +19,7 @@
 				"designer": {
 					"x": 0,
 					"y": 0,
-					"name": "Φόρμα επικοινωνίας / ζήτησης"
+					"name": "Φόρμα επικοινωνίας / ζήτησης / ανάθεσης"
 				},
 				"parameters": [
 					{
@@ -48,7 +48,7 @@
 				{
 					"flow": [
 						{
-							"id": 3,
+							"id": 31,
 							"filter": {
 								"name": "Μόνο ζητήσεις",
 								"conditions": [
@@ -62,7 +62,445 @@
 								]
 							},
 							"mapper": {
-								"content": "<!DOCTYPE html>\r\n<html lang=\"el\">\r\n<head>\r\n<meta charset=\"utf-8\">\r\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n</head>\r\n<body style=\"margin:0; padding:0; background:#f4f5f7; font-family:Arial,sans-serif;\">\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f4f5f7; padding:16px 0;\">\r\n<tr><td align=\"center\">\r\n<table role=\"presentation\" width=\"560\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:560px; width:100%; background:#ffffff; border-radius:8px; overflow:hidden;\">\r\n\r\n<tr><td style=\"background:#16233A; padding:12px 20px; color:#ffffff; font-size:15px; font-weight:bold; letter-spacing:1px;\">ΝΕΑ ΖΗΤΗΣΗ · ΑΠΟ ΤΟ SITE ΜΑΣ</td></tr>\r\n<tr><td style=\"height:3px; background:#FF1462;\"></td></tr>\r\n\r\n<tr><td style=\"padding:16px 20px 8px 20px;\">\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"font-size:14px; line-height:1.7; color:#16233A;\">\r\n<tr><td style=\"color:#777777; width:150px; padding:2px 0; vertical-align:top;\">Όνομα</td><td style=\"padding:2px 0; font-weight:bold;\">{{1.name}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Τηλέφωνο</td><td style=\"padding:2px 0; font-weight:bold; color:#FF1462;\">{{ifempty(1.phone; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Email</td><td style=\"padding:2px 0;\">{{if(length(1.email) > 0; \"<a href='mailto:\" + 1.email + \"' style='color:#16233A;'>\" + 1.email + \"</a>\"; \"—\")}}</td></tr>\r\n<tr><td colspan=\"2\" style=\"padding:8px 0 2px 0;\"><div style=\"height:1px; background:#eceef2;\"></div></td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Ζητάει</td><td style=\"padding:2px 0; font-weight:bold;\">{{1.transactionLabel}} · {{1.categoryLabel}}{{if(length(1.subcategoryLabel) > 0; \" · \" + 1.subcategoryLabel; \"\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Περιοχές</td><td style=\"padding:2px 0;\">{{ifempty(1.areas; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Τιμή</td><td style=\"padding:2px 0;\">{{if(length(1.priceMin) > 0; 1.priceMin + \" – \"; \"έως \")}}{{ifempty(1.priceMax; \"χωρίς όριο\")}} €</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Εμβαδόν</td><td style=\"padding:2px 0;\">{{if(length(1.sizeMin) > 0; \"από \" + 1.sizeMin; \"\")}}{{if(length(1.sizeMax) > 0; \" έως \" + 1.sizeMax; \"\")}}{{if(length(1.sizeMin) + length(1.sizeMax) > 0; \" τ.μ.\"; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Υπνοδωμάτια</td><td style=\"padding:2px 0;\">{{if(length(1.bedroomsMin) > 0; \"από \" + 1.bedroomsMin; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Όροφος</td><td style=\"padding:2px 0;\">{{if(length(1.floorMin) > 0; \"από \" + 1.floorMin; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Χαρακτηριστικά</td><td style=\"padding:2px 0;\">{{ifempty(1.featuresLabel; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Σχόλια</td><td style=\"padding:2px 0;\">{{ifempty(replace(1.comment; \"/\\r?\\n/g\"; \"<br>\"); \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Γλώσσα / σελίδα</td><td style=\"padding:2px 0;\">{{1.lang}} · four-walls.gr{{1.page}}</td></tr>\r\n</table>\r\n\r\n<a href=\"https://fourwalls.estateprime.gr/requests/form\" style=\"display:block; background:#FF1462; color:#ffffff; text-align:center; padding:14px; border-radius:6px; font-weight:bold; text-decoration:none; font-size:15px; margin:16px 0 6px 0;\">Καταχώριση ζήτησης στο CRM</a>\r\n<p style=\"font-size:12px; color:#777777; margin:8px 0 14px 0; line-height:1.5;\">Η ζήτηση <strong>δεν έχει καταχωρηθεί αυτόματα</strong> στο CRM (το EstatePrime δεν έχει ακόμα endpoint για δημιουργία ζήτησης). Καταχώρισέ τη με το παραπάνω κουμπί και πάρε τηλέφωνο τον πελάτη.</p>\r\n</td></tr>\r\n\r\n</table>\r\n</td></tr>\r\n</table>\r\n</body>\r\n</html>",
+								"qs": [],
+								"url": "https://fourwalls.estateprime.gr/api/contacts?search={{encodeURL(1.searchKey)}}",
+								"gzip": true,
+								"method": "get",
+								"headers": [
+									{
+										"name": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"timeout": "",
+								"useMtls": false,
+								"authPass": "",
+								"authUser": "",
+								"serializeUrl": false,
+								"shareCookies": false,
+								"parseResponse": true,
+								"followRedirect": true,
+								"useQuerystring": false,
+								"followAllRedirects": false,
+								"rejectUnauthorized": true
+							},
+							"module": "http:ActionSendDataBasicAuth",
+							"onerror": [
+								{
+									"id": 131,
+									"mapper": {},
+									"module": "builtin:Ignore",
+									"version": 1,
+									"metadata": {
+										"designer": {
+											"x": 600,
+											"y": -600
+										}
+									},
+									"parameters": {}
+								}
+							],
+							"version": 3,
+							"metadata": {
+								"restore": {
+									"expect": {
+										"qs": {
+											"mode": "chose"
+										},
+										"method": {
+											"mode": "chose",
+											"label": "GET"
+										},
+										"headers": {
+											"mode": "chose",
+											"items": [
+												null
+											]
+										}
+									},
+									"parameters": {
+										"key": {
+											"label": "Estate Prime Auth"
+										}
+									}
+								},
+								"designer": {
+									"x": 600,
+									"y": -300,
+									"name": "CRM: Αναζήτηση επαφής"
+								},
+								"parameters": [
+									{
+										"name": "key",
+										"type": "keychain:basicauth",
+										"label": "Key",
+										"required": true
+									},
+									{
+										"name": "handleErrors",
+										"type": "boolean",
+										"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"key": 199013,
+								"handleErrors": false
+							}
+						},
+						{
+							"id": 32,
+							"mapper": null,
+							"module": "builtin:BasicIfElse",
+							"version": 1,
+							"branches": [
+								{
+									"flow": [
+										{
+											"id": 33,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/contacts",
+												"data": "{\"first_name\": \"{{ifempty(1.crmFirst; \"Πελάτης\")}}\", \"last_name\": \"{{ifempty(1.crmLast; \"(από το site)\")}}\", \"is_lead\": true, \"is_company\": false, \"is_active\": true, \"source_id\": 7, \"created_by\": 2, \"office_id\": 1, \"language_id\": 1, \"country\": \"GR\", \"users\": [2], \"tags\": [10], \"phones\": [{{1.phoneJson}}], \"emails\": [{{1.emailJson}}], \"notes\": \"Ζήτηση από τη φόρμα του site ({{1.page}}). {{1.summaryLine}}\"}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 133,
+													"mapper": {},
+													"module": "builtin:Ignore",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 1200,
+															"y": -750
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 1200,
+													"y": -450,
+													"name": "CRM: Δημιουργία επαφής (ΖΗΤΗΣΗ)"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
+										},
+										{
+											"id": 34,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/communication",
+												"data": "{\"contact_id\": {{33.data.data.id}}, \"channel\": 2, \"type\": \"incoming\", \"user_id\": 2, \"store_id\": 1, \"communication_date\": \"{{formatDate(now; \"YYYY-MM-DD HH:mm:ss\"; \"Europe/Athens\")}}\", \"comments\": \"Ζήτηση από τη φόρμα του four-walls.gr/request. {{1.summaryLine}}\"}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 134,
+													"mapper": {},
+													"module": "builtin:Ignore",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 1500,
+															"y": -750
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 1500,
+													"y": -450,
+													"name": "CRM: Επικοινωνία (νέα επαφή)"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
+										}
+									],
+									"type": "condition",
+									"label": "Νέα επαφή",
+									"merge": false,
+									"conditions": [
+										[
+											{
+												"a": "{{31.data.total_results}}",
+												"b": "0",
+												"o": "number:equal"
+											},
+											{
+												"a": "{{1.searchKey}}",
+												"b": "",
+												"o": "text:notequal"
+											}
+										]
+									]
+								},
+								{
+									"flow": [
+										{
+											"id": 35,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/communication",
+												"data": "{\"contact_id\": {{31.data.data[1].id}}, \"channel\": 2, \"type\": \"incoming\", \"user_id\": 2, \"store_id\": 1, \"communication_date\": \"{{formatDate(now; \"YYYY-MM-DD HH:mm:ss\"; \"Europe/Athens\")}}\", \"comments\": \"Ζήτηση από τη φόρμα του four-walls.gr/request. {{1.summaryLine}}\"}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 135,
+													"mapper": {},
+													"module": "builtin:Ignore",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 1200,
+															"y": 0
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 1200,
+													"y": -150,
+													"name": "CRM: Επικοινωνία (υπάρχουσα)"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
+										}
+									],
+									"type": "condition",
+									"label": "Υπάρχουσα επαφή",
+									"merge": false,
+									"conditions": [
+										[
+											{
+												"a": "{{31.data.total_results}}",
+												"b": "0",
+												"o": "number:greater"
+											},
+											{
+												"a": "{{1.searchKey}}",
+												"b": "",
+												"o": "text:notequal"
+											}
+										]
+									]
+								},
+								{
+									"flow": [
+										{
+											"id": 39,
+											"filter": null,
+											"module": "placeholder:Placeholder",
+											"metadata": {
+												"designer": {
+													"x": 1200,
+													"y": 150
+												}
+											}
+										}
+									],
+									"type": "else",
+									"label": "",
+									"merge": false,
+									"disabled": false
+								}
+							],
+							"metadata": {
+								"designer": {
+									"x": 900,
+									"y": -300
+								}
+							}
+						},
+						{
+							"id": 36,
+							"mapper": {
+								"content": "<!DOCTYPE html>\r\n<html lang=\"el\">\r\n<head>\r\n<meta charset=\"utf-8\">\r\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n</head>\r\n<body style=\"margin:0; padding:0; background:#f4f5f7; font-family:Arial,sans-serif;\">\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f4f5f7; padding:16px 0;\">\r\n<tr><td align=\"center\">\r\n<table role=\"presentation\" width=\"560\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:560px; width:100%; background:#ffffff; border-radius:8px; overflow:hidden;\">\r\n\r\n<tr><td style=\"background:#16233A; padding:12px 20px; color:#ffffff; font-size:15px; font-weight:bold; letter-spacing:1px;\">ΝΕΑ ΖΗΤΗΣΗ · ΑΠΟ ΤΟ SITE ΜΑΣ</td></tr>\r\n<tr><td style=\"height:3px; background:#FF1462;\"></td></tr>\r\n\r\n<tr><td style=\"padding:16px 20px 8px 20px;\">\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"font-size:14px; line-height:1.7; color:#16233A;\">\r\n<tr><td style=\"color:#777777; width:150px; padding:2px 0; vertical-align:top;\">Όνομα</td><td style=\"padding:2px 0; font-weight:bold;\">{{1.name}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Τηλέφωνο</td><td style=\"padding:2px 0; font-weight:bold; color:#FF1462;\">{{ifempty(1.phone; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Email</td><td style=\"padding:2px 0;\">{{if(length(1.email) > 0; \"<a href='mailto:\" + 1.email + \"' style='color:#16233A;'>\" + 1.email + \"</a>\"; \"—\")}}</td></tr>\r\n<tr><td colspan=\"2\" style=\"padding:8px 0 2px 0;\"><div style=\"height:1px; background:#eceef2;\"></div></td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Ζητάει</td><td style=\"padding:2px 0; font-weight:bold;\">{{1.transactionLabel}} · {{1.categoryLabel}}{{if(length(1.subcategoryLabel) > 0; \" · \" + 1.subcategoryLabel; \"\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Περιοχές</td><td style=\"padding:2px 0;\">{{ifempty(1.areas; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Τιμή</td><td style=\"padding:2px 0;\">{{if(length(1.priceMin) > 0; 1.priceMin + \" – \"; \"έως \")}}{{ifempty(1.priceMax; \"χωρίς όριο\")}} €</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Εμβαδόν</td><td style=\"padding:2px 0;\">{{if(length(1.sizeMin) > 0; \"από \" + 1.sizeMin; \"\")}}{{if(length(1.sizeMax) > 0; \" έως \" + 1.sizeMax; \"\")}}{{if(length(1.sizeMin) + length(1.sizeMax) > 0; \" τ.μ.\"; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Υπνοδωμάτια</td><td style=\"padding:2px 0;\">{{if(length(1.bedroomsMin) > 0; \"από \" + 1.bedroomsMin; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Όροφος</td><td style=\"padding:2px 0;\">{{if(length(1.floorMin) > 0; \"από \" + 1.floorMin; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Χαρακτηριστικά</td><td style=\"padding:2px 0;\">{{ifempty(1.featuresLabel; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Σχόλια</td><td style=\"padding:2px 0;\">{{ifempty(replace(1.comment; \"/\\r?\\n/g\"; \"<br>\"); \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Επαφή CRM</td><td style=\"padding:2px 0;\">{{if(length(ifempty(33.data.data.id; 31.data.data[1].id)) > 0; \"<a href='https://fourwalls.estateprime.gr/contacts/view/\" + ifempty(33.data.data.id; 31.data.data[1].id) + \"' style='color:#FF1462; font-weight:bold;'>Επαφή #\" + ifempty(33.data.data.id; 31.data.data[1].id) + \"</a>\" + if(length(33.data.data.id) > 0; \" (νέα)\"; \" (υπήρχε ήδη)\"); \"<span style='color:#d63333; font-weight:bold;'>ΔΕΝ καταχωρήθηκε — φτιάξε την επαφή με το χέρι</span>\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Γλώσσα / σελίδα</td><td style=\"padding:2px 0;\">{{1.lang}} · four-walls.gr{{1.page}}</td></tr>\r\n</table>\r\n\r\n<a href=\"https://fourwalls.estateprime.gr/requests/form\" style=\"display:block; background:#FF1462; color:#ffffff; text-align:center; padding:14px; border-radius:6px; font-weight:bold; text-decoration:none; font-size:15px; margin:16px 0 6px 0;\">Καταχώριση ζήτησης στο CRM</a>\r\n<p style=\"font-size:12px; color:#777777; margin:8px 0 14px 0; line-height:1.5;\">Καταχώρισε τη ζήτηση με το παραπάνω κουμπί και πάρε τηλέφωνο τον πελάτη.</p>\r\n</td></tr>\r\n\r\n</table>\r\n</td></tr>\r\n</table>\r\n</body>\r\n</html>",
 								"subject": "ΝΕΑ ΖΗΤΗΣΗ · {{1.transactionLabel}} · {{1.categoryLabel}}{{if(length(1.areas) > 0; \" · \" + 1.areas; \"\")}} · {{1.name}}",
 								"encoding": "UTF-8",
 								"accountId": "5796850000000008002",
@@ -75,6 +513,21 @@
 								"fromAddress": "info@four-walls.gr"
 							},
 							"module": "zoho-mail:sendMail",
+							"onerror": [
+								{
+									"id": 136,
+									"mapper": {},
+									"module": "builtin:Ignore",
+									"version": 1,
+									"metadata": {
+										"designer": {
+											"x": 1800,
+											"y": -600
+										}
+									},
+									"parameters": {}
+								}
+							],
 							"version": 1,
 							"metadata": {
 								"expect": [
@@ -200,9 +653,645 @@
 									}
 								},
 								"designer": {
-									"x": 600,
-									"y": -150,
+									"x": 1800,
+									"y": -300,
 									"name": "Email ζήτησης στη γραμματεία"
+								},
+								"parameters": [
+									{
+										"name": "__IMTCONN__",
+										"type": "account:zoho-mail",
+										"label": "Connection",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"__IMTCONN__": 8711103
+							}
+						}
+					]
+				},
+				{
+					"flow": [
+						{
+							"id": 41,
+							"filter": {
+								"name": "Μόνο αναθέσεις",
+								"conditions": [
+									[
+										{
+											"a": "{{1.form}}",
+											"b": "anathesi",
+											"o": "text:equal"
+										}
+									]
+								]
+							},
+							"mapper": {
+								"qs": [],
+								"url": "https://fourwalls.estateprime.gr/api/contacts?search={{encodeURL(1.searchKey)}}",
+								"gzip": true,
+								"method": "get",
+								"headers": [
+									{
+										"name": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"timeout": "",
+								"useMtls": false,
+								"authPass": "",
+								"authUser": "",
+								"serializeUrl": false,
+								"shareCookies": false,
+								"parseResponse": true,
+								"followRedirect": true,
+								"useQuerystring": false,
+								"followAllRedirects": false,
+								"rejectUnauthorized": true
+							},
+							"module": "http:ActionSendDataBasicAuth",
+							"onerror": [
+								{
+									"id": 141,
+									"mapper": {},
+									"module": "builtin:Ignore",
+									"version": 1,
+									"metadata": {
+										"designer": {
+											"x": 600,
+											"y": 600
+										}
+									},
+									"parameters": {}
+								}
+							],
+							"version": 3,
+							"metadata": {
+								"restore": {
+									"expect": {
+										"qs": {
+											"mode": "chose"
+										},
+										"method": {
+											"mode": "chose",
+											"label": "GET"
+										},
+										"headers": {
+											"mode": "chose",
+											"items": [
+												null
+											]
+										}
+									},
+									"parameters": {
+										"key": {
+											"label": "Estate Prime Auth"
+										}
+									}
+								},
+								"designer": {
+									"x": 600,
+									"y": 300,
+									"name": "CRM: Αναζήτηση επαφής"
+								},
+								"parameters": [
+									{
+										"name": "key",
+										"type": "keychain:basicauth",
+										"label": "Key",
+										"required": true
+									},
+									{
+										"name": "handleErrors",
+										"type": "boolean",
+										"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"key": 199013,
+								"handleErrors": false
+							}
+						},
+						{
+							"id": 42,
+							"mapper": null,
+							"module": "builtin:BasicIfElse",
+							"version": 1,
+							"branches": [
+								{
+									"flow": [
+										{
+											"id": 43,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/contacts",
+												"data": "{\"first_name\": \"{{ifempty(1.crmFirst; \"Ιδιοκτήτης\")}}\", \"last_name\": \"{{ifempty(1.crmLast; \"(από το site)\")}}\", \"is_lead\": true, \"is_company\": false, \"is_active\": true, \"source_id\": 7, \"created_by\": 2, \"office_id\": 1, \"language_id\": 1, \"country\": \"GR\", \"users\": [2], \"tags\": [11], \"phones\": [{{1.phoneJson}}], \"emails\": [{{1.emailJson}}], \"notes\": \"Ανάθεση από τη φόρμα του site ({{1.page}}). {{1.summaryLine}}\"}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 143,
+													"mapper": {},
+													"module": "builtin:Ignore",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 1200,
+															"y": 750
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 1200,
+													"y": 450,
+													"name": "CRM: Δημιουργία επαφής (ΑΝΑΘΕΣΗ)"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
+										},
+										{
+											"id": 44,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/communication",
+												"data": "{\"contact_id\": {{43.data.data.id}}, \"channel\": 2, \"type\": \"incoming\", \"user_id\": 2, \"store_id\": 1, \"communication_date\": \"{{formatDate(now; \"YYYY-MM-DD HH:mm:ss\"; \"Europe/Athens\")}}\", \"comments\": \"Ανάθεση ακινήτου από τη φόρμα του four-walls.gr/list-property. {{1.summaryLine}}\"}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 144,
+													"mapper": {},
+													"module": "builtin:Ignore",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 1500,
+															"y": 750
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 1500,
+													"y": 450,
+													"name": "CRM: Επικοινωνία (νέα επαφή)"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
+										}
+									],
+									"type": "condition",
+									"label": "Νέα επαφή",
+									"merge": false,
+									"conditions": [
+										[
+											{
+												"a": "{{41.data.total_results}}",
+												"b": "0",
+												"o": "number:equal"
+											},
+											{
+												"a": "{{1.searchKey}}",
+												"b": "",
+												"o": "text:notequal"
+											}
+										]
+									]
+								},
+								{
+									"flow": [
+										{
+											"id": 45,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/communication",
+												"data": "{\"contact_id\": {{41.data.data[1].id}}, \"channel\": 2, \"type\": \"incoming\", \"user_id\": 2, \"store_id\": 1, \"communication_date\": \"{{formatDate(now; \"YYYY-MM-DD HH:mm:ss\"; \"Europe/Athens\")}}\", \"comments\": \"Ανάθεση ακινήτου από τη φόρμα του four-walls.gr/list-property. {{1.summaryLine}}\"}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 145,
+													"mapper": {},
+													"module": "builtin:Ignore",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 1200,
+															"y": 1050
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 1200,
+													"y": 900,
+													"name": "CRM: Επικοινωνία (υπάρχουσα)"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
+										}
+									],
+									"type": "condition",
+									"label": "Υπάρχουσα επαφή",
+									"merge": false,
+									"conditions": [
+										[
+											{
+												"a": "{{41.data.total_results}}",
+												"b": "0",
+												"o": "number:greater"
+											},
+											{
+												"a": "{{1.searchKey}}",
+												"b": "",
+												"o": "text:notequal"
+											}
+										]
+									]
+								},
+								{
+									"flow": [
+										{
+											"id": 49,
+											"filter": null,
+											"module": "placeholder:Placeholder",
+											"metadata": {
+												"designer": {
+													"x": 1200,
+													"y": 1200
+												}
+											}
+										}
+									],
+									"type": "else",
+									"label": "",
+									"merge": false,
+									"disabled": false
+								}
+							],
+							"metadata": {
+								"designer": {
+									"x": 900,
+									"y": 300
+								}
+							}
+						},
+						{
+							"id": 46,
+							"mapper": {
+								"content": "<!DOCTYPE html>\r\n<html lang=\"el\">\r\n<head>\r\n<meta charset=\"utf-8\">\r\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n</head>\r\n<body style=\"margin:0; padding:0; background:#f4f5f7; font-family:Arial,sans-serif;\">\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f4f5f7; padding:16px 0;\">\r\n<tr><td align=\"center\">\r\n<table role=\"presentation\" width=\"560\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:560px; width:100%; background:#ffffff; border-radius:8px; overflow:hidden;\">\r\n\r\n<tr><td style=\"background:#16233A; padding:12px 20px; color:#ffffff; font-size:15px; font-weight:bold; letter-spacing:1px;\">ΝΕΑ ΑΝΑΘΕΣΗ · ΑΠΟ ΤΟ SITE ΜΑΣ</td></tr>\r\n<tr><td style=\"height:3px; background:#FF1462;\"></td></tr>\r\n\r\n<tr><td style=\"padding:16px 20px 8px 20px;\">\r\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"font-size:14px; line-height:1.7; color:#16233A;\">\r\n<tr><td style=\"color:#777777; width:160px; padding:2px 0; vertical-align:top;\">Όνομα</td><td style=\"padding:2px 0; font-weight:bold;\">{{1.name}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Τηλέφωνο</td><td style=\"padding:2px 0; font-weight:bold; color:#FF1462;\">{{ifempty(1.phone; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Email</td><td style=\"padding:2px 0;\">{{if(length(1.email) > 0; \"<a href='mailto:\" + 1.email + \"' style='color:#16233A;'>\" + 1.email + \"</a>\"; \"—\")}}</td></tr>\r\n<tr><td colspan=\"2\" style=\"padding:8px 0 2px 0;\"><div style=\"height:1px; background:#eceef2;\"></div></td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Ακίνητο</td><td style=\"padding:2px 0; font-weight:bold;\">{{1.transactionLabel}} · {{1.categoryLabel}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Περιοχή / Διεύθυνση</td><td style=\"padding:2px 0;\">{{ifempty(1.areas; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Εμβαδόν</td><td style=\"padding:2px 0;\">{{if(length(1.size) > 0; \"~\" + 1.size + \" τ.μ.\"; \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Ζητούμενη τιμή</td><td style=\"padding:2px 0;\">{{if(length(1.price) > 0; 1.price + \" €\" + if(1.transaction = \"rent\"; \"/μήνα\"; \"\"); \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Σχόλια</td><td style=\"padding:2px 0;\">{{ifempty(replace(1.comment; \"/\\r?\\n/g\"; \"<br>\"); \"—\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Επαφή CRM</td><td style=\"padding:2px 0;\">{{if(length(ifempty(43.data.data.id; 41.data.data[1].id)) > 0; \"<a href='https://fourwalls.estateprime.gr/contacts/view/\" + ifempty(43.data.data.id; 41.data.data[1].id) + \"' style='color:#FF1462; font-weight:bold;'>Επαφή #\" + ifempty(43.data.data.id; 41.data.data[1].id) + \"</a>\" + if(length(43.data.data.id) > 0; \" (νέα)\"; \" (υπήρχε ήδη)\"); \"<span style='color:#d63333; font-weight:bold;'>ΔΕΝ καταχωρήθηκε — φτιάξε την επαφή με το χέρι</span>\")}}</td></tr>\r\n<tr><td style=\"color:#777777; padding:2px 0; vertical-align:top;\">Γλώσσα / σελίδα</td><td style=\"padding:2px 0;\">{{1.lang}} · four-walls.gr{{1.page}}</td></tr>\r\n</table>\r\n\r\n<a href=\"{{if(length(ifempty(43.data.data.id; 41.data.data[1].id)) > 0; \"https://fourwalls.estateprime.gr/contacts/view/\" + ifempty(43.data.data.id; 41.data.data[1].id); \"https://fourwalls.estateprime.gr/contacts\")}}\" style=\"display:block; background:#FF1462; color:#ffffff; text-align:center; padding:14px; border-radius:6px; font-weight:bold; text-decoration:none; font-size:15px; margin:16px 0 6px 0;\">Άνοιξε την επαφή στο CRM</a>\r\n<p style=\"font-size:12px; color:#777777; margin:8px 0 14px 0; line-height:1.5;\">Ο ιδιοκτήτης περιμένει τηλέφωνο, άμεσα.</p>\r\n</td></tr>\r\n\r\n</table>\r\n</td></tr>\r\n</table>\r\n</body>\r\n</html>",
+								"subject": "ΝΕΑ ΑΝΑΘΕΣΗ · {{1.transactionLabel}} · {{1.categoryLabel}}{{if(length(1.areas) > 0; \" · \" + 1.areas; \"\")}} · {{1.name}}",
+								"encoding": "UTF-8",
+								"accountId": "5796850000000008002",
+								"ccAddress": [
+									"panos@four-walls.gr",
+									"manos@four-walls.gr"
+								],
+								"toAddress": [
+									"info@four-walls.gr"
+								],
+								"bccAddress": [],
+								"mailFormat": "html",
+								"fromAddress": "info@four-walls.gr"
+							},
+							"module": "zoho-mail:sendMail",
+							"onerror": [
+								{
+									"id": 146,
+									"mapper": {},
+									"module": "builtin:Ignore",
+									"version": 1,
+									"metadata": {
+										"designer": {
+											"x": 1800,
+											"y": 600
+										}
+									},
+									"parameters": {}
+								}
+							],
+							"version": 1,
+							"metadata": {
+								"expect": [
+									{
+										"name": "accountId",
+										"type": "select",
+										"label": "Account ID",
+										"required": true
+									},
+									{
+										"name": "fromAddress",
+										"type": "email",
+										"label": "From Address",
+										"required": true
+									},
+									{
+										"name": "toAddress",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email",
+											"required": true
+										},
+										"type": "array",
+										"label": "To Address",
+										"required": true
+									},
+									{
+										"name": "content",
+										"type": "text",
+										"label": "Content"
+									},
+									{
+										"name": "ccAddress",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email"
+										},
+										"type": "array",
+										"label": "CC Address"
+									},
+									{
+										"name": "bccAddress",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email"
+										},
+										"type": "array",
+										"label": "BCC Address"
+									},
+									{
+										"name": "subject",
+										"type": "text",
+										"label": "Subject"
+									},
+									{
+										"name": "encoding",
+										"type": "select",
+										"label": "Encoding",
+										"validate": {
+											"enum": [
+												"Big5",
+												"EUC-JP",
+												"EUC-KR",
+												"GB2312",
+												"ISO-2022-JP",
+												"ISO-8859-1",
+												"KOI8-R",
+												"Shift_JIS",
+												"US-ASCII",
+												"UTF-8",
+												"WINDOWS-1251",
+												"WINDOWS-1250",
+												"X-WINDOWS-ISO2022JP"
+											]
+										}
+									},
+									{
+										"name": "mailFormat",
+										"type": "select",
+										"label": "Mail Format",
+										"validate": {
+											"enum": [
+												"plaintext",
+												"html"
+											]
+										}
+									},
+									{
+										"name": "askReceipt",
+										"type": "boolean",
+										"label": "Ask Receipt"
+									}
+								],
+								"restore": {
+									"expect": {
+										"encoding": {
+											"label": "UTF-8"
+										},
+										"accountId": {
+											"mode": "chose",
+											"label": "info@four-walls.gr"
+										},
+										"ccAddress": {
+											"items": [
+												null,
+												null
+											]
+										},
+										"toAddress": {
+											"items": [
+												null
+											]
+										},
+										"mailFormat": {
+											"label": "HTML"
+										}
+									},
+									"parameters": {
+										"__IMTCONN__": {
+											"data": {
+												"scoped": "true",
+												"connection": "zoho-mail"
+											},
+											"label": "My Zoho Mail connection"
+										}
+									}
+								},
+								"designer": {
+									"x": 1800,
+									"y": 300,
+									"name": "Email ανάθεσης στη γραμματεία"
 								},
 								"parameters": [
 									{
@@ -230,6 +1319,11 @@
 										{
 											"a": "{{1.form}}",
 											"b": "zitisi",
+											"o": "text:notequal"
+										},
+										{
+											"a": "{{1.form}}",
+											"b": "anathesi",
 											"o": "text:notequal"
 										}
 									]
@@ -375,8 +1469,8 @@
 								},
 								"designer": {
 									"x": 600,
-									"y": 150,
-									"name": "Email επικοινωνίας στην γραμματεία"
+									"y": 1200,
+									"name": "Email στον Πάνο"
 								},
 								"parameters": [
 									{
