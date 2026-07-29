@@ -142,10 +142,12 @@ documented `notes` is not returned.
 - **`DELETE /contacts/{id}` can answer `200` without deleting** — contact 72
   survived a `200` DELETE intact. Always re-GET to confirm a delete happened.
 - `tags` are integer ids from `GET /contacts/tags` (live: 1=ilist, 4=make,
-  9=spitogatos, 10=ΖΗΤΗΣΗ, 11=ΑΝΑΘΕΣΗ, 12=claude); there is no
+  9=spitogatos, 10=ΖΗΤΗΣΗ, 11=ΑΝΑΘΕΣΗ, 12=claude, 16=ΥΠΟΔΕΙΞΗ); there is no
   tag-creation endpoint — new tags are made in the CRM UI. For
   Claude-created Spitogatos leads, send them **in this order**:
   `[12, 9, 10]` (claude, spitogatos, ΖΗΤΗΣΗ) — Panos's preference.
+  Make-created leads always carry `spitogatos` too, see
+  [spitogatos-leads.md](spitogatos-leads.md).
 - Claude-created Spitogatos leads are assigned to **Μάνος Χριστινάκης**
   (`users: [2]`, `created_by: 2`) — per Panos, 2026-07-23.
 - **Greek names arriving romanized get written in Greek script** with proper
@@ -163,8 +165,31 @@ Traps that cost real debugging time, all verified 2026-07-17:
 - **The list endpoint omits `custom_fields`, `tags` and `users`**; only the
   single-contact endpoint returns them.
 - **`date_updated` never changes** on edits, native or custom.
-- **No update endpoint** — only `GET`, `POST` (create) and `DELETE`.
+- **No update endpoint in the public API**: only `GET`, `POST` (create) and
+  `DELETE`. Edits go through the CRM's own page endpoint, see below.
 - **The API rate-limits (`429`)**, threshold undocumented.
+
+### Editing a contact: `POST /contacts/view/{id}` (internal, mapped 2026-07-29)
+
+The public API cannot update a contact, but the detail page saves through a
+same-origin POST **to its own URL** (session cookie, urlencoded, no CSRF, the
+same family as `/requests/form`). One section per request, keyed by
+`edit_contact`:
+
+- `edit_contact=basics` → `type` (1=person, 2=company), `is_client`/`is_active`
+  (checkboxes, send `on` or omit), `company_name`, `company_details`,
+  `first_name`, `last_name`, `vat_number`, `id_number`, `country`,
+  `language_id`, `store`, `source_id`, `referral_id`, `tags[]`.
+  **Send the whole section**: omitted fields are cleared, not kept.
+- `edit_contact=phones` → existing rows are keyed by phone id
+  (`phone_type[86]`, `phone[86]`, `phone_notes[86]`), new ones use the
+  `new_phone_type[]` / `new_phone[]` / `new_phone_notes[]` arrays;
+  `deleted_phones` is a comma-separated id list. `emails` mirrors this.
+- Other sections: `notes`, `members`.
+- Reading the current values first: `POST /contacts/view/{id}` with
+  `show_edit=<section>` returns `{success, html}`, the modal's markup, which
+  serializes to exactly the body the save expects.
+- Answers `{"success":true,"type":"<section>"}`. Verified on contacts 214 + 64.
 
 Field map, custom-field ids, and the Cloudflare Access setup:
 [forms-crm.md](forms-crm.md).
@@ -198,6 +223,14 @@ Field map, custom-field ids, and the Cloudflare Access setup:
   auto-spawns a ζήτηση from the comm — leave OFF; we build the ζήτηση
   ourselves). So the whole intake (contact→ζήτηση→comm) is now headless via
   `/api/contacts` + `/requests/form` + `/communication/form`; no UI.
+- **Editing an existing communication: `POST /communication`** (internal, mapped
+  2026-07-29). `generate_edit_modal={id}` returns `{success, html, users_data,
+  tags_data, contact_id}` with the populated form; saving posts the same fields
+  back with **`edit_communication={id}`**: `type`, `channel`,
+  `communication_date` (`DD/MM/YYYY HH:MM`), `user_id`, `comments`,
+  `contact_id`, `request_id`, `listing_ids[]`, `tags[]`. Returns
+  `{"success":true,"id":N}`. Note the date loses its seconds (the field is
+  minute-precision). Verified on comm 155.
 - Spitogatos lead intake convention: one **incoming** communication per lead
   on the contact, `channel: 2` (Email), `user_id: 2` (Μάνος),
   `communication_date` = the notification email's arrival time, tags

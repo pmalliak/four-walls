@@ -25,6 +25,7 @@ deeper, one topic per file:
 | [seo.md](seo.md) | SEO: FW:HEAD blocks, per-listing Worker injection, JSON-LD, sitemap/robots, go-live checklist |
 | [estateprime-api.md](estateprime-api.md) | EstatePrime CRM API: auth, listings endpoint, enums, webhook behaviour, contact/communication/request creation |
 | [estateprime-crm-ui.md](estateprime-crm-ui.md) | EstatePrime CRM **UI map** for browser automation: when the API can't do it, the «Νέα ζήτηση» form field map, navigation quirks |
+| [spitogatos-leads.md](spitogatos-leads.md) | Spitogatos leads → CRM μέσω Make: ποιο scenario πιάνει τι, οι δύο παραλλαγές του email «Πελάτης για ακίνητό σου», το parsing ονόματος/τηλεφώνου, τα tags |
 | [forms-crm.md](forms-crm.md) | Έντυπα CRM pickers: Access setup, key split, contact field map, upstream limits |
 | [forms-submit.md](forms-submit.md) | Έντυπα submit: PWA → Worker → Make router → client email + PDF; the PDF-capture trap |
 | [forms-prosfora.md](forms-prosfora.md) | Προσφορά πελάτη: η μόνη φόρμα χωρίς έντυπο/PDF, CRM pickers μέσω `FWCrm`, email «ΝΕΑ ΠΡΟΣΦΟΡΑ» στο info@ |
