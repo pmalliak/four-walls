@@ -17,12 +17,15 @@
    επικοινωνίας» routes on it to its own email. Splitting it into its own
    hook later is one secret + one filter, nothing else changes.
 
-   The CRM write is deliberately NOT here: the public POST /api/requests
-   is broken upstream and the internal /requests/form needs a browser
-   session, so the ζήτηση is created by the office (or by the
-   spitogatos-requests-fetch skill, which now reads these emails too).
-   See docs/site-request-form.md.
+   The CONTACT and the incoming communication ARE written to the CRM
+   here (worker/lib/crm-lead.mjs) — those public endpoints work. Only
+   the ζήτηση record itself stays manual, because POST /api/requests is
+   broken upstream and the internal /requests/form needs a browser
+   session; the office (or the spitogatos-requests-fetch skill, step 7β)
+   creates it from the email. See docs/site-request-form.md.
    ===================================================================== */
+
+import { recordSiteLead } from "./crm-lead.mjs";
 
 const MAX = { name: 120, email: 200, phone: 50, message: 2000, areas: 300, num: 12, list: 20 };
 
@@ -116,7 +119,8 @@ export async function handlePropertyRequest(request, env) {
 	}
 
 	const r = {
-		name: str(body.name, MAX.name),
+		firstName: str(body.firstName, MAX.name),
+		lastName: str(body.lastName, MAX.name),
 		email: str(body.email, MAX.email),
 		phone: str(body.phone, MAX.phone),
 		transaction: pick(body.transaction, TRANSACTIONS),
@@ -136,10 +140,19 @@ export async function handlePropertyRequest(request, env) {
 		page: str(body.page, 200),
 	};
 
+	/* Older callers sent one «name» blob; split it so the floor below and
+	   the CRM write see the same two fields the form now submits. */
+	if (!r.firstName && body.name) {
+		const parts = str(body.name, MAX.name).split(" ");
+		r.firstName = parts[0] || "";
+		r.lastName = parts.slice(1).join(" ");
+	}
+	r.name = [r.firstName, r.lastName].filter(Boolean).join(" ");
+
 	/* A ζήτηση with no way to answer it is useless, and «what do you
 	   want» is the whole point of the form — so name + one contact
 	   channel + transaction + category are the floor. */
-	if (!r.name || (!r.email && !r.phone) || !r.transaction || !r.category) {
+	if (!r.firstName || (!r.email && !r.phone) || !r.transaction || !r.category) {
 		return json({ success: false, error: "missing_fields" }, 400);
 	}
 
@@ -161,6 +174,21 @@ export async function handlePropertyRequest(request, env) {
 	}
 
 	const summary = buildSummary(r);
+
+	/* File the lead in the CRM first, so the email can name the contact.
+	   Best-effort by design: recordSiteLead never throws, and a failed
+	   write becomes a line in the email («καταχώρισέ τον με το χέρι»)
+	   rather than a failed submit. */
+	const crm = await recordSiteLead(env, {
+		kind: "zitisi",
+		firstName: r.firstName,
+		lastName: r.lastName,
+		phone: r.phone,
+		email: r.email,
+		notes: `Ζήτηση από τη φόρμα του site (${r.page || "/request"}).\n${summary}`,
+		comments: `Ζήτηση από τη φόρμα του four-walls.gr/request. ${summary.replace(/\n/g, " ")}`,
+	});
+
 	const fwd = await fetch(env.MAKE_CONTACT_WEBHOOK, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
@@ -169,6 +197,10 @@ export async function handlePropertyRequest(request, env) {
 			   plain contact form and keeps its old branch. */
 			form: "zitisi",
 			...r,
+			crmStatus: crm.status,
+			crmContactId: crm.contactId || "",
+			crmContactUrl: crm.contactId
+				? `https://${env.ESTATEPRIME_SUBDOMAIN}.estateprime.gr/contacts/view/${crm.contactId}` : "",
 			transactionLabel: LABELS.transaction[r.transaction] || "",
 			categoryLabel: LABELS.category[r.category] || "",
 			subcategoryLabel: LABELS.subcategory[r.subcategory] || "",

@@ -43,6 +43,7 @@ const STR = {
 		subjectNoCode: "Το αίτημά σας για ακίνητο",
 		preheaderAvail: "Λάβαμε το αίτημά σας. Το ακίνητο είναι διαθέσιμο.",
 		preheaderGone: "Λάβαμε το αίτημά σας. Το ακίνητο δεν είναι πλέον διαθέσιμο.",
+		hiMorning: "Καλημέρα σας,",
 		hi: "Καλησπέρα σας,",
 		thanks: "σας ευχαριστούμε για το ενδιαφέρον σας. Λάβαμε το αίτημά σας για το παρακάτω ακίνητο.",
 		/* No card follows when the listing is gone, so «παρακάτω» would
@@ -83,7 +84,9 @@ const STR = {
 		subjectNoCode: "Your property enquiry",
 		preheaderAvail: "We received your enquiry. The property is available.",
 		preheaderGone: "We received your enquiry. That property is no longer available.",
-		hi: "Hello,",
+		hiMorning: "Good morning,",
+		hi: "Good afternoon,",
+		hiEvening: "Good evening,",
 		thanks: "thank you for your interest. We have received your enquiry about the property below.",
 		thanksNoCard: (c) => (c
 			? `thank you for your interest. We have received your enquiry about property #${c}.`
@@ -209,6 +212,17 @@ function listingCard(l, lang, campaign) {
 /* One place decides what we may honestly claim: with no code we know
    nothing, with a code we know exactly, and «gone» only promises
    suggestions when the mail actually carries some. */
+/* «Καλησπέρα» at nine in the morning reads like a template. The Worker
+   runs in UTC, so the hour is taken in Europe/Athens explicitly. */
+function greeting(S) {
+	const h = Number(new Intl.DateTimeFormat("en-GB", {
+		timeZone: "Europe/Athens", hour: "numeric", hour12: false,
+	}).format(new Date()));
+	if (h >= 5 && h < 12) return S.hiMorning;
+	if (S.hiEvening && h >= 18) return S.hiEvening;
+	return S.hi;
+}
+
 function statusLine({ S, code, available, similar }) {
 	if (!code) return S.unknown;
 	if (available) return S.available;
@@ -239,7 +253,7 @@ function buildHtml({ lang, listing, similar, available, strictMatch, code }) {
 				<tr><td style="height:3px; background:#FF1462;"></td></tr>
 
 				<tr><td style="padding:18px 20px 4px 20px; font-size:14px; line-height:1.7; color:#16233A;">
-					<p style="margin:0 0 10px 0;">${esc(S.hi)}</p>
+					<p style="margin:0 0 10px 0;">${esc(greeting(S))}</p>
 					<p style="margin:0 0 12px 0;">${esc(listing ? S.thanks : S.thanksNoCard(code))}</p>
 				</td></tr>
 
@@ -304,7 +318,7 @@ function buildHtml({ lang, listing, similar, available, strictMatch, code }) {
    client was told. */
 function buildText({ lang, listing, similar, available, strictMatch, code }) {
 	const S = STR[lang];
-	const lines = [S.hi, "", listing ? S.thanks : S.thanksNoCard(code), ""];
+	const lines = [greeting(S), "", listing ? S.thanks : S.thanksNoCard(code), ""];
 	if (listing) {
 		lines.push(`${listingTitle(listing, lang)} — ${priceLabel(listing, lang)}`.trim());
 		if (listing.code) lines.push(`${S.code}: ${listing.code}`);

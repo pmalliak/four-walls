@@ -1376,3 +1376,58 @@ body.fw-popup-lock {
     padding: 28px 22px 30px;
   }
 }
+
+/* =====================================================================
+   Ζήτηση + ανάθεση: τα σημεία εισόδου μέσα στο site
+   ===================================================================== */
+/* «Ξεκινήστε το ταξίδι» banner (fancy-banner-two on properties/property):
+   the theme's decorative email form became two real CTAs. The banner is
+   dark, so: solid white primary + ghost secondary. */
+.fw-banner-cta {
+  gap: 14px;
+}
+.fw-banner-cta a {
+  display: inline-block;
+  padding: 14px 28px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  white-space: nowrap;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+.fw-banner-cta .fw-cta-solid {
+  background: #ffffff;
+  color: #1c3457;
+}
+.fw-banner-cta .fw-cta-solid:hover {
+  background: #ff0062;
+  color: #ffffff;
+}
+.fw-banner-cta .fw-cta-ghost {
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  color: #ffffff;
+}
+.fw-banner-cta .fw-cta-ghost:hover {
+  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+/* Contact form: one line above the fields steering property-seekers to
+   the ζήτηση form — a message is a dead end, a ζήτηση keeps working. */
+.form-style-one .fw-form-alt {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #6a6a6a;
+  background: #f7f8fa;
+  border-left: 3px solid #ff0062;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+}
+.form-style-one .fw-form-alt a {
+  color: #ff0062;
+  font-weight: 600;
+  text-decoration: underline;
+}

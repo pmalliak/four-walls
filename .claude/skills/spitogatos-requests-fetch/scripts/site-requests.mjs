@@ -305,26 +305,18 @@ for (const e of emails) {
 		contactId = body.data.id;
 	}
 
-	const commDate = `${e.date.slice(8, 10)}/${e.date.slice(5, 7)}/${e.date.slice(0, 4)} ${e.date.slice(11, 16)}`;
-	const comments = [
-		`Ζήτηση από τη φόρμα του four-walls.gr/request.`,
-		`${l.transaction === "rent" ? "Ενοικίαση" : "Αγορά"} · ${l.categoryLabel}${l.subcategoryLabel ? " · " + l.subcategoryLabel : ""}.`,
-		l.areas ? `Περιοχές: ${l.areas}.` : "",
-		l.priceMax ? `Τιμή έως ${l.priceMax} €.` : "",
-		l.sizeMin ? `Από ${l.sizeMin} τ.μ.` : "",
-		l.features.length ? `Χαρακτηριστικά: ${l.features.join(", ")}.` : "",
-		l.message ? `Σχόλια: «${l.message}»` : "",
-	].filter(Boolean).join(" ");
-
 	worklist.push({
 		leadId, name: l.name, contactId, contactStatus, areas,
 		fields: requestFields(l),
-		comm: { contact_id: contactId, date: commDate, comments },
+		/* NO comm here (since 2026-07-30): the Worker logs the incoming
+		   communication the moment the form is submitted (crm-lead.mjs), so
+		   the skill's job for a site lead is ONLY the ζήτηση. crm-post.mjs
+		   skips the comm POST when the entry carries none. */
 		/* No «four-walls.gr» entry exists in the CRM's request sources (only
 		   Spitogatos.gr and xe.gr), and labelling our own lead as Spitogatos
 		   would corrupt the one number Panos uses to judge the portal. Send
 		   none until someone adds the source in the CRM UI. */
-		requestSource: "", requestTags: [13], commTags: [15],
+		requestSource: "", requestTags: [13],
 		warnings, source: "site",
 	});
 	console.log(`${leadId} (${l.name}): contact ${contactStatus} ${contactId}, ${areas.length} περιοχές${warnings.length ? ` [${warnings.length} warn]` : ""}`);

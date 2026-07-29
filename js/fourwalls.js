@@ -526,7 +526,7 @@
         '<div class="alert alert-danger">Περιμένετε να ολοκληρωθεί ο έλεγχος ασφαλείας ' +
         '(το πλαίσιο πάνω από το κουμπί) και πατήστε ξανά «Στείλτε τη ζήτηση».</div>',
       missing:
-        '<div class="alert alert-danger">Συμπληρώστε το ονοματεπώνυμό σας και ' +
+        '<div class="alert alert-danger">Συμπληρώστε όνομα και επώνυμο, και ' +
         'τουλάχιστον ένα τηλέφωνο ή email.</div>',
       sending: "Αποστολή..."
     },
@@ -538,7 +538,7 @@
         '<div class="alert alert-danger">Please wait for the security check (the box above ' +
         'the button) to finish, then press «Send my request» again.</div>',
       missing:
-        '<div class="alert alert-danger">Please fill in your name and at least one of ' +
+        '<div class="alert alert-danger">Please fill in your first and last name, and at least one of ' +
         'phone or email.</div>',
       sending: "Sending..."
     }
@@ -552,15 +552,45 @@
     return el && el.value ? el.value.trim() : "";
   }
 
+  /* Arriving from the «δεν βρήκατε τίποτα;» box on /properties, the URL
+     carries the search they just ran (js/listings.fw.js requestQuery).
+     Pre-filling it means the form opens half-answered instead of asking
+     the same questions again. Values are trusted only insofar as they
+     must match an existing option; free text is length-capped, and the
+     Worker re-validates everything on submit anyway. */
+  (function prefill() {
+    var params = new URLSearchParams(window.location.search);
+    if (!params.toString()) return;
+
+    var tx = params.get("transaction");
+    if (tx) {
+      var radio = form.querySelector('input[name="transaction"][value="' + (tx === "sale" ? "sale" : "rent") + '"]');
+      if (radio) radio.checked = true;
+    }
+    [["category", "category"], ["subcategory", "subcategory"]].forEach(function (pair) {
+      var v = params.get(pair[0]);
+      var sel = form.elements[pair[1]];
+      if (v && sel && sel.querySelector('option[value="' + CSS.escape(v) + '"]')) sel.value = v;
+    });
+    [["areas", "areas"], ["priceMin", "priceMin"], ["priceMax", "priceMax"],
+      ["sizeMin", "sizeMin"], ["sizeMax", "sizeMax"], ["bedroomsMin", "bedroomsMin"],
+      ["floorMin", "floorMin"], ["msg", "message"]].forEach(function (pair) {
+      var v = params.get(pair[0]);
+      var el = form.elements[pair[1]];
+      if (v && el && !el.value) el.value = v.slice(0, 500);
+    });
+  })();
+
   form.addEventListener("submit", function (e) {
     e.preventDefault();
 
-    var name = val("name");
+    var firstName = val("firstName");
+    var lastName = val("lastName");
     var phone = val("phone");
     var email = val("email");
-    if (!name || (!phone && !email)) {
+    if (!firstName || !lastName || (!phone && !email)) {
       messages.innerHTML = STR.missing;
-      (form.elements.name || form).focus();
+      (form.elements.firstName || form).focus();
       return;
     }
 
@@ -578,7 +608,8 @@
     );
 
     var payload = {
-      name: name,
+      firstName: firstName,
+      lastName: lastName,
       phone: phone,
       email: email,
       transaction: transaction ? transaction.value : "rent",
@@ -619,6 +650,125 @@
         if (!res.ok) throw new Error("HTTP " + res.status);
         document.getElementById("fw-request").hidden = true;
         var done = document.getElementById("fw-rq-done");
+        done.hidden = false;
+        done.scrollIntoView({ block: "center" });
+      })
+      .catch(function () {
+        if (window.turnstile) window.turnstile.reset();
+        btn.disabled = false;
+        btn.textContent = label;
+        messages.innerHTML = STR.errorHtml;
+      });
+  });
+})();
+
+/* Property assignment: «αναθέστε μας το ακίνητό σας» ------------------- *
+ * /list-property (and /en/list-property) is the ανάθεση twin of the
+ * ζήτηση form: an owner leaves the basics, the Worker files the contact
+ * in the CRM and the office gets «ΝΕΑ ΑΝΑΘΕΣΗ». Same mechanics as the
+ * request handler above — thin courtesy validation here, the Worker
+ * re-checks everything — just fewer fields and its own endpoint.       */
+(function () {
+  "use strict";
+  var form = document.getElementById("fw-assign-form");
+  if (!form) return;
+
+  var ENDPOINT = "/api/property-assignment";
+  var IS_LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+  var LANG = /^en\b/i.test(document.documentElement.lang || "") ? "en" : "el";
+  var STR = ({
+    el: {
+      errorHtml:
+        '<div class="alert alert-danger">Τα στοιχεία δεν στάλθηκαν — δοκιμάστε ξανά σε λίγο, ' +
+        'ή γράψτε μας στο <a href="mailto:info@four-walls.gr">info@four-walls.gr</a>.</div>',
+      turnstile:
+        '<div class="alert alert-danger">Περιμένετε να ολοκληρωθεί ο έλεγχος ασφαλείας ' +
+        '(το πλαίσιο πάνω από το κουμπί) και πατήστε ξανά «Στείλτε τα στοιχεία».</div>',
+      missing:
+        '<div class="alert alert-danger">Συμπληρώστε όνομα και επώνυμο, και ' +
+        'τουλάχιστον ένα τηλέφωνο ή email.</div>',
+      sending: "Αποστολή..."
+    },
+    en: {
+      errorHtml:
+        '<div class="alert alert-danger">Your details were not sent — please try again shortly, ' +
+        'or email us at <a href="mailto:info@four-walls.gr">info@four-walls.gr</a>.</div>',
+      turnstile:
+        '<div class="alert alert-danger">Please wait for the security check (the box above ' +
+        'the button) to finish, then press «Send the details» again.</div>',
+      missing:
+        '<div class="alert alert-danger">Please fill in your first and last name, and at least one of ' +
+        'phone or email.</div>',
+      sending: "Sending..."
+    }
+  })[LANG];
+
+  var messages = document.getElementById("fw-as-messages");
+  var btn = form.querySelector("button[type=submit]");
+
+  function val(name) {
+    var el = form.elements[name];
+    return el && el.value ? el.value.trim() : "";
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    var firstName = val("firstName");
+    var lastName = val("lastName");
+    var phone = val("phone");
+    var email = val("email");
+    if (!firstName || !lastName || (!phone && !email)) {
+      messages.innerHTML = STR.missing;
+      (form.elements.firstName || form).focus();
+      return;
+    }
+
+    var tokenField = form.querySelector('input[name="cf-turnstile-response"]');
+    var token = tokenField ? tokenField.value : "";
+    if (!token && !IS_LOCAL) {
+      messages.innerHTML = STR.turnstile;
+      return;
+    }
+
+    var transaction = form.querySelector('input[name="transaction"]:checked');
+    var payload = {
+      firstName: firstName,
+      lastName: lastName,
+      phone: phone,
+      email: email,
+      transaction: transaction ? transaction.value : "sale",
+      category: val("category"),
+      areas: val("areas"),
+      size: val("size"),
+      price: val("price"),
+      message: val("message"),
+      lang: LANG,
+      page: window.location.pathname,
+      token: token,
+      website: form.website ? form.website.value : ""
+    };
+
+    var label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = STR.sending;
+    messages.innerHTML = "";
+
+    var send = IS_LOCAL
+      ? new Promise(function (resolve) {
+          setTimeout(function () { resolve({ ok: true }); }, 500);
+        })
+      : fetch(ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+    send
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        document.getElementById("fw-assign").hidden = true;
+        var done = document.getElementById("fw-as-done");
         done.hidden = false;
         done.scrollIntoView({ block: "center" });
       })

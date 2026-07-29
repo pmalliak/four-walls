@@ -221,10 +221,6 @@
 			fromSqm: function (v) { return "από " + v + " τ.μ."; },
 			toSqm: function (v) { return "έως " + v + " τ.μ."; },
 			quoted: function (q) { return "«" + q + "»"; },
-			emptyMsg: function (summary) {
-				return "Γεια σας, αναζητώ " + (summary ? "ακίνητο: " + summary : "ακίνητο") +
-					". Θα ήθελα να με ενημερώσετε αν προκύψει κάτι αντίστοιχο.";
-			},
 			emptyTitle: "Δεν βρήκατε ", emptyAccent: "αυτό που ψάχνετε;",
 			emptyBody: "Πείτε μας τι ζητάτε και θα σας ενημερώσουμε μόλις βρεθεί το κατάλληλο ακίνητο.",
 			emptyBtn: "Πείτε μας τι ψάχνετε",
@@ -245,9 +241,9 @@
 			floorOrdinal: function (n) { return n + "ος"; },
 			distM: "μ", distKm: "χλμ",
 			access: {
-				cat: { transit: "Συγκοινωνίες", errands: "Καθημερινά ψώνια", education: "Εκπαίδευση", leisure: "Αναψυχή & πράσινο" },
+				cat: { transit: "Συγκοινωνίες", errands: "Καθημερινά ψώνια", education: "Εκπαίδευση", leisure: "Αναψυχή & πράσινο", dining: "Φαγητό & καφές", parking: "Στάθμευση", roads: "Οδική πρόσβαση" },
 				band: { excellent: "Άριστη", verygood: "Πολύ καλή", good: "Καλή", moderate: "Μέτρια", limited: "Περιορισμένη" },
-				types: { metro: "μετρό", tram: "τραμ", train: "τρένο", bus: "στάση λεωφορείου", supermarket: "σούπερ μάρκετ", bakery: "φούρνος", pharmacy: "φαρμακείο", convenience: "μίνι μάρκετ", school: "σχολείο", kindergarten: "νηπιαγωγείο", university: "πανεπιστήμιο", college: "κολέγιο", park: "πάρκο", square: "πλατεία", playground: "παιδική χαρά", gym: "γυμναστήριο", dining: "εστίαση" }
+				types: { metro: "μετρό", tram: "τραμ", train: "τρένο", bus: "στάση λεωφορείου", supermarket: "σούπερ μάρκετ", bakery: "φούρνος", pharmacy: "φαρμακείο", convenience: "μίνι μάρκετ", school: "σχολείο", kindergarten: "νηπιαγωγείο", university: "πανεπιστήμιο", college: "κολέγιο", park: "πάρκο", square: "πλατεία", playground: "παιδική χαρά", gym: "γυμναστήριο", dining: "εστίαση", restaurant: "εστιατόριο", cafe: "καφετέρια", fastfood: "ταχυφαγείο", carpark: "χώρος στάθμευσης", garage: "κλειστό πάρκινγκ", junction: "κόμβος εθνικής" }
 			},
 			details: {
 				code: "Κωδικός", type: "Τύπος", area: "Εμβαδόν", bedrooms: "Υπνοδωμάτια",
@@ -278,10 +274,6 @@
 			fromSqm: function (v) { return "from " + v + " m²"; },
 			toSqm: function (v) { return "up to " + v + " m²"; },
 			quoted: function (q) { return "“" + q + "”"; },
-			emptyMsg: function (summary) {
-				return "Hello, I am looking for " + (summary ? "a property: " + summary : "a property") +
-					". I would appreciate it if you could let me know when something suitable comes up.";
-			},
 			emptyTitle: "Didn't find ", emptyAccent: "what you're looking for?",
 			emptyBody: "Tell us what you need and we will let you know as soon as the right property comes up.",
 			emptyBtn: "Tell us what you're looking for",
@@ -302,9 +294,9 @@
 			floorOrdinal: function (n) { var s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); },
 			distM: "m", distKm: "km",
 			access: {
-				cat: { transit: "Public transport", errands: "Everyday shopping", education: "Education", leisure: "Leisure & green" },
+				cat: { transit: "Public transport", errands: "Everyday shopping", education: "Education", leisure: "Leisure & green", dining: "Food & coffee", parking: "Parking", roads: "Road access" },
 				band: { excellent: "Excellent", verygood: "Very good", good: "Good", moderate: "Moderate", limited: "Limited" },
-				types: { metro: "metro", tram: "tram", train: "train", bus: "bus stop", supermarket: "supermarket", bakery: "bakery", pharmacy: "pharmacy", convenience: "mini market", school: "school", kindergarten: "kindergarten", university: "university", college: "college", park: "park", square: "square", playground: "playground", gym: "gym", dining: "cafes/dining" }
+				types: { metro: "metro", tram: "tram", train: "train", bus: "bus stop", supermarket: "supermarket", bakery: "bakery", pharmacy: "pharmacy", convenience: "mini market", school: "school", kindergarten: "kindergarten", university: "university", college: "college", park: "park", square: "square", playground: "playground", gym: "gym", dining: "cafes/dining", restaurant: "restaurant", cafe: "cafe", fastfood: "fast food", carpark: "car park", garage: "parking garage", junction: "motorway junction" }
 			},
 			details: {
 				code: "Reference", type: "Type", area: "Floor area", bedrooms: "Bedrooms",
@@ -665,36 +657,33 @@
 			history.replaceState(null, "", window.location.pathname + (q ? "?" + q : ""));
 		}
 
-		/* Empty results are a lead, not a dead end: offer to search on the
-		   visitor's behalf — the contact message arrives pre-written with
-		   their criteria (?msg=, read by js/fourwalls.js) — plus a free
+		/* Empty results are a lead, not a dead end: send the visitor to the
+		   ζήτηση form with the search they just ran already filled in
+		   (js/fourwalls.js reads these params on /request), plus a free
 		   valuation link for owners gauging prices in their own area. */
-		function selectedLabel(control) {
-			if (!control || !control.value) return "";
-			var opt = control.options[control.selectedIndex];
-			return opt ? opt.textContent : "";
-		}
-
-		function searchSummary() {
+		function requestQuery(note) {
 			var f = currentFilters();
-			var parts = [];
-			var type = selectedLabel(controls.type);
-			if (type) parts.push(type.toLowerCase());
-			if (f.transaction) parts.push(f.transaction === "rent" ? STR.forRent : STR.forBuy);
-			if (f.area) parts.push(STR.areaPrefix + f.area);
-			if (f.bedrooms) parts.push(f.bedrooms + STR.bedroomsPlus);
-			if (f.bathrooms) parts.push(f.bathrooms + STR.bathsPlus);
-			if (f.amin) parts.push(STR.fromSqm(f.amin));
-			if (f.amax) parts.push(STR.toSqm(f.amax));
-			if (f.q) parts.push(STR.quoted(f.q));
-			return parts.join(", ");
+			var qs = new URLSearchParams();
+			if (f.transaction) qs.set("transaction", f.transaction);
+			if (f.type) qs.set("category", f.type);
+			if (f.area) qs.set("areas", f.area);
+			if (f.amin) qs.set("sizeMin", f.amin);
+			if (f.amax) qs.set("sizeMax", f.amax);
+			if (f.bedrooms) qs.set("bedroomsMin", f.bedrooms);
+			if (note) qs.set("msg", note);
+			var q = qs.toString();
+			return q ? "?" + q : "";
 		}
 
 		/* Same look as the index CTA (fancy-banner-three): title-one heading
 		   with the pink swash underline + the theme's btn-five pill. */
 		function emptyCta() {
-			var summary = searchSummary();
-			var msg = STR.emptyMsg(summary);
+			/* The structured filters travel as form fields (requestQuery);
+			   only the free-text keyword has no field of its own, so it
+			   rides along as the message. A full sentence here would sit
+			   redundantly next to the already-filled criteria. */
+			var q = currentFilters().q;
+			var msg = q ? STR.quoted(q) : "";
 
 			var box = el("div", "fw-empty-cta");
 			var title = el("div", "title-one mb-35");
@@ -709,7 +698,13 @@
 			box.appendChild(title);
 			box.appendChild(el("p", "fs-20 mb-40", STR.emptyBody));
 			var btn = el("a", "btn-five text-uppercase", STR.emptyBtn);
-			btn.href = BASE + "/contact?msg=" + encodeURIComponent(msg) + "#contact-form";
+			/* Straight to the ζήτηση form, carrying the search they just ran:
+			   they have already told us transaction, type, area and size by
+			   filtering, so asking for it again would be rude. The grid's
+			   filter values are the CRM slugs the form expects, so they map
+			   across as they are (see /request in js/fourwalls.js).
+			   `msg` rides along as the free-text note. */
+			btn.href = BASE + "/request" + requestQuery(msg);
 			box.appendChild(btn);
 			var owner = el("p", "fw-cta-alt mt-30");
 			owner.appendChild(document.createTextNode(STR.emptyOwner));
@@ -942,15 +937,21 @@
 			hide("fw-nearby-block");
 		}
 
-		/* accessibility ("Προσβασιμότητα περιοχής") — OSM ratings computed and
-		   KV-cached by the Worker; qualitative band + nearest-POI evidence. */
+		/* accessibility ("Προσβασιμότητα περιοχής") — OSM ratings precomputed
+		   into the feed (worker/lib/accessibility.mjs); qualitative band +
+		   nearest-POI evidence. WHICH categories arrive depends on the
+		   property type (an office is rated on lunch and parking, not on
+		   schools), so render whatever keys the record carries instead of a
+		   fixed list. Missing altogether on a listing added since the last
+		   run of tools/build-accessibility.mjs, and the block just stays
+		   hidden until it is there. */
 		var acc = l.accessibility;
 		var scoreRow = document.getElementById("fw-score");
 		if (scoreRow && acc) {
 			scoreRow.textContent = "";
-			["transit", "errands", "education", "leisure"].forEach(function (catKey) {
+			Object.keys(acc).forEach(function (catKey) {
 				var c = acc[catKey];
-				if (!c || !c.band) return;
+				if (!c || !c.band || !STR.access.cat[catKey]) return;
 				var col = el("div", "col-md-6");
 				var block = el("div", "block mb-25");
 				block.appendChild(el("h6", "mb-1", STR.access.cat[catKey]));

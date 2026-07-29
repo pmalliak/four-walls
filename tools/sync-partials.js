@@ -77,6 +77,7 @@ const PAGES = [
 	"privacy-policy.html",
 	"cookies.html",
 	"request.html",
+	"list-property.html",
 	"request-closed.html",
 	"404.html",
 	/* English site (/en/…) — stamped with the .en partial variants. */
@@ -97,6 +98,7 @@ const PAGES = [
 	"en/privacy-policy.html",
 	"en/cookies.html",
 	"en/request.html",
+	"en/list-property.html",
 	"en/request-closed.html",
 	"en/404.html",
 ];

@@ -42,6 +42,7 @@ import { handleFormSubmit } from "./lib/forms.mjs";
 import { handlePhotoApi, servePhotoFile, applyWatermark } from "./lib/photos.mjs";
 import { handleLeadReply } from "./lib/lead-reply.mjs";
 import { handlePropertyRequest } from "./lib/property-request.mjs";
+import { handlePropertyAssignment } from "./lib/property-assignment.mjs";
 
 const FEED_KEY = "listings.json";
 const DEFAULT_WEBHOOK_PATH = "/listings"; // overridden by WEBHOOK_PATH var
@@ -181,6 +182,11 @@ export default {
 		// Make -> email to the office. See docs/site-request-form.md.
 		if (pathname === "/api/property-request") {
 			return handlePropertyRequest(request, env);
+		}
+		// The ανάθεση twin (/list-property): owner leaves the basics ->
+		// CRM contact + comm -> «ΝΕΑ ΑΝΑΘΕΣΗ» email to the office.
+		if (pathname === "/api/property-assignment") {
+			return handlePropertyAssignment(request, env);
 		}
 		// Tracked outbound links from our emails/CRM: /go?to=/path&c=<campaign>.
 		// Logs one structured "email_click" line (queryable in the Worker's

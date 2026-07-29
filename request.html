@@ -266,9 +266,21 @@
 
 							<fieldset class="fw-rq-block">
 								<legend>Πώς θα σας βρούμε</legend>
-								<div class="input-group-meta form-group mb-25">
-									<label for="fw-rq-name">Ονοματεπώνυμο*</label>
-									<input type="text" id="fw-rq-name" name="name" class="form-control" required autocomplete="name">
+								<!-- Χωριστά όνομα/επώνυμο: το CRM τα θέλει σε δύο πεδία,
+								     και έτσι η αυτόματη καταχώριση δεν μαντεύει ποτέ. -->
+								<div class="row">
+									<div class="col-md-6">
+										<div class="input-group-meta form-group mb-25">
+											<label for="fw-rq-firstname">Όνομα*</label>
+											<input type="text" id="fw-rq-firstname" name="firstName" class="form-control" required autocomplete="given-name">
+										</div>
+									</div>
+									<div class="col-md-6">
+										<div class="input-group-meta form-group mb-25">
+											<label for="fw-rq-lastname">Επώνυμο*</label>
+											<input type="text" id="fw-rq-lastname" name="lastName" class="form-control" required autocomplete="family-name">
+										</div>
+									</div>
 								</div>
 								<div class="row">
 									<div class="col-md-6">
@@ -347,6 +359,7 @@
 								<ul class="footer-nav-link style-none">
 									<li><a href="/properties">Ακίνητα</a></li>
 									<li><a href="/request">Ζητάω ακίνητο</a></li>
+									<li><a href="/list-property">Αναθέτω ακίνητο</a></li>
 									<li><a href="/services">Υπηρεσίες</a></li>
 									<li><a href="/services/selling">Πώληση ακινήτου</a></li>
 									<li><a href="/services/valuation">Εκτίμηση ακινήτου</a></li>

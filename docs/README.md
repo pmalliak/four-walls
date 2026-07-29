@@ -31,7 +31,7 @@ deeper, one topic per file:
 | [forms-submit.md](forms-submit.md) | Έντυπα submit: PWA → Worker → Make router → client email + PDF; the PDF-capture trap |
 | [forms-prosfora.md](forms-prosfora.md) | Προσφορά πελάτη: η μόνη φόρμα χωρίς έντυπο/PDF, CRM pickers μέσω `FWCrm`, email «ΝΕΑ ΠΡΟΣΦΟΡΑ» στο info@ |
 | [forms-katachorisi-crm.md](forms-katachorisi-crm.md) | Καταχώριση ακινήτου: CRM-aligned schema (πεδία/slugs 1:1 με το EstatePrime), το `crm` payload, area ids, ο δρόμος για το auto-create |
-| [site-request-form.md](site-request-form.md) | Ζήτηση ακινήτου από το site (`/request`): φόρμα → Worker → Make → email «ΝΕΑ ΖΗΤΗΣΗ», οι περιοχές από ελεύθερο κείμενο, γιατί δεν γράφεται μόνη της στο CRM |
+| [site-request-form.md](site-request-form.md) | Ζήτηση + ανάθεση από το site (`/request`, `/list-property`): φόρμες → Worker (αυτόματη επαφή+επικοινωνία στο CRM) → Make → email στη γραμματεία, tags, εκκρεμείς αποφάσεις |
 | [request-closed.md](request-closed.md) | «Ολοκλήρωσα την αναζήτηση»: matchings email → `/request-closed` → Worker → Make → email to info@ |
 | [request-matchings.md](request-matchings.md) | Νέα ακίνητα σε ζητήσεις: σάρωση του tab «Ακίνητα» όλων των ενεργών ζητήσεων → digest email στη γραμματεία |
 | [photo-enhance.md](photo-enhance.md) | AI photo enhancement: enhance.html → Worker/R2 → Make (Gemini "Nano Banana") → Google Drive + email; the edit toggles and Make build recipe |

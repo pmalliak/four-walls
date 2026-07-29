@@ -34,7 +34,10 @@ for (const j of jobs) {
 		const rr = await (await fetch('/requests/form', { method: 'POST', credentials: 'include', headers: H, body: p.join('&') }))
 			.json().catch(() => ({ parse: 'fail' }));
 		let commId = null, commRaw = null;
-		if (rr && rr.id) {
+		// Site-form leads (7β) arrive WITHOUT j.comm: the Worker already
+		// logged the incoming communication when the form was submitted,
+		// and a second one would just be noise on the contact.
+		if (rr && rr.id && j.comm) {
 			const cb = ['create_communication=1', 'type=incoming', 'channel=2', 'contact_id=' + j.contactId,
 				'request_id=' + rr.id, 'user_id=2',
 				...(j.commTags || [15, 8]).map((t) => 'tags[]=' + t),

@@ -135,6 +135,13 @@ export const PAGES_META = {
 		title: "Ζήτηση ακινήτου · Four Walls Real Estate",
 		description: "Πείτε μας τι ακίνητο ψάχνετε στη Θεσσαλονίκη, περιοχή, τιμή και χαρακτηριστικά, και ψάχνουμε εμείς για εσάς.",
 	},
+	/* The ανάθεση twin of /request: the owner leaves the basics, the CRM
+	   gets the contact automatically, the office gets «ΝΕΑ ΑΝΑΘΕΣΗ». */
+	"list-property.html": {
+		path: "/list-property",
+		title: "Ανάθεση ακινήτου · Four Walls Real Estate",
+		description: "Έχετε ακίνητο για πώληση ή ενοικίαση στη Θεσσαλονίκη; Αφήστε μας τα βασικά και αναλαμβάνουμε εμείς: εκτίμηση, προβολή και υποψήφιοι πελάτες.",
+	},
 	/* Landing page for the «ολοκλήρωσα την αναζήτηση» link in the CRM
 	   matchings email (crm/request-matchings.twig.html). Reachable only
 	   from that email — kept out of the sitemap, and Greek-only for now
@@ -239,6 +246,11 @@ export const PAGES_META = {
 		path: "/en/request",
 		title: "Property Request · Four Walls Real Estate",
 		description: "Tell us what you are looking for in Thessaloniki, area, price and features, and we will do the searching for you.",
+	},
+	"en/list-property.html": {
+		path: "/en/list-property",
+		title: "List Your Property · Four Walls Real Estate",
+		description: "Selling or renting out a property in Thessaloniki? Leave us the basics and we take it from there: free valuation, marketing and qualified buyers.",
 	},
 	/* English twin of request-closed.html — the landing page of the
 	   opt-out link in the English matchings email. Same rules: reachable
