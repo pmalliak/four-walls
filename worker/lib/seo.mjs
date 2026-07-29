@@ -454,11 +454,13 @@ export async function sitemapResponse(env) {
 }
 
 /* Host-aware: only the production hosts may be crawled. dev.*,
-   *.workers.dev and forms.* answer Disallow-all so they never end up in
-   the index while the apex still points at the old host (and after). */
+   *.workers.dev, forms.* and docs.* answer Disallow-all so they never end
+   up in the index while the apex still points at the old host (and after).
+   /forms/ and /manual/ are also excluded on the apex, where the same files
+   are reachable under those paths. */
 export function robotsResponse(url) {
 	const body = isProdHost(url.hostname)
-		? "User-agent: *\nDisallow: /forms/\n\nSitemap: " + SITE.origin + "/sitemap.xml\n"
+		? "User-agent: *\nDisallow: /forms/\nDisallow: /manual/\n\nSitemap: " + SITE.origin + "/sitemap.xml\n"
 		: "User-agent: *\nDisallow: /\n";
 	return new Response(body, {
 		headers: {

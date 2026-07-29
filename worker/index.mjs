@@ -118,6 +118,26 @@ export default {
 			return devNoindex(res, url);
 		}
 
+		// docs.four-walls.gr serves ONLY the internal handbook: the manual/
+		// folder mapped to the domain root, exactly like the forms rewrite
+		// above. Same reasoning — the pages link each other with plain
+		// relative paths and must not be reachable from the public site.
+		// Cloudflare Access goes in front of this hostname (like forms.*)
+		// once the content is ready; until then it is unlisted, noindexed
+		// (devNoindex + robots Disallow-all) but publicly readable.
+		if (url.hostname.startsWith("docs.")) {
+			const assetUrl = new URL(request.url);
+			assetUrl.pathname = "/manual" + url.pathname;
+			const res = await env.ASSETS.fetch(new Request(assetUrl, request));
+			const loc = res.headers.get("Location");
+			if (loc && loc.startsWith("/manual")) {
+				const headers = new Headers(res.headers);
+				headers.set("Location", loc.slice("/manual".length) || "/");
+				return devNoindex(new Response(res.body, { status: res.status, headers }), url);
+			}
+			return devNoindex(res, url);
+		}
+
 		// A dedicated webhook hostname (webhooks.four-walls.gr) exposes ONLY
 		// the webhook endpoint — the site and feed are 404 there. On every
 		// other hostname (site domain, workers.dev) all routes work.

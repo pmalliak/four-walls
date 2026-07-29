@@ -22,6 +22,7 @@ routes = [
 	{ pattern = "dev.four-walls.gr", custom_domain = true },
 	{ pattern = "webhooks.four-walls.gr", custom_domain = true },
 	{ pattern = "forms.four-walls.gr", custom_domain = true },
+	{ pattern = "docs.four-walls.gr", custom_domain = true },
 ]
 # Keep the workers.dev URL alive too (adding routes disables it by default).
 # It bypasses the zone's WAF/bot protection — useful for the CRM webhook.
