@@ -40,15 +40,31 @@ const STR = {
 		subjectGone: (c) => `Το αίτημά σας για το ακίνητο #${c}`,
 		subjectNoCode: "Το αίτημά σας για ακίνητο",
 		preheaderAvail: "Λάβαμε το αίτημά σας. Το ακίνητο είναι διαθέσιμο.",
-		preheaderGone: "Λάβαμε το αίτημά σας. Δείτε παρόμοια ακίνητα.",
+		preheaderGone: "Λάβαμε το αίτημά σας. Το ακίνητο δεν είναι πλέον διαθέσιμο.",
 		hi: (n) => (n ? `Καλησπέρα ${n},` : "Καλησπέρα σας,"),
 		thanks: "σας ευχαριστούμε για το ενδιαφέρον σας. Λάβαμε το αίτημά σας για το παρακάτω ακίνητο.",
+		/* No card follows when the listing is gone, so «παρακάτω» would
+		   point at nothing. */
+		thanksNoCard: (c) => (c
+			? `σας ευχαριστούμε για το ενδιαφέρον σας. Λάβαμε το αίτημά σας για το ακίνητο με κωδικό #${c}.`
+			: "σας ευχαριστούμε για το ενδιαφέρον σας. Λάβαμε το αίτημά σας."),
 		available: "Το ακίνητο είναι διαθέσιμο. Θα επικοινωνήσει μαζί σας ο συνεργάτης μας για να κανονίσουμε επίσκεψη ή για ό,τι άλλο χρειάζεστε.",
-		gone: "Το συγκεκριμένο ακίνητο δεν είναι πλέον διαθέσιμο. Θα επικοινωνήσει μαζί σας ο συνεργάτης μας, και στο μεταξύ σας προτείνουμε μερικά παρόμοια.",
+		gone: "Το συγκεκριμένο ακίνητο δεν είναι πλέον διαθέσιμο. Θα επικοινωνήσει μαζί σας ο συνεργάτης μας, και παρακάτω θα βρείτε μερικά ακίνητα που ίσως σας ταιριάζουν.",
+		/* Same news, but nothing to show — do not promise suggestions that
+		   are not in the mail. */
+		goneEmpty: "Το συγκεκριμένο ακίνητο δεν είναι πλέον διαθέσιμο. Θα επικοινωνήσει μαζί σας ο συνεργάτης μας για να δούμε τι άλλο μπορούμε να βρούμε για εσάς.",
+		/* No ad code in the notification: we do not know WHICH property was
+		   asked about, so any claim about availability would be invented. */
+		unknown: "Θα επικοινωνήσει μαζί σας ο συνεργάτης μας το συντομότερο, για να δούμε τι ακριβώς ψάχνετε.",
+		preheaderUnknown: "Λάβαμε το αίτημά σας.",
 		code: "Κωδικός ακινήτου",
 		cta: "ΔΕΙΤΕ ΤΟ ΑΚΙΝΗΤΟ",
 		similarTitle: "Παρόμοια ακίνητα",
+		nearbyTitle: "Άλλα ακίνητα που ίσως σας ενδιαφέρουν",
 		ctaAll: "ΔΕΙΤΕ ΟΛΑ ΤΑ ΑΚΙΝΗΤΑ ΜΑΣ",
+		askTitle: "Δεν είναι αυτό που ψάχνετε;",
+		askBody: "Πείτε μας τι ακίνητο θέλετε, περιοχή, τιμή και χαρακτηριστικά, και ψάχνουμε εμείς για εσάς. Μόλις βρούμε κάτι που ταιριάζει, θα το μάθετε πρώτοι.",
+		askCta: "ΠΕΙΤΕ ΜΑΣ ΤΙ ΨΑΧΝΕΤΕ",
 		call: (t) => `Αν βιάζεστε, καλέστε μας στο <strong style="color:#FF1462;">${t}</strong> ή απαντήστε σε αυτό το email.`,
 		regards: "Με εκτίμηση,",
 		team: "Η ομάδα της Four Walls Real Estate",
@@ -61,15 +77,25 @@ const STR = {
 		subjectGone: (c) => `Your enquiry about property #${c}`,
 		subjectNoCode: "Your property enquiry",
 		preheaderAvail: "We received your enquiry. The property is available.",
-		preheaderGone: "We received your enquiry. Here are similar properties.",
+		preheaderGone: "We received your enquiry. That property is no longer available.",
 		hi: (n) => (n ? `Hello ${n},` : "Hello,"),
 		thanks: "thank you for your interest. We have received your enquiry about the property below.",
+		thanksNoCard: (c) => (c
+			? `thank you for your interest. We have received your enquiry about property #${c}.`
+			: "thank you for your interest. We have received your enquiry."),
 		available: "The property is available. One of our agents will contact you to arrange a viewing or answer any question.",
-		gone: "This property is no longer available. One of our agents will contact you, and in the meantime here are a few similar ones.",
+		gone: "This property is no longer available. One of our agents will contact you, and below are a few properties that may suit you.",
+		goneEmpty: "This property is no longer available. One of our agents will contact you so we can find something else for you.",
+		unknown: "One of our agents will contact you shortly to go through exactly what you are looking for.",
+		preheaderUnknown: "We received your enquiry.",
 		code: "Property code",
 		cta: "VIEW THE PROPERTY",
 		similarTitle: "Similar properties",
+		nearbyTitle: "Other properties you may like",
 		ctaAll: "SEE ALL OUR PROPERTIES",
+		askTitle: "Not quite what you are after?",
+		askBody: "Tell us what you are looking for, area, price and features, and we will do the searching. The moment something matches, you hear it from us first.",
+		askCta: "TELL US WHAT YOU WANT",
 		call: (t) => `If you are in a hurry, call us on <strong style="color:#FF1462;">${t}</strong> or just reply to this email.`,
 		regards: "Kind regards,",
 		team: "The Four Walls Real Estate team",
@@ -130,19 +156,26 @@ export function similarityScore(base, x) {
 
 /* The website can afford to fill the «Παρόμοια» row with whatever is
    closest — the visitor sees the price and moves on. An email cannot:
-   proposing a €650 flat to someone who asked about a €350 one reads as
-   «they did not read my message». So the mail applies a price band on
-   top of the score and would rather show nothing than something off.
+   proposing a €650 flat to someone who asked about a €350 one under the
+   heading «Παρόμοια» reads as «they did not read my message».
+
+   So the mail asks twice. First strictly (price band + score floor): a
+   real match, and it is called one. If nothing qualifies — which is the
+   normal case with a few dozen listings in stock — it falls back to the
+   widest band and relabels the block «Άλλα ακίνητα που ίσως σας
+   ενδιαφέρουν». Honest either way, and never an empty mail.
    MIN_SCORE 60 = roughly «same area» or «same subcategory + close on
    price and size». */
 const PRICE_BAND = 0.4;
+const LOOSE_BAND = 1.5;
 const MIN_SCORE = 60;
 
 export function pickSimilar(listings, base, limit = 3, strict = false) {
+	const band = strict ? PRICE_BAND : LOOSE_BAND;
 	return listings
 		.filter((x) => x.id !== base.id && x.transaction === base.transaction && x.category === base.category)
-		.filter((x) => !strict || !(base.price > 0 && x.price > 0)
-			|| Math.abs(x.price - base.price) / base.price <= PRICE_BAND)
+		.filter((x) => !(base.price > 0 && x.price > 0)
+			|| Math.abs(x.price - base.price) / base.price <= band)
 		.map((x) => ({ l: x, s: similarityScore(base, x) }))
 		.filter((x) => !strict || x.s >= MIN_SCORE)
 		.sort((a, b) => b.s - a.s)
@@ -180,10 +213,20 @@ function listingCard(l, lang, campaign) {
 </table>`;
 }
 
-function buildHtml({ lang, name, listing, similar, available }) {
+/* One place decides what we may honestly claim: with no code we know
+   nothing, with a code we know exactly, and «gone» only promises
+   suggestions when the mail actually carries some. */
+function statusLine({ S, code, available, similar }) {
+	if (!code) return S.unknown;
+	if (available) return S.available;
+	return similar.length ? S.gone : S.goneEmpty;
+}
+
+function buildHtml({ lang, name, listing, similar, available, strictMatch, code }) {
 	const S = STR[lang];
-	const preheader = available ? S.preheaderAvail : S.preheaderGone;
+	const preheader = !code ? S.preheaderUnknown : (available ? S.preheaderAvail : S.preheaderGone);
 	const allUrl = track(lang === "en" ? "/en/properties" : "/properties", "lead_reply_all");
+	const requestUrl = track(lang === "en" ? "/en/request" : "/request", "lead_reply_request");
 	return `<!DOCTYPE html>
 <html lang="${lang}" xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -191,7 +234,7 @@ function buildHtml({ lang, name, listing, similar, available }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="x-apple-disable-message-reformatting">
-<title>${esc(available ? S.preheaderAvail : S.preheaderGone)}</title>
+<title>${esc(preheader)}</title>
 </head>
 <body style="margin:0; padding:0; background:#f4f5f7; font-family:Arial,sans-serif;">
 	<div style="display:none; max-height:0; overflow:hidden; opacity:0;">${esc(preheader)}</div>
@@ -204,7 +247,7 @@ function buildHtml({ lang, name, listing, similar, available }) {
 
 				<tr><td style="padding:18px 20px 4px 20px; font-size:14px; line-height:1.7; color:#16233A;">
 					<p style="margin:0 0 10px 0;">${esc(S.hi(name))}</p>
-					<p style="margin:0 0 12px 0;">${esc(S.thanks)}</p>
+					<p style="margin:0 0 12px 0;">${esc(listing ? S.thanks : S.thanksNoCard(code))}</p>
 				</td></tr>
 
 				${listing ? `<tr><td style="padding:4px 20px 0 20px;">${listingCard(listing, lang, "lead_reply")}</td></tr>` : ""}
@@ -212,20 +255,38 @@ function buildHtml({ lang, name, listing, similar, available }) {
 				<tr><td style="padding:16px 20px 4px 20px;">
 					<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 						<tr><td style="background:${available ? "#f2f9f4" : "#f7f8fa"}; border-left:3px solid ${available ? "#2e9e5b" : "#FF1462"}; border-radius:6px; padding:12px 14px; font-size:14px; line-height:1.6; color:#16233A;">
-							${esc(available ? S.available : S.gone)}
+							${esc(statusLine({ S, code, available, similar }))}
 						</td></tr>
 					</table>
 				</td></tr>
 
-				${similar.length ? `<tr><td style="padding:18px 20px 0 20px; font-size:15px; font-weight:bold; color:#16233A;">${S.similarTitle}</td></tr>
-				${similar.map((s) => `<tr><td style="padding:12px 20px 0 20px;">${listingCard(s, lang, "lead_reply_similar")}</td></tr>`).join("\n\t\t\t\t")}
+				${similar.length ? `<tr><td style="padding:18px 20px 0 20px; font-size:15px; font-weight:bold; color:#16233A;">${strictMatch ? S.similarTitle : S.nearbyTitle}</td></tr>
+				${similar.map((s) => `<tr><td style="padding:12px 20px 0 20px;">${listingCard(s, lang, "lead_reply_similar")}</td></tr>`).join("\n\t\t\t\t")}` : ""}
+
 				<tr><td style="padding:18px 20px 2px 20px;" align="center">
 					<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
 						<tr><td style="border:1px solid #FF1462; border-radius:4px;">
 							<a href="${allUrl}" style="display:block; padding:10px 22px; font-size:13px; font-weight:bold; color:#FF1462; text-decoration:none; letter-spacing:0.4px;">${S.ctaAll}</a>
 						</td></tr>
 					</table>
-				</td></tr>` : ""}
+				</td></tr>
+
+				<!-- The point of the whole mail: turn a portal lead into a
+				     ζήτηση on our own site, which keeps working for months
+				     without paying for the lead again. -->
+				<tr><td style="padding:20px 20px 0 20px;">
+					<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+						<tr><td style="background:#f7f8fa; border-radius:8px; padding:16px 18px; font-size:14px; line-height:1.6; color:#16233A;">
+							<div style="font-size:15px; font-weight:bold; margin:0 0 6px 0;">${esc(S.askTitle)}</div>
+							<div style="margin:0 0 12px 0;">${esc(S.askBody)}</div>
+							<table role="presentation" cellpadding="0" cellspacing="0">
+								<tr><td style="background:#FF1462; border-radius:4px;">
+									<a href="${requestUrl}" style="display:block; padding:10px 20px; font-size:13px; font-weight:bold; color:#ffffff; text-decoration:none; letter-spacing:0.4px;">${S.askCta}</a>
+								</td></tr>
+							</table>
+						</td></tr>
+					</table>
+				</td></tr>
 
 				<tr><td style="padding:16px 20px 6px 20px; font-size:14px; line-height:1.7; color:#16233A;">
 					<p style="font-size:12px; color:#777777; margin:0 0 12px 0; line-height:1.5;">${S.call(PHONE_DISPLAY)}</p>
@@ -248,17 +309,17 @@ function buildHtml({ lang, name, listing, similar, available }) {
 /* Plain-text alternative — some clients show it, and it is what lands in
    the CRM communication comment when the office wants to see what the
    client was told. */
-function buildText({ lang, name, listing, similar, available }) {
+function buildText({ lang, name, listing, similar, available, strictMatch, code }) {
 	const S = STR[lang];
-	const lines = [S.hi(name), "", S.thanks, ""];
+	const lines = [S.hi(name), "", listing ? S.thanks : S.thanksNoCard(code), ""];
 	if (listing) {
 		lines.push(`${listingTitle(listing, lang)} — ${priceLabel(listing, lang)}`.trim());
 		if (listing.code) lines.push(`${S.code}: ${listing.code}`);
 		lines.push(canonicalUrl(listing, lang), "");
 	}
-	lines.push(available ? S.available : S.gone, "");
+	lines.push(statusLine({ S, code, available, similar }), "");
 	if (similar.length) {
-		lines.push(S.similarTitle + ":");
+		lines.push((strictMatch ? S.similarTitle : S.nearbyTitle) + ":");
 		for (const s of similar) {
 			lines.push(`- ${listingTitle(s, lang)} — ${priceLabel(s, lang)} — ${canonicalUrl(s, lang)}`);
 		}
@@ -298,8 +359,11 @@ export async function handleLeadReply(request, env, url) {
 	   client wanted, so fall back to the newest stock of the transaction
 	   type Make passes along (from the email's «προς ενοικίαση/πώληση»). */
 	let similar = [];
+	let strictMatch = false;
 	if (listing) {
 		similar = pickSimilar(listings, listing, 3, true);
+		strictMatch = similar.length > 0;
+		if (!similar.length) similar = pickSimilar(listings, listing, 3, false);
 	} else {
 		const t = url.searchParams.get("transaction");
 		const c = url.searchParams.get("category");
@@ -312,7 +376,7 @@ export async function handleLeadReply(request, env, url) {
 	const subject = code
 		? (available ? S.subjectAvail(code) : S.subjectGone(code))
 		: S.subjectNoCode;
-	const ctx = { lang, name, listing, similar, available };
+	const ctx = { lang, name, listing, similar, available, strictMatch, code };
 	const html = buildHtml(ctx);
 
 	if (wantsHtml) {
