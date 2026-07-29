@@ -43,6 +43,12 @@ function api(env) {
 	const headers = {
 		"Authorization": "Basic " + btoa(`${env.ESTATEPRIME_API_KEY}:${env.ESTATEPRIME_API_SECRET}`),
 		"Content-Type": "application/json",
+		"Accept": "application/json",
+		/* Worker fetches carry no User-Agent by default, and EstatePrime's
+		   edge answers UA-less POSTs with 403 «Access denied» while the
+		   same request from a browser or node sails through (seen live
+		   2026-07-29; the feed's GETs pass either way). */
+		"User-Agent": "four-walls.gr worker (site lead forms)",
 	};
 	return {
 		get: async (path) => {
