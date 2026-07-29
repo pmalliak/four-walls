@@ -23,8 +23,12 @@ for (const j of jobs) {
 	const out = await tab.eval(`(async () => {
 		const j = ${JSON.stringify(j)};
 		const H = { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest' };
-		const p = ['save_request=1', 'source_id=1', 'contact_ids[]=' + j.contactId, 'user_ids[]=2',
-			'tags[]=13', 'tags[]=14', 'request_status=1', 'rating='];
+		// Spitogatos leads keep the defaults; site-requests.mjs overrides both
+		// (there is no «four-walls.gr» request source in the CRM yet, so it
+		// sends none rather than mislabelling the lead as Spitogatos).
+		const p = ['save_request=1', 'source_id=' + (j.requestSource ?? '1'),
+			'contact_ids[]=' + j.contactId, 'user_ids[]=2', 'request_status=1', 'rating='];
+		for (const t of (j.requestTags || [13, 14])) p.push('tags[]=' + t);
 		for (const [l1, l2] of j.areas) { p.push('area_level1[]=' + l1); p.push('area_level2[]=' + l2); }
 		p.push(j.fields, 'shortterm_unit=per_day', 'polygons=%5B%5D');
 		const rr = await (await fetch('/requests/form', { method: 'POST', credentials: 'include', headers: H, body: p.join('&') }))
@@ -32,7 +36,8 @@ for (const j of jobs) {
 		let commId = null, commRaw = null;
 		if (rr && rr.id) {
 			const cb = ['create_communication=1', 'type=incoming', 'channel=2', 'contact_id=' + j.contactId,
-				'request_id=' + rr.id, 'user_id=2', 'tags[]=15', 'tags[]=8',
+				'request_id=' + rr.id, 'user_id=2',
+				...(j.commTags || [15, 8]).map((t) => 'tags[]=' + t),
 				'communication_date=' + encodeURIComponent(j.comm.date),
 				'comments=' + encodeURIComponent(j.comm.comments)].join('&');
 			const cr = await (await fetch('/communication/form', { method: 'POST', credentials: 'include', headers: H, body: cb }))

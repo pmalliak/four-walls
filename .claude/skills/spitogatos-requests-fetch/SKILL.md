@@ -1,11 +1,12 @@
 ---
 name: spitogatos-requests-fetch
 description: >-
-  Turn Spitogatos «Αίτηση ζήτησης ακινήτου» (property-demand) leads into EstatePrime CRM
-  records — a contact + a ζήτηση/request + an incoming communication, correctly tagged and
-  assigned to Μάνος. Use when Panos wants to process/backfill Spitogatos demand leads into the
-  CRM (e.g. "process the last 2 weeks of Spitogatos ζητήσεις"). ζήτηση = demand; NOT ανάθεση
-  (assignment, which Make already handles).
+  Turn property-demand leads into EstatePrime CRM records — a contact + a ζήτηση/request + an
+  incoming communication, correctly tagged and assigned to Μάνος. Covers both Spitogatos
+  «Αίτηση ζήτησης ακινήτου» emails and the ζητήσεις from our own form at four-walls.gr/request
+  (step 7β). Use when Panos wants to process/backfill demand leads into the CRM (e.g. "process
+  the last 2 weeks of Spitogatos ζητήσεις"). ζήτηση = demand; NOT ανάθεση (assignment, which
+  Make already handles).
 ---
 
 # Spitogatos ζήτηση → EstatePrime intake
@@ -204,9 +205,33 @@ node tools/crm-request-matchings.mjs --send
 
 Δες [docs/request-matchings.md](../../../docs/request-matchings.md).
 
+**7β. Ζητήσεις από τη ΔΙΚΗ ΜΑΣ φόρμα (four-walls.gr/request). Τρέξ' το κι αυτό πάντα.**
+```bash
+node .claude/skills/spitogatos-requests-fetch/scripts/site-requests.mjs 2026/07/29 \
+     .claude/skills/spitogatos-requests-fetch/state/processed.json <scratch>/site-worklist.json
+node .claude/skills/spitogatos-requests-fetch/scripts/headless/crm-post.mjs <scratch>/site-worklist.json <scratch>/site-results.json
+```
+Διαβάζει τα «ΝΕΑ ΖΗΤΗΣΗ» email του `info@` (τα στέλνει το σενάριο «Site - Φόρμα επικοινωνίας»,
+κλάδος ζήτησης) και βγάζει worklist **στο ίδιο σχήμα με το prep.mjs**, οπότε το `crm-post.mjs` και
+το `verify-log.mjs` δουλεύουν αυτούσια. Το email λέει στη γραμματεία να την καταχωρίσει με το χέρι·
+αυτό το βήμα υπάρχει για να μη μείνει μια ζήτηση του Σαββάτου ως τη Δευτέρα. Είναι idempotent
+(`processed.json`, leadId `site-<emailId>`), άρα αν την πρόλαβε η γραμματεία απλώς θα τη δεις ως
+«already processed» — αλλά **αν την καταχώρισε χειροκίνητα χωρίς να περάσει από εδώ, το script δεν
+το ξέρει**: κοίτα τη λίστα ζητήσεων για διπλή εγγραφή πριν το τρέξεις σε παλιά emails.
+
+Διαφορές από τα leads του Spitogatos, όλες σκόπιμες:
+- **Περιοχές από ελεύθερο κείμενο.** Ο επισκέπτης γράφει «Τριανδρία, Χαριλάου», όχι ids. Το script
+  κατεβάζει μια φορά όλο το `/locations` (~15.100 γραμμές· το `?search=` **αγνοείται** εκεί) και το
+  cache-άρει δίπλα στο `processed.json`. Αν δεν αναγνωρίσει καμία περιοχή, **δεν** μαντεύει: βγάζει
+  το lead στα skipped για να το δει άνθρωπος (η ζήτηση χωρίς τοποθεσία απορρίπτεται ούτως ή άλλως).
+- **Tags χωρίς spitogatos**: επαφή `[12,10]`, ζήτηση `[13]`, comm `[15]`.
+- **Χωρίς `source_id`**: το CRM έχει μόνο Spitogatos.gr και xe.gr στις πηγές ζήτησης, και το να
+  περάσει δικό μας lead ως Spitogatos χαλάει ακριβώς τον αριθμό που κοιτάει ο Πάνος για την πύλη.
+  Αν προστεθεί πηγή «four-walls.gr» στο CRM UI, βάλε το id στο `requestSource` του script.
+
 **8. Report** to Panos: created / reused / skipped / failed counts, and any FAILs to retry, **plus
 το αποτέλεσμα του βήματος 7** (πόσες ζητήσεις / πόσα ακίνητα μπήκαν στο digest, ή «καμία
-εκκρεμότητα»). Review a
+εκκρεμότητα») **και του 7β** (πόσες ζητήσεις του site μπήκαν). Review a
 batch in the CRM by filtering the Επικοινωνίες list on the `claude` tag (comms sort by the lead's real
 date, not creation time — they scatter, they don't cluster at top).
 

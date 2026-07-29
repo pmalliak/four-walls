@@ -174,6 +174,10 @@ export async function handlePropertyRequest(request, env) {
 			subcategoryLabel: LABELS.subcategory[r.subcategory] || "",
 			featuresLabel: r.features.map((f) => LABELS.features[f] || f).join(", "),
 			summary,
+			/* The visitor's own words, kept apart from `message` — the email
+			   shows this as «Σχόλια», and overwriting it with the summary
+			   made every request look like it had a long comment. */
+			comment: r.message,
 			/* `message` is what the plain-contact branch would show, so a
 			   misrouted ζήτηση is still readable instead of empty. */
 			message: summary,
