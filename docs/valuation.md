@@ -13,6 +13,13 @@ report). Δεν είναι πιστοποιημένη έκθεση εκτίμη�
 
 ## Η ροή
 
+**Δύο βήματα από τη φόρμα (2026-07-30):** το «Υπολογισμός εκτίμησης» παρκάρει
+το payload στο KV, η φόρμα τραβάει το report από το `/api/valuation` και το
+δείχνει επιτόπου ως έγγραφο (15-40 δευτερόλεπτα), **χωρίς email**. Το Make
+ειδοποιείται μόνο αν πατηθεί «Αποστολή στο info@»: δεύτερο, ελαφρύ submit με το
+ίδιο `valuation_ref`, report από cache, μηδέν νέο κόστος AI. Το διάγραμμα
+παρακάτω δείχνει το δεύτερο βήμα.
+
 ```
 ektimisi.html ──POST──► /api/forms/submit ─┬─► KV: valuation:req:<ref>  (TTL 2d)
    (Access)      forms.mjs                 └─► Make hook (payload + valuation_ref)

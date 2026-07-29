@@ -513,7 +513,16 @@ function renderReport(prop, comps, stats, priceRow, v, payload) {
 		`Βεβαιότητα: ${v.confidence || ""}. ${v.confidence_reason || ""}`,
 	].filter(Boolean).join("\n");
 
-	return { subject, html, text };
+	return {
+		subject, html, text,
+		// Για την προβολή μέσα στη φόρμα (ektimisi.html): το τελικό JSON
+		// του μοντέλου, τα στοιχεία του ακινήτου και τα συγκριτικά. Το
+		// Make αγνοεί αυτά τα πεδία.
+		v, prop,
+		comps: comps.sale.map((l) => ({
+			code: l.code, area: (l.location || {}).area, sqm: l.area, price: l.price,
+		})),
+	};
 }
 
 function labelCategory(c) {

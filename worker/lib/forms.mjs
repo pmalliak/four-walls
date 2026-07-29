@@ -92,16 +92,22 @@ export async function handleFormSubmit(request, env, email) {
 		}
 	}
 
-	// Εκτίμηση: το AI δεν τρέχει εδώ (θα κρατούσε το tablet δεκάδες
-	// δευτερόλεπτα και τα retries του outbox θα το ξαναχρέωναν). Το
-	// payload παρκάρει στο KV με τυχαίο ref και το Make καλεί μετά το
-	// /api/valuation?ref=… με την ησυχία του (worker/lib/valuation.mjs).
+	// Εκτίμηση, σε δύο βήματα. Βήμα 1 (χωρίς valuation_ref): το payload
+	// παρκάρει στο KV με τυχαίο ref και γυρίζουμε στη φόρμα ΧΩΡΙΣ να
+	// ειδοποιηθεί το Make· η φόρμα τραβάει το report από το
+	// /api/valuation και το δείχνει επιτόπου. Βήμα 2 (με valuation_ref,
+	// όταν πατηθεί «Αποστολή στο info@»): πέφτουμε στο fetch παρακάτω
+	// και το Make στέλνει το ήδη κασαρισμένο report με email.
 	if (form === "ektimisi") {
-		const ref = crypto.randomUUID();
-		payload.valuation_ref = ref;
-		await env.LISTINGS_KV.put(VALUATION_REQ_PREFIX + ref, JSON.stringify(payload), {
-			expirationTtl: VALUATION_TTL_SECONDS,
-		});
+		const clientRef = String(payload.valuation_ref || "");
+		if (!/^[0-9a-f-]{16,64}$/i.test(clientRef)) {
+			const ref = crypto.randomUUID();
+			payload.valuation_ref = ref;
+			await env.LISTINGS_KV.put(VALUATION_REQ_PREFIX + ref, JSON.stringify(payload), {
+				expirationTtl: VALUATION_TTL_SECONDS,
+			});
+			return json({ ok: true, valuation_ref: ref });
+		}
 	}
 
 	const fwd = await fetch(env.MAKE_FORMS_WEBHOOK, {
