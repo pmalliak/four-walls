@@ -17,15 +17,17 @@
    επικοινωνίας» routes on it to its own email. Splitting it into its own
    hook later is one secret + one filter, nothing else changes.
 
-   The CONTACT and the incoming communication ARE written to the CRM
-   here (worker/lib/crm-lead.mjs) — those public endpoints work. Only
-   the ζήτηση record itself stays manual, because POST /api/requests is
-   broken upstream and the internal /requests/form needs a browser
-   session; the office (or the spitogatos-requests-fetch skill, step 7β)
-   creates it from the email. See docs/site-request-form.md.
+   The CONTACT and the incoming communication are written to the CRM by
+   the MAKE scenario, not here: EstatePrime answers Worker-originated
+   POSTs with 403 «Access denied» no matter the headers (2026-07-30),
+   while Make posts to the same endpoints fine — so the scenario reuses
+   the exact module chain the Spitogatos leads use. The Worker ships
+   Make pre-sanitised fields (summaryLine, crmFirst/crmLast) because
+   Make builds its JSON bodies as raw text. Only the ζήτηση record
+   stays manual (POST /api/requests is broken upstream); the office or
+   the spitogatos-requests-fetch skill (step 7β) creates it from the
+   email. See docs/site-request-form.md.
    ===================================================================== */
-
-import { recordSiteLead } from "./crm-lead.mjs";
 
 const MAX = { name: 120, email: 200, phone: 50, message: 2000, areas: 300, num: 12, list: 20 };
 
@@ -72,6 +74,32 @@ const num = (v) => {
 	return d ? String(Number(d)) : "";
 };
 const pick = (v, allowed) => (allowed.has(String(v ?? "")) ? String(v) : "");
+/* For values Make drops into raw JSON: straight quotes would end the
+   string, backslashes would escape into it. */
+const jsonSafe = (v) => String(v ?? "").replace(/["\\]/g, "'").replace(/[\u0000-\u001F\u007F]/g, " ");
+
+/* Make writes the CRM records (Worker-originated POSTs get 403 there),
+   and its JSON bodies are raw text — so the phone/email land pre-shaped:
+   digits for dedupe search, E.164 for storage, ready row-objects that
+   drop into "phones": [...] / "emails": [...] verbatim. */
+function makeCrmFields(r) {
+	const digits = String(r.phone || "").replace(/\D/g, "").replace(/^0+/, "");
+	const e164 = !digits ? ""
+		: digits.length >= 12 ? "+" + digits
+		: "+30" + digits;
+	return {
+		phoneDigits: digits,
+		searchKey: digits.length > 9 ? digits.slice(-10)
+			: (r.email.includes("@") ? r.email : ""),
+		phoneJson: digits ? JSON.stringify({
+			type: "mobile-personal", number: e164, notes: "Από τη φόρμα του site",
+		}) : "",
+		emailJson: r.email.includes("@") ? JSON.stringify({
+			type: "personal", email: r.email, notes: "Από τη φόρμα του site",
+		}) : "",
+	};
+}
+
 
 /* The email + the CRM ζήτηση both want the criteria as readable lines
    rather than a JSON blob, and building them once here keeps Make free
@@ -179,15 +207,6 @@ export async function handlePropertyRequest(request, env) {
 	   Best-effort by design: recordSiteLead never throws, and a failed
 	   write becomes a line in the email («καταχώρισέ τον με το χέρι»)
 	   rather than a failed submit. */
-	const crm = await recordSiteLead(env, {
-		kind: "zitisi",
-		firstName: r.firstName,
-		lastName: r.lastName,
-		phone: r.phone,
-		email: r.email,
-		notes: `Ζήτηση από τη φόρμα του site (${r.page || "/request"}).\n${summary}`,
-		comments: `Ζήτηση από τη φόρμα του four-walls.gr/request. ${summary.replace(/\n/g, " ")}`,
-	});
 
 	const fwd = await fetch(env.MAKE_CONTACT_WEBHOOK, {
 		method: "POST",
@@ -197,15 +216,17 @@ export async function handlePropertyRequest(request, env) {
 			   plain contact form and keeps its old branch. */
 			form: "zitisi",
 			...r,
-			crmStatus: crm.status,
-			crmContactId: crm.contactId || "",
-			crmContactUrl: crm.contactId
-				? `https://${env.ESTATEPRIME_SUBDOMAIN}.estateprime.gr/contacts/view/${crm.contactId}` : "",
 			transactionLabel: LABELS.transaction[r.transaction] || "",
 			categoryLabel: LABELS.category[r.category] || "",
 			subcategoryLabel: LABELS.subcategory[r.subcategory] || "",
 			featuresLabel: r.features.map((f) => LABELS.features[f] || f).join(", "),
 			summary,
+			/* Make interpolates these into RAW JSON bodies for the CRM
+			   writes — one line, no double quotes, or the body breaks. */
+			summaryLine: jsonSafe(summary.replace(/\n/g, " · ")),
+			crmFirst: jsonSafe(r.firstName),
+			crmLast: jsonSafe(r.lastName),
+			...makeCrmFields(r),
 			/* The visitor's own words, kept apart from `message` — the email
 			   shows this as «Σχόλια», and overwriting it with the summary
 			   made every request look like it had a long comment. */

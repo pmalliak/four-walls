@@ -2,10 +2,10 @@
    Four Walls — «Αναθέστε μας το ακίνητό σας» relay (/list-property)
    ---------------------------------------------------------------------
    The ανάθεση twin of the ζήτηση form (property-request.mjs) and the
-   same pipeline: Turnstile verified here, contact + incoming
-   communication filed straight into the CRM (crm-lead.mjs), then the
-   payload relayed to MAKE_CONTACT_WEBHOOK with `form: "anathesi"` so the
-   Make router mails «ΝΕΑ ΑΝΑΘΕΣΗ» to the office.
+   same pipeline: Turnstile verified here, then everything relayed to
+   MAKE_CONTACT_WEBHOOK with `form: "anathesi"` — the Make scenario
+   mails «ΝΕΑ ΑΝΑΘΕΣΗ» AND files the CRM contact + communication
+   (Worker-originated CRM POSTs get 403, see property-request.mjs).
 
    Deliberately FEWER fields than the ζήτηση: an owner deciding whether
    to trust us is one phone call away from giving every detail, so the
@@ -13,8 +13,6 @@
    listing itself is created in the CRM by a consultant after the visit,
    never from a public form. See docs/site-request-form.md.
    ===================================================================== */
-
-import { recordSiteLead } from "./crm-lead.mjs";
 
 const MAX = { name: 120, email: 200, phone: 50, message: 2000, areas: 300, num: 12 };
 
@@ -37,6 +35,32 @@ const num = (v) => {
 	return d ? String(Number(d)) : "";
 };
 const pick = (v, allowed) => (allowed.has(String(v ?? "")) ? String(v) : "");
+/* For values Make drops into raw JSON: straight quotes would end the
+   string, backslashes would escape into it. */
+const jsonSafe = (v) => String(v ?? "").replace(/["\\]/g, "'").replace(/[\u0000-\u001F\u007F]/g, " ");
+
+/* Make writes the CRM records (Worker-originated POSTs get 403 there),
+   and its JSON bodies are raw text — so the phone/email land pre-shaped:
+   digits for dedupe search, E.164 for storage, ready row-objects that
+   drop into "phones": [...] / "emails": [...] verbatim. */
+function makeCrmFields(r) {
+	const digits = String(r.phone || "").replace(/\D/g, "").replace(/^0+/, "");
+	const e164 = !digits ? ""
+		: digits.length >= 12 ? "+" + digits
+		: "+30" + digits;
+	return {
+		phoneDigits: digits,
+		searchKey: digits.length > 9 ? digits.slice(-10)
+			: (r.email.includes("@") ? r.email : ""),
+		phoneJson: digits ? JSON.stringify({
+			type: "mobile-personal", number: e164, notes: "Από τη φόρμα του site",
+		}) : "",
+		emailJson: r.email.includes("@") ? JSON.stringify({
+			type: "personal", email: r.email, notes: "Από τη φόρμα του site",
+		}) : "",
+	};
+}
+
 
 function buildSummary(r) {
 	const L = [];
@@ -118,15 +142,6 @@ export async function handlePropertyAssignment(request, env) {
 	}
 
 	const summary = buildSummary(r);
-	const crm = await recordSiteLead(env, {
-		kind: "anathesi",
-		firstName: r.firstName,
-		lastName: r.lastName,
-		phone: r.phone,
-		email: r.email,
-		notes: `Ανάθεση από τη φόρμα του site (${r.page || "/list-property"}).\n${summary}`,
-		comments: `Ανάθεση ακινήτου από τη φόρμα του four-walls.gr/list-property. ${summary.replace(/\n/g, " ")}`,
-	});
 
 	const fwd = await fetch(env.MAKE_CONTACT_WEBHOOK, {
 		method: "POST",
@@ -137,13 +152,15 @@ export async function handlePropertyAssignment(request, env) {
 			transactionLabel: LABELS.transaction[r.transaction] || "",
 			categoryLabel: LABELS.category[r.category] || "",
 			summary,
+			/* Make interpolates these into RAW JSON bodies for the CRM
+			   writes — one line, no double quotes, or the body breaks. */
+			summaryLine: jsonSafe(summary.replace(/\n/g, " · ")),
+			crmFirst: jsonSafe(r.firstName),
+			crmLast: jsonSafe(r.lastName),
+			...makeCrmFields(r),
 			comment: r.message,
 			/* readable fallback if the payload ever hits the plain branch */
 			message: summary,
-			crmStatus: crm.status,
-			crmContactId: crm.contactId || "",
-			crmContactUrl: crm.contactId
-				? `https://${env.ESTATEPRIME_SUBDOMAIN}.estateprime.gr/contacts/view/${crm.contactId}` : "",
 			received_at: new Date().toISOString(),
 		}),
 	});
