@@ -22,9 +22,12 @@
    εργαλείο για να πηγαίνει ο σύμβουλος διαβασμένος στη συζήτηση
    τιμολόγησης, όχι έκθεση για τράπεζα ή δικαστήριο.
 
-   Χρειάζεται το secret ANTHROPIC_API_KEY (wrangler secret put).
-   Προαιρετικά VALUATION_MODEL (default claude-opus-5· για φθηνότερο,
-   βάλε claude-sonnet-5 στο [vars] του wrangler.toml).
+   Θέλει ΕΝΑ από τα δύο secrets (wrangler secret put):
+   - ANTHROPIC_API_KEY: Claude, VALUATION_MODEL (default claude-opus-5).
+   - GEMINI_API_KEY: Gemini, VALUATION_GEMINI_MODEL (default
+     gemini-3.5-flash). Το ίδιο κλειδί με το Make connection του
+     photo-enhance (AI Studio, με billing).
+   Αν υπάρχουν και τα δύο, προτιμάται το Claude.
    ===================================================================== */
 
 import { AREA_PRICES, AREA_PRICES_META, findAreaPrices } from "./area-prices.mjs";
@@ -37,11 +40,13 @@ export const VALUATION_TTL_SECONDS = 2 * 24 * 3600;
 const FEED_KEY = "listings.json"; // ίδιο με FEED_KEY στο worker/index.mjs
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const DEFAULT_MODEL = "claude-opus-5";
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
 
 export async function handleValuation(request, env, url) {
 	if (request.method !== "GET") return json({ error: "method_not_allowed" }, 405);
-	if (!env.ANTHROPIC_API_KEY) {
-		console.error("valuation: ANTHROPIC_API_KEY secret not configured");
+	if (!env.ANTHROPIC_API_KEY && !env.GEMINI_API_KEY) {
+		console.error("valuation: neither ANTHROPIC_API_KEY nor GEMINI_API_KEY is configured");
 		return json({ error: "not_configured" }, 503);
 	}
 
@@ -74,9 +79,9 @@ export async function handleValuation(request, env, url) {
 
 	// Πέρασμα 1: η εκτίμηση. Πέρασμα 2: αυστηρός έλεγχος της εκτίμησης
 	// (αριθμητική, σύγκριση με συγκριτικά και εύρη περιοχής, υπερβολές).
-	const draft = await askClaude(env, PASS1_SYSTEM, dataBlock + "\n\n" + PASS1_ASK);
+	const draft = await askAI(env, PASS1_SYSTEM, dataBlock + "\n\n" + PASS1_ASK);
 	const draftJson = extractJson(draft);
-	const final = await askClaude(
+	const final = await askAI(
 		env,
 		PASS2_SYSTEM,
 		dataBlock + "\n\nΗ ΕΚΤΙΜΗΣΗ ΠΡΟΣ ΕΛΕΓΧΟ (JSON):\n" + JSON.stringify(draftJson) + "\n\n" + PASS2_ASK,
@@ -273,8 +278,39 @@ function buildDataBlock(prop, comps, stats, priceRow) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Anthropic                                                            */
+/* AI providers (Claude αν υπάρχει κλειδί, αλλιώς Gemini)               */
 /* ------------------------------------------------------------------ */
+
+function askAI(env, system, user) {
+	return env.ANTHROPIC_API_KEY ? askClaude(env, system, user) : askGemini(env, system, user);
+}
+
+async function askGemini(env, system, user) {
+	const model = env.VALUATION_GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
+	const res = await fetch(`${GEMINI_URL}/${model}:generateContent`, {
+		method: "POST",
+		headers: {
+			"x-goog-api-key": env.GEMINI_API_KEY,
+			"content-type": "application/json",
+		},
+		body: JSON.stringify({
+			system_instruction: { parts: [{ text: system }] },
+			contents: [{ role: "user", parts: [{ text: user }] }],
+			// responseMimeType: το Gemini επιστρέφει εγγυημένα σκέτο JSON,
+			// που είναι ακριβώς ό,τι περιμένει το extractJson.
+			generationConfig: { maxOutputTokens: 8000, responseMimeType: "application/json" },
+		}),
+	});
+	if (!res.ok) {
+		const detail = (await res.text()).slice(0, 300);
+		throw new Error(`gemini HTTP ${res.status}: ${detail}`);
+	}
+	const body = await res.json();
+	const parts = body.candidates?.[0]?.content?.parts || [];
+	const text = parts.map((p) => p.text || "").join("\n");
+	if (!text) throw new Error(`gemini: empty response (finishReason ${body.candidates?.[0]?.finishReason})`);
+	return text;
+}
 
 async function askClaude(env, system, user) {
 	const res = await fetch(ANTHROPIC_URL, {

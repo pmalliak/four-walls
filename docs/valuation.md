@@ -67,10 +67,17 @@ xe.gr στατιστικά) και την εικόνα του γραφείου·
 
 ## Secrets / config
 
+Θέλει **ένα από τα δύο** AI κλειδιά ως secret· αν υπάρχουν και τα δύο,
+προτιμάται το Claude.
+
 | | |
 |---|---|
-| `ANTHROPIC_API_KEY` | **Απαραίτητο.** `npx wrangler secret put ANTHROPIC_API_KEY` (και στο `.dev.vars` για local). Χωρίς αυτό το endpoint γυρίζει 503 `not_configured`. |
+| `ANTHROPIC_API_KEY` | Claude. `npx wrangler secret put ANTHROPIC_API_KEY` (και στο `.dev.vars` για local). |
 | `VALUATION_MODEL` | Προαιρετικό var, default `claude-opus-5` ($5/$25 ανά 1M tokens). Για φθηνότερο βάλε `claude-sonnet-5` ($3/$15, εισαγωγική $2/$10 έως 31/08/2026). |
+| `GEMINI_API_KEY` | Gemini, για δοκιμή χωρίς λογαριασμό Anthropic: το ίδιο κλειδί (AI Studio, με billing) που τροφοδοτεί και το Make connection του photo-enhance. |
+| `VALUATION_GEMINI_MODEL` | Προαιρετικό var, default `gemini-3.5-flash`. |
+
+Χωρίς κανένα κλειδί το endpoint γυρίζει 503 `not_configured`.
 
 Κόστος: δύο κλήσεις ανά εκτίμηση, ~12k tokens input + ~3k output συνολικά.
 Με Opus 5 χοντρικά **€0,10-0,15 ανά report**, με Sonnet 5 **€0,05-0,08**.
