@@ -24,20 +24,25 @@ docs.four-walls.gr/…   ──►  worker/index.mjs  ──►  /manual/…   (
 σχετικά links (`emails.html`), οπότε το `/manual` prefix φεύγει στο
 rewrite και το εγχειρίδιο ζει στη ρίζα του δικού του domain.
 
-Μέχρι να μπει το Access είναι **δημόσια αναγνώσιμο** αλλά αθέατο: κάθε
-σελίδα έχει `noindex`, το `robots.txt` απαντά Disallow-all σε κάθε host
-εκτός των production, και το `/manual/` αποκλείεται και από το robots του
-apex (`worker/lib/seo.mjs`). Μην βάλεις εκεί κωδικούς ή στοιχεία πελατών
-πριν μπει το Access.
+Πέρα από το Access, κάθε σελίδα έχει `noindex`, το `robots.txt` απαντά
+Disallow-all σε κάθε host εκτός των production, και το `/manual/`
+αποκλείεται και από το robots του apex (`worker/lib/seo.mjs`).
 
-## Setup που μένει
+## Setup: έγινε
 
-- [ ] **DNS**: το `wrangler.toml` route φτιάχνει μόνο του την εγγραφή
-      `docs.four-walls.gr` με το πρώτο deploy (Workers Builds).
-- [ ] **Cloudflare Access**: νέα self-hosted εφαρμογή για
-      `docs.four-walls.gr`, ίδια πολιτική με τα έντυπα (allow
-      `@four-walls.gr` + το gmail του Πάνου). Δεν χρειάζεται αλλαγή
-      κώδικα, ο Worker δεν ελέγχει JWT εδώ, το Access κόβει μπροστά.
+- [x] **DNS**: το `wrangler.toml` route έφτιαξε μόνο του την εγγραφή
+      `docs.four-walls.gr` με το πρώτο deploy (Workers Builds, 2026-07-29).
+- [x] **Cloudflare Access** (2026-07-29): self-hosted εφαρμογή μπροστά σε
+      ολόκληρο το hostname, ίδια λογική με τα έντυπα. AUD
+      `65dc371f8080…f56d2d06`. **Καμία αλλαγή κώδικα**: ο Worker δεν
+      ελέγχει JWT εδώ (δεν σερβίρει API), το Access κόβει μπροστά του.
+      Επαλήθευση: `curl -sI https://docs.four-walls.gr/` δίνει **302** προς
+      `four-walls.cloudflareaccess.com/cdn-cgi/access/login/…`.
+
+> Οποιος διαβάζει το εγχειρίδιο χρειάζεται λογαριασμό στην πολιτική.
+> Οι `@four-walls.gr` μπαίνουν με Google· για προσωπικό email πρέπει να
+> είναι ενεργό το **One-time PIN** στους identity providers, αλλιώς ο
+> χρήστης μένει απ' έξω χωρίς προφανή λόγο.
 
 ## Κεφάλαια
 
