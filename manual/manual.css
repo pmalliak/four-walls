@@ -121,13 +121,58 @@ a { color: #b8004a; }
 .tag.info { background: #eaf3ea; color: #2f6b3a; }       /* απλή ενημέρωση */
 .tag.freq { background: #f1f2f5; color: #4b5563; }       /* συχνότητα */
 
+/* «Στο CRM»: τι έχει ήδη δημιουργηθεί μόνο του και τι λείπει.
+   auto = μπήκε μόνο του · later = μπαίνει με την πρωινή επεξεργασία
+   none = τίποτα, με το χέρι · na = δεν αφορά το CRM */
+.crm {
+	border-radius: 12px; padding: 12px 16px; margin-top: 12px; font-size: 15px;
+}
+/* μόνο η πρώτη γραμμή είναι τίτλος· τα υπόλοιπα <b> μένουν μέσα στο κείμενο */
+.crm > b:first-child { display: block; margin-bottom: 2px; }
+.crm.auto  { background: #eaf5ec; border: 1px solid #b7dcc0; color: #245c33; }
+.crm.auto b  { color: #1c7a37; }
+.crm.later { background: #fff2e2; border: 1px solid #f2ce9a; color: #7d4f18; }
+.crm.later b { color: #a05a06; }
+.crm.none  { background: #fdeeee; border: 1px solid #f0bcbc; color: #8c2f2f; }
+.crm.none b  { color: #b02525; }
+.crm.na    { background: #f2f4f7; border: 1px solid var(--line); color: #5a6472; }
+.crm.na b    { color: #46536b; }
+
+/* Συγκεντρωτικός πίνακας «τι μπαίνει μόνο του» */
+.sumwrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line);
+	border-radius: 16px; padding: 6px 6px 2px; margin: 14px 0; }
+table.sum { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 15px; }
+table.sum th, table.sum td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+table.sum th { color: var(--navy); font-weight: 800; font-size: 14px; }
+table.sum tr:last-child td { border-bottom: 0; }
+table.sum td.y { color: #1c7a37; font-weight: 700; }
+table.sum td.n { color: #b02525; font-weight: 700; }
+table.sum td.l { color: #a05a06; font-weight: 700; }
+
+/* «Τι κάνουμε»: η οδηγία, όταν την έχουμε */
+.action {
+	background: #f3f7ff; border: 1px solid #cfe0f7; border-left: 4px solid var(--pink);
+	border-radius: 12px; padding: 13px 16px; margin-top: 12px; font-size: 15px;
+}
+.action > b:first-child { display: block; color: var(--navy); margin-bottom: 4px; }
+.action ol, .action ul { margin: 6px 0 0; padding-left: 22px; }
+.action li { margin: 3px 0; }
+.action a { color: #b8004a; font-weight: 700; }
+
+/* Κανόνας που δεν παρακάμπτεται */
+.warn {
+	background: #fdeeee; border: 1px solid #f0bcbc; border-left: 4px solid #b02525;
+	border-radius: 12px; padding: 13px 16px; margin-top: 12px; font-size: 15px; color: #7a2020;
+}
+.warn > b:first-child { display: block; color: #b02525; margin-bottom: 2px; }
+
 /* Το «τι κάνουμε»: κενό μέχρι να το συμπληρώσουμε μαζί */
 .todo {
 	background: var(--todo-bg); border: 1px dashed var(--todo-line);
 	border-radius: 12px; padding: 12px 16px; margin-top: 12px;
 	font-size: 15px; color: #7a5a12;
 }
-.todo b { display: block; color: #8a5a00; margin-bottom: 2px; }
+.todo > b:first-child { display: block; color: #8a5a00; margin-bottom: 2px; }
 
 .steps { background: #f3f7ff; border: 1px solid #d3e0f5; border-radius: 12px;
 	padding: 12px 16px 12px 34px; margin-top: 12px; font-size: 15px; }
