@@ -216,6 +216,13 @@ same family as `/requests/form`). One section per request, keyed by
   `show_edit=<section>` returns `{success, html}`, the modal's markup, which
   serializes to exactly the body the save expects.
 - Answers `{"success":true,"type":"<section>"}`. Verified on contacts 214 + 64.
+- **Deleting a contact headlessly**: the UI's «type this random number»
+  modal is client-side theatre — the real delete is a bare same-origin
+  `POST /contacts/view/{id}` with `delete_contact=true` (session cookie,
+  no CSRF), answering `{"success":true}`. Soft-delete: a «Deleted contact»
+  stub remains but searches stop matching it. Verified on contacts 215/216
+  (2026-07-30). This is the working alternative to the public
+  `DELETE /api/contacts/{id}`, which 200s without deleting.
 
 Field map, custom-field ids, and the Cloudflare Access setup:
 [forms-crm.md](forms-crm.md).
