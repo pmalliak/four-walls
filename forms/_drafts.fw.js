@@ -141,10 +141,19 @@
 	function touch() { clearTimeout(saveT); saveT = setTimeout(doSave, DEBOUNCE_MS); }
 	function flushNow() { if (saveT) { clearTimeout(saveT); doSave(); } }
 
+	/* The baseline must be a SNAPSHOT. katachorisi's collect() returns its
+	   live `state` object — without the copy, baseVals would alias it and
+	   hasNewContent() would compare the state with itself (never a diff,
+	   never a draft). */
+	function snapshot() {
+		var v = cfg.collect();
+		baseJson = JSON.stringify(v);
+		baseVals = JSON.parse(baseJson);
+	}
 	function rebase() {
 		clearTimeout(saveT); saveT = null;
 		curId = null; lastJson = null;
-		if (cfg) { try { baseVals = cfg.collect(); baseJson = JSON.stringify(baseVals); } catch (e) {} }
+		if (cfg) { try { snapshot(); } catch (e) {} }
 	}
 	function discard() {
 		if (cfg && curId != null) removeDraft(cfg.form, curId);
@@ -208,7 +217,7 @@
 	function register(c) {
 		cfg = c;
 		writeAll(prune(readAll()));
-		try { baseVals = cfg.collect(); baseJson = JSON.stringify(baseVals); } catch (e) { baseVals = {}; baseJson = '{}'; }
+		try { snapshot(); } catch (e) { baseVals = {}; baseJson = '{}'; }
 
 		var mount = typeof c.mount === 'string' ? document.querySelector(c.mount) : c.mount;
 		if (mount && !c.onSave) {
@@ -280,8 +289,10 @@
 		}
 		paint();
 		/* back-navigation from a form restores the page from bfcache —
-		   repaint so a just-deleted or just-sent draft disappears */
+		   repaint so a just-deleted or just-sent draft disappears; same for
+		   an index tab that was open in the background all along */
 		window.addEventListener('pageshow', paint);
+		document.addEventListener('visibilitychange', function () { if (!document.hidden) paint(); });
 	}
 
 	window.FWDrafts = {
