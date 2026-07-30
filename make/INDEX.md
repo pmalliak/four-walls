@@ -6,7 +6,7 @@
 | ID | Σενάριο | Ενεργό | Χρονισμός | Modules | Αρχείο |
 |---|---|---|---|---|---|
 | `6405443` | Spitogatos - Αίτηση ανάθεσης | ναι | άμεσα (webhook/mailhook) | 22 | [6405443-spitogatos-aitisi-anathesis.blueprint.json](scenarios/6405443-spitogatos-aitisi-anathesis.blueprint.json) |
-| `6530594` | Site - Φόρμα επικοινωνίας | ναι | άμεσα (webhook/mailhook) | 25 | [6530594-site-forma-epikoinonias.blueprint.json](scenarios/6530594-site-forma-epikoinonias.blueprint.json) |
+| `6530594` | Site - Φόρμα επικοινωνίας | ναι | άμεσα (webhook/mailhook) | 33 | [6530594-site-forma-epikoinonias.blueprint.json](scenarios/6530594-site-forma-epikoinonias.blueprint.json) |
 | `6600035` | Έντυπα — υποβολή φόρμας | ναι | άμεσα (webhook/mailhook) | 10 | [6600035-entypa-ypovoli-formas.blueprint.json](scenarios/6600035-entypa-ypovoli-formas.blueprint.json) |
 | `6604242` | Spitogatos - Ενδιαφέρον για ακίνητο | ναι | άμεσα (webhook/mailhook) | 21 | [6604242-spitogatos-endiaferon-gia-akinito.blueprint.json](scenarios/6604242-spitogatos-endiaferon-gia-akinito.blueprint.json) |
 | `6683649` | Site - Ολοκλήρωση αναζήτησης | ναι | άμεσα (webhook/mailhook) | 2 | [6683649-site-oloklirosi-anazitisis.blueprint.json](scenarios/6683649-site-oloklirosi-anazitisis.blueprint.json) |
@@ -56,27 +56,29 @@
 1   gateway:CustomWebHook · Φόρμα επικοινωνίας / ζήτησης / ανάθεσης
 10  builtin:BasicRouter
   ├─ route 1
-    31  http:ActionSendDataBasicAuth · CRM: Αναζήτηση επαφής · [φίλτρο: Μόνο ζητήσεις] · [onerror: builtin:Ignore]
+    31  http:ActionSendDataBasicAuth · CRM: Αναζήτηση επαφής · [φίλτρο: Μόνο ζητήσεις] · [onerror: builtin:Resume]
     32  builtin:BasicIfElse
       ├─ condition «Νέα επαφή»
-        33  http:ActionSendDataBasicAuth · CRM: Δημιουργία επαφής (ΖΗΤΗΣΗ) · [onerror: builtin:Ignore]
-        34  http:ActionSendDataBasicAuth · CRM: Επικοινωνία (νέα επαφή) · [onerror: builtin:Ignore]
+        33  http:ActionSendDataBasicAuth · CRM: Δημιουργία επαφής (ΖΗΤΗΣΗ) · [onerror: builtin:Resume]
+        34  http:ActionSendDataBasicAuth · CRM: Επικοινωνία (νέα επαφή) · [onerror: builtin:Resume]
+        36  zoho-mail:sendMail · Email ζήτησης (νέα επαφή) · [onerror: builtin:Ignore]
       ├─ condition «Υπάρχουσα επαφή»
-        35  http:ActionSendDataBasicAuth · CRM: Επικοινωνία (υπάρχουσα) · [onerror: builtin:Ignore]
+        35  http:ActionSendDataBasicAuth · CRM: Επικοινωνία (υπάρχουσα επαφή) · [onerror: builtin:Resume]
+        38  zoho-mail:sendMail · Email ζήτησης (υπάρχουσα επαφή) · [onerror: builtin:Ignore]
       ├─ else
-        39  placeholder:Placeholder
-    36  zoho-mail:sendMail · Email ζήτησης στη γραμματεία · [onerror: builtin:Ignore]
+        40  zoho-mail:sendMail · Email ζήτησης (χωρίς επαφή) · [onerror: builtin:Ignore]
   ├─ route 2
-    41  http:ActionSendDataBasicAuth · CRM: Αναζήτηση επαφής · [φίλτρο: Μόνο αναθέσεις] · [onerror: builtin:Ignore]
+    41  http:ActionSendDataBasicAuth · CRM: Αναζήτηση επαφής · [φίλτρο: Μόνο αναθέσεις] · [onerror: builtin:Resume]
     42  builtin:BasicIfElse
       ├─ condition «Νέα επαφή»
-        43  http:ActionSendDataBasicAuth · CRM: Δημιουργία επαφής (ΑΝΑΘΕΣΗ) · [onerror: builtin:Ignore]
-        44  http:ActionSendDataBasicAuth · CRM: Επικοινωνία (νέα επαφή) · [onerror: builtin:Ignore]
+        43  http:ActionSendDataBasicAuth · CRM: Δημιουργία επαφής (ΑΝΑΘΕΣΗ) · [onerror: builtin:Resume]
+        44  http:ActionSendDataBasicAuth · CRM: Επικοινωνία (νέα επαφή) · [onerror: builtin:Resume]
+        46  zoho-mail:sendMail · Email ανάθεσης (νέα επαφή) · [onerror: builtin:Ignore]
       ├─ condition «Υπάρχουσα επαφή»
-        45  http:ActionSendDataBasicAuth · CRM: Επικοινωνία (υπάρχουσα) · [onerror: builtin:Ignore]
+        45  http:ActionSendDataBasicAuth · CRM: Επικοινωνία (υπάρχουσα επαφή) · [onerror: builtin:Resume]
+        48  zoho-mail:sendMail · Email ανάθεσης (υπάρχουσα επαφή) · [onerror: builtin:Ignore]
       ├─ else
-        49  placeholder:Placeholder
-    46  zoho-mail:sendMail · Email ανάθεσης στη γραμματεία · [onerror: builtin:Ignore]
+        50  zoho-mail:sendMail · Email ανάθεσης (χωρίς επαφή) · [onerror: builtin:Ignore]
   ├─ route 3
     2   zoho-mail:sendMail · Email στον Πάνο · [φίλτρο: Κανονική επικοινωνία]
 ```
