@@ -164,13 +164,7 @@ export default {
 		// ως https://assets.four-walls.gr/foo.png. Βλ. docs/assets-host.md.
 		if (url.hostname.startsWith("assets.")) {
 			const assetUrl = new URL(request.url);
-			// Ιστορικό URL: το logo της υπογραφής σερβιριζόταν στη γυμνή ρίζα
-			// του hostname και κάθεται ήδη μέσα σε σταλμένα email — μένει
-			// alias για πάντα, αλλιώς σπάει η εικόνα σε ό,τι έχει ήδη φύγει.
-			const bareRoot = url.pathname === "/";
-			assetUrl.pathname = bareRoot
-				? "/assets/signature-logo.png"
-				: "/assets" + url.pathname;
+			assetUrl.pathname = "/assets" + url.pathname;
 			const res = await env.ASSETS.fetch(new Request(assetUrl, request));
 			// Σκέτο 404, όχι η branded σελίδα του site: εδώ μέσα δεν υπάρχει
 			// τίποτα να δει κανείς, μόνο αρχεία.
@@ -186,13 +180,6 @@ export default {
 			// Δημόσια assets: να μπορούν να τα φορτώσουν και άλλα origins
 			// (fonts, JSON, εικόνες σε καμβά) χωρίς CORS εμπόδιο.
 			headers.set("Access-Control-Allow-Origin", "*");
-			// Η γυμνή ρίζα δεν έχει κατάληξη αρχείου στο URL, οπότε ο browser
-			// (κυρίως στο κινητό) το παίρνει για άγνωστο αρχείο: εικονίδιο «?»
-			// και κατέβασμα αντί για προβολή. Το λέμε ρητά — και του δίνουμε
-			// και σωστό όνομα αν τελικά το αποθηκεύσει.
-			if (bareRoot) {
-				headers.set("Content-Disposition", 'inline; filename="signature-logo.png"');
-			}
 			const loc = headers.get("Location");
 			if (loc && loc.startsWith("/assets")) {
 				headers.set("Location", loc.slice("/assets".length) || "/");
