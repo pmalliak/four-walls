@@ -482,6 +482,12 @@
 				},
 			});
 		},
+		/* Μία επαφή απευθείας από id, χωρίς sheet — για όταν το id το
+		   ξέρουμε ήδη (π.χ. το ownerId ενός ακινήτου που διάλεξε ο
+		   σύμβουλος). Κρατά το error handling εδώ, μαζί με τα υπόλοιπα. */
+		contact: function (id) {
+			return getJson("/api/crm/contacts/" + id);
+		},
 		money: money,
 	};
 

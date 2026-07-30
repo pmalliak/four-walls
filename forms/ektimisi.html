@@ -39,6 +39,12 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 .vt{flex:1;font:inherit;font-weight:700;font-size:13px;color:var(--muted);background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:10px 8px;min-height:44px;cursor:pointer;}
 .vt.on{color:#fff;background:var(--navy);border-color:var(--navy);}
 .vt:active{transform:translateY(1px);}
+/* Πηγές για το email του ιδιοκτήτη: γεμίζουν το input, δεν το αντικαθιστούν
+   — το free text μένει πάντα η τελική λέξη του συμβούλου. */
+.srcrow{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px;}
+.mini{font:inherit;font-weight:700;font-size:12px;color:var(--navy);background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:6px 12px;min-height:34px;cursor:pointer;}
+.mini:active{transform:translateY(1px);}
+.mini[hidden]{display:none;}
 /* το «έγγραφο» της εκτίμησης: ίδια χάρτινη γλώσσα με τα άλλα έντυπα */
 .doc{width:100%;max-width:720px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:6px;color:#242a33;font-size:13.5px;line-height:1.55;padding:20px 22px;box-shadow:0 1px 4px rgba(20,30,50,.05);}
 .doc .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:2px solid var(--navy);padding-bottom:9px;position:relative;}
@@ -202,7 +208,13 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			<button class="btn p" id="sendEmail" type="button" style="flex:1;min-width:190px">Αποστολή στο info@</button>
 			<button class="btn s" id="again" type="button" style="flex:1;min-width:150px">Νέα εκτίμηση</button>
 		</div>
-		<div class="fld"><label for="clientEmail">Email ιδιοκτήτη</label><input id="clientEmail" type="email" inputmode="email" autocomplete="off" placeholder="π.χ. onoma@example.com"></div>
+		<div class="fld"><label for="clientEmail">Email ιδιοκτήτη</label>
+			<div class="srcrow">
+				<button class="mini" id="emailOwner" type="button" hidden>Ιδιοκτήτης ακινήτου</button>
+				<button class="mini" id="emailContact" type="button">Επαφή από CRM</button>
+			</div>
+			<input id="clientEmail" type="email" inputmode="email" autocomplete="off" placeholder="π.χ. onoma@example.com ή διάλεξε από πάνω">
+		</div>
 		<button class="btn s" id="sendClient" type="button" style="width:100%;margin-top:10px">Αποστολή εκτίμησης στον ιδιοκτήτη (PDF)</button>
 	</div>
 </div>
@@ -418,6 +430,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			var sc = $("sendClient");
 			sc.disabled = false;
 			sc.textContent = "Αποστολή εκτίμησης στον ιδιοκτήτη (PDF)";
+			syncEmailSources();
 			window.scrollTo(0, 0);
 		} catch (e) {
 			console.error(e);
@@ -440,13 +453,18 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			valuation_ref: result.ref,
 			data: { summary: result.summary },
 		}, "Εκτίμηση · " + result.summary);
+		// Ίδιος κανόνας με το «στον ιδιοκτήτη»: «σε αναμονή» δεν είναι
+		// «στάλθηκε», και το κουμπί δεν βάζει ✓ σε κάτι που δεν έφυγε.
 		if (res.queued) {
-			toast(res.reason === "auth"
-				? "Χρειάζεται σύνδεση. Άνοιξε ξανά την εφαρμογή για να σταλεί."
-				: "Χωρίς δίκτυο. Θα σταλεί αυτόματα μόλις βρεθεί σύνδεση.", "err");
-		} else {
-			toast("Στάλθηκε στο info@.", "ok");
+			btn.disabled = false;
+			toast(res.reason === "offline"
+				? "Χωρίς δίκτυο. Μπήκε σε αναμονή και θα σταλεί μόλις βρεθεί σύνδεση."
+				: res.reason === "auth"
+					? "Χρειάζεται σύνδεση. Άνοιξε ξανά την εφαρμογή για να σταλεί."
+					: "ΔΕΝ στάλθηκε (" + res.reason + "). Μπήκε σε αναμονή — δες με τον Πάνο.", "err");
+			return;
 		}
+		toast("Στάλθηκε στο info@.", "ok");
 		btn.textContent = "Στάλθηκε ✓";
 	}
 
@@ -488,9 +506,68 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		return d;
 	}
 
-	/* «Αποστολή στον ιδιοκτήτη»: φτιάχνεται PDF από το πελατικό έγγραφο
-	   επιτόπου (html2pdf, ίδια βιβλιοθήκη με τα άλλα έντυπα) και φεύγει
-	   μέσω Make κατευθείαν στον πελάτη, με κρυφή κοινοποίηση στο γραφείο. */
+	/* «Αποστολή στον ιδιοκτήτη»: το πελατικό έγγραφο φεύγει μέσω Make
+	   κατευθείαν στον πελάτη, με κρυφή κοινοποίηση στο γραφείο.
+	   Ίδιο μοτίβο με τα άλλα έντυπα (βλ. DOCHTML στο apodeixi/anathesi):
+	   στέλνουμε ΑΥΤΟΤΕΛΕΣ html με τα styles της σελίδας μέσα, και ο Worker
+	   το κάνει PDF με πραγματικό κείμενο (worker/lib/pdfrender.mjs). Το
+	   html2pdf μένει μόνο fallback, γι' αυτό και πιο ελαφρύ από πριν. */
+	function docHtml(node){
+		var st = "";
+		document.querySelectorAll("style").forEach(function(x){ st += x.textContent; });
+		return '<!doctype html><html lang="el"><head><meta charset="utf-8">'
+			+ '<link rel="preconnect" href="https://fonts.googleapis.com">'
+			+ '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+			+ '<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">'
+			+ '<style>' + st + '</style>'
+			+ '<style>@media print{@page{size:A4;margin:10mm 10mm 12mm}}'
+			+ 'html,body{background:#fff!important;margin:0;padding:0;}'
+			+ '.doc{width:auto!important;max-width:none!important;border:0!important;box-shadow:none!important;padding:0 3mm!important;}</style>'
+			+ '</head><body>' + node.outerHTML + '</body></html>';
+	}
+
+	/* Τρεις πηγές για το email, με το input να μένει πάντα η τελική λέξη:
+	   ο ιδιοκτήτης του επιλεγμένου ακινήτου, οποιαδήποτε επαφή του CRM, ή
+	   ό,τι γράψει ο σύμβουλος στο χέρι. Το πρώτο κουμπί κρύβεται όταν δεν
+	   έχει διαλεχτεί ακίνητο ή όταν το ακίνητο δεν έχει ιδιοκτήτη στο CRM —
+	   ένα κουμπί που σίγουρα δεν δουλεύει είναι χειρότερο από κανένα. */
+	function syncEmailSources(){
+		$("emailOwner").hidden = !(listing && listing.ownerId);
+	}
+
+	async function fillOwnerEmail(){
+		if (!listing || !listing.ownerId) return;
+		var btn = $("emailOwner"), label = btn.textContent;
+		btn.disabled = true;
+		btn.textContent = "Φέρνω…";
+		try {
+			var c = await FWCrm.contact(listing.ownerId);
+			if (c && c.email) {
+				$("clientEmail").value = c.email;
+				toast("Email ιδιοκτήτη: " + (c.onomatepwnymo || c.email), "ok");
+			} else {
+				toast("Ο ιδιοκτήτης δεν έχει email στο CRM — γράψ' το στο χέρι.", "err");
+			}
+		} catch (e) {
+			console.error(e);
+			toast("Δεν ήρθε η επαφή από το CRM.", "err");
+		} finally {
+			btn.disabled = false;
+			btn.textContent = label;
+		}
+	}
+
+	function pickEmailContact(){
+		FWCrm.pickContact(function(c){
+			if (c && c.email) {
+				$("clientEmail").value = c.email;
+				toast("Email επαφής: " + (c.onomatepwnymo || c.email), "ok");
+			} else {
+				toast("Η επαφή δεν έχει email στο CRM — γράψ' το στο χέρι.", "err");
+			}
+		});
+	}
+
 	async function sendClient(){
 		if (!result) return;
 		var email = val("clientEmail");
@@ -504,10 +581,12 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			node.style.position = "absolute";
 			node.style.left = "-9999px";
 			document.body.appendChild(node);
+			// Το html πρώτα, όσο ο κόμβος είναι ακόμα στο DOM.
+			var html = docHtml(node);
 			var uri = await html2pdf().set({
 				margin: 10,
-				image: { type: "jpeg", quality: 0.95 },
-				html2canvas: { scale: 2 },
+				image: { type: "jpeg", quality: 0.85 },
+				html2canvas: { scale: 1.5 },
 				jsPDF: { unit: "mm", format: "a4" },
 			}).from(node).outputPdf("datauristring");
 			node.remove();
@@ -522,9 +601,22 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 				data: { summary: result.summary, client_email: email },
 				pdf_base64: b64,
 				pdf_filename: "ektimisi-four-walls.pdf",
+				doc_html: html,
 			}, "Εκτίμηση προς ιδιοκτήτη · " + result.summary);
-			if (res.queued) { toast("Χωρίς δίκτυο. Θα σταλεί αυτόματα μόλις βρεθεί σύνδεση.", "err"); }
-			else { toast("Στάλθηκε στον ιδιοκτήτη.", "ok"); }
+			// Ειλικρινές μήνυμα: «queued» ΔΕΝ σημαίνει στάλθηκε, και ένα
+			// http_413/500 δεν είναι «χωρίς δίκτυο» — θα ξαναδοκιμάζει για
+			// πάντα χωρίς να φύγει ποτέ, και ο σύμβουλος πρέπει να το μάθει.
+			if (res.queued) {
+				btn.disabled = false;
+				btn.textContent = "Αποστολή εκτίμησης στον ιδιοκτήτη (PDF)";
+				toast(res.reason === "offline"
+					? "Χωρίς δίκτυο. Μπήκε σε αναμονή και θα σταλεί μόλις βρεθεί σύνδεση."
+					: res.reason === "auth"
+						? "Χρειάζεται σύνδεση. Άνοιξε ξανά την εφαρμογή."
+						: "ΔΕΝ στάλθηκε (" + res.reason + "). Μπήκε σε αναμονή — δες με τον Πάνο.", "err");
+				return;
+			}
+			toast("Στάλθηκε στον ιδιοκτήτη.", "ok");
 			btn.textContent = "Στάλθηκε στον ιδιοκτήτη ✓";
 		} catch (e) {
 			console.error(e);
@@ -663,6 +755,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		$("tabOffice").classList.add("on");
 		$("tabClient").classList.remove("on");
 		$("clientEmail").value = "";
+		$("emailOwner").hidden = true;
 		$("result").classList.add("hide");
 		$("docbox").textContent = "";
 		$("form").classList.remove("hide");
@@ -680,6 +773,8 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		$("sendClient").onclick = sendClient;
 		$("tabOffice").onclick = function(){ showView("office"); };
 		$("tabClient").onclick = function(){ showView("client"); };
+		$("emailOwner").onclick = fillOwnerEmail;
+		$("emailContact").onclick = pickEmailContact;
 		$("again").onclick = reset;
 	}
 	document.addEventListener("DOMContentLoaded", init);
