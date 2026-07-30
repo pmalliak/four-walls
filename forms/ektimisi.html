@@ -214,9 +214,12 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			<div class="fld"><label for="seaDist" class="imp">Απόσταση από θάλασσα (μ.)</label><input id="seaDist" type="text" inputmode="numeric" autocomplete="off" placeholder="π.χ. 150"></div>
 			<div class="fld"><label for="plot" class="imp">Οικόπεδο (τ.μ.)</label><input id="plot" type="text" inputmode="numeric" autocomplete="off" placeholder="για μονοκατοικίες/μεζονέτες"></div>
 		</div>
-		<div class="fld"><label for="pool" class="imp">Πισίνα</label><select id="pool">
-			<option value=""></option><option>Όχι</option><option>Κοινόχρηστη</option><option>Ιδιωτική</option>
-		</select></div>
+		<div class="grid2">
+			<div class="fld"><label for="pool" class="imp">Πισίνα</label><select id="pool">
+				<option value=""></option><option>Όχι</option><option>Κοινόχρηστη</option><option>Ιδιωτική</option>
+			</select></div>
+			<div class="fld"><label for="balconies">Μπαλκόνια/βεράντες (τ.μ.)</label><input id="balconies" type="text" inputmode="numeric" autocomplete="off" placeholder="π.χ. 25"></div>
+		</div>
 		<div class="hintline">Τα πεδία με <span class="impdot">●</span> βαραίνουν περισσότερο στην εκτίμηση — μαζί με Περιοχή, τ.μ., Κατάσταση και Έτος/Ανακαίνιση.</div>
 	</div>
 
@@ -457,6 +460,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 				sea_distance_m: digits(val("seaDist")),
 				plot_sqm: digits(val("plot")),
 				pool: val("pool"),
+				balconies: digits(val("balconies")),
 				asking_price: asking > 0 ? money(asking) : "",
 				asking_price_num: asking > 0 ? String(asking) : "",
 				notes: val("notes"),
@@ -970,7 +974,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		["purpose"].forEach(function(id){ $(id).value = "both"; });
 		["subcategory","size","areaName","address","floor","yearBuilt","bedrooms","bathrooms",
 		 "yearRenovated","energyClass","condition","heating","elevator","parking","storage",
-		 "orientation","view","seaDist","plot","pool","asking","notes"].forEach(function(id){ $(id).value = ""; });
+		 "orientation","view","seaDist","plot","pool","balconies","asking","notes"].forEach(function(id){ $(id).value = ""; });
 		renderListing();
 		result = null;
 		editing = null;
@@ -1006,7 +1010,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		   με ό,τι είχε φέρει το prefill. */
 		var FLD = ["purpose","subcategory","size","areaName","address","floor","yearBuilt",
 			"bedrooms","bathrooms","yearRenovated","energyClass","condition","heating",
-			"elevator","parking","storage","orientation","view","seaDist","plot","pool","asking","notes","clientEmail"];
+			"elevator","parking","storage","orientation","view","seaDist","plot","pool","balconies","asking","notes","clientEmail"];
 		if (window.FWDrafts) FWDrafts.register({
 			form: "ektimisi", mount: "#form",
 			collect: function(){
