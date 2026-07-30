@@ -100,14 +100,13 @@ export async function handleValuation(request, env, url, ctx) {
 	// background), το promise συνεχίζει και γράφει στο KV. Το επόμενο fetch
 	// βρίσκει το report έτοιμο αντί να ξαναπληρώσει δύο κλήσεις AI.
 	const work = (async () => {
-		const draft = await askAI(env, PASS1_SYSTEM, dataBlock + "\n\n" + PASS1_ASK);
-		const draftJson = extractJson(draft);
-		const final = await askAI(
+		const draftJson = await askJson(env, PASS1_SYSTEM, dataBlock + "\n\n" + PASS1_ASK);
+		const v = await askJson(
 			env,
 			PASS2_SYSTEM,
 			dataBlock + "\n\nΗ ΕΚΤΙΜΗΣΗ ΠΡΟΣ ΕΛΕΓΧΟ (JSON):\n" + JSON.stringify(draftJson) + "\n\n" + PASS2_ASK,
 		);
-		const result = renderReport(prop, comps, stats, priceRow, extractJson(final), payload);
+		const result = renderReport(prop, comps, stats, priceRow, v, payload);
 		await env.LISTINGS_KV.put(VALUATION_RES_PREFIX + ref, JSON.stringify(result), {
 			expirationTtl: 7 * 24 * 3600,
 		});
@@ -309,7 +308,7 @@ const PASS1_ASK = `Δώσε την εκτίμηση ως JSON ακριβώς μ�
  "confidence_reason": "γιατί",
  "missing_info": [ "τι στοιχείο θα έσφιγγε την εκτίμηση" ],
  "advice": "2-3 προτάσεις προς τον σύμβουλο για τη συζήτηση τιμολόγησης με τον ιδιοκτήτη",
- "renovation": null ή {
+ "renovation": {
   "scope": "ποια κλίμακα από τον πίνακα ανακαίνισης και τι περιλαμβάνει, 1 πρόταση",
   "cost_low": 0, "cost_high": 0,
   "value_after_low": 0, "value_after_mid": 0, "value_after_high": 0,
@@ -319,7 +318,7 @@ const PASS1_ASK = `Δώσε την εκτίμηση ως JSON ακριβώς μ�
  }
 }
 Κανόνες: value_mid = eur_per_sqm × εμβαδόν (στρογγύλεμα σε χιλιάδες). Το εύρος low-high ρεαλιστικό, συνήθως ±5-10% γύρω από το mid. Το gross_yield_pct = ετήσιο ενοίκιο mid / value_mid × 100, με ένα δεκαδικό. Κάθε adjustment με pct από -20 έως +20 και πραγματική αιτιολόγηση· μην απαριθμείς ό,τι δεν επηρεάζει. Αν λείπουν κρίσιμα στοιχεία, πλάτυνε το εύρος και πες το στο confidence_reason.
-Για το "renovation": συμπλήρωσέ το ΜΟΝΟ αν το ακίνητο δεν είναι ήδη άριστο/πλήρως ανακαινισμένο ΚΑΙ μια ανακαίνιση θα άλλαζε ουσιαστικά την αξία — αλλιώς null. Διάλεξε κλίμακα από τον πίνακα ανακαίνισης, cost = εύρος €/τ.μ. × εμβαδόν (στρογγύλεμα σε χιλιάδες). Το value_after τεκμηριωμένο από ανακαινισμένα/νεόδμητα επίπεδα της περιοχής — ΠΟΤΕ πάνω από νεόδμητο. net_gain = value_after_mid − value_mid − μέσο cost. Αν το όφελος είναι αρνητικό ή οριακό, γράψ' το ευθέως στο comment — ΜΗΝ προτείνεις ανακαίνιση που δεν αποδίδει.`;
+Για το "renovation": αν το ακίνητο είναι ήδη άριστο/πλήρως ανακαινισμένο ή μια ανακαίνιση δεν θα άλλαζε ουσιαστικά την αξία, βάλε "renovation": null (σκέτο null, όχι αντικείμενο). Διάλεξε κλίμακα από τον πίνακα ανακαίνισης, cost = εύρος €/τ.μ. × εμβαδόν (στρογγύλεμα σε χιλιάδες). Το value_after τεκμηριωμένο από ανακαινισμένα/νεόδμητα επίπεδα της περιοχής — ΠΟΤΕ πάνω από νεόδμητο. net_gain = value_after_mid − value_mid − μέσο cost. Αν το όφελος είναι αρνητικό ή οριακό, γράψ' το ευθέως στο comment — ΜΗΝ προτείνεις ανακαίνιση που δεν αποδίδει.`;
 
 const PASS2_SYSTEM = `Είσαι ο αυστηρός ελεγκτής εκτιμήσεων ενός μεσιτικού γραφείου που δραστηριοποιείται σε όλη την Κεντρική Μακεδονία. Παίρνεις τα δεδομένα ενός ακινήτου και μια έτοιμη εκτίμηση σε JSON, και την ελέγχεις: (1) αριθμητική συνέπεια (base × προσαρμογές ≈ €/τ.μ., €/τ.μ. × εμβαδόν ≈ value_mid, απόδοση σωστά υπολογισμένη), (2) συμφωνία με τα συγκριτικά και το εύρος της περιοχής (αποκλίσεις άνω του 15% από τη διάμεσο θέλουν ρητή αιτιολόγηση ή διόρθωση), (3) υπερβολές και αοριστίες στα κείμενα, (4) τη ΒΑΣΗ ΤΙΜΩΝ παρακάτω, (5) αν υπάρχει renovation: κόστη συμβατά με τον πίνακα ανακαίνισης × εμβαδόν, value_after όχι πάνω από νεόδμητο της περιοχής, net_gain = value_after_mid − value_mid − μέσο κόστος. ${PRICE_BASIS} Αν η εκτίμηση που ελέγχεις κάθεται πολύ χαμηλότερα από τις ζητούμενες τιμές της περιοχής χωρίς χαρακτηριστικό του ακινήτου να το δικαιολογεί, ή αν κάπου επικαλείται συμβόλαια/αντικειμενικές αξίες, ανέβασέ τη στη σωστή βάση και γράψε το στο review_notes. Διορθώνεις ό,τι δεν στέκει και επιστρέφεις το ΤΕΛΙΚΟ JSON στο ΙΔΙΟ σχήμα, με ένα επιπλέον πεδίο "review_notes": τι άλλαξες και γιατί (κενό αν τίποτα). Απαντάς ΜΟΝΟ με έγκυρο JSON.`;
 
@@ -379,6 +378,24 @@ function askAI(env, system, user) {
 	return env.ANTHROPIC_API_KEY ? askClaude(env, system, user) : askGemini(env, system, user);
 }
 
+/* Κλήση + parsing με ΕΝΑ retry. Τα μοντέλα αποτυγχάνουν σποραδικά
+   (κομμένο/άκυρο JSON, 5xx) και μια δεύτερη προσπάθεια συνήθως περνά·
+   το κόστος είναι φραγμένο (το πολύ 2× ανά πέρασμα) ενώ ένα 502 στη
+   φόρμα σημαίνει ο σύμβουλος ξαναπατά το κουμπί = ίδια χρέωση ΚΑΙ
+   χαμένος χρόνος. Σφάλμα και στις δύο = πραγματικό πρόβλημα, 502. */
+async function askJson(env, system, user) {
+	let lastErr;
+	for (let attempt = 1; attempt <= 2; attempt++) {
+		try {
+			return extractJson(await askAI(env, system, user));
+		} catch (err) {
+			lastErr = err;
+			console.warn(`valuation: attempt ${attempt} failed: ${String(err).slice(0, 160)}`);
+		}
+	}
+	throw lastErr;
+}
+
 async function askGemini(env, system, user) {
 	const model = env.VALUATION_GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
 	const res = await fetch(`${GEMINI_URL}/${model}:generateContent`, {
@@ -396,7 +413,7 @@ async function askGemini(env, system, user) {
 			// κουμπαράς για τη «σκέψη» ΚΑΙ το JSON. Στα 8000 που είχαμε, ένα
 			// πιο απαιτητικό system prompt (βλ. PRICE_BASIS) έτρωγε τον χώρο
 			// σκεπτόμενο και το JSON γύριζε κομμένο στη μέση.
-			generationConfig: { maxOutputTokens: 24000, responseMimeType: "application/json" },
+			generationConfig: { maxOutputTokens: 32000, responseMimeType: "application/json" },
 		}),
 	});
 	if (!res.ok) {

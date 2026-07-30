@@ -44,6 +44,7 @@ import { handleLeadReply } from "./lib/lead-reply.mjs";
 import { handlePropertyRequest } from "./lib/property-request.mjs";
 import { handlePropertyAssignment } from "./lib/property-assignment.mjs";
 import { handleValuation } from "./lib/valuation.mjs";
+import { handleAreaPricesRefresh } from "./lib/area-prices-refresh.mjs";
 
 const FEED_KEY = "listings.json";
 const DEFAULT_WEBHOOK_PATH = "/listings"; // overridden by WEBHOOK_PATH var
@@ -230,6 +231,13 @@ export default {
 		// ξαναχρεώνουν. Βλ. docs/valuation.md.
 		if (pathname === "/api/valuation") {
 			return handleValuation(request, env, url, ctx);
+		}
+		// Μηνιαίος έλεγχος του πίνακα τιμών περιοχών: το Make το καλεί μία
+		// φορά τον μήνα και στέλνει το αποτέλεσμα στον Πάνο για έγκριση.
+		// Χωρίς κλειδί — μηνιαία cache στο KV φράσσει το κόστος. Βλ.
+		// worker/lib/area-prices-refresh.mjs.
+		if (pathname === "/api/area-prices-refresh") {
+			return handleAreaPricesRefresh(request, env);
 		}
 		// Our own ζήτηση form (/request): criteria + contact details ->
 		// Make -> email to the office. See docs/site-request-form.md.
