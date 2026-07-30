@@ -100,7 +100,7 @@ export async function handleValuation(request, env, url, ctx) {
 	// background), το promise συνεχίζει και γράφει στο KV. Το επόμενο fetch
 	// βρίσκει το report έτοιμο αντί να ξαναπληρώσει δύο κλήσεις AI.
 	const work = (async () => {
-		const draftJson = await askJson(env, PASS1_SYSTEM, dataBlock + "\n\n" + PASS1_ASK);
+		const draftJson = await askJson(env, PASS1_SYSTEM, dataBlock + "\n\n" + PASS1_ASK, { search: true });
 		const v = await askJson(
 			env,
 			PASS2_SYSTEM,
@@ -290,7 +290,11 @@ const PRICE_BASIS = `ΒΑΣΗ ΤΙΜΩΝ (κανόνας του γραφείου
 
 ΠΑΡΑΘΕΡΙΣΤΙΚΑ ΑΚΙΝΗΤΑ: τα εύρη του πίνακα περιοχών περιγράφουν το ΤΥΠΙΚΟ ακίνητο της περιοχής. Σε παραθεριστικές περιοχές (Χαλκιδική, παραλιακή Πιερία, Ασπροβάλτα κ.λπ.) ένα εξοχικό κοντά στη θάλασσα (κάτω από ~300 μ.), με κήπο/οικόπεδο, πισίνα ή άριστη κατάσταση, πιάνει ΣΥΣΤΗΜΑΤΙΚΑ τιμές πάνω από το άνω άκρο του πίνακα — πρώτη γραμμή και premium ανακαινίσεις μπορούν να το ξεπεράσουν κατά 50% ή και περισσότερο. Το ταβάνι του πίνακα ΔΕΝ είναι ταβάνι της εκτίμησης: τεκμηρίωσε τη βάση σου από τα χαρακτηριστικά. Αν λείπουν τα κρίσιμα στοιχεία (απόσταση από θάλασσα, οικόπεδο, πισίνα), μην υποθέσεις το φθηνό σενάριο — πλάτυνε το εύρος προς τα ΠΑΝΩ και γράψε στο missing_info τι θα έσφιγγε το νούμερο.`;
 
-const PASS1_SYSTEM = `Είσαι έμπειρος εκτιμητής ακινήτων με 25 χρόνια στην αγορά της Θεσσαλονίκης και της υπόλοιπης Κεντρικής Μακεδονίας (Χαλκιδική, Πιερία, Σέρρες, Ημαθία, Πέλλα, Κιλκίς). Δουλεύεις για το μεσιτικό γραφείο Four Walls. Κάνεις ενδεικτικές εκτιμήσεις αγοραίας αξίας για εσωτερική χρήση του γραφείου, με τη μέθοδο των συγκριτικών στοιχείων: ξεκινάς από την τιμή ζώνης της περιοχής (€/τ.μ.), την προσαρμόζεις με τεκμηριωμένες προσαυξήσεις/απομειώσεις ανά χαρακτηριστικό, και διασταυρώνεις με τα συγκριτικά. ${PRICE_BASIS} Είσαι συντηρητικός στη διατύπωση αλλά όχι ηττοπαθής στο νούμερο: καλύτερα στενό ρεαλιστικό εύρος παρά εντυπωσιακά νούμερα, και ποτέ τιμή που δεν στέκει δίπλα στις ζητούμενες της περιοχής. Απαντάς ΜΟΝΟ με έγκυρο JSON, χωρίς markdown, χωρίς σχόλια εκτός JSON.`;
+const PASS1_SYSTEM = `Είσαι έμπειρος εκτιμητής ακινήτων με 25 χρόνια στην αγορά της Θεσσαλονίκης και της υπόλοιπης Κεντρικής Μακεδονίας (Χαλκιδική, Πιερία, Σέρρες, Ημαθία, Πέλλα, Κιλκίς). Δουλεύεις για το μεσιτικό γραφείο Four Walls. Κάνεις ενδεικτικές εκτιμήσεις αγοραίας αξίας για εσωτερική χρήση του γραφείου, με τη μέθοδο των συγκριτικών στοιχείων: ξεκινάς από την τιμή ζώνης της περιοχής (€/τ.μ.), την προσαρμόζεις με τεκμηριωμένες προσαυξήσεις/απομειώσεις ανά χαρακτηριστικό, και διασταυρώνεις με τα συγκριτικά.
+
+ΕΧΕΙΣ ΕΡΓΑΛΕΙΟ ΑΝΑΖΗΤΗΣΗΣ — ΧΡΗΣΙΜΟΠΟΙΗΣΕ ΤΟ: πριν κλειδώσεις τη βάση €/τ.μ., ψάξε τις ΤΡΕΧΟΥΣΕΣ ζητούμενες τιμές για το συγκεκριμένο είδος ακινήτου στη συγκεκριμένη περιοχή (π.χ. «τιμές πώλησης διαμερισμάτων <περιοχή> spitogatos») — ειδικά όταν τα συγκριτικά του χαρτοφυλακίου μας είναι λίγα ή καθόλου. Ό,τι βρεις είναι πρόσθετα συγκριτικά: στάθμισέ τα μαζί με τον πίνακα και το χαρτοφυλάκιο, και ανάφερε στο comps_comment τι έδειξε η αγορά αυτή τη στιγμή. Μην αντιγράφεις τυφλά μεμονωμένες ακραίες αγγελίες.
+
+${PRICE_BASIS} Είσαι συντηρητικός στη διατύπωση αλλά όχι ηττοπαθής στο νούμερο: καλύτερα στενό ρεαλιστικό εύρος παρά εντυπωσιακά νούμερα, και ποτέ τιμή που δεν στέκει δίπλα στις ζητούμενες της περιοχής. Η τελική σου απάντηση είναι ΜΟΝΟ έγκυρο JSON, χωρίς markdown, χωρίς σχόλια εκτός JSON.`;
 
 const PASS1_ASK = `Δώσε την εκτίμηση ως JSON ακριβώς με αυτό το σχήμα (αριθμοί χωρίς σύμβολα και χωρίς διαχωριστικά χιλιάδων):
 {
@@ -374,8 +378,12 @@ function buildDataBlock(prop, comps, stats, priceRow) {
 /* AI providers (Claude αν υπάρχει κλειδί, αλλιώς Gemini)               */
 /* ------------------------------------------------------------------ */
 
-function askAI(env, system, user) {
-	return env.ANTHROPIC_API_KEY ? askClaude(env, system, user) : askGemini(env, system, user);
+/* opts.search: δίνει στο μοντέλο εργαλείο web search. Το χρησιμοποιεί ΜΟΝΟ
+   το πρώτο πέρασμα, για να δει τις τρέχουσες αγγελίες της συγκεκριμένης
+   περιοχής — αντισταθμίζει το μικρό μας στοκ εκεί που δεν έχουμε
+   συγκριτικά. Ο ελεγκτής (πέρασμα 2) δουλεύει πάνω σε ό,τι βρέθηκε. */
+function askAI(env, system, user, opts) {
+	return env.ANTHROPIC_API_KEY ? askClaude(env, system, user, opts) : askGemini(env, system, user, opts);
 }
 
 /* Κλήση + parsing με ΕΝΑ retry. Τα μοντέλα αποτυγχάνουν σποραδικά
@@ -383,11 +391,11 @@ function askAI(env, system, user) {
    το κόστος είναι φραγμένο (το πολύ 2× ανά πέρασμα) ενώ ένα 502 στη
    φόρμα σημαίνει ο σύμβουλος ξαναπατά το κουμπί = ίδια χρέωση ΚΑΙ
    χαμένος χρόνος. Σφάλμα και στις δύο = πραγματικό πρόβλημα, 502. */
-async function askJson(env, system, user) {
+async function askJson(env, system, user, opts) {
 	let lastErr;
 	for (let attempt = 1; attempt <= 2; attempt++) {
 		try {
-			return extractJson(await askAI(env, system, user));
+			return extractJson(await askAI(env, system, user, opts));
 		} catch (err) {
 			lastErr = err;
 			console.warn(`valuation: attempt ${attempt} failed: ${String(err).slice(0, 160)}`);
@@ -396,8 +404,9 @@ async function askJson(env, system, user) {
 	throw lastErr;
 }
 
-async function askGemini(env, system, user) {
+async function askGemini(env, system, user, opts) {
 	const model = env.VALUATION_GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
+	const search = !!(opts && opts.search);
 	const res = await fetch(`${GEMINI_URL}/${model}:generateContent`, {
 		method: "POST",
 		headers: {
@@ -407,13 +416,16 @@ async function askGemini(env, system, user) {
 		body: JSON.stringify({
 			system_instruction: { parts: [{ text: system }] },
 			contents: [{ role: "user", parts: [{ text: user }] }],
-			// responseMimeType: το Gemini επιστρέφει εγγυημένα σκέτο JSON,
-			// που είναι ακριβώς ό,τι περιμένει το extractJson.
-			// ΠΡΟΣΟΧΗ στο maxOutputTokens: στο 3.5 Flash είναι κοινός
-			// κουμπαράς για τη «σκέψη» ΚΑΙ το JSON. Στα 8000 που είχαμε, ένα
-			// πιο απαιτητικό system prompt (βλ. PRICE_BASIS) έτρωγε τον χώρο
-			// σκεπτόμενο και το JSON γύριζε κομμένο στη μέση.
-			generationConfig: { maxOutputTokens: 32000, responseMimeType: "application/json" },
+			// responseMimeType: εγγυημένο σκέτο JSON — αλλά ΔΕΝ συνδυάζεται
+			// με tools, οπότε το πέρασμα-με-αναζήτηση βασίζεται στο
+			// extractJson. ΠΡΟΣΟΧΗ στο maxOutputTokens: στο 3.5 Flash είναι
+			// κοινός κουμπαράς για τη «σκέψη» ΚΑΙ το JSON — στα 8000 που
+			// είχαμε, το JSON γύριζε κομμένο στη μέση.
+			...(search ? { tools: [{ google_search: {} }] } : {}),
+			generationConfig: {
+				maxOutputTokens: 32000,
+				...(search ? {} : { responseMimeType: "application/json" }),
+			},
 		}),
 	});
 	if (!res.ok) {
@@ -440,7 +452,8 @@ async function askGemini(env, system, user) {
 	return text;
 }
 
-async function askClaude(env, system, user) {
+async function askClaude(env, system, user, opts) {
+	const search = !!(opts && opts.search);
 	const res = await fetch(ANTHROPIC_URL, {
 		method: "POST",
 		headers: {
@@ -455,6 +468,9 @@ async function askClaude(env, system, user) {
 			// ακριβώς η παγίδα που έκοβε το Gemini στα 8000 (βλ. askGemini).
 			max_tokens: 24000,
 			output_config: { effort: "medium" },
+			// Web search: server-side tool, τρέχει στην Anthropic — καμία
+			// αλλαγή στον βρόχο μας. Το max_uses κρατά κόστος/χρόνο φραγμένα.
+			...(search ? { tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5 }] } : {}),
 			system,
 			messages: [{ role: "user", content: user }],
 		}),

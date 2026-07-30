@@ -94,8 +94,11 @@ async function askGeminiWithSearch(env) {
 ${JSON.stringify(AREA_PRICES)}
 
 Έλεγξε με αναζήτηση τις τρέχουσες τιμές για ΚΑΘΕ περιοχή και επίστρεψε JSON:
-{"rows":[{"area":"<ίδιο όνομα με τον πίνακα>","saleLow":0,"saleHigh":0,"rentLow":0,"rentHigh":0,"note":"<κενό, ή 1 σύντομη πρόταση αν άλλαξε κάτι ουσιαστικό ή αν οι πηγές διαφωνούν>","source":"<κύρια πηγή, π.χ. spitogatos.gr>"}],"summary":"2-3 προτάσεις: γενική εικόνα της αγοράς και πού είδες τις μεγαλύτερες μεταβολές"}
-Κανόνες: κράτα ΑΚΡΙΒΩΣ τα ονόματα περιοχών του πίνακα, με την ίδια σειρά. Τα εύρη για τυπικό διαμέρισμα — όχι νεόδμητα, όχι αναξιοποίητα. Αν δεν βρίσκεις φρέσκα στοιχεία για μια περιοχή, κράτα τα τρέχοντα νούμερα και γράψε το στο note. Νούμερα χωρίς σύμβολα, στρογγυλεμένα λογικά (πενηντάδες στο €/τ.μ., μισό ευρώ στα ενοίκια).`;
+{"rows":[{"area":"<ίδιο όνομα με τον πίνακα>","saleLow":0,"saleHigh":0,"rentLow":0,"rentHigh":0,"note":"<κενό, ή 1 σύντομη πρόταση αν άλλαξε κάτι ουσιαστικό ή αν οι πηγές διαφωνούν>","source":"<κύρια πηγή, π.χ. spitogatos.gr>"}],
+"indices":[{"name":"<π.χ. Spitogatos SPI Θεσσαλονίκη ή Δείκτης τιμών διαμερισμάτων ΤτΕ Θεσσαλονίκη>","change":"<π.χ. +7,7% ετησίως>","period":"<π.χ. Β' τρίμηνο 2026>","source":"<πηγή>"}],
+"summary":"2-3 προτάσεις: γενική εικόνα της αγοράς και πού είδες τις μεγαλύτερες μεταβολές"}
+Κανόνες: κράτα ΑΚΡΙΒΩΣ τα ονόματα περιοχών του πίνακα, με την ίδια σειρά. Τα εύρη για τυπικό διαμέρισμα — όχι νεόδμητα, όχι αναξιοποίητα. Αν δεν βρίσκεις φρέσκα στοιχεία για μια περιοχή, κράτα τα τρέχοντα νούμερα και γράψε το στο note. Νούμερα χωρίς σύμβολα, στρογγυλεμένα λογικά (πενηντάδες στο €/τ.μ., μισό ευρώ στα ενοίκια).
+Για το "indices": βρες τους πιο πρόσφατους δημοσιευμένους δείκτες — Spitogatos SPI (πανελλαδικά και Θεσσαλονίκη) και τον δείκτη τιμών κατοικιών της Τράπεζας της Ελλάδος (Θεσσαλονίκη) — ως έλεγχο τάσης. Αν κάποια πρότασή σου στα rows κινείται ΑΝΤΙΘΕΤΑ στο πρόσημο αυτών των δεικτών, γράψε το ρητά στο note της περιοχής.`;
 
 	const res = await fetch(`${GEMINI_URL}/${model}:generateContent`, {
 		method: "POST",
@@ -211,6 +214,11 @@ function buildEmail(data, stock) {
 		${data.summary ? `<div style="font-size:13px; color:#444; margin-top:8px; line-height:1.55;">${esc(data.summary)}</div>` : ""}
 		<div style="font-size:12px; color:#6b7280; margin-top:8px;">Τρέχων πίνακας: ${esc(AREA_PRICES_META.asOf)}. Τίποτα δεν έχει αλλάξει μόνο του — για να εφαρμοστεί, πες στον Claude «εφάρμοσε τον νέο πίνακα τιμών από το email» ή επικόλλησε το block από κάτω στο <code>worker/lib/area-prices.mjs</code>.</div>
 	</td></tr>
+	${Array.isArray(data.indices) && data.indices.length ? `<tr><td style="padding:14px 20px 0;">
+		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΕΠΙΣΗΜΟΙ ΔΕΙΚΤΕΣ — ΤΟ ΜΕΤΡΟ ΤΗΣ ΤΑΣΗΣ</div>
+		${data.indices.map((ix) => `<div style="font-size:12.5px; color:#444; line-height:1.7;">• <strong>${esc(ix.name)}</strong>: ${esc(ix.change)} (${esc(ix.period)}) <span style="color:#9aa3af;">· ${esc(ix.source)}</span></div>`).join("")}
+		<div style="font-size:11.5px; color:#6b7280; margin-top:4px;">Πρόταση που πάει κόντρα σε αυτό το πρόσημο χωρίς εξήγηση = ύποπτη.</div>
+	</td></tr>` : ""}
 	<tr><td style="padding:14px 20px 0;">
 		<div style="background:#f4f7fb; border:1px solid #c9d4e4; border-radius:8px; padding:12px 16px; font-size:12.5px; color:${NAVY}; line-height:1.7;">
 			<strong>Πώς το ελέγχεις σε 2 λεπτά:</strong><br>
