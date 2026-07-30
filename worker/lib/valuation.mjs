@@ -31,10 +31,12 @@
    ===================================================================== */
 
 import { AREA_PRICES, AREA_PRICES_META, findAreaPrices } from "./area-prices.mjs";
+import { renderDocPdf } from "./pdfrender.mjs";
 
 /* KV keys — το request γράφεται από forms.mjs, το result από εδώ. */
 export const VALUATION_REQ_PREFIX = "valuation:req:";
 const VALUATION_RES_PREFIX = "valuation:res:";
+const VALUATION_PDF_PREFIX = "valuation:pdf:";
 export const VALUATION_TTL_SECONDS = 2 * 24 * 3600;
 
 const FEED_KEY = "listings.json"; // ίδιο με FEED_KEY στο worker/index.mjs
@@ -53,10 +55,11 @@ export async function handleValuation(request, env, url) {
 	const ref = String(url.searchParams.get("ref") || "").trim();
 	if (!/^[0-9a-f-]{16,64}$/i.test(ref)) return json({ error: "bad_ref" }, 400);
 	const wantsHtml = url.searchParams.get("format") === "html";
+	const wantsPdf = url.searchParams.get("pdf") === "1";
 
 	// Idempotent: το ίδιο ref δίνει πάντα το ίδιο report, χωρίς νέο κόστος.
 	const cached = await env.LISTINGS_KV.get(VALUATION_RES_PREFIX + ref);
-	if (cached) return respond(JSON.parse(cached), wantsHtml);
+	if (cached) return respond(await withPdf(env, ref, JSON.parse(cached), wantsPdf), wantsHtml);
 
 	const rawReq = await env.LISTINGS_KV.get(VALUATION_REQ_PREFIX + ref);
 	if (!rawReq) return json({ error: "unknown_ref" }, 404);
@@ -100,7 +103,36 @@ export async function handleValuation(request, env, url) {
 	await env.LISTINGS_KV.put(VALUATION_RES_PREFIX + ref, JSON.stringify(result), {
 		expirationTtl: 7 * 24 * 3600,
 	});
-	return respond(result, wantsHtml);
+	return respond(await withPdf(env, ref, result, wantsPdf), wantsHtml);
+}
+
+/* Το PDF της ΠΛΗΡΟΥΣ αναφοράς, με πραγματικό κείμενο (Browser Rendering,
+   ίδια διαδρομή με τα άλλα έντυπα). Φτιάχνεται ΜΟΝΟ όταν ζητηθεί με
+   ?pdf=1: το ζητά το Make για να το επισυνάψει στο email του γραφείου,
+   ώστε η γραμματεία να το αρχειοθετεί στα έγγραφα του πελάτη. Η φόρμα
+   ΔΕΝ το ζητά — θα περίμενε άσκοπα τα δευτερόλεπτα του rendering.
+   Κασάρεται χωριστά ανά ref, οπότε ένα retry του Make δεν ξαναπληρώνει.
+   Fail-open: αν το rendering αποτύχει, το email φεύγει κανονικά με το
+   HTML μέσα του και απλώς χωρίς συνημμένο. */
+async function withPdf(env, ref, result, wantsPdf) {
+	if (!wantsPdf) return result;
+	const key = VALUATION_PDF_PREFIX + ref;
+	let b64 = await env.LISTINGS_KV.get(key);
+	if (!b64) {
+		try {
+			b64 = await renderDocPdf(env, result.html);
+		} catch (err) {
+			console.warn(`valuation: report PDF render failed for ${ref}: ${String(err)}`);
+		}
+		if (b64) await env.LISTINGS_KV.put(key, b64, { expirationTtl: 7 * 24 * 3600 });
+	}
+	if (!b64) return result;
+	const code = (result.prop && result.prop.listingCode) || "";
+	return {
+		...result,
+		pdf_base64: b64,
+		pdf_filename: `ektimisi-${code || "akinito"}.pdf`,
+	};
 }
 
 function respond(result, wantsHtml) {
