@@ -82,7 +82,19 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 .doc td.pos{color:#12855b;font-weight:700;white-space:nowrap;text-align:right;}
 .doc td.neg{color:#b3261e;font-weight:700;white-space:nowrap;text-align:right;}
 .doc .note{background:#f2f9f4;border-left:3px solid #12855b;border-radius:6px;padding:9px 12px;margin:10px 0;}
-.doc .renov{background:#f9f5ff;border:1px solid #cdb9ec;border-radius:10px;padding:11px 15px;margin:0 0 8px;}
+/* «Με ανακαίνιση»: η ιστορία σε τρία νούμερα — κόστος, αξία μετά, καθαρό
+   όφελος. Stat-κουτιά αντί για παράγραφο· είναι το πωλησιακό σημείο. */
+.doc .renov{background:#f9f5ff;border:1px solid #cdb9ec;border-radius:10px;padding:12px 15px;margin:0 0 8px;}
+.doc .renov .lbl{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#6b7280;}
+.doc .renov .scope{font-size:12.5px;margin:2px 0 10px;line-height:1.5;}
+.doc .renov .stats{display:flex;gap:8px;flex-wrap:wrap;}
+.doc .renov .st{flex:1;min-width:130px;background:#fff;border:1px solid #e2d7f5;border-radius:8px;padding:8px 11px;}
+.doc .renov .st .v{font-size:16px;font-weight:800;color:var(--navy);line-height:1.3;white-space:nowrap;}
+.doc .renov .st .s{font-size:10.5px;color:#6b7280;margin-top:2px;line-height:1.4;}
+.doc .renov .st.gain .v{color:#12855b;}
+.doc .renov .st.gain.neg .v{color:#b3261e;}
+.doc .renov .aftrent{font-size:12px;color:var(--navy);margin-top:8px;}
+.doc .renov .cm{font-size:12px;color:#6b7280;margin-top:6px;line-height:1.5;}
 .doc .disc{border-top:1px solid #eceef2;margin-top:14px;padding-top:9px;font-size:10.5px;color:#9aa3af;line-height:1.6;}
 .spin{display:inline-block;width:15px;height:15px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-right:8px;}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -805,6 +817,12 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		return (n > 0 ? "+" : "") + String(n).replace(".", ",") + "%";
 	}
 
+	/* Ελληνικά κεφαλαία ΧΩΡΙΣ τόνους — ίδια εμφάνιση με email/PDF, όπου
+	   το σκέτο toUpperCase() θα κρατούσε τον τόνο («ΥΨΗΛΉ»). */
+	function grUpper(s){
+		return String(s == null ? "" : s).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+	}
+
 	/* Οι δύο καρτέλες πάνω από το έγγραφο. Η όψη «ιδιοκτήτη» δεν είναι
 	   περίληψη του PDF: είναι ο ΙΔΙΟΣ κόμβος που στέλνεται (buildClientDoc),
 	   ώστε ό,τι βλέπει ο σύμβουλος να είναι ό,τι λαμβάνει ο πελάτης. */
@@ -896,7 +914,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			d.appendChild(el("p", null, v.market_comment));
 		}
 
-		d.appendChild(el("h2", null, "ΒΕΒΑΙΟΤΗΤΑ: " + (v.confidence || "")));
+		d.appendChild(el("h2", null, "ΒΕΒΑΙΟΤΗΤΑ: " + grUpper(v.confidence)));
 		if (v.confidence_reason) d.appendChild(el("p", null, v.confidence_reason));
 		var missing = (Array.isArray(v.missing_info) ? v.missing_info : []).filter(Boolean);
 		if (missing.length) d.appendChild(el("p", "mut", "Θα βοηθούσε να ξέρουμε: " + missing.join(" · ")));
@@ -915,17 +933,24 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			var rv = v.renovation;
 			d.appendChild(el("h2", null, "ΜΕ ΑΝΑΚΑΙΝΙΣΗ"));
 			var rb2 = el("div", "renov");
-			rb2.appendChild(el("p", null, rv.scope || ""));
-			rb2.appendChild(el("p", null, "Κόστος: " + money(rv.cost_low) + " – " + money(rv.cost_high)
-				+ " · Αξία μετά: " + money(rv.value_after_mid)
-				+ " (εύρος " + money(rv.value_after_low) + " έως " + money(rv.value_after_high) + ")"
-				+ (Number(rv.rent_after_mid) ? " · Μίσθωμα μετά ~" + money(rv.rent_after_mid) + "/μήνα" : "")));
-			var ng = el("p", null, "Καθαρό όφελος ~" + money(rv.net_gain));
-			ng.style.fontWeight = "700";
-			ng.style.color = Number(rv.net_gain) > 0 ? "#12855b" : "#b3261e";
-			rb2.appendChild(ng);
-			if (rv.comment) rb2.appendChild(el("p", "mut", rv.comment));
-			rb2.appendChild(el("p", "mut", "Τα κόστη είναι ενδεικτικά — τα συνεργαζόμενα συνεργεία μας δίνουν κανονική προσφορά."));
+			rb2.appendChild(el("div", "lbl", "ΤΙ ΠΕΡΙΛΑΜΒΑΝΕΙ"));
+			rb2.appendChild(el("div", "scope", rv.scope || ""));
+			var stats = el("div", "stats");
+			function stat(cls, label, value, sub){
+				var box = el("div", "st" + (cls ? " " + cls : ""));
+				box.appendChild(el("div", "lbl", label));
+				box.appendChild(el("div", "v", value));
+				if (sub) box.appendChild(el("div", "s", sub));
+				return box;
+			}
+			stats.appendChild(stat("", "ΚΟΣΤΟΣ", money(rv.cost_low) + " – " + money(rv.cost_high), "από τα συνεργεία μας"));
+			stats.appendChild(stat("", "ΑΞΙΑ ΜΕΤΑ", money(rv.value_after_mid), "από " + money(v.value_mid) + " σήμερα · εύρος " + money(rv.value_after_low) + "–" + money(rv.value_after_high)));
+			var gain = Number(rv.net_gain) || 0;
+			stats.appendChild(stat(gain > 0 ? "gain" : "gain neg", "ΚΑΘΑΡΟ ΟΦΕΛΟΣ", (gain > 0 ? "+" : "") + money(gain), "μετά την αφαίρεση του κόστους"));
+			rb2.appendChild(stats);
+			if (Number(rv.rent_after_mid)) rb2.appendChild(el("div", "aftrent", "Μίσθωμα μετά: ~" + money(rv.rent_after_mid) + "/μήνα"));
+			if (rv.comment) rb2.appendChild(el("div", "cm", rv.comment));
+			rb2.appendChild(el("div", "cm", "Τα κόστη είναι ενδεικτικά — τα συνεργαζόμενα συνεργεία μας δίνουν κανονική προσφορά."));
 			d.appendChild(rb2);
 		}
 

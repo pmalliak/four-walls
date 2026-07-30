@@ -24,7 +24,7 @@
    ===================================================================== */
 'use strict';
 
-var VERSION = 'fw-entypa-v21';
+var VERSION = 'fw-entypa-v22';
 var SHELL = [
 	'./', 'index.html', 'anathesi.html', 'ypodeixi.html', 'apodeixi.html', 'katachorisi.html', 'enhance.html', 'prosfora.html', 'ektimisi.html',
 	'_crm.fw.js', '_outbox.fw.js', '_drafts.fw.js', 'html2pdf.bundle.min.js',

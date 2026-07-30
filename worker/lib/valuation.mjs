@@ -518,6 +518,12 @@ function esc(s) {
 		.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+/* Ελληνικά κεφαλαία ΧΩΡΙΣ τόνους (κανόνας του repo). Το σκέτο
+   toUpperCase() κρατά τον τόνο («υψηλή» → «ΥΨΗΛΉ») — λάθος. */
+function grUpper(s) {
+	return String(s == null ? "" : s).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+}
+
 function eur(n) {
 	if (!Number.isFinite(Number(n))) return "";
 	return "€" + String(Math.round(Number(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -621,7 +627,7 @@ function renderReport(prop, comps, stats, priceRow, v, payload) {
 		<div style="font-size:13px; color:#444; line-height:1.6;">${esc(v.market_comment)}</div>
 	</td></tr>` : ""}
 	<tr><td style="padding:18px 20px 0;">
-		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΒΕΒΑΙΟΤΗΤΑ: ${esc(String(v.confidence || "").toUpperCase())}</div>
+		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΒΕΒΑΙΟΤΗΤΑ: ${esc(grUpper(v.confidence))}</div>
 		<div style="font-size:12.5px; color:#444; line-height:1.55;">${esc(v.confidence_reason || "")}</div>
 		${missing.length ? `<div style="font-size:12px; color:#6b7280; margin-top:6px;">Θα βοηθούσε να ξέρουμε: ${esc(missing.join(" · "))}</div>` : ""}
 	</td></tr>
@@ -631,19 +637,36 @@ function renderReport(prop, comps, stats, priceRow, v, payload) {
 	${v.renovation ? `<tr><td style="padding:18px 20px 0;">
 		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΜΕ ΑΝΑΚΑΙΝΙΣΗ</div>
 		<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-			<td style="background:#f9f5ff; border:1px solid #cdb9ec; border-radius:8px; padding:12px 16px;">
-				<div style="font-size:12.5px; color:${NAVY}; line-height:1.6;">${esc(v.renovation.scope)}</div>
-				<div style="font-size:13px; color:${NAVY}; margin-top:6px;">Κόστος: <strong>${eur(v.renovation.cost_low)} – ${eur(v.renovation.cost_high)}</strong></div>
-				<div style="font-size:17px; font-weight:bold; color:${NAVY}; margin-top:2px;">Αξία μετά: ${eur(v.renovation.value_after_mid)} <span style="font-weight:normal; font-size:12.5px; color:#6b7280;">(εύρος ${eur(v.renovation.value_after_low)} έως ${eur(v.renovation.value_after_high)})</span></div>
-				${Number(v.renovation.rent_after_mid) ? `<div style="font-size:12.5px; color:${NAVY}; margin-top:2px;">Μίσθωμα μετά: ~${eur(v.renovation.rent_after_mid)}/μήνα</div>` : ""}
-				<div style="font-size:13px; font-weight:bold; color:${Number(v.renovation.net_gain) > 0 ? "#2e9e5b" : "#c62828"}; margin-top:4px;">Καθαρό όφελος ~${eur(v.renovation.net_gain)}</div>
+			<td style="background:#f9f5ff; border:1px solid #cdb9ec; border-radius:8px; padding:12px 14px;">
+				<div style="font-size:10.5px; font-weight:bold; letter-spacing:1px; color:#6b7280;">ΤΙ ΠΕΡΙΛΑΜΒΑΝΕΙ</div>
+				<div style="font-size:12.5px; color:${NAVY}; line-height:1.55; margin:2px 0 10px;">${esc(v.renovation.scope)}</div>
+				<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+					<td width="33%" style="background:#ffffff; border:1px solid #e2d7f5; border-radius:8px; padding:9px 11px; vertical-align:top;">
+						<div style="font-size:10px; font-weight:bold; letter-spacing:1px; color:#6b7280;">ΚΟΣΤΟΣ</div>
+						<div style="font-size:15px; font-weight:bold; color:${NAVY}; margin-top:2px;">${eur(v.renovation.cost_low)} – ${eur(v.renovation.cost_high)}</div>
+						<div style="font-size:10.5px; color:#6b7280; margin-top:2px;">από τα συνεργεία μας</div>
+					</td>
+					<td width="8"></td>
+					<td width="33%" style="background:#ffffff; border:1px solid #e2d7f5; border-radius:8px; padding:9px 11px; vertical-align:top;">
+						<div style="font-size:10px; font-weight:bold; letter-spacing:1px; color:#6b7280;">ΑΞΙΑ ΜΕΤΑ</div>
+						<div style="font-size:15px; font-weight:bold; color:${NAVY}; margin-top:2px;">${eur(v.renovation.value_after_mid)}</div>
+						<div style="font-size:10.5px; color:#6b7280; margin-top:2px;">από ${eur(v.value_mid)} σήμερα · εύρος ${eur(v.renovation.value_after_low)}–${eur(v.renovation.value_after_high)}</div>
+					</td>
+					<td width="8"></td>
+					<td width="33%" style="background:#ffffff; border:1px solid #e2d7f5; border-radius:8px; padding:9px 11px; vertical-align:top;">
+						<div style="font-size:10px; font-weight:bold; letter-spacing:1px; color:#6b7280;">ΚΑΘΑΡΟ ΟΦΕΛΟΣ</div>
+						<div style="font-size:15px; font-weight:bold; color:${Number(v.renovation.net_gain) > 0 ? "#2e9e5b" : "#c62828"}; margin-top:2px;">${Number(v.renovation.net_gain) > 0 ? "+" : ""}${eur(v.renovation.net_gain)}</div>
+						<div style="font-size:10.5px; color:#6b7280; margin-top:2px;">μετά την αφαίρεση του κόστους</div>
+					</td>
+				</tr></table>
+				${Number(v.renovation.rent_after_mid) ? `<div style="font-size:12px; color:${NAVY}; margin-top:8px;">Μίσθωμα μετά: ~${eur(v.renovation.rent_after_mid)}/μήνα</div>` : ""}
 				${v.renovation.comment ? `<div style="font-size:12px; color:#6b7280; margin-top:6px; line-height:1.5;">${esc(v.renovation.comment)}</div>` : ""}
-				<div style="font-size:11.5px; color:#9aa3af; margin-top:6px;">Τα κόστη είναι ενδεικτικά — τα συνεργαζόμενα συνεργεία μας δίνουν κανονική προσφορά.</div>
+				<div style="font-size:11px; color:#9aa3af; margin-top:6px;">Τα κόστη είναι ενδεικτικά — τα συνεργαζόμενα συνεργεία μας δίνουν κανονική προσφορά.</div>
 			</td>
 		</tr></table>
 	</td></tr>` : ""}
 	${propFacts ? `<tr><td style="padding:18px 20px 0;">
-		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΤΑ ΣΤΟΙΧΕΙΑ ΠΟΥ ΔΟΘΗΚΑΝ${prop.fromCrm ? " (συμπληρωμένα και από το CRM)" : ""}</div>
+		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΤΑ ΣΤΟΙΧΕΙΑ ΠΟΥ ΔΟΘΗΚΑΝ${prop.fromCrm ? " (ΣΥΜΠΛΗΡΩΜΕΝΑ ΚΑΙ ΑΠΟ ΤΟ CRM)" : ""}</div>
 		<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eceef2; border-radius:6px;">${propFacts}</table>
 		${prop.notes ? `<div style="font-size:12px; color:#6b7280; margin-top:6px;">Παρατηρήσεις: ${esc(prop.notes)}</div>` : ""}
 	</td></tr>` : ""}
@@ -768,7 +791,17 @@ td.pos{color:#12855b;font-weight:700;white-space:nowrap;text-align:right;}
 td.neg{color:#b3261e;font-weight:700;white-space:nowrap;text-align:right;}
 td.num{text-align:right;white-space:nowrap;}
 .note{background:#f2f9f4;border-left:3px solid #12855b;border-radius:6px;padding:9px 12px;margin:10px 0;}
-.renov{background:#f9f5ff;border:1px solid #cdb9ec;border-radius:10px;padding:11px 15px;margin:0 0 8px;}
+.renov{background:#f9f5ff;border:1px solid #cdb9ec;border-radius:10px;padding:12px 15px;margin:0 0 8px;}
+.renov .lbl{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#6b7280;}
+.renov .scope{font-size:12.5px;margin:2px 0 10px;line-height:1.5;}
+.renov .stats{display:flex;gap:8px;}
+.renov .st{flex:1;background:#fff;border:1px solid #e2d7f5;border-radius:8px;padding:8px 11px;}
+.renov .st .v{font-size:15px;font-weight:800;color:${DOC_NAVY};line-height:1.3;white-space:nowrap;}
+.renov .st .s{font-size:10.5px;color:#6b7280;margin-top:2px;line-height:1.4;}
+.renov .st.gain .v{color:#12855b;}
+.renov .st.gainneg .v{color:#b3261e;}
+.renov .aftrent{font-size:12px;color:${DOC_NAVY};margin-top:8px;}
+.renov .cm{font-size:12px;color:#6b7280;margin-top:6px;line-height:1.5;}
 .disc{border-top:1px solid #eceef2;margin-top:14px;padding-top:9px;font-size:10.5px;color:#9aa3af;line-height:1.6;}
 </style></head><body><div class="doc">
 	<div class="hd">
@@ -793,7 +826,7 @@ td.num{text-align:right;white-space:nowrap;}
 	${compRows ? `<h2>ΣΥΓΚΡΙΤΙΚΑ ΑΠΟ ΤΟ ΧΑΡΤΟΦΥΛΑΚΙΟ ΜΑΣ</h2><table>${compRows}</table>
 		${v.comps_comment ? `<p class="mut" style="margin-top:6px;">${esc(v.comps_comment)}</p>` : ""}` : ""}
 	${v.market_comment ? `<h2>Η ΑΓΟΡΑ</h2><p>${esc(v.market_comment)}</p>` : ""}
-	<h2>ΒΕΒΑΙΟΤΗΤΑ: ${esc(String(v.confidence || "").toUpperCase())}</h2>
+	<h2>ΒΕΒΑΙΟΤΗΤΑ: ${esc(grUpper(v.confidence))}</h2>
 	${v.confidence_reason ? `<p>${esc(v.confidence_reason)}</p>` : ""}
 	${missing.length ? `<p class="mut">Θα βοηθούσε να ξέρουμε: ${esc(missing.join(" · "))}</p>` : ""}
 	${v.advice ? `<div class="note"><strong>Για τη συζήτηση με τον ιδιοκτήτη:</strong> ${esc(v.advice)}</div>` : ""}
