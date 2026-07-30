@@ -317,7 +317,11 @@ async function askGemini(env, system, user) {
 			contents: [{ role: "user", parts: [{ text: user }] }],
 			// responseMimeType: το Gemini επιστρέφει εγγυημένα σκέτο JSON,
 			// που είναι ακριβώς ό,τι περιμένει το extractJson.
-			generationConfig: { maxOutputTokens: 8000, responseMimeType: "application/json" },
+			// ΠΡΟΣΟΧΗ στο maxOutputTokens: στο 3.5 Flash είναι κοινός
+			// κουμπαράς για τη «σκέψη» ΚΑΙ το JSON. Στα 8000 που είχαμε, ένα
+			// πιο απαιτητικό system prompt (βλ. PRICE_BASIS) έτρωγε τον χώρο
+			// σκεπτόμενο και το JSON γύριζε κομμένο στη μέση.
+			generationConfig: { maxOutputTokens: 24000, responseMimeType: "application/json" },
 		}),
 	});
 	if (!res.ok) {
@@ -335,6 +339,12 @@ async function askGemini(env, system, user) {
 		.map((p) => p.text)
 		.join("");
 	if (!text) throw new Error(`gemini: empty response (finishReason ${cand?.finishReason})`);
+	// Κομμένη απάντηση: λέγε το με το όνομά του. Αλλιώς το μισό JSON φτάνει
+	// στο extractJson, που κόβει ως το ΤΕΛΕΥΤΑΙΟ «}» — δηλαδή το κλείσιμο
+	// ενός στοιχείου μέσα σε array — και βγάζει ακατάληπτο SyntaxError.
+	if (cand.finishReason === "MAX_TOKENS") {
+		throw new Error(`gemini: response truncated at maxOutputTokens (${text.length} chars)`);
+	}
 	return text;
 }
 
@@ -349,8 +359,10 @@ async function askClaude(env, system, user) {
 		body: JSON.stringify({
 			model: env.VALUATION_MODEL || DEFAULT_MODEL,
 			// Στο Opus 5 το thinking είναι ενεργό από προεπιλογή και μετράει
-			// ΜΕΣΑ στο max_tokens, οπότε το όριο θέλει αέρα πάνω από το JSON.
-			max_tokens: 8000,
+			// ΜΕΣΑ στο max_tokens, οπότε το όριο θέλει αέρα πάνω από το JSON —
+			// ακριβώς η παγίδα που έκοβε το Gemini στα 8000 (βλ. askGemini).
+			max_tokens: 24000,
+			output_config: { effort: "medium" },
 			system,
 			messages: [{ role: "user", content: user }],
 		}),
@@ -362,6 +374,11 @@ async function askClaude(env, system, user) {
 	const body = await res.json();
 	if (body.stop_reason === "refusal") {
 		throw new Error("anthropic refusal (stop_reason)");
+	}
+	// Ίδιος λόγος με το Gemini: κομμένη απάντηση θέλει καθαρό σφάλμα, όχι
+	// μισό JSON που σκάει αργότερα σαν SyntaxError.
+	if (body.stop_reason === "max_tokens") {
+		throw new Error("anthropic: response truncated at max_tokens");
 	}
 	return (body.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
 }
