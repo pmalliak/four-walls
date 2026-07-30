@@ -198,6 +198,10 @@ for (const l of leads) {
 	worklist.push({
 		leadId: l.searchEnquiryId, name: `${glast(l)} ${gfirst(l)}`,
 		contactId, contactStatus, areas, fields: requestFields(l),
+		/* POST /api/contacts never sets the default (star) email/phone, and the
+		   CRM's send-listing-email 500s on contacts without one — crm-post.mjs
+		   stars these values via the session (the UI's star_email/star_phone). */
+		star: contactStatus === "created" ? { email: l.email || null, phone: l.telephone ? normPhone(l.telephone) : null } : null,
 		comm: { contact_id: contactId, date: commDate, comments }, warnings,
 	});
 	console.log(`lead ${id} (${glast(l)} ${gfirst(l)}): contact ${contactStatus} ${contactId}, ${areas.length} areas${warnings.length ? " [" + warnings.length + " warn]" : ""}`);

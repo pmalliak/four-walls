@@ -26,6 +26,19 @@ for (const j of jobs) {
 		// Spitogatos leads keep the defaults; site-requests.mjs overrides both
 		// (there is no «four-walls.gr» request source in the CRM yet, so it
 		// sends none rather than mislabelling the lead as Spitogatos).
+		// New contacts: star the default email/phone first — POST /api/contacts
+		// never sets one, and the send-listing-email action 500s without it.
+		let starred = null;
+		if (j.star && (j.star.email || j.star.phone)) {
+			starred = {};
+			for (const [kind, val] of [['email', j.star.email], ['phone', j.star.phone]]) {
+				if (!val) continue;
+				const sb = new URLSearchParams(); sb.set('star_' + kind, val);
+				const sr = await fetch('/contacts/view/' + j.contactId, { method: 'POST', credentials: 'include', headers: H, body: sb })
+					.then((r) => r.json()).catch(() => null);
+				starred[kind] = sr && sr.success ? 'ok' : 'FAIL';
+			}
+		}
 		const p = ['save_request=1', 'source_id=' + (j.requestSource ?? '1'),
 			'contact_ids[]=' + j.contactId, 'user_ids[]=2', 'request_status=1', 'rating='];
 		for (const t of (j.requestTags || [13, 14])) p.push('tags[]=' + t);
@@ -47,7 +60,7 @@ for (const j of jobs) {
 				.json().catch(() => ({ parse: 'fail' }));
 			commId = cr && cr.id; commRaw = cr && !cr.id ? cr : null;
 		}
-		return JSON.stringify({ leadId: j.leadId, name: j.name, contactId: j.contactId, requestId: rr && rr.id,
+		return JSON.stringify({ leadId: j.leadId, name: j.name, contactId: j.contactId, starred, requestId: rr && rr.id,
 			requestRaw: rr && !rr.id ? rr : null, commId, commRaw });
 	})()`, { timeoutMs: 60000 });
 	results.push(JSON.parse(out));
@@ -55,5 +68,5 @@ for (const j of jobs) {
 }
 writeFileSync(outPath, JSON.stringify(results, null, 1), 'utf8');
 for (const r of results)
-	console.log(`  ${r.leadId} ${r.name}: request=${r.requestId ?? JSON.stringify(r.requestRaw)} comm=${r.commId ?? JSON.stringify(r.commRaw)}`);
+	console.log(`  ${r.leadId} ${r.name}: request=${r.requestId ?? JSON.stringify(r.requestRaw)} comm=${r.commId ?? JSON.stringify(r.commRaw)}${r.starred ? ' star=' + JSON.stringify(r.starred) : ''}`);
 tab.close();

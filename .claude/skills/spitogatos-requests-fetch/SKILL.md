@@ -93,6 +93,14 @@ Gotchas learned 2026-07-29:
   `enumerate.mjs` was already fine; `sg-login.mjs` was switched over. Spark's `subject:` filter
   matches Latin only (Greek subjects return zero rows), so scope by sender plus a big `--page-size`.
 
+Gotchas learned 2026-07-30:
+- **`POST /api/contacts` never sets the default (κύριο) email/κινητό** — and the CRM's
+  «Αποστολή με Email» from listings 500s on contacts without one (send button stays disabled).
+  prep.mjs/site-requests.mjs now put `star:{email,phone}` on created-contact worklist entries and
+  `crm-post.mjs` POSTs `star_email`/`star_phone` to `/contacts/view/{id}` (the UI star-click call).
+  Backfill for older/Make-created contacts: `headless/fix-contact-defaults.mjs` (has `--dry`);
+  details in [docs/estateprime-api.md](../../../docs/estateprime-api.md).
+
 ## Anti-scraping rule
 Enumerate leads from **emails** (Spark, `info@four-walls.gr`, folder `Inbox/Spitogatos`, pushed by
 the portal = zero risk). Fetch

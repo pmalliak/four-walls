@@ -230,6 +230,35 @@ same family as `/requests/form`). One section per request, keyed by
   (2026-07-30). This is the working alternative to the public
   `DELETE /api/contacts/{id}`, which 200s without deleting.
 
+### ⚠️ Default (κύριο) email/κινητό: the API never sets it (2026-07-30)
+
+`POST /api/contacts` creates the phone/email rows **without** the default flag —
+whoever the client (Make, prep.mjs, site-requests.mjs). Only UI-created contacts
+get it. The flag is invisible in every API read; it only shows on the contact
+page as the star per row (`.star-email/.star-phone`, `fa-star` filled = default,
+`fa-star-o` outline = none — the CSS classes also appear in scripts/styles, so
+grep the DOM, not the HTML).
+
+Why it matters: the listings mass action «Αποστολή με Email» (`POST /listings`,
+`mass_actions=send_listing_email` — `simulate: 1` for the dry check the modal
+runs) answers **HTTP 500** for any recipient contact without a default email, so
+the modal's «Αποστολή» button never enables. That was the «τα πρότυπα φταίνε»
+scare of 2026-07-30 — the templates were fine.
+
+Setting it: the star's own endpoint, same-origin session POST (no CSRF):
+`POST /contacts/view/{id}` with `star_email=<address>` or `star_phone=<number>`
+(the row's exact stored value) → `{"success":true}`. There is **no way through
+the public API**, and no default control inside the `edit_contact=phones/emails`
+modal — though re-saving those sections also happens to star the first row.
+
+All 211 existing contacts were audited + fixed on 2026-07-30 (134 needed it).
+New skill-created contacts are starred by `crm-post.mjs` (the worklist carries
+`star:{email,phone}` for created contacts); **Make-created contacts keep arriving
+default-less** — re-run
+`.claude/skills/spitogatos-requests-fetch/scripts/headless/fix-contact-defaults.mjs`
+(supports `--dry`) after busy lead periods, until EstatePrime makes the API set
+the flag (ticket asked 2026-07-30).
+
 Field map, custom-field ids, and the Cloudflare Access setup:
 [forms-crm.md](forms-crm.md).
 

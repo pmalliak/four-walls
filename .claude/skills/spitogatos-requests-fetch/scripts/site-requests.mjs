@@ -308,6 +308,9 @@ for (const e of emails) {
 	worklist.push({
 		leadId, name: l.name, contactId, contactStatus, areas,
 		fields: requestFields(l),
+		/* Same as prep.mjs: API-created contacts get no default email/phone —
+		   crm-post.mjs stars these via the session. */
+		star: contactStatus === "created" ? { email: l.email || null, phone: l.phone ? normPhone(l.phone) : null } : null,
 		/* NO comm here (since 2026-07-30): the Worker logs the incoming
 		   communication the moment the form is submitted (crm-lead.mjs), so
 		   the skill's job for a site lead is ONLY the ζήτηση. crm-post.mjs

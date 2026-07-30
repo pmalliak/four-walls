@@ -44,6 +44,10 @@ The matchings email ends with a **«σταματήστε τις προτάσει
   same URL. Photos are read `{{ listing.photos[0] }}` (bracket).
   ⚠️ A preview POST **missing/misnaming `html`** still answers
   `{"success":true,"html":""}` — an empty render, not an error.
+  ⚠️ **If the send modal's «Αποστολή» button won't enable**, the templates are
+  NOT the problem: the recipient contact has no default (κύριο) email — the
+  simulate POST 500s. API-created contacts never get one; fix + backfill in
+  [docs/estateprime-api.md](../docs/estateprime-api.md) (2026-07-30).
 
 Both families expose `listings` as an **array with `{% for %}`** — a ζήτηση or a
 recommendation batch can carry several listings.
