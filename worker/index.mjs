@@ -156,6 +156,42 @@ export default {
 			return devNoindex(res, url);
 		}
 
+		// assets.four-walls.gr σερβίρει ΜΟΝΟ τον φάκελο assets/ — δημόσια
+		// αρχεία που τα ζητάει κάτι ΕΞΩ από το site: το logo της υπογραφής
+		// στα email, εικόνες για τα πρότυπα του EstatePrime/Zoho/Make, ό,τι
+		// θέλει σταθερό και σύντομο URL. Ίδιο μοτίβο με forms.*/docs.*: ο
+		// φάκελος γίνεται η ρίζα του hostname, οπότε το assets/foo.png βγαίνει
+		// ως https://assets.four-walls.gr/foo.png. Βλ. docs/assets-host.md.
+		if (url.hostname.startsWith("assets.")) {
+			const assetUrl = new URL(request.url);
+			// Ιστορικό URL: το logo της υπογραφής σερβιριζόταν στη γυμνή ρίζα
+			// του hostname και κάθεται ήδη μέσα σε σταλμένα email — μένει
+			// alias για πάντα, αλλιώς σπάει η εικόνα σε ό,τι έχει ήδη φύγει.
+			assetUrl.pathname = url.pathname === "/"
+				? "/assets/signature-logo.png"
+				: "/assets" + url.pathname;
+			const res = await env.ASSETS.fetch(new Request(assetUrl, request));
+			// Σκέτο 404, όχι η branded σελίδα του site: εδώ μέσα δεν υπάρχει
+			// τίποτα να δει κανείς, μόνο αρχεία.
+			if (res.status === 404) {
+				return new Response("Not Found", { status: 404 });
+			}
+			const headers = new Headers(res.headers);
+			// Το assets layer γυρίζει max-age=0, must-revalidate. Εδώ τα
+			// αρχεία τα τραβούν τρίτοι (email image proxies, Make, CRM): μία
+			// ώρα cache στον browser, μία μέρα στο edge — αρκετά ώστε ένα
+			// ανέβασμα με το ίδιο όνομα να φανεί την ίδια μέρα.
+			headers.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
+			// Δημόσια assets: να μπορούν να τα φορτώσουν και άλλα origins
+			// (fonts, JSON, εικόνες σε καμβά) χωρίς CORS εμπόδιο.
+			headers.set("Access-Control-Allow-Origin", "*");
+			const loc = headers.get("Location");
+			if (loc && loc.startsWith("/assets")) {
+				headers.set("Location", loc.slice("/assets".length) || "/");
+			}
+			return new Response(res.body, { status: res.status, headers });
+		}
+
 		// A dedicated webhook hostname (webhooks.four-walls.gr) exposes ONLY
 		// the webhook endpoint — the site and feed are 404 there. On every
 		// other hostname (site domain, workers.dev) all routes work.

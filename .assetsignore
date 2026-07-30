@@ -42,3 +42,6 @@ css/bootstrap-icons.min.css
 see
 # Make scenario blueprints kept under version control (see docs/make-scenarios.md)
 make
+# The assets/ folder IS served (that's the point — assets.four-walls.gr), but
+# its README is for us, not for the world.
+assets/README.md
