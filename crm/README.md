@@ -35,9 +35,15 @@ The matchings email ends with a **«σταματήστε τις προτάσει
   ζήτηση. Data roots: `contact`, `listings[]`, **`batch`** (`batch.url` = a
   hosted page with all the listings), `company`, `system` — **NO `request`, NO
   `user`, NO `office`**, so no agent signature and the phone is hardcoded. Newer
-  editor: preview is `{preview_template:1,…}`, save is
+  editor (params re-verified live 2026-07-30): preview is
+  `{preview_template:1, subject, html, variables}` — `html` = the template,
+  `variables` = the sample-data JSON from the page's second CodeMirror
+  («variables-editor»); save is
   `{save_template:1, title, subject, language_id, content}` — different param
-  names, same URL. Photos are read `{{ listing.photos[0] }}` (bracket).
+  names for the same template body (`html` on preview, `content` on save),
+  same URL. Photos are read `{{ listing.photos[0] }}` (bracket).
+  ⚠️ A preview POST **missing/misnaming `html`** still answers
+  `{"success":true,"html":""}` — an empty render, not an error.
 
 Both families expose `listings` as an **array with `{% for %}`** — a ζήτηση or a
 recommendation batch can carry several listings.
@@ -254,6 +260,22 @@ console POST the payload yourself and look at the raw response —
 `fetch(location.pathname, {method:'POST', body:new URLSearchParams({preview:'true', subject:'x', html, variables})})`
 → `.text()`. A `Just a moment` body means WAF, not Twig. Bisect by prefix to
 find what tips it.
+
+**The `listings-email-templates` editor has the same silent-blank trap, worse
+(2026-07-30).** Its bootstrap is: page load → request the default sample
+`variables` → *in that callback* attach the `change` handlers **and** fire the
+first `updatePreview()`. So if the WAF (or an expired session) eats that one
+request, the pane is blank from the start, **typing re-renders nothing** (the
+handlers never attached), and there is no growl at all — it looks exactly like
+a dead template. A failing *preview* POST at least growls «Η προεπισκόπηση
+απέτυχε.» / «Σφάλμα», but growls are transient toasts, easy to miss. Before
+touching the template: **hard-reload the page** (lets Cloudflare re-clear) and
+replay the preview POST from the console (params above, `preview_template: '1'`)
+— `success:true` with a full `html` means the template is fine and the blank was
+session/WAF noise. Full health check ran 2026-07-30 after a blank-preview scare:
+saved GR+EN content byte-identical to these files, preview rendered both slots,
+hosted `/b/…` + `/l/…` pages and the redirect fine, latest real send fine —
+nothing was actually broken.
 
 ## ⚠️ The EstatePrime template validator (emails — learned the hard way)
 
