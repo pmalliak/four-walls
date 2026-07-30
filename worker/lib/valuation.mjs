@@ -839,11 +839,16 @@ td.num{text-align:right;white-space:nowrap;}
 	${v.advice ? `<div class="note"><strong>Για τη συζήτηση με τον ιδιοκτήτη:</strong> ${esc(v.advice)}</div>` : ""}
 	${v.renovation ? `<h2>ΜΕ ΑΝΑΚΑΙΝΙΣΗ</h2>
 	<div class="renov">
-		<p>${esc(v.renovation.scope)}</p>
-		<p>Κόστος: <strong>${eur(v.renovation.cost_low)} – ${eur(v.renovation.cost_high)}</strong> · Αξία μετά: <strong>${eur(v.renovation.value_after_mid)}</strong> (εύρος ${eur(v.renovation.value_after_low)} έως ${eur(v.renovation.value_after_high)})${Number(v.renovation.rent_after_mid) ? ` · Μίσθωμα μετά ~${eur(v.renovation.rent_after_mid)}/μήνα` : ""}</p>
-		<p style="font-weight:700;color:${Number(v.renovation.net_gain) > 0 ? "#12855b" : "#b3261e"};">Καθαρό όφελος ~${eur(v.renovation.net_gain)}</p>
-		${v.renovation.comment ? `<p class="mut">${esc(v.renovation.comment)}</p>` : ""}
-		<p class="mut">Τα κόστη είναι ενδεικτικά — τα συνεργαζόμενα συνεργεία μας δίνουν κανονική προσφορά.</p>
+		<div class="lbl">ΤΙ ΠΕΡΙΛΑΜΒΑΝΕΙ</div>
+		<div class="scope">${esc(v.renovation.scope)}</div>
+		<div class="stats">
+			<div class="st"><div class="lbl">ΚΟΣΤΟΣ</div><div class="v">${eur(v.renovation.cost_low)} – ${eur(v.renovation.cost_high)}</div><div class="s">από τα συνεργεία μας</div></div>
+			<div class="st"><div class="lbl">ΑΞΙΑ ΜΕΤΑ</div><div class="v">${eur(v.renovation.value_after_mid)}</div><div class="s">από ${eur(v.value_mid)} σήμερα · εύρος ${eur(v.renovation.value_after_low)}–${eur(v.renovation.value_after_high)}</div></div>
+			<div class="st ${Number(v.renovation.net_gain) > 0 ? "gain" : "gainneg"}"><div class="lbl">ΚΑΘΑΡΟ ΟΦΕΛΟΣ</div><div class="v">${Number(v.renovation.net_gain) > 0 ? "+" : ""}${eur(v.renovation.net_gain)}</div><div class="s">μετά την αφαίρεση του κόστους</div></div>
+		</div>
+		${Number(v.renovation.rent_after_mid) ? `<div class="aftrent">Μίσθωμα μετά: ~${eur(v.renovation.rent_after_mid)}/μήνα</div>` : ""}
+		${v.renovation.comment ? `<div class="cm">${esc(v.renovation.comment)}</div>` : ""}
+		<div class="cm">Τα κόστη είναι ενδεικτικά — τα συνεργαζόμενα συνεργεία μας δίνουν κανονική προσφορά.</div>
 	</div>` : ""}
 	${facts ? `<h2>ΤΑ ΣΤΟΙΧΕΙΑ ΠΟΥ ΔΟΘΗΚΑΝ${p.fromCrm ? " (ΣΥΜΠΛΗΡΩΜΕΝΑ ΚΑΙ ΑΠΟ ΤΟ CRM)" : ""}</h2><table>${facts}</table>
 		${p.notes ? `<p class="mut" style="margin-top:6px;">Παρατηρήσεις: ${esc(p.notes)}</p>` : ""}` : ""}
