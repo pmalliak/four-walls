@@ -108,6 +108,8 @@ builds the `<img>` src as `images/icon/<name>.fw.svg`.
 | `area` | Εμβαδόν (τ.μ.) |
 | `bed` | Υπνοδωμάτια |
 | `bath` | Μπάνια |
+| `door` | Χώροι (επαγγελματικά· το `rooms` του CRM) |
+| `wc` | WC (επαγγελματικά) |
 | `stairs` | Όροφος |
 | `home` | Type: any residential category |
 | `building` | Type: office/store/warehouse/… (commercial) |
@@ -115,7 +117,10 @@ builds the `<img>` src as `images/icon/<name>.fw.svg`.
 | `parking` | Type: parking space |
 
 The type glyph is picked by `TYPE_ICON` / `typeIcon()` in `js/listings.fw.js`;
-a category missing from that map falls back to `home`.
+a category missing from that map falls back to `home`. Which stats appear at
+all follows the sibling `TYPE_BUCKET` map (see
+[listings-feed.md](listings-feed.md#type-dependent-fields)): `bed`/`bath` show
+only on residential listings, `door`/`wc` only on commercial ones.
 
 The Homy template's own equivalents (`template/images/icon/icon_04-06`,
 `icon_47-51`) were **never copied into `images/`** — the pages referenced them

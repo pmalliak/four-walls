@@ -100,6 +100,27 @@ amenity stops showing up, add it to both maps; see
 [estateprime-api.md](estateprime-api.md#real-listing-fields-captured-from-the-live-api-2026-07-09)
 for the sweep that enumerates the vocabulary.
 
+## Type-dependent fields
+
+Which numeric facts the front-end shows follows the listing's type, via the
+`TYPE_BUCKET` map + `typeBucket()` in `js/listings.fw.js` (category and
+subcategory both resolve; unmapped values fall back to `residential`, the full
+set). The buckets drive the «Με μια ματιά» strip and the «Στοιχεία ακινήτου»
+list on `property.html`, the card features and the home-page featured banner:
+
+| Bucket | Shows | Never shows |
+|--------|-------|-------------|
+| `residential` | everything (beds, baths, WC, kitchens, living rooms, floor, parking, years, condition, heating, energy, service charges) | |
+| `commercial` | «Χώροι» (the CRM's `rooms` field relabelled), WC, baths, floor, parking, years, condition, heating, energy, service charges | υπνοδωμάτια, κουζίνες, σαλόνια |
+| `land` | code, type, εμβαδόν | anything building-shaped |
+| `parking` | code, type, εμβαδόν, floor, year built, condition | room counts, heating, energy |
+
+Two deliberate choices: the CRM's `rooms` value on a commercial listing is
+**relabelled**, not hidden («Χώροι» / "Rooms"), because for a store or office
+that count means spaces, not bedrooms; and **zero counts are dropped**
+everywhere («Κουζίνες: 0» is noise), while an explicit `€0/μήνα` for service
+charges still renders — no charges is information.
+
 ## Deploy & setup (one-time)
 
 ```bash

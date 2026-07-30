@@ -210,6 +210,9 @@
 			bdShort: " υπν.",
 			beds: function (n) { return n + (n === 1 ? " υπνοδωμάτιο" : " υπνοδωμάτια"); },
 			baths: function (n) { return n + (n === 1 ? " μπάνιο" : " μπάνια"); },
+			spaces: function (n) { return n + (n === 1 ? " χώρος" : " χώροι"); },
+			wcs: function (n) { return n + " WC"; },
+			featSpaces: "χώροι",
 			photoN: function (i) { return "Φωτογραφία " + i; },
 			photoOf: function (i) { return " — φωτογραφία " + i; },
 			propNoun: function (n) { return n === 1 ? " ακίνητο" : " ακίνητα"; },
@@ -247,6 +250,7 @@
 			},
 			details: {
 				code: "Κωδικός", type: "Τύπος", area: "Εμβαδόν", bedrooms: "Υπνοδωμάτια",
+				spaces: "Χώροι",
 				bathrooms: "Μπάνια", wc: "WC", kitchens: "Κουζίνες", livingRooms: "Σαλόνια",
 				floor: "Όροφος", parking: "Θέσεις στάθμευσης", yearBuilt: "Έτος κατασκευής",
 				yearRenovated: "Έτος ανακαίνισης", condition: "Κατάσταση", heating: "Θέρμανση",
@@ -263,6 +267,9 @@
 			bdShort: " bd",
 			beds: function (n) { return n + (n === 1 ? " bedroom" : " bedrooms"); },
 			baths: function (n) { return n + (n === 1 ? " bathroom" : " bathrooms"); },
+			spaces: function (n) { return n + (n === 1 ? " room" : " rooms"); },
+			wcs: function (n) { return n + " WC"; },
+			featSpaces: "rooms",
 			photoN: function (i) { return "Photo " + i; },
 			photoOf: function (i) { return " — photo " + i; },
 			propNoun: function (n) { return n === 1 ? " property" : " properties"; },
@@ -300,6 +307,7 @@
 			},
 			details: {
 				code: "Reference", type: "Type", area: "Floor area", bedrooms: "Bedrooms",
+				spaces: "Rooms",
 				bathrooms: "Bathrooms", wc: "WC", kitchens: "Kitchens", livingRooms: "Living rooms",
 				floor: "Floor", parking: "Parking spaces", yearBuilt: "Year built",
 				yearRenovated: "Year renovated", condition: "Condition", heating: "Heating",
@@ -344,6 +352,24 @@
 
 	function typeIcon(l) {
 		return TYPE_ICON[l.subcategory] || TYPE_ICON[l.category] || "home";
+	}
+
+	/* Which FIELDS make sense also depends on what the listing is: a store
+	   has no bedrooms, a plot has no floor, a parking space has neither.
+	   Four buckets drive the overview strip, the details list and the card
+	   features; anything unmapped falls back to the residential (full) set. */
+	var TYPE_BUCKET = {
+		commercial: "commercial", land: "land",
+		office: "commercial", store: "commercial", warehouse: "commercial",
+		hotel: "commercial", commercial_building: "commercial", hall: "commercial",
+		industrial_space: "commercial", craft_space: "commercial",
+		other_commercial: "commercial", business: "commercial",
+		plot: "land", parcel: "land", island: "land", air: "land",
+		parking: "parking"
+	};
+
+	function typeBucket(l) {
+		return TYPE_BUCKET[l.subcategory] || TYPE_BUCKET[l.category] || "residential";
 	}
 
 	function fmtNumber(n) {
@@ -496,10 +522,24 @@
 		col.querySelectorAll(".carousel-item img").forEach(function (img, i) {
 			img.alt = cardTitle + (shortAddress(l) ? ", " + shortAddress(l) : "") + STR.photoOf(i + 1);
 		});
+		/* Card facts follow the type bucket like the detail page: beds and
+		   baths only for homes, rooms and WC for commercial space, just the
+		   size for land and parking. */
 		var feats = col.querySelector(".feature");
-		[[l.area != null, "area", fmtNumber(l.area) + STR.sqm],
-		 [l.bedrooms != null && l.bedrooms > 0, "bed", l.bedrooms + STR.bdShort],
-		 [l.bathrooms != null && l.bathrooms > 0, "bath", STR.baths(l.bathrooms)]]
+		var cardBucket = typeBucket(l);
+		[[l.area != null, "area", fmtNumber(l.area) + STR.sqm]]
+			.concat(({
+				residential: [
+					[l.bedrooms != null && l.bedrooms > 0, "bed", l.bedrooms + STR.bdShort],
+					[l.bathrooms != null && l.bathrooms > 0, "bath", STR.baths(l.bathrooms)]
+				],
+				commercial: [
+					[l.bedrooms != null && l.bedrooms > 0, "door", STR.spaces(l.bedrooms)],
+					[l.wc != null && l.wc > 0, "wc", STR.wcs(l.wc)]
+				],
+				land: [],
+				parking: []
+			})[cardBucket])
 			.forEach(function (row) {
 				if (!row[0]) return;
 				var li = el("li", "d-flex align-items-center");
@@ -861,14 +901,30 @@
 			});
 		}
 
-		/* overview strip */
+		/* overview strip — the middle facts follow the type: bedrooms and
+		   bathrooms only make sense for homes; commercial space counts
+		   rooms (the CRM's `rooms`) and WC instead; land and parking get
+		   just the size (plus the level for parking). */
+		var bucket = typeBucket(l);
 		var ov = document.getElementById("fw-overview");
 		ov.textContent = "";
-		[[l.area != null, "area", fmtNumber(l.area) + STR.sqm],
-		 [l.bedrooms != null && l.bedrooms > 0, "bed", STR.beds(l.bedrooms)],
-		 [l.bathrooms != null && l.bathrooms > 0, "bath", STR.baths(l.bathrooms)],
-		 [floorLabel(l.floor) != null, "stairs", STR.floorLabel + floorLabel(l.floor)],
-		 [true, typeIcon(l), subcategoryLabel(l)]]
+		var floorRow = [floorLabel(l.floor) != null, "stairs", STR.floorLabel + floorLabel(l.floor)];
+		[[l.area != null, "area", fmtNumber(l.area) + STR.sqm]]
+			.concat(({
+				residential: [
+					[l.bedrooms != null && l.bedrooms > 0, "bed", STR.beds(l.bedrooms)],
+					[l.bathrooms != null && l.bathrooms > 0, "bath", STR.baths(l.bathrooms)],
+					floorRow
+				],
+				commercial: [
+					[l.bedrooms != null && l.bedrooms > 0, "door", STR.spaces(l.bedrooms)],
+					[l.wc != null && l.wc > 0, "wc", STR.wcs(l.wc)],
+					floorRow
+				],
+				land: [],
+				parking: [floorRow]
+			})[bucket])
+			.concat([[true, typeIcon(l), subcategoryLabel(l)]])
 			.forEach(function (row) {
 				if (!row[0]) return;
 				var li = document.createElement("li");
@@ -880,32 +936,49 @@
 		/* description (English when the CRM carries it, else Greek) */
 		setText("fw-description", (LANG === "en" && l.description_en) || l.description || "");
 
-		/* details list */
+		/* details list — keyed rows filtered per type bucket, so a store
+		   never lists bedrooms and a plot never lists heating. Zero counts
+		   are noise («Κουζίνες: 0») and are skipped like nulls; formatted
+		   strings («€0/μήνα» for no service charges) pass through. */
+		var DETAIL_ROWS = {
+			residential: ["code", "type", "area", "bedrooms", "bathrooms", "wc",
+				"kitchens", "livingRooms", "floor", "parking", "yearBuilt",
+				"yearRenovated", "condition", "heating", "energyClass", "maintenance"],
+			commercial: ["code", "type", "area", "spaces", "wc", "bathrooms",
+				"floor", "parking", "yearBuilt", "yearRenovated", "condition",
+				"heating", "energyClass", "maintenance"],
+			land: ["code", "type", "area"],
+			parking: ["code", "type", "area", "floor", "yearBuilt", "condition"]
+		};
+		var detailValue = {
+			code: l.code,
+			type: subcategoryLabel(l),
+			area: l.area != null ? fmtNumber(l.area) + STR.sqm : null,
+			bedrooms: l.bedrooms,
+			spaces: l.bedrooms, /* the CRM's `rooms` — spaces when commercial */
+			bathrooms: l.bathrooms,
+			wc: l.wc,
+			kitchens: l.kitchens,
+			livingRooms: l.livingRooms,
+			floor: floorLabel(l.floor),
+			parking: l.parking,
+			yearBuilt: l.yearBuilt,
+			yearRenovated: l.yearRenovated,
+			condition: CONDITION[l.condition],
+			heating: HEATING[l.heating],
+			energyClass: ENERGY[l.energyClass],
+			maintenance: l.monthlyMaintenance != null ? "€" + fmtNumber(l.monthlyMaintenance) + "/" + STR.month : null
+		};
 		var det = document.getElementById("fw-details-list");
 		det.textContent = "";
-		[[STR.details.code, l.code],
-		 [STR.details.type, subcategoryLabel(l)],
-		 [STR.details.area, l.area != null ? fmtNumber(l.area) + STR.sqm : null],
-		 [STR.details.bedrooms, l.bedrooms],
-		 [STR.details.bathrooms, l.bathrooms],
-		 [STR.details.wc, l.wc],
-		 [STR.details.kitchens, l.kitchens],
-		 [STR.details.livingRooms, l.livingRooms],
-		 [STR.details.floor, floorLabel(l.floor)],
-		 [STR.details.parking, l.parking],
-		 [STR.details.yearBuilt, l.yearBuilt],
-		 [STR.details.yearRenovated, l.yearRenovated],
-		 [STR.details.condition, CONDITION[l.condition]],
-		 [STR.details.heating, HEATING[l.heating]],
-		 [STR.details.energyClass, ENERGY[l.energyClass]],
-		 [STR.details.maintenance, l.monthlyMaintenance != null ? "€" + fmtNumber(l.monthlyMaintenance) + "/" + STR.month : null]]
-			.forEach(function (pair) {
-				if (pair[1] == null || pair[1] === "") return;
-				var li = document.createElement("li");
-				li.appendChild(el("span", null, pair[0] + ": "));
-				li.appendChild(el("span", "fw-500 color-dark", String(pair[1])));
-				det.appendChild(li);
-			});
+		DETAIL_ROWS[bucket].forEach(function (key) {
+			var v = detailValue[key];
+			if (v == null || v === "" || v === 0) return;
+			var li = document.createElement("li");
+			li.appendChild(el("span", null, STR.details[key] + ": "));
+			li.appendChild(el("span", "fw-500 color-dark", String(v)));
+			det.appendChild(li);
+		});
 
 		/* amenities (features + view + positioning + flooring) — untranslated
 		   slugs are skipped, see the FEATURES map. */
@@ -1101,14 +1174,25 @@
 			subcategoryLabel(l) + (l.area ? " " + fmtNumber(l.area) + STR.sqm : ""));
 		setBannerText(banner, ".fw-feat-address", [shortAddress(l), loc(l, "city")].filter(Boolean).join(", "));
 		setBannerText(banner, ".fw-feat-price", fmtPrice(l));
+		/* The bed/bath tiles morph with the type: beds and baths for a home
+		   (labels stay as stamped in the HTML), rooms and WC for commercial
+		   space, hidden altogether for land and parking. */
+		var tiles = ({
+			residential: [[l.bedrooms, null], [l.bathrooms, null]],
+			commercial: [[l.bedrooms, STR.featSpaces], [l.wc, "WC"]],
+			land: [[null, null], [null, null]],
+			parking: [[null, null], [null, null]]
+		})[typeBucket(l)];
 		[[".fw-feat-sqm", l.area != null ? fmtNumber(l.area) : null],
-		 [".fw-feat-bed", l.bedrooms > 0 ? String(l.bedrooms) : null],
-		 [".fw-feat-bath", l.bathrooms > 0 ? String(l.bathrooms) : null]]
+		 [".fw-feat-bed", tiles[0][0] > 0 ? String(tiles[0][0]) : null, tiles[0][1]],
+		 [".fw-feat-bath", tiles[1][0] > 0 ? String(tiles[1][0]) : null, tiles[1][1]]]
 			.forEach(function (pair) {
 				var li = banner.querySelector(pair[0]);
 				if (!li) return;
 				if (pair[1] == null) { li.style.display = "none"; return; }
+				li.style.display = "";
 				li.querySelector("strong").textContent = pair[1];
+				if (pair[2]) li.querySelector("span").textContent = pair[2];
 			});
 	}
 
