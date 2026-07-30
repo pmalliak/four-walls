@@ -36,7 +36,10 @@ import { renderDocPdf } from "./pdfrender.mjs";
 /* KV keys — το request γράφεται από forms.mjs, το result από εδώ. */
 export const VALUATION_REQ_PREFIX = "valuation:req:";
 const VALUATION_RES_PREFIX = "valuation:res:";
-const VALUATION_PDF_PREFIX = "valuation:pdf:";
+/* Το «2» επίτηδες: τα πρώτα PDF είχαν κατά λάθος τη σχεδίαση του email
+   (Arial, στενή κολόνα) αντί για το χάρτινο design των εντύπων. Νέο
+   πρόθεμα ώστε τα παλιά κασαρισμένα να αγνοηθούν και να λήξουν μόνα τους. */
+const VALUATION_PDF_PREFIX = "valuation:pdf2:";
 export const VALUATION_TTL_SECONDS = 2 * 24 * 3600;
 
 const FEED_KEY = "listings.json"; // ίδιο με FEED_KEY στο worker/index.mjs
@@ -135,7 +138,9 @@ async function withPdf(env, ref, result, wantsPdf) {
 	let b64 = await env.LISTINGS_KV.get(key);
 	if (!b64) {
 		try {
-			b64 = await renderDocPdf(env, result.html);
+			// ΟΧΙ το result.html: εκείνο είναι το email. Το PDF που
+			// αρχειοθετεί η γραμματεία θέλει τη χάρτινη γλώσσα των εντύπων.
+			b64 = await renderDocPdf(env, renderPrintHtml(result));
 		} catch (err) {
 			console.warn(`valuation: report PDF render failed for ${ref}: ${String(err)}`);
 		}
@@ -602,4 +607,122 @@ function renderReport(prop, comps, stats, priceRow, v, payload) {
 
 function labelCategory(c) {
 	return { residential: "Κατοικία", commercial: "Επαγγελματικό", land: "Οικόπεδο" }[c] || "Ακίνητο";
+}
+
+/* ------------------------------------------------------------------ */
+/* Έντυπο για το αρχείο (PDF στο info@)                                 */
+/* ------------------------------------------------------------------ */
+
+/* Η ΙΔΙΑ αναφορά με το email, αλλά στη χάρτινη γλώσσα των εντύπων
+   (Manrope, navy/ροζ, wordmark) — αυτό αρχειοθετεί η γραμματεία στα
+   έγγραφα του πελάτη, δίπλα σε αναθέσεις και αποδείξεις. Χτίζεται ΜΟΝΟ
+   από όσα κουβαλά το κασαρισμένο result (subject, v, prop, comps), ώστε
+   να δουλεύει και για εκτιμήσεις που υπάρχουν ήδη στο KV. Η ημερομηνία
+   είναι της εκτύπωσης, όπως και στα άλλα έντυπα. */
+const DOC_NAVY = "#1C3457";
+const DOC_PINK = "#FF0062";
+
+function renderPrintHtml(result) {
+	const v = result.v || {};
+	const p = result.prop || {};
+	const comps = Array.isArray(result.comps) ? result.comps : [];
+	const identity = String(result.subject || "").replace(/^ΕΚΤΙΜΗΣΗ · /, "");
+	const wantsSale = p.purpose !== "rent";
+	const wantsRent = p.purpose !== "sale";
+	const dateStr = new Date().toLocaleDateString("el-GR", { timeZone: "Europe/Athens" });
+
+	const adj = (Array.isArray(v.adjustments) ? v.adjustments : []).map((a) => {
+		const pct = Number(a.pct) || 0;
+		return `<tr><td>${esc(a.factor)}</td><td class="${pct >= 0 ? "pos" : "neg"}">${pct > 0 ? "+" : ""}${esc(String(pct).replace(".", ","))}%</td><td class="mut">${esc(a.reason)}</td></tr>`;
+	}).join("");
+
+	const compRows = comps.map((c) => `<tr>
+		<td>${esc((c.code ? c.code + " · " : "") + (c.area || ""))}</td>
+		<td class="num">${c.sqm ? esc(String(c.sqm)) + " τ.μ." : ""}</td>
+		<td class="num"><strong>${eur(c.price)}</strong></td>
+		<td class="num mut">${c.sqm && c.price ? eur(Math.round(c.price / c.sqm)) + "/τ.μ." : ""}</td>
+	</tr>`).join("");
+
+	const facts = [
+		["Είδος", p.subcategory || labelCategory(p.category)],
+		["Περιοχή", p.areaName], ["Διεύθυνση", p.address],
+		["Εμβαδόν", p.size ? `${p.size} τ.μ.` : ""], ["Όροφος", p.floor],
+		["Υ/Δ · Μπάνια", [p.bedrooms, p.bathrooms].filter(Boolean).join(" · ")],
+		["Έτος", [p.yearBuilt, p.yearRenovated ? `ανακ. ${p.yearRenovated}` : ""].filter(Boolean).join(" · ")],
+		["Ενεργειακή", p.energyClass], ["Κατάσταση", p.condition],
+		["Θέρμανση", p.heating], ["Ασανσέρ", p.elevator],
+		["Πάρκινγκ", p.parking], ["Αποθήκη", p.storage],
+		["Θέα", p.view], ["Προσανατολισμός", p.orientation],
+		["Ζητούμενη/επιθυμητή τιμή", p.askingPrice ? eur(p.askingPrice) : ""],
+	].filter(([, val]) => val).map(([k, val]) =>
+		`<tr><td class="mut" style="white-space:nowrap;">${esc(k)}</td><td>${esc(val)}</td></tr>`).join("");
+
+	const missing = (Array.isArray(v.missing_info) ? v.missing_info : []).filter(Boolean);
+
+	return `<!doctype html><html lang="el"><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+@media print{@page{size:A4;margin:10mm 10mm 12mm}}
+html,body{background:#fff;margin:0;padding:0;}
+body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:#242a33;font-size:13.5px;line-height:1.55;}
+.doc{padding:0 3mm;}
+.hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:2px solid ${DOC_NAVY};padding-bottom:9px;position:relative;}
+.hd::after{content:"";position:absolute;left:0;bottom:-2px;width:150px;height:2px;background:${DOC_PINK};}
+.wm .n{font-weight:800;font-size:19px;letter-spacing:.13em;color:${DOC_NAVY};line-height:1;}
+.wm .s{font-weight:700;font-size:7px;letter-spacing:.42em;color:${DOC_PINK};margin-top:4px;}
+.co{text-align:right;font-size:10px;color:#6b7280;line-height:1.6;}
+h1{font-weight:800;font-size:18px;color:${DOC_NAVY};margin:14px 0 0;}
+.accent{width:60px;height:4px;background:${DOC_PINK};border-radius:2px;margin:8px 0 10px;}
+h2{font-size:12px;font-weight:800;letter-spacing:.05em;color:${DOC_NAVY};margin:16px 0 6px;}
+p{margin:0 0 7px;}
+.mut{color:#6b7280;font-size:12px;}
+.bigval{background:#fdf2f7;border:1px solid ${DOC_PINK};border-radius:10px;padding:12px 15px;margin:10px 0 8px;}
+.bigval .l{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#6b7280;}
+.bigval .v{font-size:27px;font-weight:800;color:${DOC_PINK};line-height:1.25;}
+.bigval .r{font-size:12.5px;color:${DOC_NAVY};}
+.rentval{background:#f4f7fb;border:1px solid #c9d4e4;border-radius:10px;padding:11px 15px;margin:0 0 8px;}
+.rentval .l{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#6b7280;}
+.rentval .r{font-size:14px;font-weight:700;color:${DOC_NAVY};}
+.rentval .y{font-size:12px;color:#6b7280;}
+table{width:100%;border-collapse:collapse;font-size:12.5px;border:1px solid #eceef2;}
+td{padding:6px 8px;border-bottom:1px solid #eceef2;vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+td.pos{color:#12855b;font-weight:700;white-space:nowrap;text-align:right;}
+td.neg{color:#b3261e;font-weight:700;white-space:nowrap;text-align:right;}
+td.num{text-align:right;white-space:nowrap;}
+.note{background:#f2f9f4;border-left:3px solid #12855b;border-radius:6px;padding:9px 12px;margin:10px 0;}
+.disc{border-top:1px solid #eceef2;margin-top:14px;padding-top:9px;font-size:10.5px;color:#9aa3af;line-height:1.6;}
+</style></head><body><div class="doc">
+	<div class="hd">
+		<div class="wm"><div class="n">FOUR WALLS</div><div class="s">REAL ESTATE</div></div>
+		<div class="co"><div>ΕΚΤΙΜΗΣΗ ΑΞΙΑΣ</div><div>${esc(dateStr)}</div></div>
+	</div>
+	<h1>${esc(identity)}</h1>
+	<div class="accent"></div>
+	${v.headline ? `<p>${esc(v.headline)}</p>` : ""}
+	${wantsSale ? `<div class="bigval">
+		<div class="l">ΕΚΤΙΜΩΜΕΝΗ ΑΞΙΑ ΠΩΛΗΣΗΣ</div>
+		<div class="v">${eur(v.value_mid)}</div>
+		<div class="r">εύρος ${eur(v.value_low)} έως ${eur(v.value_high)} · ${eur(v.eur_per_sqm)}/τ.μ.</div>
+	</div>` : ""}
+	${wantsRent && v.rent_mid ? `<div class="rentval">
+		<div class="l">ΕΚΤΙΜΩΜΕΝΟ ΜΙΣΘΩΜΑ</div>
+		<div class="r">${eur(v.rent_mid)}/μήνα (εύρος ${eur(v.rent_low)} έως ${eur(v.rent_high)})</div>
+		${Number(v.gross_yield_pct) ? `<div class="y">Μικτή απόδοση ~${esc(String(v.gross_yield_pct).replace(".", ","))}% στην εκτιμώμενη αξία</div>` : ""}
+	</div>` : ""}
+	${p.askingPrice && v.asking_comment ? `<h2>ΣΕ ΣΧΕΣΗ ΜΕ ΤΗ ΖΗΤΟΥΜΕΝΗ (${eur(p.askingPrice)})</h2><p>${esc(v.asking_comment)}</p>` : ""}
+	${adj ? `<h2>ΠΩΣ ΒΓΗΚΕ ΤΟ ΝΟΥΜΕΡΟ · ΑΦΕΤΗΡΙΑ ${eur(v.base_eur_per_sqm)}/τ.μ.</h2><table>${adj}</table>` : ""}
+	${compRows ? `<h2>ΣΥΓΚΡΙΤΙΚΑ ΑΠΟ ΤΟ ΧΑΡΤΟΦΥΛΑΚΙΟ ΜΑΣ</h2><table>${compRows}</table>
+		${v.comps_comment ? `<p class="mut" style="margin-top:6px;">${esc(v.comps_comment)}</p>` : ""}` : ""}
+	${v.market_comment ? `<h2>Η ΑΓΟΡΑ</h2><p>${esc(v.market_comment)}</p>` : ""}
+	<h2>ΒΕΒΑΙΟΤΗΤΑ: ${esc(String(v.confidence || "").toUpperCase())}</h2>
+	${v.confidence_reason ? `<p>${esc(v.confidence_reason)}</p>` : ""}
+	${missing.length ? `<p class="mut">Θα βοηθούσε να ξέρουμε: ${esc(missing.join(" · "))}</p>` : ""}
+	${v.advice ? `<div class="note"><strong>Για τη συζήτηση με τον ιδιοκτήτη:</strong> ${esc(v.advice)}</div>` : ""}
+	${facts ? `<h2>ΤΑ ΣΤΟΙΧΕΙΑ ΠΟΥ ΔΟΘΗΚΑΝ${p.fromCrm ? " (ΣΥΜΠΛΗΡΩΜΕΝΑ ΚΑΙ ΑΠΟ ΤΟ CRM)" : ""}</h2><table>${facts}</table>
+		${p.notes ? `<p class="mut" style="margin-top:6px;">Παρατηρήσεις: ${esc(p.notes)}</p>` : ""}` : ""}
+	${v.review_notes ? `<p class="mut" style="margin-top:10px;">Δεύτερο πέρασμα ελέγχου: ${esc(v.review_notes)}</p>` : ""}
+	<div class="disc">Ενδεικτική εκτίμηση αγοραίας αξίας για εσωτερική χρήση του γραφείου, με βάση ζητούμενες τιμές αγγελιών (${esc(AREA_PRICES_META.asOf)}) και τα συγκριτικά του χαρτοφυλακίου μας. Δεν αποτελεί πιστοποιημένη έκθεση εκτίμησης. Four Walls Real Estate · four-walls.gr</div>
+</div></body></html>`;
 }
