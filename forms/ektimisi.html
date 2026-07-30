@@ -125,8 +125,13 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			<div class="fld"><label for="yearBuilt">Έτος κατασκευής</label><input id="yearBuilt" type="text" inputmode="numeric" autocomplete="off"></div>
 		</div>
 		<div class="grid2">
-			<div class="fld"><label for="bedrooms">Υπνοδωμάτια</label><input id="bedrooms" type="text" inputmode="numeric" autocomplete="off"></div>
-			<div class="fld"><label for="bathrooms">Μπάνια</label><input id="bathrooms" type="text" inputmode="numeric" autocomplete="off"></div>
+			<div class="fld"><label for="bedrooms">Υπνοδωμάτια</label><select id="bedrooms">
+				<option value=""></option><option>1</option><option>2</option><option>3</option>
+				<option>4</option><option>5</option><option>6</option>
+			</select></div>
+			<div class="fld"><label for="bathrooms">Μπάνια</label><select id="bathrooms">
+				<option value=""></option><option>1</option><option>2</option><option>3</option><option>4</option>
+			</select></div>
 		</div>
 		<div class="grid2">
 			<div class="fld"><label for="yearRenovated">Έτος ανακαίνισης</label><input id="yearRenovated" type="text" inputmode="numeric" autocomplete="off"></div>
@@ -140,14 +145,13 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		<div class="grid2">
 			<div class="fld"><label for="condition">Κατάσταση</label><select id="condition">
 				<option value=""></option>
-				<option>Νεόδμητο</option><option>Πλήρως ανακαινισμένο</option>
-				<option>Πολύ καλή</option><option>Καλή</option><option>Χρήζει ανακαίνισης</option>
+				<option>Νεόδμητο</option><option>Ανακαινισμένο</option>
+				<option>Καλή κατάσταση</option><option>Χρήζει ανακαίνισης</option><option>Υπό κατασκευή</option>
 			</select></div>
 			<div class="fld"><label for="heating">Θέρμανση</label><select id="heating">
 				<option value=""></option>
-				<option>Αυτόνομη (φυσικό αέριο)</option><option>Αυτόνομη (πετρέλαιο)</option>
-				<option>Κεντρική</option><option>Αντλία θερμότητας</option>
-				<option>Κλιματιστικά</option><option>Χωρίς θέρμανση</option>
+				<option>Ατομική</option><option>Αυτόνομη</option><option>Κεντρική</option>
+				<option>Αντλία θερμότητας</option><option>Κλιματιστικά</option><option>Χωρίς θέρμανση</option>
 			</select></div>
 		</div>
 		<div class="grid2">
@@ -248,13 +252,65 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		box.appendChild(d);
 	}
 
-	function prefill(l){
-		// Μόνο σε άδεια πεδία: ο σύμβουλος κρατάει πάντα τον τελευταίο λόγο.
-		if (!val("areaName") && l.area) $("areaName").value = l.area;
-		if (!val("address") && l.address) $("address").value = l.address;
-		if (!val("size") && l.size) $("size").value = String(l.size);
-		if (!val("asking") && !l.hiddenPrice && l.price) $("asking").value = String(Math.round(l.price)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-		if (!val("subcategory") && l.subcategory && SLUG_GR[l.subcategory]) $("subcategory").value = SLUG_GR[l.subcategory];
+	/* Ίδια λεξιλόγια με το site (js/listings.fw.js), ώστε τα slugs του
+	   feed να κουμπώνουν στα selects της φόρμας. */
+	var HEATING_GR = { individual: "Ατομική", autonomous: "Αυτόνομη", central: "Κεντρική", none: "Χωρίς θέρμανση" };
+	var CONDITION_GR = { new: "Νεόδμητο", good: "Καλή κατάσταση", renovated: "Ανακαινισμένο", needs_renovation: "Χρήζει ανακαίνισης", under_construction: "Υπό κατασκευή" };
+	var ENERGY_GR = { ap: "Α+", a: "Α", bp: "Β+", b: "Β", c: "Γ", d: "Δ", e: "Ε", z: "Ζ", h: "Η", i: "Η" };
+	var VIEW_GR = { sea: "θάλασσα", mountain: "βουνό", city: "πόλη", park: "πάρκο", forest: "δάσος", lake: "λίμνη" };
+
+	function setSel(id, value){
+		if (value == null || value === "") return;
+		var s = $(id);
+		for (var i = 0; i < s.options.length; i++) {
+			if (s.options[i].value === String(value)) { s.value = String(value); return; }
+		}
+	}
+
+	function floorLabel(f){
+		var s = String(f == null ? "" : f).trim().toLowerCase();
+		if (!s) return "";
+		if (s === "basement" || s === "υπόγειο") return "Υπόγειο";
+		if (s === "ground" || s === "0" || s === "ισόγειο") return "Ισόγειο";
+		if (s === "mezzanine" || s === "semi_floor" || s === "ημιώροφος") return "Ημιώροφος";
+		var n = parseInt(s, 10);
+		if (n >= 7) return "7ος ή ψηλότερα";
+		if (n >= 1) return n + "ος";
+		return "";
+	}
+
+	/* Με την επιλογή από CRM γεμίζουν ΟΛΑ τα πεδία, όχι μόνο τα βασικά:
+	   το πλήρες ακίνητο έρχεται από το feed του site (ίδια πηγή με τον
+	   Worker), οπότε ο Μάνος βλέπει και διορθώνει αυτό που θα εκτιμηθεί. */
+	var feedCache = null;
+
+	async function prefill(l){
+		if (l.area) $("areaName").value = l.area;
+		if (l.address) $("address").value = l.address;
+		if (l.size) $("size").value = String(l.size);
+		if (!l.hiddenPrice && l.price) $("asking").value = String(Math.round(l.price)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+		if (l.subcategory && SLUG_GR[l.subcategory]) setSel("subcategory", SLUG_GR[l.subcategory]);
+		try {
+			if (!feedCache) feedCache = (await (await fetch("/data/listings.json")).json()).listings || [];
+			var f = feedCache.find(function(x){ return String(x.id) === String(l.id) || (l.code && String(x.code) === String(l.code)); });
+			if (!f) return;
+			if (f.area) $("size").value = String(f.area);
+			if (f.bedrooms) setSel("bedrooms", String(f.bedrooms));
+			if (f.bathrooms) setSel("bathrooms", String(f.bathrooms));
+			if (f.yearBuilt) $("yearBuilt").value = String(f.yearBuilt);
+			if (f.yearRenovated) $("yearRenovated").value = String(f.yearRenovated);
+			setSel("floor", floorLabel(f.floor));
+			setSel("energyClass", ENERGY_GR[String(f.energyClass || "").toLowerCase()] || f.energyClass);
+			setSel("condition", CONDITION_GR[f.condition] || f.condition);
+			setSel("heating", HEATING_GR[f.heating] || f.heating);
+			setSel("parking", f.parking > 0 ? "Ανοιχτό" : "Όχι");
+			var feats = f.features || [];
+			if (feats.indexOf("has_elevator") >= 0) setSel("elevator", "Ναι");
+			if (feats.indexOf("has_storage_room") >= 0 || feats.indexOf("has_storage") >= 0) setSel("storage", "Ναι");
+			var views = (f.view || []).map(function(vv){ return VIEW_GR[vv] || vv; });
+			if (views.length) $("view").value = views.join(", ");
+			toast("Συμπληρώθηκαν όλα τα στοιχεία από το CRM. Διόρθωσε ό,τι θες.", "ok");
+		} catch (e) { console.warn("prefill feed", e); }
 	}
 
 	function onAsking(){

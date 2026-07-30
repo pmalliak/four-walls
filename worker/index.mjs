@@ -107,6 +107,12 @@ export default {
 		// (/manifest.webmanifest, /icon-192.png, start_url "/"), so it only
 		// works as a PWA when forms/ IS the root — this rewrite does that.
 		if (url.hostname.startsWith("forms.")) {
+			// Το feed σερβίρεται και σε αυτό το host: η φόρμα της εκτίμησης
+			// το διαβάζει για να προσυμπληρώσει όλα τα πεδία του ακινήτου,
+			// και η rewrite σε /forms παρακάτω δεν έχει data/ από κάτω της.
+			if (url.pathname === "/data/listings.json") {
+				return serveFeed(env);
+			}
 			const assetUrl = new URL(request.url);
 			assetUrl.pathname = "/forms" + url.pathname;
 			const res = await env.ASSETS.fetch(new Request(assetUrl, request));
