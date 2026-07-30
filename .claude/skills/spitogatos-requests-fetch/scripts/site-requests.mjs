@@ -245,7 +245,9 @@ function requestFields(l) {
 
 /* ---- main ---------------------------------------------------------------- */
 const processed = existsSync(processedPath) ? JSON.parse(readFileSync(processedPath, "utf8")) : { done: [] };
-const doneSet = new Set((processed.done || []).map(String));
+// done + skipped_duplicates, όπως στο enumerate.mjs: ένα lead που κρίθηκε
+// «δεν καταχωρείται» (π.χ. δοκιμή της φόρμας) δεν πρέπει να ξαναβγαίνει.
+const doneSet = new Set([...(processed.done || []).map(String), ...Object.keys(processed.skipped_duplicates || {})]);
 const rows = await loadLocations();
 
 const worklist = [];
