@@ -53,7 +53,7 @@ client-email filter compares against the text `"true"`.
 `prosfora` and `ektimisi` are the two entries with **no document at all**: no
 signatures, no `pdf_base64`, no `doc_html`. The προσφορά is an internal note
 that a client made an offer on a listing (see
-[forms-prosfora.md](forms-prosfora.md)); the εκτίμηση (ΔΟΚΙΜΑΣΤΙΚΟ) is a
+[forms-prosfora.md](forms-prosfora.md)); the εκτίμηση is a
 property-details payload that the Worker parks in KV under a random
 `valuation_ref` before forwarding, so Make can later fetch the finished AI
 report from `/api/valuation?ref=…` (see [valuation.md](valuation.md)).

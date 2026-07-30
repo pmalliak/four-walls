@@ -453,7 +453,7 @@ function renderReport(prop, comps, stats, priceRow, v, payload) {
 	<tr><td style="background:${NAVY}; padding:15px 20px;"><span style="color:#ffffff; font-size:18px; font-weight:bold; letter-spacing:1.5px;">FOUR WALLS</span><span style="color:${PINK}; font-size:10px; font-weight:bold; letter-spacing:2px;">&nbsp;&nbsp;REAL ESTATE</span></td></tr>
 	<tr><td style="height:3px; background:${PINK};"></td></tr>
 	<tr><td style="padding:20px 20px 6px;">
-		<div style="font-size:11px; font-weight:bold; letter-spacing:1.5px; color:${PINK};">ΕΚΤΙΜΗΣΗ ΑΞΙΑΣ &nbsp;<span style="background:#ffb020; color:#4a3200; font-size:9px; letter-spacing:1px; padding:2px 7px; border-radius:8px;">ΔΟΚΙΜΑΣΤΙΚΟ</span></div>
+		<div style="font-size:11px; font-weight:bold; letter-spacing:1.5px; color:${PINK};">ΕΚΤΙΜΗΣΗ ΑΞΙΑΣ</div>
 		<div style="font-size:17px; font-weight:bold; color:${NAVY}; margin-top:4px;">${esc(identity)}</div>
 		${v.headline ? `<div style="font-size:13px; color:#444; margin-top:8px; line-height:1.55;">${esc(v.headline)}</div>` : ""}
 	</td></tr>
@@ -509,7 +509,7 @@ function renderReport(prop, comps, stats, priceRow, v, payload) {
 		<div style="font-size:11.5px; color:#9aa3af; line-height:1.5;">Δεύτερο πέρασμα ελέγχου: ${esc(v.review_notes)}</div>
 	</td></tr>` : ""}
 	<tr><td style="padding:18px 20px 20px;">
-		<div style="border-top:1px solid #eceef2; padding-top:12px; font-size:11px; color:#9aa3af; line-height:1.6;">Δοκιμαστική λειτουργία (beta). Ενδεικτική εκτίμηση αγοραίας αξίας για εσωτερική χρήση του γραφείου, με βάση ζητούμενες τιμές αγγελιών (${esc(AREA_PRICES_META.asOf)}) και τα συγκριτικά του χαρτοφυλακίου μας. Δεν αποτελεί πιστοποιημένη έκθεση εκτίμησης.${payload.submitted_by ? ` Υποβλήθηκε από ${esc(payload.submitted_by)}.` : ""}</div>
+		<div style="border-top:1px solid #eceef2; padding-top:12px; font-size:11px; color:#9aa3af; line-height:1.6;">Ενδεικτική εκτίμηση αγοραίας αξίας για εσωτερική χρήση του γραφείου, με βάση ζητούμενες τιμές αγγελιών (${esc(AREA_PRICES_META.asOf)}) και τα συγκριτικά του χαρτοφυλακίου μας. Δεν αποτελεί πιστοποιημένη έκθεση εκτίμησης.${payload.submitted_by ? ` Υποβλήθηκε από ${esc(payload.submitted_by)}.` : ""}</div>
 	</td></tr>
 </table>
 </td></tr>
