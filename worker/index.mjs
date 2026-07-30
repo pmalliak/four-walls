@@ -113,6 +113,14 @@ export default {
 			if (url.pathname === "/data/listings.json") {
 				return serveFeed(env);
 			}
+			// Ίδιος λόγος: η φόρμα της εκτίμησης τραβάει εδώ το ίδιο της το
+			// report για να το δείξει επιτόπου (δεύτερο βήμα του submit).
+			// Χωρίς την εξαίρεση η rewrite το ζητούσε ως asset
+			// (/forms/api/valuation) και γύριζε 404 — «Η εκτίμηση απέτυχε».
+			// Το Access μπροστά σε αυτό το hostname είναι ήδη η πύλη.
+			if (url.pathname === "/api/valuation") {
+				return handleValuation(request, env, url);
+			}
 			const assetUrl = new URL(request.url);
 			assetUrl.pathname = "/forms" + url.pathname;
 			const res = await env.ASSETS.fetch(new Request(assetUrl, request));

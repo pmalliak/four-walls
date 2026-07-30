@@ -43,6 +43,12 @@ ektimisi.html ──POST──► /api/forms/submit ─┬─► KV: valuation:r
 - **Το http module έχει handleErrors: true.** Αν το `/api/valuation` γυρίσει
   4xx/5xx, το bundle πάει στο DLQ (ορατό, replayable) αντί να χαθεί σιωπηλά
   χωρίς email.
+- **Το `/api/valuation` θέλει ρητή εξαίρεση στο `forms.four-walls.gr`.** Αυτό
+  το hostname περνάει ό,τι δεν είναι API μέσα από rewrite στον φάκελο `forms/`,
+  οπότε χωρίς την εξαίρεση (`worker/index.mjs`, δίπλα σε αυτήν του
+  `/data/listings.json`) η φόρμα ζητούσε το asset `/forms/api/valuation` και
+  έπαιρνε 404 → «Η εκτίμηση απέτυχε». Ίδιο θα ισχύει για κάθε νέο endpoint που
+  καλεί το PWA.
 
 ## Πώς βγαίνει το νούμερο
 
