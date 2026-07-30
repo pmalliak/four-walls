@@ -33,6 +33,13 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 /* «δεν είναι 100% έτοιμο» — το ίδιο σήμα έξω (index) και μέσα (εδώ) */
 .beta{display:inline-block;background:#ffb020;color:#4a3200;font-size:10px;font-weight:800;letter-spacing:.08em;padding:3px 8px;border-radius:999px;vertical-align:middle;}
 .betanote{background:#fff8e6;border:1px solid #f0d48a;border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:#6b4e00;line-height:1.5;}
+/* Δύο όψεις του ίδιου αποτελέσματος: η εσωτερική αναφορά και το ακριβές
+   έγγραφο που φεύγει ως PDF στον ιδιοκτήτη. Ό,τι δείχνει η δεύτερη όψη
+   είναι αυτό που στέλνεται — ίδια συνάρτηση χτίζει και τα δύο. */
+.vtabs{display:flex;gap:6px;width:100%;max-width:720px;margin:0 auto 10px;}
+.vt{flex:1;font:inherit;font-weight:700;font-size:13px;color:var(--muted);background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:10px 8px;min-height:44px;cursor:pointer;}
+.vt.on{color:#fff;background:var(--navy);border-color:var(--navy);}
+.vt:active{transform:translateY(1px);}
 /* το «έγγραφο» της εκτίμησης: ίδια χάρτινη γλώσσα με τα άλλα έντυπα */
 .doc{width:100%;max-width:720px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:6px;color:#242a33;font-size:13.5px;line-height:1.55;padding:20px 22px;box-shadow:0 1px 4px rgba(20,30,50,.05);}
 .doc .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:2px solid var(--navy);padding-bottom:9px;position:relative;}
@@ -185,9 +192,13 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 </div>
 
 <div id="result" class="hide">
+	<div class="vtabs">
+		<button class="vt on" id="tabOffice" type="button">Αναφορά γραφείου</button>
+		<button class="vt" id="tabClient" type="button">Έγγραφο ιδιοκτήτη</button>
+	</div>
 	<div id="docbox"></div>
 	<div class="card" style="margin-top:14px">
-		<div class="hintline" style="margin:0 0 10px">Η εκτίμηση δεν έχει σταλεί πουθενά ακόμα. Το πλήρες report πάει στο γραφείο· ο ιδιοκτήτης παίρνει απλοποιημένο PDF (τιμή, εύρος, μίσθωμα), χωρίς τα εσωτερικά σχόλια.</div>
+		<div class="hintline" id="viewhint" style="margin:0 0 10px"></div>
 		<div style="display:flex;gap:10px;flex-wrap:wrap">
 			<button class="btn p" id="sendEmail" type="button" style="flex:1;min-width:190px">Αποστολή στο info@</button>
 			<button class="btn s" id="again" type="button" style="flex:1;min-width:150px">Νέα εκτίμηση</button>
@@ -396,13 +407,18 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			if (!vr.ok) throw new Error("valuation HTTP " + vr.status);
 			var j = await vr.json();
 			result = { ref: ref, summary: summary, j: j };
-			renderDoc(j);
+			showView("office");
 			$("form").classList.add("hide");
 			$("bar").classList.add("hide");
 			$("result").classList.remove("hide");
+			// Και τα δύο κουμπιά αποστολής ξαναγίνονται ενεργά: μια δεύτερη
+			// εκτίμηση στην ίδια συνεδρία τα βρίσκει αλλιώς «Στάλθηκε ✓».
 			var se = $("sendEmail");
 			se.disabled = false;
 			se.textContent = "Αποστολή στο info@";
+			var sc = $("sendClient");
+			sc.disabled = false;
+			sc.textContent = "Αποστολή εκτίμησης στον ιδιοκτήτη (PDF)";
 			window.scrollTo(0, 0);
 		} catch (e) {
 			console.error(e);
@@ -533,12 +549,26 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		return (n > 0 ? "+" : "") + String(n).replace(".", ",") + "%";
 	}
 
-	/* Χτίζεται με DOM (textContent), όχι innerHTML: τα κείμενα έρχονται
-	   από το μοντέλο και δεν πρέπει να ερμηνευτούν ποτέ ως HTML. */
-	function renderDoc(j){
-		var v = j.v || {}, p = j.prop || {}, comps = j.comps || [];
+	/* Οι δύο καρτέλες πάνω από το έγγραφο. Η όψη «ιδιοκτήτη» δεν είναι
+	   περίληψη του PDF: είναι ο ΙΔΙΟΣ κόμβος που στέλνεται (buildClientDoc),
+	   ώστε ό,τι βλέπει ο σύμβουλος να είναι ό,τι λαμβάνει ο πελάτης. */
+	function showView(which){
+		if (!result) return;
+		var client = which === "client";
+		$("tabOffice").classList.toggle("on", !client);
+		$("tabClient").classList.toggle("on", client);
+		$("viewhint").textContent = client
+			? "Αυτό ακριβώς φεύγει ως PDF στον ιδιοκτήτη — χωρίς προσαρμογές, συγκριτικά ή εσωτερικά σχόλια. Δεν έχει σταλεί τίποτα ακόμα."
+			: "Η εκτίμηση δεν έχει σταλεί πουθενά ακόμα. Το πλήρες report πάει στο γραφείο· δες στη διπλανή καρτέλα τι ακριβώς θα λάβει ο ιδιοκτήτης.";
 		var box = $("docbox");
 		box.textContent = "";
+		box.appendChild(client ? buildClientDoc() : buildOfficeDoc(result.j));
+	}
+
+	/* Χτίζεται με DOM (textContent), όχι innerHTML: τα κείμενα έρχονται
+	   από το μοντέλο και δεν πρέπει να ερμηνευτούν ποτέ ως HTML. */
+	function buildOfficeDoc(j){
+		var v = j.v || {}, p = j.prop || {}, comps = j.comps || [];
 		var d = el("div", "doc");
 
 		var hd = el("div", "hd");
@@ -620,7 +650,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		}
 
 		d.appendChild(el("div", "disc", "Δοκιμαστική λειτουργία (beta). Ενδεικτική εκτίμηση αγοραίας αξίας για εσωτερική χρήση του γραφείου, με βάση ζητούμενες τιμές αγγελιών και τα συγκριτικά του χαρτοφυλακίου μας. Δεν αποτελεί πιστοποιημένη έκθεση εκτίμησης."));
-		box.appendChild(d);
+		return d;
 	}
 
 	function reset(){
@@ -631,6 +661,9 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		 "orientation","view","asking","notes"].forEach(function(id){ $(id).value = ""; });
 		renderListing();
 		result = null;
+		$("tabOffice").classList.add("on");
+		$("tabClient").classList.remove("on");
+		$("clientEmail").value = "";
 		$("result").classList.add("hide");
 		$("docbox").textContent = "";
 		$("form").classList.remove("hide");
@@ -646,6 +679,8 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		$("send").onclick = send;
 		$("sendEmail").onclick = sendEmail;
 		$("sendClient").onclick = sendClient;
+		$("tabOffice").onclick = function(){ showView("office"); };
+		$("tabClient").onclick = function(){ showView("client"); };
 		$("again").onclick = reset;
 	}
 	document.addEventListener("DOMContentLoaded", init);
