@@ -56,7 +56,8 @@
 				"from": "info@four-walls.gr",
 				"html": "{{1.data.html}}",
 				"subject": "{{1.data.subject}}",
-				"attachments": []
+				"attachments": [],
+				"contentType": "html"
 			},
 			"module": "email:ActionSendEmail",
 			"version": 7,
@@ -71,7 +72,7 @@
 				"folder": "Sent",
 				"account": 8845630,
 				"accountImap": 8845636,
-				"saveAfterSent": true
+				"saveAfterSent": false
 			}
 		}
 	],
