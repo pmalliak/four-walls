@@ -12,6 +12,7 @@
 | `6683649` | Site - Ολοκλήρωση αναζήτησης | ναι | άμεσα (webhook/mailhook) | 2 | [6683649-site-oloklirosi-anazitisis.blueprint.json](scenarios/6683649-site-oloklirosi-anazitisis.blueprint.json) |
 | `6688477` | Photos — AI enhance | ναι | άμεσα (webhook/mailhook) | 21 | [6688477-photos-ai-enhance.blueprint.json](scenarios/6688477-photos-ai-enhance.blueprint.json) |
 | `6722234` | CRM - Νέα ακίνητα σε ζητήσεις | ναι | άμεσα (webhook/mailhook) | 2 | [6722234-crm-nea-akinita-se-zitiseis.blueprint.json](scenarios/6722234-crm-nea-akinita-se-zitiseis.blueprint.json) |
+| `6762737` | Εκτίμηση — φρεσκάρισμα τιμών περιοχών | ναι | monthly 09:00 1 | 2 | [6762737-ektimisi-freskarisma-timon-periochon.blueprint.json](scenarios/6762737-ektimisi-freskarisma-timon-periochon.blueprint.json) |
 
 ## Spitogatos - Αίτηση ανάθεσης `6405443`
 
@@ -193,4 +194,14 @@
 ```
 1   gateway:CustomWebHook · Νέα ακίνητα σε ζητήσεις
 2   zoho-mail:sendMail · Email στο info@
+```
+
+## Εκτίμηση — φρεσκάρισμα τιμών περιοχών `6762737`
+
+- Ενεργό: ναι · χρονισμός: monthly 09:00 1
+- DLQ: ναι · maxErrors: 3 · sequential: όχι
+
+```
+1   http:ActionSendData · Έλεγχος τιμών (Worker: Gemini + Google Search)
+2   email:ActionSendEmail · Email στον Πάνο για έγκριση
 ```

@@ -1,0 +1,87 @@
+{
+	"flow": [
+		{
+			"id": 1,
+			"mapper": {
+				"qs": [],
+				"url": "https://four-walls.gr/api/area-prices-refresh",
+				"gzip": true,
+				"method": "get",
+				"headers": [],
+				"timeout": "300",
+				"useMtls": false,
+				"authPass": "",
+				"authUser": "",
+				"bodyType": "",
+				"serializeUrl": false,
+				"shareCookies": false,
+				"parseResponse": true,
+				"followRedirect": true,
+				"useQuerystring": false,
+				"followAllRedirects": false,
+				"rejectUnauthorized": true
+			},
+			"module": "http:ActionSendData",
+			"version": 3,
+			"metadata": {
+				"designer": {
+					"x": 0,
+					"y": 0,
+					"name": "Έλεγχος τιμών (Worker: Gemini + Google Search)"
+				}
+			},
+			"parameters": {
+				"handleErrors": true
+			}
+		},
+		{
+			"id": 2,
+			"mapper": {
+				"cc": [],
+				"to": [
+					"panos@four-walls.gr"
+				],
+				"bcc": [],
+				"from": "info@four-walls.gr",
+				"html": "{{1.data.html}}",
+				"subject": "{{1.data.subject}}",
+				"attachments": [],
+				"contentType": "html"
+			},
+			"module": "email:ActionSendEmail",
+			"version": 7,
+			"metadata": {
+				"designer": {
+					"x": 300,
+					"y": 0,
+					"name": "Email στον Πάνο για έγκριση"
+				}
+			},
+			"parameters": {
+				"folder": "Sent",
+				"account": 8845630,
+				"accountImap": 8845636,
+				"saveAfterSent": true
+			}
+		}
+	],
+	"name": "Εκτίμηση — φρεσκάρισμα τιμών περιοχών",
+	"metadata": {
+		"instant": false,
+		"version": 1,
+		"designer": {
+			"orphans": []
+		},
+		"scenario": {
+			"dlq": true,
+			"dataloss": false,
+			"maxErrors": 3,
+			"autoCommit": true,
+			"roundtrips": 1,
+			"sequential": false,
+			"confidential": false,
+			"freshVariables": false,
+			"autoCommitTriggerLast": true
+		}
+	}
+}
