@@ -82,6 +82,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 .doc td.pos{color:#12855b;font-weight:700;white-space:nowrap;text-align:right;}
 .doc td.neg{color:#b3261e;font-weight:700;white-space:nowrap;text-align:right;}
 .doc .note{background:#f2f9f4;border-left:3px solid #12855b;border-radius:6px;padding:9px 12px;margin:10px 0;}
+.doc .renov{background:#f9f5ff;border:1px solid #cdb9ec;border-radius:10px;padding:11px 15px;margin:0 0 8px;}
 .doc .disc{border-top:1px solid #eceef2;margin-top:14px;padding-top:9px;font-size:10.5px;color:#9aa3af;line-height:1.6;}
 .spin{display:inline-block;width:15px;height:15px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-right:8px;}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -905,6 +906,27 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			nt.appendChild(el("strong", null, "Για τη συζήτηση με τον ιδιοκτήτη: "));
 			nt.appendChild(document.createTextNode(v.advice));
 			d.appendChild(nt);
+		}
+
+		// «Με ανακαίνιση» — μόνο όταν το μοντέλο έκρινε ότι έχει νόημα.
+		// Μένει ΕΚΤΟΣ του εγγράφου ιδιοκτήτη επίτηδες: δεσμεύει συνεργεία
+		// και νούμερα, και τη συζήτηση αυτή την ανοίγει ο σύμβουλος.
+		if (v.renovation) {
+			var rv = v.renovation;
+			d.appendChild(el("h2", null, "ΜΕ ΑΝΑΚΑΙΝΙΣΗ"));
+			var rb2 = el("div", "renov");
+			rb2.appendChild(el("p", null, rv.scope || ""));
+			rb2.appendChild(el("p", null, "Κόστος: " + money(rv.cost_low) + " – " + money(rv.cost_high)
+				+ " · Αξία μετά: " + money(rv.value_after_mid)
+				+ " (εύρος " + money(rv.value_after_low) + " έως " + money(rv.value_after_high) + ")"
+				+ (Number(rv.rent_after_mid) ? " · Μίσθωμα μετά ~" + money(rv.rent_after_mid) + "/μήνα" : "")));
+			var ng = el("p", null, "Καθαρό όφελος ~" + money(rv.net_gain));
+			ng.style.fontWeight = "700";
+			ng.style.color = Number(rv.net_gain) > 0 ? "#12855b" : "#b3261e";
+			rb2.appendChild(ng);
+			if (rv.comment) rb2.appendChild(el("p", "mut", rv.comment));
+			rb2.appendChild(el("p", "mut", "Τα κόστη είναι ενδεικτικά — τα συνεργαζόμενα συνεργεία μας δίνουν κανονική προσφορά."));
+			d.appendChild(rb2);
 		}
 
 		d.appendChild(el("div", "disc", "Ενδεικτική εκτίμηση αγοραίας αξίας για εσωτερική χρήση του γραφείου, με βάση ζητούμενες τιμές αγγελιών και τα συγκριτικά του χαρτοφυλακίου μας. Δεν αποτελεί πιστοποιημένη έκθεση εκτίμησης."));

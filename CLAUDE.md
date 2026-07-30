@@ -17,7 +17,9 @@ front-ends** (no backend, no build step, no `package.json`):
    `forms/_autofill.dev.js` is a dev-only test helper (see its header).
    Works offline: `forms/sw.js` caches the app shell and `forms/_outbox.fw.js`
    queues failed submits in IndexedDB, auto-resending on reconnect/unlock
-   (see [docs/forms-submit.md](docs/forms-submit.md)).
+   (see [docs/forms-submit.md](docs/forms-submit.md)). `forms/_drafts.fw.js`
+   autosaves per-form drafts (no signatures) with a «Πρόχειρα» list
+   (see [docs/forms-drafts.md](docs/forms-drafts.md)).
 
 Live listings: **EstatePrime CRM → Cloudflare Worker → `/data/listings.json`**
 (webhook-triggered + 15-minute cron; **live CRM data in prod** — the repo's

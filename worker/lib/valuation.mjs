@@ -31,6 +31,7 @@
    ===================================================================== */
 
 import { AREA_PRICES, AREA_PRICES_META, findAreaPrices } from "./area-prices.mjs";
+import { RENOVATION_COSTS, RENOVATION_COSTS_META } from "./renovation-costs.mjs";
 import { renderDocPdf } from "./pdfrender.mjs";
 
 /* KV keys — το request γράφεται από forms.mjs, το result από εδώ. */
@@ -307,11 +308,20 @@ const PASS1_ASK = `Δώσε την εκτίμηση ως JSON ακριβώς μ�
  "confidence": "υψηλή | μέτρια | χαμηλή",
  "confidence_reason": "γιατί",
  "missing_info": [ "τι στοιχείο θα έσφιγγε την εκτίμηση" ],
- "advice": "2-3 προτάσεις προς τον σύμβουλο για τη συζήτηση τιμολόγησης με τον ιδιοκτήτη"
+ "advice": "2-3 προτάσεις προς τον σύμβουλο για τη συζήτηση τιμολόγησης με τον ιδιοκτήτη",
+ "renovation": null ή {
+  "scope": "ποια κλίμακα από τον πίνακα ανακαίνισης και τι περιλαμβάνει, 1 πρόταση",
+  "cost_low": 0, "cost_high": 0,
+  "value_after_low": 0, "value_after_mid": 0, "value_after_high": 0,
+  "rent_after_mid": 0,
+  "net_gain": 0,
+  "comment": "1-2 προτάσεις: αξίζει ή όχι και γιατί"
+ }
 }
-Κανόνες: value_mid = eur_per_sqm × εμβαδόν (στρογγύλεμα σε χιλιάδες). Το εύρος low-high ρεαλιστικό, συνήθως ±5-10% γύρω από το mid. Το gross_yield_pct = ετήσιο ενοίκιο mid / value_mid × 100, με ένα δεκαδικό. Κάθε adjustment με pct από -20 έως +20 και πραγματική αιτιολόγηση· μην απαριθμείς ό,τι δεν επηρεάζει. Αν λείπουν κρίσιμα στοιχεία, πλάτυνε το εύρος και πες το στο confidence_reason.`;
+Κανόνες: value_mid = eur_per_sqm × εμβαδόν (στρογγύλεμα σε χιλιάδες). Το εύρος low-high ρεαλιστικό, συνήθως ±5-10% γύρω από το mid. Το gross_yield_pct = ετήσιο ενοίκιο mid / value_mid × 100, με ένα δεκαδικό. Κάθε adjustment με pct από -20 έως +20 και πραγματική αιτιολόγηση· μην απαριθμείς ό,τι δεν επηρεάζει. Αν λείπουν κρίσιμα στοιχεία, πλάτυνε το εύρος και πες το στο confidence_reason.
+Για το "renovation": συμπλήρωσέ το ΜΟΝΟ αν το ακίνητο δεν είναι ήδη άριστο/πλήρως ανακαινισμένο ΚΑΙ μια ανακαίνιση θα άλλαζε ουσιαστικά την αξία — αλλιώς null. Διάλεξε κλίμακα από τον πίνακα ανακαίνισης, cost = εύρος €/τ.μ. × εμβαδόν (στρογγύλεμα σε χιλιάδες). Το value_after τεκμηριωμένο από ανακαινισμένα/νεόδμητα επίπεδα της περιοχής — ΠΟΤΕ πάνω από νεόδμητο. net_gain = value_after_mid − value_mid − μέσο cost. Αν το όφελος είναι αρνητικό ή οριακό, γράψ' το ευθέως στο comment — ΜΗΝ προτείνεις ανακαίνιση που δεν αποδίδει.`;
 
-const PASS2_SYSTEM = `Είσαι ο αυστηρός ελεγκτής εκτιμήσεων ενός μεσιτικού γραφείου που δραστηριοποιείται σε όλη την Κεντρική Μακεδονία. Παίρνεις τα δεδομένα ενός ακινήτου και μια έτοιμη εκτίμηση σε JSON, και την ελέγχεις: (1) αριθμητική συνέπεια (base × προσαρμογές ≈ €/τ.μ., €/τ.μ. × εμβαδόν ≈ value_mid, απόδοση σωστά υπολογισμένη), (2) συμφωνία με τα συγκριτικά και το εύρος της περιοχής (αποκλίσεις άνω του 15% από τη διάμεσο θέλουν ρητή αιτιολόγηση ή διόρθωση), (3) υπερβολές και αοριστίες στα κείμενα, (4) τη ΒΑΣΗ ΤΙΜΩΝ παρακάτω. ${PRICE_BASIS} Αν η εκτίμηση που ελέγχεις κάθεται πολύ χαμηλότερα από τις ζητούμενες τιμές της περιοχής χωρίς χαρακτηριστικό του ακινήτου να το δικαιολογεί, ή αν κάπου επικαλείται συμβόλαια/αντικειμενικές αξίες, ανέβασέ τη στη σωστή βάση και γράψε το στο review_notes. Διορθώνεις ό,τι δεν στέκει και επιστρέφεις το ΤΕΛΙΚΟ JSON στο ΙΔΙΟ σχήμα, με ένα επιπλέον πεδίο "review_notes": τι άλλαξες και γιατί (κενό αν τίποτα). Απαντάς ΜΟΝΟ με έγκυρο JSON.`;
+const PASS2_SYSTEM = `Είσαι ο αυστηρός ελεγκτής εκτιμήσεων ενός μεσιτικού γραφείου που δραστηριοποιείται σε όλη την Κεντρική Μακεδονία. Παίρνεις τα δεδομένα ενός ακινήτου και μια έτοιμη εκτίμηση σε JSON, και την ελέγχεις: (1) αριθμητική συνέπεια (base × προσαρμογές ≈ €/τ.μ., €/τ.μ. × εμβαδόν ≈ value_mid, απόδοση σωστά υπολογισμένη), (2) συμφωνία με τα συγκριτικά και το εύρος της περιοχής (αποκλίσεις άνω του 15% από τη διάμεσο θέλουν ρητή αιτιολόγηση ή διόρθωση), (3) υπερβολές και αοριστίες στα κείμενα, (4) τη ΒΑΣΗ ΤΙΜΩΝ παρακάτω, (5) αν υπάρχει renovation: κόστη συμβατά με τον πίνακα ανακαίνισης × εμβαδόν, value_after όχι πάνω από νεόδμητο της περιοχής, net_gain = value_after_mid − value_mid − μέσο κόστος. ${PRICE_BASIS} Αν η εκτίμηση που ελέγχεις κάθεται πολύ χαμηλότερα από τις ζητούμενες τιμές της περιοχής χωρίς χαρακτηριστικό του ακινήτου να το δικαιολογεί, ή αν κάπου επικαλείται συμβόλαια/αντικειμενικές αξίες, ανέβασέ τη στη σωστή βάση και γράψε το στο review_notes. Διορθώνεις ό,τι δεν στέκει και επιστρέφεις το ΤΕΛΙΚΟ JSON στο ΙΔΙΟ σχήμα, με ένα επιπλέον πεδίο "review_notes": τι άλλαξες και γιατί (κενό αν τίποτα). Απαντάς ΜΟΝΟ με έγκυρο JSON.`;
 
 const PASS2_ASK = `Έλεγξε, διόρθωσε όπου χρειάζεται, και επίστρεψε το τελικό JSON (ίδιο σχήμα, συν "review_notes").`;
 
@@ -349,6 +359,9 @@ function buildDataBlock(prop, comps, stats, priceRow) {
 		έτος: l.yearBuilt || null, ενεργειακή: l.energyClass || null,
 		κατάσταση: l.condition || null,
 	});
+	lines.push(`ΕΝΔΕΙΚΤΙΚΑ ΚΟΣΤΗ ΑΝΑΚΑΙΝΙΣΗΣ (€/τ.μ., ${RENOVATION_COSTS_META.asOf} — ${RENOVATION_COSTS_META.source}):`);
+	lines.push(JSON.stringify(RENOVATION_COSTS));
+	lines.push("");
 	lines.push(`ΣΥΓΚΡΙΤΙΚΑ ΠΩΛΗΣΗΣ ΑΠΟ ΤΟ ΧΑΡΤΟΦΥΛΑΚΙΟ ΜΑΣ (${comps.sale.length}):`);
 	lines.push(JSON.stringify(comps.sale.map(compRow)));
 	lines.push(`ΣΥΓΚΡΙΤΙΚΑ ΕΝΟΙΚΙΑΣΗΣ (${comps.rent.length}):`);
@@ -582,6 +595,20 @@ function renderReport(prop, comps, stats, priceRow, v, payload) {
 	${v.advice ? `<tr><td style="padding:14px 20px 0;">
 		<div style="background:#f2f9f4; border-left:3px solid #2e9e5b; border-radius:6px; padding:10px 14px; font-size:13px; line-height:1.55; color:${NAVY};"><strong>Για τη συζήτηση με τον ιδιοκτήτη:</strong> ${esc(v.advice)}</div>
 	</td></tr>` : ""}
+	${v.renovation ? `<tr><td style="padding:18px 20px 0;">
+		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΜΕ ΑΝΑΚΑΙΝΙΣΗ</div>
+		<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+			<td style="background:#f9f5ff; border:1px solid #cdb9ec; border-radius:8px; padding:12px 16px;">
+				<div style="font-size:12.5px; color:${NAVY}; line-height:1.6;">${esc(v.renovation.scope)}</div>
+				<div style="font-size:13px; color:${NAVY}; margin-top:6px;">Κόστος: <strong>${eur(v.renovation.cost_low)} – ${eur(v.renovation.cost_high)}</strong></div>
+				<div style="font-size:17px; font-weight:bold; color:${NAVY}; margin-top:2px;">Αξία μετά: ${eur(v.renovation.value_after_mid)} <span style="font-weight:normal; font-size:12.5px; color:#6b7280;">(εύρος ${eur(v.renovation.value_after_low)} έως ${eur(v.renovation.value_after_high)})</span></div>
+				${Number(v.renovation.rent_after_mid) ? `<div style="font-size:12.5px; color:${NAVY}; margin-top:2px;">Μίσθωμα μετά: ~${eur(v.renovation.rent_after_mid)}/μήνα</div>` : ""}
+				<div style="font-size:13px; font-weight:bold; color:${Number(v.renovation.net_gain) > 0 ? "#2e9e5b" : "#c62828"}; margin-top:4px;">Καθαρό όφελος ~${eur(v.renovation.net_gain)}</div>
+				${v.renovation.comment ? `<div style="font-size:12px; color:#6b7280; margin-top:6px; line-height:1.5;">${esc(v.renovation.comment)}</div>` : ""}
+				<div style="font-size:11.5px; color:#9aa3af; margin-top:6px;">Τα κόστη είναι ενδεικτικά — τα συνεργαζόμενα συνεργεία μας δίνουν κανονική προσφορά.</div>
+			</td>
+		</tr></table>
+	</td></tr>` : ""}
 	${propFacts ? `<tr><td style="padding:18px 20px 0;">
 		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΤΑ ΣΤΟΙΧΕΙΑ ΠΟΥ ΔΟΘΗΚΑΝ${prop.fromCrm ? " (συμπληρωμένα και από το CRM)" : ""}</div>
 		<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eceef2; border-radius:6px;">${propFacts}</table>
@@ -708,6 +735,7 @@ td.pos{color:#12855b;font-weight:700;white-space:nowrap;text-align:right;}
 td.neg{color:#b3261e;font-weight:700;white-space:nowrap;text-align:right;}
 td.num{text-align:right;white-space:nowrap;}
 .note{background:#f2f9f4;border-left:3px solid #12855b;border-radius:6px;padding:9px 12px;margin:10px 0;}
+.renov{background:#f9f5ff;border:1px solid #cdb9ec;border-radius:10px;padding:11px 15px;margin:0 0 8px;}
 .disc{border-top:1px solid #eceef2;margin-top:14px;padding-top:9px;font-size:10.5px;color:#9aa3af;line-height:1.6;}
 </style></head><body><div class="doc">
 	<div class="hd">
@@ -736,6 +764,14 @@ td.num{text-align:right;white-space:nowrap;}
 	${v.confidence_reason ? `<p>${esc(v.confidence_reason)}</p>` : ""}
 	${missing.length ? `<p class="mut">Θα βοηθούσε να ξέρουμε: ${esc(missing.join(" · "))}</p>` : ""}
 	${v.advice ? `<div class="note"><strong>Για τη συζήτηση με τον ιδιοκτήτη:</strong> ${esc(v.advice)}</div>` : ""}
+	${v.renovation ? `<h2>ΜΕ ΑΝΑΚΑΙΝΙΣΗ</h2>
+	<div class="renov">
+		<p>${esc(v.renovation.scope)}</p>
+		<p>Κόστος: <strong>${eur(v.renovation.cost_low)} – ${eur(v.renovation.cost_high)}</strong> · Αξία μετά: <strong>${eur(v.renovation.value_after_mid)}</strong> (εύρος ${eur(v.renovation.value_after_low)} έως ${eur(v.renovation.value_after_high)})${Number(v.renovation.rent_after_mid) ? ` · Μίσθωμα μετά ~${eur(v.renovation.rent_after_mid)}/μήνα` : ""}</p>
+		<p style="font-weight:700;color:${Number(v.renovation.net_gain) > 0 ? "#12855b" : "#b3261e"};">Καθαρό όφελος ~${eur(v.renovation.net_gain)}</p>
+		${v.renovation.comment ? `<p class="mut">${esc(v.renovation.comment)}</p>` : ""}
+		<p class="mut">Τα κόστη είναι ενδεικτικά — τα συνεργαζόμενα συνεργεία μας δίνουν κανονική προσφορά.</p>
+	</div>` : ""}
 	${facts ? `<h2>ΤΑ ΣΤΟΙΧΕΙΑ ΠΟΥ ΔΟΘΗΚΑΝ${p.fromCrm ? " (ΣΥΜΠΛΗΡΩΜΕΝΑ ΚΑΙ ΑΠΟ ΤΟ CRM)" : ""}</h2><table>${facts}</table>
 		${p.notes ? `<p class="mut" style="margin-top:6px;">Παρατηρήσεις: ${esc(p.notes)}</p>` : ""}` : ""}
 	${v.review_notes ? `<p class="mut" style="margin-top:10px;">Δεύτερο πέρασμα ελέγχου: ${esc(v.review_notes)}</p>` : ""}
