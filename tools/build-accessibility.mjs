@@ -7,16 +7,25 @@
    machine, and committed as a static map the Worker reads.
 
    For every listing with coordinates this queries OpenStreetMap and grades
-   four categories (worker/lib/accessibility.mjs), then writes:
+   the categories that suit the property type (a warehouse is rated on the
+   motorway junction, not on schools — worker/lib/accessibility.mjs), then
+   writes:
      • worker/lib/accessibility-data.mjs  — committed map the Worker merges
        into the feed by listing id (deploy after running).
      • data/listings.json                 — the local preview feed, enriched
        so the plain preview server shows the score cards too (gitignored).
 
-   RUN IT WHEN A LISTING IS ADDED OR ITS LOCATION CHANGES, then deploy:
+   INCREMENTAL by default: a listing already on file at the same spot and
+   with the same profile is left alone, so a normal run costs one Overpass
+   call per NEW listing and finishes in seconds. Listings gone from the feed
+   are dropped from the map. The data module is rewritten after every single
+   listing, so an interrupted run loses nothing and re-running resumes.
+
+   RUN IT WHEN LISTINGS ARE ADDED, MOVED OR RETYPED, then deploy:
      node tools/build-accessibility.mjs                 # from prod feed
+     node tools/build-accessibility.mjs --all           # re-rate everything
      node tools/build-accessibility.mjs http://localhost:5173
-     npx wrangler deploy && curl -X POST ".../listings?key=…"   # publish
+     git commit + push                                  # push IS the deploy
 
    Source: © OpenStreetMap contributors (ODbL).
    ===================================================================== */
@@ -24,42 +33,103 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { computeAccessibility } from "../worker/lib/accessibility.mjs";
+import { computeAccessibility, profileFor, categoriesFor } from "../worker/lib/accessibility.mjs";
+import { ACCESSIBILITY as EXISTING } from "../worker/lib/accessibility-data.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SITE = (process.env.FW_SITE || process.argv[2] || "https://four-walls.gr").replace(/\/+$/, "");
+const args = process.argv.slice(2);
+const REBUILD_ALL = args.includes("--all");
+const SITE = (process.env.FW_SITE || args.find((a) => a.startsWith("http")) || "https://four-walls.gr")
+	.replace(/\/+$/, "");
 const DATA_MODULE = path.join(ROOT, "worker", "lib", "accessibility-data.mjs");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* Same spot? Published coordinates are fuzzed anyway, so anything under a
+   few dozen metres is not worth a fresh Overpass call. */
+const MOVED_M = 30;
+function metres(aLat, aLng, bLat, bLng) {
+	const R = 6371000, rad = (x) => (x * Math.PI) / 180;
+	const dLat = rad(bLat - aLat), dLng = rad(bLng - aLng);
+	const s = Math.sin(dLat / 2) ** 2 + Math.cos(rad(aLat)) * Math.cos(rad(bLat)) * Math.sin(dLng / 2) ** 2;
+	return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+/* Records written before profiles existed have no lat/lng/profile, so they
+   cannot be verified and are recomputed once. */
+function isCurrent(rec, lat, lng, profile) {
+	return !!rec && rec.lat != null && rec.profile === profile
+		&& metres(lat, lng, rec.lat, rec.lng) <= MOVED_M;
+}
 
 console.log(`Feed: ${SITE}/data/listings.json`);
 const feed = await (await fetch(`${SITE}/data/listings.json`, { cache: "no-store" })).json();
 const withCoords = feed.listings.filter((l) => l.location?.lat != null && l.location?.lng != null);
-console.log(`${feed.count} listings, ${withCoords.length} with coordinates\n`);
+console.log(`${feed.count} listings, ${withCoords.length} with coordinates${REBUILD_ALL ? " (re-rating all)" : ""}\n`);
 
 const data = {};
-for (let i = 0; i < withCoords.length; i++) {
-	const l = withCoords[i];
-	process.stdout.write(`[${i + 1}/${withCoords.length}] ${l.code} … `);
-	try {
-		const rec = await computeAccessibility(l.location.lat, l.location.lng);
+const todo = [];
+for (const l of withCoords) {
+	const profile = profileFor(l);
+	const rec = EXISTING[String(l.id)];
+	if (!REBUILD_ALL && isCurrent(rec, l.location.lat, l.location.lng, profile)) {
 		data[String(l.id)] = rec;
-		l.accessibility = rec; // also enrich the preview feed
-		console.log(Object.entries(rec).map(([k, v]) => `${k}:${v.band}`).join(" "));
-	} catch (e) {
-		console.log(`SKIP (${e.message})`);
+		l.accessibility = rec.scores;
+	} else {
+		todo.push({ listing: l, profile });
 	}
-	if (i < withCoords.length - 1) await sleep(1100); // be gentle on the Overpass mirror
 }
+const kept = Object.keys(data).length;
+const dropped = Object.keys(EXISTING).filter((id) => !withCoords.some((l) => String(l.id) === id));
+if (kept) console.log(`${kept} already rated and unchanged, skipping`);
+if (dropped.length) console.log(`${dropped.length} no longer in the feed, dropping`);
+if (!todo.length) console.log("Nothing to compute.\n");
 
 const banner = `/* AUTO-GENERATED by tools/build-accessibility.mjs — do not edit by hand.
-   Area accessibility ratings from OpenStreetMap, keyed by listing id. The
-   Worker merges this into the feed (worker/lib/estateprime.mjs). Re-run the
-   tool and redeploy when a listing is added or its coordinates change.
+   Area accessibility ratings from OpenStreetMap, keyed by listing id. Each
+   record carries the coordinates and profile it was computed for, so a rerun
+   can tell what is still current. The Worker merges record.scores into the
+   feed (worker/lib/estateprime.mjs). Re-run the tool and redeploy when
+   listings are added, moved or retyped.
    Source: © OpenStreetMap contributors (ODbL). */`;
-writeFileSync(DATA_MODULE, `${banner}\nexport const ACCESSIBILITY = ${JSON.stringify(data, null, "\t")};\n`);
+const save = () =>
+	writeFileSync(DATA_MODULE, `${banner}\nexport const ACCESSIBILITY = ${JSON.stringify(data, null, "\t")};\n`);
+
+let failed = 0;
+for (let i = 0; i < todo.length; i++) {
+	const { listing: l, profile } = todo[i];
+	const cats = categoriesFor(profile).join("/");
+	process.stdout.write(`[${i + 1}/${todo.length}] ${l.code} ${l.subcategory || l.category || "?"} → ${profile} (${cats}) … `);
+	try {
+		const scores = await computeAccessibility(l.location.lat, l.location.lng, profile);
+		data[String(l.id)] = { lat: l.location.lat, lng: l.location.lng, profile, scores };
+		l.accessibility = scores; // also enrich the preview feed
+		save(); // after EVERY listing: a mirror hanging must not cost the whole run
+		console.log(Object.entries(scores).map(([k, v]) => `${k}:${v.band}`).join(" "));
+	} catch (e) {
+		failed++;
+		// Keep whatever was on file so the block does not vanish on a bad night.
+		// Pre-profile records are bare score maps, so wrap them in the current
+		// shape with no coordinates: they still render, and they stay on the
+		// to-do list for the next run.
+		const old = EXISTING[String(l.id)];
+		if (old) {
+			const rec = old.scores ? old : { lat: null, lng: null, profile: null, scores: old };
+			data[String(l.id)] = rec;
+			l.accessibility = rec.scores;
+		}
+		console.log(`SKIP (${e.message})`);
+	}
+	if (i < todo.length - 1) await sleep(1100); // be gentle on the Overpass mirror
+}
+save();
 
 mkdirSync(path.join(ROOT, "data"), { recursive: true });
 writeFileSync(path.join(ROOT, "data", "listings.json"), JSON.stringify(feed, null, "\t") + "\n");
 
-console.log(`\n✓ ${Object.keys(data).length} rated → worker/lib/accessibility-data.mjs (commit + deploy)`);
+const byProfile = {};
+for (const rec of Object.values(data)) byProfile[rec.profile] = (byProfile[rec.profile] || 0) + 1;
+console.log(`\n✓ ${Object.keys(data).length} rated → worker/lib/accessibility-data.mjs`);
+console.log(`  ${Object.entries(byProfile).map(([p, n]) => `${p}: ${n}`).join(", ")}`);
+if (failed) console.log(`  ${failed} failed and stayed as they were — run again to retry`);
 console.log(`✓ preview feed → data/listings.json`);
+console.log(`\nCommit and push to deploy (push IS the deploy).`);

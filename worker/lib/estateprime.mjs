@@ -161,7 +161,10 @@ export function mapListing(raw) {
 		title_en: fixHomoglyphs(tEn.title ?? null),
 		description_en: descEn.text || null,
 		nearby_en: descEn.nearby,
-		accessibility: ACCESSIBILITY[String(raw.id)] ?? null, // OSM ratings (tools/build-accessibility.mjs)
+		// OSM ratings (tools/build-accessibility.mjs). Which categories a record
+		// holds depends on the property type, so the front-end renders whatever
+		// keys it finds rather than a fixed four.
+		accessibility: ACCESSIBILITY[String(raw.id)]?.scores ?? null,
 		transaction: raw.availability ?? null, // sale | rent | auction | shortterm
 		category: raw.category ?? null,        // residential | commercial | land | other
 		subcategory: raw.subcategory ?? null,  // apartment, maisonette, …

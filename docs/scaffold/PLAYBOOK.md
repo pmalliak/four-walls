@@ -442,6 +442,14 @@ hangs from inside a Worker**, which would stall every feed rebuild. Pattern:
   and the Worker, so they can't diverge.
 - Prefer **honest qualitative bands** (`excellent…limited` by metre thresholds)
   over invented 0–100 numbers; make the categories/labels localizable.
+- **Score what the item actually is.** A school next door sells a family flat and
+  is noise on an office listing, so each item picks a *profile* from its type and
+  only that profile's categories are queried and rendered (the front-end iterates
+  the keys it finds, never a fixed list). Two wins beyond honesty: the query stays
+  small, and a new type inherits a sane default instead of nothing.
+- **Make the build step incremental**, keyed on the inputs that would change the
+  answer (here: coordinates + profile, stored inside each record). Then the
+  refresh is one cheap command anyone can run, not a nightly job to maintain.
 
 ### 9b. Branded, keyless, cookie-free map
 
