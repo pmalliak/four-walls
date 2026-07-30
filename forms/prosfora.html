@@ -255,6 +255,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		try {
 			busy(true);
 			var res = await FWOutbox.submit(payload, "Προσφορά · " + summary);
+			if (window.FWDrafts) FWDrafts.discard(); /* στάλθηκε ή μπήκε στο outbox */
 			$("form").classList.add("hide");
 			$("bar").classList.add("hide");
 			$("ok").classList.remove("hide");
@@ -285,6 +286,8 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		$("ok").querySelector("h2").textContent = "Η προσφορά στάλθηκε";
 		$("form").classList.remove("hide");
 		$("bar").classList.remove("hide");
+		/* η άδεια φόρμα είναι η νέα βάση — αλλιώς το autosave θα έσωζε το άδειασμα ως πρόχειρο */
+		if (window.FWDrafts) FWDrafts.rebase();
 	}
 
 	/* ------------------------------------------------------------- boot */
@@ -306,10 +309,35 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		$("amount").oninput = onAmount;
 		$("send").onclick = send;
 		$("again").onclick = reset;
+
+		/* Πρόχειρα (_drafts.fw.js): κρατούν και το επιλεγμένο ακίνητο/επαφή
+		   από το CRM — αποθηκεύεται το raw record, όχι ξανά lookup. */
+		if (window.FWDrafts) FWDrafts.register({
+			form: "prosfora", mount: "#form",
+			collect: function(){
+				return { listing: listing, contact: contact,
+					amount: $("amount").value, notes: $("notes").value,
+					mName: $("mName").value, mPhone: $("mPhone").value, mEmail: $("mEmail").value,
+					manual: !$("manual").hidden };
+			},
+			apply: function(d){
+				listing = d.listing || null; contact = d.contact || null;
+				$("amount").value = d.amount || ""; $("notes").value = d.notes || "";
+				$("mName").value = d.mName || ""; $("mPhone").value = d.mPhone || ""; $("mEmail").value = d.mEmail || "";
+				$("manual").hidden = !d.manual;
+				renderListing(); renderContact(); renderAsk();
+			},
+			label: function(d){
+				return [d.listing && (d.listing.code || d.listing.address),
+					(d.contact && d.contact.onomatepwnymo) || d.mName,
+					d.amount && d.amount + " €"].filter(Boolean).join(" — ");
+			},
+		});
 	}
 	document.addEventListener("DOMContentLoaded", init);
 })();
 </script>
 <script src="_outbox.fw.js"></script>
 <script src="_crm.fw.js"></script>
+<script src="_drafts.fw.js"></script>
 </body></html>

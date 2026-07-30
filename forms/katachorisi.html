@@ -603,16 +603,24 @@ function wire(){
   });
 }
 
-/* ---------- Draft autosave ---------- */
-let draftT;
-function saveDraft(){ clearTimeout(draftT); draftT=setTimeout(()=>{
-  try{ localStorage.setItem(LS_DRAFT,JSON.stringify(state)); markSaved("Πρόχειρο αποθηκευμένο"); }catch(e){}
-},400); }
+/* ---------- Draft autosave (κοινή αποθήκη πολλαπλών προχείρων — _drafts.fw.js) ---------- */
+function saveDraft(){ if(window.FWDrafts)FWDrafts.touch(); }
 function markSaved(t){ document.getElementById("savedTag").textContent=t; }
 function loadDraft(){
+  if(!window.FWDrafts)return;
+  /* παλιό μονό πρόχειρο (πριν τα πολλαπλά) → μία φορά στη νέα αποθήκη */
   let raw; try{ raw=localStorage.getItem(LS_DRAFT); }catch(e){}
-  if(!raw)return; let d; try{ d=JSON.parse(raw); }catch(e){ return; }
-  Object.assign(state,d); render(); markSaved("Ανακτήθηκε πρόχειρο");
+  if(raw){
+    try{ const d=JSON.parse(raw); FWDrafts.importDraft("katachorisi",d,[d.address_el,d.owner_name].filter(Boolean).join(" — ")); }catch(e){}
+    try{ localStorage.removeItem(LS_DRAFT); }catch(e){}
+  }
+  FWDrafts.register({
+    form:"katachorisi", mount:"#step1",
+    collect:()=>state,
+    apply:d=>{ Object.keys(state).forEach(k=>delete state[k]); Object.assign(state,d); render(); },
+    label:v=>[v.address_el,v.owner_name].filter(Boolean).join(" — "),
+    onSave:markSaved, // το υπάρχον saved-tag της σελίδας αντί για το status της βιβλιοθήκης
+  });
 }
 
 /* ---------- Validation & payload ---------- */
@@ -807,7 +815,7 @@ async function doSubmit(){
     /* Sent or queued, the payload is safe outside the draft — the
        outbox (see _outbox.fw.js) retries it when the network returns. */
     const res=await FWOutbox.submit(payload,"Καταχώριση — "+(state.address_el||state.owner_name||""));
-    try{ localStorage.removeItem(LS_DRAFT); }catch(e){}
+    if(window.FWDrafts)FWDrafts.discard(); /* στάλθηκε ή μπήκε στο outbox — το πρόχειρο δεν χρειάζεται πια */
     if(res.sent) toast(state.send_to_client===true ? "Στάλθηκε — και στον ιδιοκτήτη." : "Στάλθηκε.","ok");
     else if(res.reason==="auth") toast("Αποθηκεύτηκε. Χρειάζεται σύνδεση χρήστη — άνοιξε ξανά την εφαρμογή για να σταλεί.","err");
     else toast("Δεν υπάρχει σύνδεση — αποθηκεύτηκε και θα σταλεί αυτόματα μόλις βρεθεί δίκτυο.","ok");
@@ -835,6 +843,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 });
 </script>
 <script src="_outbox.fw.js"></script>
+<script src="_drafts.fw.js"></script>
 <!-- DEV AUTOFILL: dev-only test helper, loads only on localhost (see _autofill.dev.js) --><script>if(/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname))document.body.appendChild(Object.assign(document.createElement("script"),{src:"_autofill.dev.js"}));</script>
 </body>
 </html>

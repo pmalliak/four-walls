@@ -29,6 +29,7 @@ deeper, one topic per file:
 | [spitogatos-leads.md](spitogatos-leads.md) | Spitogatos leads → CRM μέσω Make: ποιο scenario πιάνει τι, οι δύο παραλλαγές του email «Πελάτης για ακίνητό σου», το parsing ονόματος/τηλεφώνου, τα tags |
 | [forms-crm.md](forms-crm.md) | Έντυπα CRM pickers: Access setup, key split, contact field map, upstream limits |
 | [forms-submit.md](forms-submit.md) | Έντυπα submit: PWA → Worker → Make router → client email + PDF; the PDF-capture trap |
+| [forms-drafts.md](forms-drafts.md) | Έντυπα πρόχειρα: autosave σε πολλαπλά drafts (`_drafts.fw.js`), μπάνερ «Συνέχεια/Διαγραφή», λίστα στην αρχική· γιατί οι υπογραφές δεν σώζονται |
 | [forms-prosfora.md](forms-prosfora.md) | Προσφορά πελάτη: η μόνη φόρμα χωρίς έντυπο/PDF, CRM pickers μέσω `FWCrm`, email «ΝΕΑ ΠΡΟΣΦΟΡΑ» στο info@ |
 | [valuation.md](valuation.md) | Εκτίμηση αξίας ακινήτου: φόρμα → Worker (AI ×2, συγκριτικά, τιμές περιοχών) → report στο info@ και απλοποιημένο PDF στον ιδιοκτήτη· το `ANTHROPIC_API_KEY` |
 | [forms-katachorisi-crm.md](forms-katachorisi-crm.md) | Καταχώριση ακινήτου: CRM-aligned schema (πεδία/slugs 1:1 με το EstatePrime), το `crm` payload, area ids, ο δρόμος για το auto-create |

@@ -24,10 +24,10 @@
    ===================================================================== */
 'use strict';
 
-var VERSION = 'fw-entypa-v19';
+var VERSION = 'fw-entypa-v20';
 var SHELL = [
 	'./', 'index.html', 'anathesi.html', 'ypodeixi.html', 'apodeixi.html', 'katachorisi.html', 'enhance.html', 'prosfora.html', 'ektimisi.html',
-	'_crm.fw.js', '_outbox.fw.js', 'html2pdf.bundle.min.js',
+	'_crm.fw.js', '_outbox.fw.js', '_drafts.fw.js', 'html2pdf.bundle.min.js',
 	'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'favicon.png',
 ];
 

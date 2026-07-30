@@ -45,6 +45,10 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 .mini{font:inherit;font-weight:700;font-size:12px;color:var(--navy);background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:6px 12px;min-height:34px;cursor:pointer;}
 .mini:active{transform:translateY(1px);}
 .mini[hidden]{display:none;}
+/* ● = πεδίο με μεγάλο βάρος στην εκτίμηση — καθοδηγεί τον σύμβουλο στο τι
+   αξίζει να ψάξει, χωρίς να κάνει τίποτα υποχρεωτικό. */
+.fld label.imp::after{content:"●";color:var(--pink);font-size:8px;vertical-align:2px;margin-left:5px;}
+.impdot{color:var(--pink);font-size:9px;}
 /* Inline edit της τιμής μέσα στο preview. Το ✏️ και το input δεν μπαίνουν
    ποτέ στο PDF — το buildClientDoc(true) τα παραλείπει. */
 .doc .vrow{display:flex;align-items:center;gap:8px;}
@@ -130,9 +134,9 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 				<option>Γραφείο</option><option>Κατάστημα</option>
 				<option>Αποθήκη</option><option>Οικόπεδο</option><option>Αγροτεμάχιο</option>
 			</select></div>
-			<div class="fld"><label for="size">Εμβαδόν (τ.μ.)</label><input id="size" type="text" inputmode="numeric" autocomplete="off"></div>
+			<div class="fld"><label for="size" class="imp">Εμβαδόν (τ.μ.)</label><input id="size" type="text" inputmode="numeric" autocomplete="off"></div>
 		</div>
-		<div class="fld"><label for="areaName">Περιοχή</label><input id="areaName" type="text" autocomplete="off" placeholder="π.χ. Καλαμαριά, Άνω Τούμπα…"></div>
+		<div class="fld"><label for="areaName" class="imp">Περιοχή</label><input id="areaName" type="text" autocomplete="off" placeholder="π.χ. Καλαμαριά, Άνω Τούμπα…"></div>
 		<div class="fld"><label for="address">Διεύθυνση (προαιρετικό)</label><input id="address" type="text" autocomplete="off"></div>
 		<div class="grid2">
 			<div class="fld"><label for="floor">Όροφος</label><select id="floor">
@@ -141,7 +145,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 				<option>1ος</option><option>2ος</option><option>3ος</option><option>4ος</option>
 				<option>5ος</option><option>6ος</option><option>7ος ή ψηλότερα</option><option>Ρετιρέ</option>
 			</select></div>
-			<div class="fld"><label for="yearBuilt">Έτος κατασκευής</label><input id="yearBuilt" type="text" inputmode="numeric" autocomplete="off"></div>
+			<div class="fld"><label for="yearBuilt" class="imp">Έτος κατασκευής</label><input id="yearBuilt" type="text" inputmode="numeric" autocomplete="off"></div>
 		</div>
 		<div class="grid2">
 			<div class="fld"><label for="bedrooms">Υπνοδωμάτια</label><select id="bedrooms">
@@ -153,7 +157,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			</select></div>
 		</div>
 		<div class="grid2">
-			<div class="fld"><label for="yearRenovated">Έτος ανακαίνισης</label><input id="yearRenovated" type="text" inputmode="numeric" autocomplete="off"></div>
+			<div class="fld"><label for="yearRenovated" class="imp">Έτος ανακαίνισης</label><input id="yearRenovated" type="text" inputmode="numeric" autocomplete="off"></div>
 			<div class="fld"><label for="energyClass">Ενεργειακή κλάση</label><select id="energyClass">
 				<option value=""></option>
 				<option>Α+</option><option>Α</option><option>Β+</option><option>Β</option>
@@ -162,7 +166,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			</select></div>
 		</div>
 		<div class="grid2">
-			<div class="fld"><label for="condition">Κατάσταση</label><select id="condition">
+			<div class="fld"><label for="condition" class="imp">Κατάσταση</label><select id="condition">
 				<option value=""></option>
 				<option>Νεόδμητο</option><option>Ανακαινισμένο</option>
 				<option>Καλή κατάσταση</option><option>Χρήζει ανακαίνισης</option><option>Υπό κατασκευή</option>
@@ -189,6 +193,18 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			<div class="fld"><label for="orientation">Προσανατολισμός</label><input id="orientation" type="text" autocomplete="off" placeholder="π.χ. ΝΑ, διαμπερές"></div>
 		</div>
 		<div class="fld"><label for="view">Θέα</label><input id="view" type="text" autocomplete="off" placeholder="π.χ. θάλασσα, ακάλυπτος…"></div>
+		<!-- Οι οδηγοί αξίας των εξοχικών: στη Χαλκιδική/Πιερία η απόσταση από
+		     τη θάλασσα, το οικόπεδο και η πισίνα κουνάνε την τιμή περισσότερο
+		     από όροφο και ασανσέρ. Χωρίς αυτά, η εκτίμηση αγκυρώνει στο
+		     «τυπικό διαμέρισμα» του πίνακα περιοχών και βγαίνει χαμηλή. -->
+		<div class="grid2">
+			<div class="fld"><label for="seaDist" class="imp">Απόσταση από θάλασσα (μ.)</label><input id="seaDist" type="text" inputmode="numeric" autocomplete="off" placeholder="π.χ. 150"></div>
+			<div class="fld"><label for="plot" class="imp">Οικόπεδο (τ.μ.)</label><input id="plot" type="text" inputmode="numeric" autocomplete="off" placeholder="για μονοκατοικίες/μεζονέτες"></div>
+		</div>
+		<div class="fld"><label for="pool" class="imp">Πισίνα</label><select id="pool">
+			<option value=""></option><option>Όχι</option><option>Κοινόχρηστη</option><option>Ιδιωτική</option>
+		</select></div>
+		<div class="hintline">Τα πεδία με <span class="impdot">●</span> βαραίνουν περισσότερο στην εκτίμηση — μαζί με Περιοχή, τ.μ., Κατάσταση και Έτος/Ανακαίνιση.</div>
 	</div>
 
 	<div class="card">
@@ -418,6 +434,9 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 				storage: val("storage"),
 				view: val("view"),
 				orientation: val("orientation"),
+				sea_distance_m: digits(val("seaDist")),
+				plot_sqm: digits(val("plot")),
+				pool: val("pool"),
 				asking_price: asking > 0 ? money(asking) : "",
 				asking_price_num: asking > 0 ? String(asking) : "",
 				notes: val("notes"),
@@ -441,6 +460,8 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			try { sessionStorage.setItem("fwLastRef", ref); } catch (e) {}
 			var j = await fetchReport(ref);
 			result = { ref: ref, summary: summary, j: j };
+			/* η εκτίμηση βγήκε — τα στοιχεία της φόρμας έκαναν τη δουλειά τους */
+			if (window.FWDrafts) FWDrafts.discard();
 			showView("office");
 			$("form").classList.add("hide");
 			$("bar").classList.add("hide");
@@ -895,7 +916,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		["purpose"].forEach(function(id){ $(id).value = "both"; });
 		["subcategory","size","areaName","address","floor","yearBuilt","bedrooms","bathrooms",
 		 "yearRenovated","energyClass","condition","heating","elevator","parking","storage",
-		 "orientation","view","asking","notes"].forEach(function(id){ $(id).value = ""; });
+		 "orientation","view","seaDist","plot","pool","asking","notes"].forEach(function(id){ $(id).value = ""; });
 		renderListing();
 		result = null;
 		editing = null;
@@ -907,6 +928,8 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		$("docbox").textContent = "";
 		$("form").classList.remove("hide");
 		$("bar").classList.remove("hide");
+		/* η άδεια φόρμα είναι η νέα βάση — αλλιώς το autosave θα έσωζε το άδειασμα ως πρόχειρο */
+		if (window.FWDrafts) FWDrafts.rebase();
 		window.scrollTo(0, 0);
 	}
 
@@ -923,6 +946,31 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		$("emailOwner").onclick = fillOwnerEmail;
 		$("emailContact").onclick = pickEmailContact;
 		$("again").onclick = reset;
+
+		/* Πρόχειρα (_drafts.fw.js): κρατούν και το επιλεγμένο ακίνητο από
+		   το CRM (raw record) — οι τιμές των πεδίων όπως τις άφησες, μαζί
+		   με ό,τι είχε φέρει το prefill. */
+		var FLD = ["purpose","subcategory","size","areaName","address","floor","yearBuilt",
+			"bedrooms","bathrooms","yearRenovated","energyClass","condition","heating",
+			"elevator","parking","storage","orientation","view","seaDist","plot","pool","asking","notes","clientEmail"];
+		if (window.FWDrafts) FWDrafts.register({
+			form: "ektimisi", mount: "#form",
+			collect: function(){
+				var o = { listing: listing };
+				FLD.forEach(function(id){ o[id] = $(id).value; });
+				return o;
+			},
+			apply: function(d){
+				listing = d.listing || null;
+				FLD.forEach(function(id){ $(id).value = d[id] == null ? "" : d[id]; });
+				if (!d.purpose) $("purpose").value = "both";
+				renderListing(); /* χωρίς prefill(): οι τιμές είναι ήδη στο πρόχειρο */
+			},
+			label: function(d){
+				return [d.address || d.areaName || (d.listing && d.listing.address),
+					d.subcategory, d.size && d.size + " τ.μ."].filter(Boolean).join(" — ");
+			},
+		});
 	}
 	document.addEventListener("DOMContentLoaded", init);
 })();
@@ -930,4 +978,5 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 <script src="html2pdf.bundle.min.js"></script>
 <script src="_outbox.fw.js"></script>
 <script src="_crm.fw.js"></script>
+<script src="_drafts.fw.js"></script>
 </body></html>
