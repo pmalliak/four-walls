@@ -187,11 +187,13 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 <div id="result" class="hide">
 	<div id="docbox"></div>
 	<div class="card" style="margin-top:14px">
-		<div class="hintline" style="margin:0 0 10px">Η εκτίμηση δεν έχει σταλεί πουθενά ακόμα. Αν σου κάνει, στείλ' την στο γραφείο· αλλιώς απλά κάνε νέα.</div>
+		<div class="hintline" style="margin:0 0 10px">Η εκτίμηση δεν έχει σταλεί πουθενά ακόμα. Το πλήρες report πάει στο γραφείο· ο ιδιοκτήτης παίρνει απλοποιημένο PDF (τιμή, εύρος, μίσθωμα), χωρίς τα εσωτερικά σχόλια.</div>
 		<div style="display:flex;gap:10px;flex-wrap:wrap">
 			<button class="btn p" id="sendEmail" type="button" style="flex:1;min-width:190px">Αποστολή στο info@</button>
 			<button class="btn s" id="again" type="button" style="flex:1;min-width:150px">Νέα εκτίμηση</button>
 		</div>
+		<div class="fld"><label for="clientEmail">Email ιδιοκτήτη</label><input id="clientEmail" type="email" inputmode="email" autocomplete="off" placeholder="π.χ. onoma@example.com"></div>
+		<button class="btn s" id="sendClient" type="button" style="width:100%;margin-top:10px">Αποστολή εκτίμησης στον ιδιοκτήτη (PDF)</button>
 	</div>
 </div>
 </div>
@@ -393,7 +395,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			var vr = await fetch("/api/valuation?ref=" + encodeURIComponent(ref));
 			if (!vr.ok) throw new Error("valuation HTTP " + vr.status);
 			var j = await vr.json();
-			result = { ref: ref, summary: summary };
+			result = { ref: ref, summary: summary, j: j };
 			renderDoc(j);
 			$("form").classList.add("hide");
 			$("bar").classList.add("hide");
@@ -431,6 +433,90 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			toast("Στάλθηκε στο info@.", "ok");
 		}
 		btn.textContent = "Στάλθηκε ✓";
+	}
+
+	/* Πελατικό έγγραφο: μόνο τιμή+εύρος, μίσθωμα, ένα σχόλιο αγοράς και
+	   disclaimer. ΧΩΡΙΣ προσαρμογές, συγκριτικά, βεβαιότητα ή συμβουλή
+	   προς τον σύμβουλο (εσωτερικά). Κεντρική τιμή μπροστά, εύρος από
+	   κάτω, όπως οι CMA των μεγάλων γραφείων. */
+	function buildClientDoc(){
+		var j = result.j, v = j.v || {}, p = j.prop || {};
+		var d = el("div", "doc");
+		var hd = el("div", "hd");
+		var wm = el("div", "wm");
+		wm.appendChild(el("div", "n", "FOUR WALLS"));
+		wm.appendChild(el("div", "s", "REAL ESTATE"));
+		var co = el("div", "co");
+		co.appendChild(el("div", null, "Φραγκίνη 9, 54624 Θεσσαλονίκη"));
+		co.appendChild(el("div", null, "+30 6907 483 463 · info@four-walls.gr"));
+		co.appendChild(el("div", null, new Date().toLocaleDateString("el-GR")));
+		hd.appendChild(wm); hd.appendChild(co); d.appendChild(hd);
+		d.appendChild(el("h1", null, "Εκτίμηση αξίας ακινήτου"));
+		d.appendChild(el("div", "accent"));
+		d.appendChild(el("p", null, String(j.subject || "").replace(/^ΕΚΤΙΜΗΣΗ · /, "")));
+		if (p.purpose !== "rent") {
+			var b = el("div", "bigval");
+			b.appendChild(el("div", "l", "ΕΚΤΙΜΩΜΕΝΗ ΑΞΙΑ"));
+			b.appendChild(el("div", "v", money(v.value_mid)));
+			b.appendChild(el("div", "r", "εύρος " + money(v.value_low) + " έως " + money(v.value_high)));
+			d.appendChild(b);
+		}
+		if (p.purpose !== "sale" && v.rent_mid) {
+			var rb = el("div", "rentval");
+			rb.appendChild(el("div", "l", "ΕΚΤΙΜΩΜΕΝΟ ΜΙΣΘΩΜΑ"));
+			rb.appendChild(el("div", "r", money(v.rent_mid) + "/μήνα (εύρος " + money(v.rent_low) + " έως " + money(v.rent_high) + ")"));
+			d.appendChild(rb);
+		}
+		if (v.market_comment) { d.appendChild(el("h2", null, "Η ΑΓΟΡΑ ΣΤΗΝ ΠΕΡΙΟΧΗ")); d.appendChild(el("p", null, v.market_comment)); }
+		d.appendChild(el("p", null, "Είμαστε στη διάθεσή σας για να συζητήσουμε την εκτίμηση και τα επόμενα βήματα για το ακίνητό σας."));
+		d.appendChild(el("div", "disc", "Ενδεικτική εκτίμηση αγοραίας αξίας με βάση δημοσιευμένα στοιχεία αγοράς και συγκριτικά της περιοχής. Δεν αποτελεί πιστοποιημένη έκθεση εκτίμησης. Four Walls Real Estate · four-walls.gr"));
+		return d;
+	}
+
+	/* «Αποστολή στον ιδιοκτήτη»: φτιάχνεται PDF από το πελατικό έγγραφο
+	   επιτόπου (html2pdf, ίδια βιβλιοθήκη με τα άλλα έντυπα) και φεύγει
+	   μέσω Make κατευθείαν στον πελάτη, με κρυφή κοινοποίηση στο γραφείο. */
+	async function sendClient(){
+		if (!result) return;
+		var email = val("clientEmail");
+		if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast("Γράψε σωστό email ιδιοκτήτη.", "err"); return; }
+		var btn = $("sendClient");
+		btn.disabled = true;
+		btn.textContent = "Ετοιμάζεται το PDF…";
+		try {
+			var node = buildClientDoc();
+			node.style.width = "720px";
+			node.style.position = "absolute";
+			node.style.left = "-9999px";
+			document.body.appendChild(node);
+			var uri = await html2pdf().set({
+				margin: 10,
+				image: { type: "jpeg", quality: 0.95 },
+				html2canvas: { scale: 2 },
+				jsPDF: { unit: "mm", format: "a4" },
+			}).from(node).outputPdf("datauristring");
+			node.remove();
+			var b64 = String(uri).split(",")[1] || "";
+			if (!b64) throw new Error("empty pdf");
+			var res = await FWOutbox.submit({
+				form: "ektimisi",
+				title: "Εκτίμηση ακινήτου",
+				submitted_at: new Date().toISOString(),
+				summary: result.summary,
+				valuation_ref: result.ref,
+				data: { summary: result.summary, client_email: email },
+				pdf_base64: b64,
+				pdf_filename: "ektimisi-four-walls.pdf",
+			}, "Εκτίμηση προς ιδιοκτήτη · " + result.summary);
+			if (res.queued) { toast("Χωρίς δίκτυο. Θα σταλεί αυτόματα μόλις βρεθεί σύνδεση.", "err"); }
+			else { toast("Στάλθηκε στον ιδιοκτήτη.", "ok"); }
+			btn.textContent = "Στάλθηκε στον ιδιοκτήτη ✓";
+		} catch (e) {
+			console.error(e);
+			btn.disabled = false;
+			btn.textContent = "Αποστολή εκτίμησης στον ιδιοκτήτη (PDF)";
+			toast("Αποτυχία στη δημιουργία/αποστολή του PDF.", "err");
+		}
 	}
 
 	/* --------------------------------------------------- το έγγραφο */
@@ -559,11 +645,13 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		$("asking").oninput = onAsking;
 		$("send").onclick = send;
 		$("sendEmail").onclick = sendEmail;
+		$("sendClient").onclick = sendClient;
 		$("again").onclick = reset;
 	}
 	document.addEventListener("DOMContentLoaded", init);
 })();
 </script>
+<script src="html2pdf.bundle.min.js"></script>
 <script src="_outbox.fw.js"></script>
 <script src="_crm.fw.js"></script>
 </body></html>

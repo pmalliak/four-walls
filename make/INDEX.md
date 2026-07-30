@@ -7,7 +7,7 @@
 |---|---|---|---|---|---|
 | `6405443` | Spitogatos - Αίτηση ανάθεσης | ναι | άμεσα (webhook/mailhook) | 22 | [6405443-spitogatos-aitisi-anathesis.blueprint.json](scenarios/6405443-spitogatos-aitisi-anathesis.blueprint.json) |
 | `6530594` | Site - Φόρμα επικοινωνίας | ναι | άμεσα (webhook/mailhook) | 33 | [6530594-site-forma-epikoinonias.blueprint.json](scenarios/6530594-site-forma-epikoinonias.blueprint.json) |
-| `6600035` | Έντυπα — υποβολή φόρμας | ναι | άμεσα (webhook/mailhook) | 10 | [6600035-entypa-ypovoli-formas.blueprint.json](scenarios/6600035-entypa-ypovoli-formas.blueprint.json) |
+| `6600035` | Έντυπα — υποβολή φόρμας | ναι | άμεσα (webhook/mailhook) | 11 | [6600035-entypa-ypovoli-formas.blueprint.json](scenarios/6600035-entypa-ypovoli-formas.blueprint.json) |
 | `6604242` | Spitogatos - Ενδιαφέρον για ακίνητο | ναι | άμεσα (webhook/mailhook) | 21 | [6604242-spitogatos-endiaferon-gia-akinito.blueprint.json](scenarios/6604242-spitogatos-endiaferon-gia-akinito.blueprint.json) |
 | `6683649` | Site - Ολοκλήρωση αναζήτησης | ναι | άμεσα (webhook/mailhook) | 2 | [6683649-site-oloklirosi-anazitisis.blueprint.json](scenarios/6683649-site-oloklirosi-anazitisis.blueprint.json) |
 | `6688477` | Photos — AI enhance | ναι | άμεσα (webhook/mailhook) | 21 | [6688477-photos-ai-enhance.blueprint.json](scenarios/6688477-photos-ai-enhance.blueprint.json) |
@@ -106,6 +106,7 @@
   ├─ route 6
     20  http:ActionSendData · Site: φτιάξε το report εκτίμησης · [φίλτρο: εκτίμηση]
     21  email:ActionSendEmail · Εκτίμηση · γραφείο · [φίλτρο: Μόνο αν γύρισε report]
+    22  email:ActionSendEmail · Εκτίμηση · ιδιοκτήτης · [φίλτρο: Προς ιδιοκτήτη]
 ```
 
 ## Spitogatos - Ενδιαφέρον για ακίνητο `6604242`

@@ -1871,6 +1871,10 @@
 										{
 											"a": "{{20.data.html}}",
 											"o": "exist"
+										},
+										{
+											"a": "{{1.data.client_email}}",
+											"o": "notexist"
 										}
 									]
 								]
@@ -2101,6 +2105,302 @@
 									"x": 300,
 									"y": 960,
 									"name": "Εκτίμηση · γραφείο"
+								},
+								"parameters": [
+									{
+										"name": "account",
+										"type": "account:smtp,google-restricted,microsoft-smtp-imap",
+										"label": "Connection",
+										"required": true
+									},
+									{
+										"name": "saveAfterSent",
+										"type": "select",
+										"label": "Save message after sending",
+										"required": true,
+										"validate": {
+											"enum": [
+												true,
+												false
+											]
+										}
+									},
+									{
+										"name": "accountImap",
+										"type": "account:imap,google-restricted,microsoft-smtp-imap",
+										"label": "Connection",
+										"required": true
+									},
+									{
+										"name": "folder",
+										"type": "select",
+										"label": "Folder",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"folder": "Sent",
+								"account": 8845630,
+								"accountImap": 8845636,
+								"saveAfterSent": true
+							}
+						},
+						{
+							"id": 22,
+							"filter": {
+								"name": "Προς ιδιοκτήτη",
+								"conditions": [
+									[
+										{
+											"a": "{{1.data.client_email}}",
+											"o": "exist"
+										},
+										{
+											"a": "{{1.pdf_base64}}",
+											"o": "exist"
+										}
+									]
+								]
+							},
+							"mapper": {
+								"cc": [],
+								"to": [
+									"{{1.data.client_email}}"
+								],
+								"bcc": [
+									"info@four-walls.gr",
+									"panos@four-walls.gr",
+									"manos@four-walls.gr"
+								],
+								"from": "info@four-walls.gr",
+								"html": "<!DOCTYPE html><html lang='el'><head><meta charset='utf-8'></head><body style='margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background:#f4f5f7;padding:18px 0;'><tr><td align='center'><table role='presentation' width='560' cellpadding='0' cellspacing='0' style='max-width:560px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;'><tr><td style='background:#16233A;padding:16px 24px 6px 24px;'><span style='font-weight:bold;font-size:15px;letter-spacing:3px;color:#ffffff;'>FOUR WALLS</span><span style='font-weight:bold;font-size:10px;letter-spacing:2px;color:#FF1462;padding-left:8px;'>REAL ESTATE</span></td></tr><tr><td style='background:#16233A;padding:0 24px 14px 24px;color:#ffffff;font-size:16px;font-weight:bold;letter-spacing:1px;'>Η ΕΚΤΙΜΗΣΗ ΤΟΥ ΑΚΙΝΗΤΟΥ ΣΑΣ</td></tr><tr><td style='height:3px;background:#FF1462;'></td></tr><tr><td style='padding:22px 24px 4px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 12px 0;'>Σας ευχαριστούμε για την εμπιστοσύνη σας.</p><p style='margin:0 0 4px 0;'>Επισυνάπτουμε την <strong>εκτίμηση αξίας</strong> για το ακίνητό σας ({{1.summary}}), όπως προέκυψε από τα στοιχεία της αγοράς και τα συγκριτικά της περιοχής.</p></td></tr><tr><td style='padding:14px 24px 20px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 12px 0;'>Θα χαρούμε να τη συζητήσουμε μαζί σας και να δούμε τα επόμενα βήματα για το ακίνητό σας.</p><p style='margin:0;color:#777777;font-size:13.5px;'>Καλέστε μας στο <strong style='color:#16233A;'>+30 6907 483 463</strong> ή απαντήστε σε αυτό το email.</p></td></tr><tr><td style='background:#16233A;padding:16px 24px;'><p style='margin:0;font-size:12px;line-height:1.6;color:#cdd3de;'><strong style='color:#ffffff;'>Four Walls Real Estate</strong> · <a href=\"tel:+306907483463\" style=\"color:#ffffff; text-decoration:underline;\">+30 6907 483 463</a> · <a href=\"mailto:info@four-walls.gr\" style=\"color:#ffffff; text-decoration:underline;\">info@four-walls.gr</a><br>\nΦραγκίνη 9, Θεσσαλονίκη · <a href=\"https://four-walls.gr/go?to=/&amp;c=ektimisi\" style=\"color:#ffffff; text-decoration:underline;\">four-walls.gr</a></p></td></tr></table></td></tr></table></body></html>",
+								"sender": "",
+								"headers": [],
+								"replyTo": "info@four-walls.gr",
+								"subject": "Η εκτίμηση του ακινήτου σας · Four Walls Real Estate",
+								"priority": "normal",
+								"inReplyTo": "",
+								"references": [],
+								"attachments": [
+									{
+										"cid": "",
+										"data": "{{toBinary(1.pdf_base64; \"base64\")}}",
+										"fileName": "{{1.pdf_filename}}"
+									}
+								],
+								"contentType": "html"
+							},
+							"module": "email:ActionSendEmail",
+							"version": 7,
+							"metadata": {
+								"expect": [
+									{
+										"name": "to",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email address",
+											"required": true
+										},
+										"type": "array",
+										"label": "To",
+										"required": true
+									},
+									{
+										"name": "subject",
+										"type": "text",
+										"label": "Subject"
+									},
+									{
+										"name": "contentType",
+										"type": "select",
+										"label": "Content Type",
+										"required": true,
+										"validate": {
+											"enum": [
+												"html",
+												"text"
+											]
+										}
+									},
+									{
+										"name": "attachments",
+										"spec": [
+											{
+												"name": "fileName",
+												"type": "filename",
+												"label": "File name",
+												"required": true,
+												"semantic": "file:name"
+											},
+											{
+												"name": "data",
+												"type": "buffer",
+												"label": "Data",
+												"required": true,
+												"semantic": "file:data"
+											},
+											{
+												"name": "cid",
+												"type": "text",
+												"label": "Content-ID"
+											}
+										],
+										"type": "array",
+										"label": "Attachments"
+									},
+									{
+										"name": "cc",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email address"
+										},
+										"type": "array",
+										"label": "Copy recipient"
+									},
+									{
+										"name": "bcc",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email address"
+										},
+										"type": "array",
+										"label": "Blind copy recipient"
+									},
+									{
+										"name": "from",
+										"type": "text",
+										"label": "From"
+									},
+									{
+										"name": "sender",
+										"type": "text",
+										"label": "Sender"
+									},
+									{
+										"name": "replyTo",
+										"type": "text",
+										"label": "Reply-To"
+									},
+									{
+										"name": "inReplyTo",
+										"type": "text",
+										"label": "In-Reply-To"
+									},
+									{
+										"name": "references",
+										"spec": {
+											"name": "value",
+											"type": "text",
+											"label": "Reference",
+											"required": true
+										},
+										"type": "array",
+										"label": "References"
+									},
+									{
+										"name": "priority",
+										"type": "select",
+										"label": "Priority",
+										"validate": {
+											"enum": [
+												"high",
+												"normal",
+												"low"
+											]
+										}
+									},
+									{
+										"name": "headers",
+										"spec": [
+											{
+												"name": "key",
+												"type": "text",
+												"label": "Key",
+												"required": true
+											},
+											{
+												"name": "value",
+												"type": "text",
+												"label": "Value",
+												"required": true
+											}
+										],
+										"type": "array",
+										"label": "Headers"
+									},
+									{
+										"name": "html",
+										"type": "text",
+										"label": "Content"
+									}
+								],
+								"restore": {
+									"expect": {
+										"cc": {
+											"mode": "chose"
+										},
+										"to": {
+											"mode": "chose",
+											"items": [
+												null
+											]
+										},
+										"bcc": {
+											"mode": "chose",
+											"items": [
+												null,
+												null,
+												null
+											]
+										},
+										"priority": {
+											"label": "Normal"
+										},
+										"references": {
+											"mode": "chose"
+										},
+										"attachments": {
+											"mode": "chose",
+											"items": [
+												null
+											]
+										},
+										"contentType": {
+											"label": "HTML"
+										}
+									},
+									"parameters": {
+										"folder": {
+											"label": "Sent"
+										},
+										"account": {
+											"data": {
+												"scoped": "true",
+												"connection": "smtp"
+											},
+											"label": "Zoho SMTP (SMTP info@four-walls.gr)"
+										},
+										"accountImap": {
+											"data": {
+												"scoped": "true",
+												"connection": "imap"
+											},
+											"label": "Zoho IMAP (IMAP info@four-walls.gr)"
+										},
+										"saveAfterSent": {
+											"label": "Yes"
+										}
+									}
+								},
+								"advanced": true,
+								"designer": {
+									"x": 600,
+									"y": 960,
+									"name": "Εκτίμηση · ιδιοκτήτης"
 								},
 								"parameters": [
 									{
