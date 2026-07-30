@@ -45,7 +45,13 @@ const DEFAULT_MODEL = "claude-opus-5";
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
 
-export async function handleValuation(request, env, url) {
+/* ctx: για το ctx.waitUntil. ΚΡΙΣΙΜΟ σε κινητό — ο υπολογισμός θέλει 25-45
+   δευτερόλεπτα, και όταν κλειδώσει η οθόνη ή πάει η εφαρμογή στο background
+   το fetch πεθαίνει. Χωρίς waitUntil, το Cloudflare ακυρώνει τον Worker μαζί
+   με τον client και ΔΕΝ γράφεται ποτέ αποτέλεσμα: ο σύμβουλος έχει πληρώσει
+   δύο κλήσεις AI για το τίποτα. Με waitUntil η δουλειά τελειώνει και μπαίνει
+   στο KV, οπότε το επόμενο fetch τη βρίσκει έτοιμη και δωρεάν. */
+export async function handleValuation(request, env, url, ctx) {
 	if (request.method !== "GET") return json({ error: "method_not_allowed" }, 405);
 	if (!env.ANTHROPIC_API_KEY && !env.GEMINI_API_KEY) {
 		console.error("valuation: neither ANTHROPIC_API_KEY nor GEMINI_API_KEY is configured");
@@ -84,8 +90,12 @@ export async function handleValuation(request, env, url) {
 	// (αριθμητική, σύγκριση με συγκριτικά και εύρη περιοχής, υπερβολές).
 	// Μια αποτυχία εδώ (AI down, κακό JSON) γυρίζει καθαρό 502 ώστε το
 	// Make να τη δει ως σφάλμα και να παρκάρει το bundle στο DLQ.
-	let v;
-	try {
+	//
+	// Όλη η ακριβή δουλειά μπαίνει σε ΕΝΑ promise που δηλώνεται στο
+	// ctx.waitUntil ΠΡΙΝ το await: αν ο client φύγει (κλείδωμα οθόνης,
+	// background), το promise συνεχίζει και γράφει στο KV. Το επόμενο fetch
+	// βρίσκει το report έτοιμο αντί να ξαναπληρώσει δύο κλήσεις AI.
+	const work = (async () => {
 		const draft = await askAI(env, PASS1_SYSTEM, dataBlock + "\n\n" + PASS1_ASK);
 		const draftJson = extractJson(draft);
 		const final = await askAI(
@@ -93,16 +103,21 @@ export async function handleValuation(request, env, url) {
 			PASS2_SYSTEM,
 			dataBlock + "\n\nΗ ΕΚΤΙΜΗΣΗ ΠΡΟΣ ΕΛΕΓΧΟ (JSON):\n" + JSON.stringify(draftJson) + "\n\n" + PASS2_ASK,
 		);
-		v = extractJson(final);
+		const result = renderReport(prop, comps, stats, priceRow, extractJson(final), payload);
+		await env.LISTINGS_KV.put(VALUATION_RES_PREFIX + ref, JSON.stringify(result), {
+			expirationTtl: 7 * 24 * 3600,
+		});
+		return result;
+	})();
+	if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work);
+
+	let result;
+	try {
+		result = await work;
 	} catch (err) {
 		console.error(`valuation: AI failed for ref ${ref}: ${String(err)}`);
 		return json({ error: "valuation_failed", detail: String(err).slice(0, 200) }, 502);
 	}
-
-	const result = renderReport(prop, comps, stats, priceRow, v, payload);
-	await env.LISTINGS_KV.put(VALUATION_RES_PREFIX + ref, JSON.stringify(result), {
-		expirationTtl: 7 * 24 * 3600,
-	});
 	return respond(await withPdf(env, ref, result, wantsPdf), wantsHtml);
 }
 

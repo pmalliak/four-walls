@@ -119,7 +119,7 @@ export default {
 			// (/forms/api/valuation) και γύριζε 404 — «Η εκτίμηση απέτυχε».
 			// Το Access μπροστά σε αυτό το hostname είναι ήδη η πύλη.
 			if (url.pathname === "/api/valuation") {
-				return handleValuation(request, env, url);
+				return handleValuation(request, env, url, ctx);
 			}
 			const assetUrl = new URL(request.url);
 			assetUrl.pathname = "/forms" + url.pathname;
@@ -229,7 +229,7 @@ export default {
 		// Δύο κλήσεις Claude ανά ref, με cache ώστε retries να μην
 		// ξαναχρεώνουν. Βλ. docs/valuation.md.
 		if (pathname === "/api/valuation") {
-			return handleValuation(request, env, url);
+			return handleValuation(request, env, url, ctx);
 		}
 		// Our own ζήτηση form (/request): criteria + contact details ->
 		// Make -> email to the office. See docs/site-request-form.md.

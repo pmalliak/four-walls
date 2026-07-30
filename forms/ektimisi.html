@@ -356,11 +356,25 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		return "residential";
 	}
 
+	var computing = false;
+
 	function busy(b){
+		computing = b;
 		var btn = $("send");
 		btn.disabled = b;
 		btn.innerHTML = b ? '<span class="spin"></span>Υπολογίζεται… (μισό λεπτό)' : "Υπολογισμός εκτίμησης";
 	}
+
+	/* Προειδοποίηση αν φύγει η σελίδα μέσα στον υπολογισμό. Σε κινητό το
+	   beforeunload είναι αναξιόπιστο και δεν πιάνει το κλείδωμα οθόνης —
+	   γι' αυτό η πραγματική άμυνα είναι το ctx.waitUntil στον Worker και το
+	   retry· αυτό εδώ πιάνει μόνο το προφανές (κλείσιμο tab, back). */
+	window.addEventListener("beforeunload", function(e){
+		if (!computing) return;
+		e.preventDefault();
+		e.returnValue = "Ο υπολογισμός τρέχει ακόμα.";
+		return e.returnValue;
+	});
 
 	var result = null;  // {ref, summary, j, edit?} μετά από επιτυχή υπολογισμό
 	var editing = null; // 'value' | 'rent' όσο γράφει ο σύμβουλος
@@ -412,6 +426,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 
 		try {
 			busy(true);
+			await keepAwake(true);
 			// Βήμα 1: το payload παρκάρει στο KV. Το Make ΔΕΝ ειδοποιείται.
 			var r = await fetch("/api/forms/submit", {
 				method: "POST",
@@ -421,10 +436,10 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			if (!r.ok) throw new Error("submit HTTP " + r.status);
 			var ref = (await r.json()).valuation_ref;
 			if (!ref) throw new Error("no valuation_ref");
-			// Βήμα 2: δύο περάσματα AI, συνήθως 15-40 δευτερόλεπτα.
-			var vr = await fetch("/api/valuation?ref=" + encodeURIComponent(ref));
-			if (!vr.ok) throw new Error("valuation HTTP " + vr.status);
-			var j = await vr.json();
+			// Το ref επιβιώνει σε reload: αν χαθεί η σελίδα στη μέση, το
+			// έτοιμο report βρίσκεται μετά χωρίς νέο κόστος AI.
+			try { sessionStorage.setItem("fwLastRef", ref); } catch (e) {}
+			var j = await fetchReport(ref);
 			result = { ref: ref, summary: summary, j: j };
 			showView("office");
 			$("form").classList.add("hide");
@@ -443,7 +458,55 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		} catch (e) {
 			console.error(e);
 			toast("Η εκτίμηση απέτυχε. Δοκίμασε ξανά σε λίγο.", "err");
-		} finally { busy(false); }
+		} finally { busy(false); keepAwake(false); }
+	}
+
+	/* Ο υπολογισμός θέλει 25-45 δευτερόλεπτα. Σε κινητό αυτό είναι πολλή ώρα
+	   για ανοιχτή σύνδεση: κλείδωμα οθόνης ή αλλαγή εφαρμογής σκοτώνει το
+	   fetch. Ο Worker πλέον τελειώνει τη δουλειά και τη γράφει στο KV
+	   (ctx.waitUntil), άρα ένα δεύτερο fetch τη βρίσκει έτοιμη — γι' αυτό
+	   ξαναδοκιμάζουμε αντί να πετάξουμε τα λεφτά του AI. */
+	async function fetchReport(ref){
+		var url = "/api/valuation?ref=" + encodeURIComponent(ref);
+		var lastErr;
+		for (var i = 0; i < 5; i++) {
+			if (i > 0) {
+				setStatus("Η σύνδεση κόπηκε — ξαναδοκιμάζω (" + i + "/4). Ο υπολογισμός συνεχίστηκε στον server.");
+				await new Promise(function(r){ setTimeout(r, 4000); });
+			}
+			try {
+				var res = await fetch(url);
+				if (res.ok) return await res.json();
+				// 502 = το AI απέτυχε στ' αλήθεια. Δεν το ξαναπροσπαθούμε:
+				// θα ξαναχρεώσει και θα αποτύχει ξανά για τον ίδιο λόγο.
+				if (res.status === 502) throw new Error("valuation HTTP 502");
+				lastErr = new Error("valuation HTTP " + res.status);
+			} catch (e) {
+				if (String(e.message).indexOf("502") !== -1) throw e;
+				lastErr = e;
+			}
+		}
+		throw lastErr || new Error("valuation failed");
+	}
+
+	function setStatus(msg){
+		var b = $("send");
+		if (b) b.textContent = msg;
+	}
+
+	/* Κρατά την οθόνη ξύπνια όσο τρέχει ο υπολογισμός — χτυπά κατευθείαν
+	   την αιτία, αντί να ζητάει από τον σύμβουλο να μην ακουμπήσει το
+	   κινητό. Δεν υποστηρίζεται παντού· η αποτυχία είναι αθόρυβη. */
+	var _lock = null;
+	async function keepAwake(on){
+		try {
+			if (on) {
+				if (navigator.wakeLock && !_lock) _lock = await navigator.wakeLock.request("screen");
+			} else if (_lock) {
+				await _lock.release();
+				_lock = null;
+			}
+		} catch (e) { _lock = null; }
 	}
 
 	/* «Αποστολή στο info@»: ελαφρύ δεύτερο submit με το ίδιο ref. Το Make
