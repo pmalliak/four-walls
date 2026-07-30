@@ -167,7 +167,8 @@ export default {
 			// Ιστορικό URL: το logo της υπογραφής σερβιριζόταν στη γυμνή ρίζα
 			// του hostname και κάθεται ήδη μέσα σε σταλμένα email — μένει
 			// alias για πάντα, αλλιώς σπάει η εικόνα σε ό,τι έχει ήδη φύγει.
-			assetUrl.pathname = url.pathname === "/"
+			const bareRoot = url.pathname === "/";
+			assetUrl.pathname = bareRoot
 				? "/assets/signature-logo.png"
 				: "/assets" + url.pathname;
 			const res = await env.ASSETS.fetch(new Request(assetUrl, request));
@@ -185,6 +186,13 @@ export default {
 			// Δημόσια assets: να μπορούν να τα φορτώσουν και άλλα origins
 			// (fonts, JSON, εικόνες σε καμβά) χωρίς CORS εμπόδιο.
 			headers.set("Access-Control-Allow-Origin", "*");
+			// Η γυμνή ρίζα δεν έχει κατάληξη αρχείου στο URL, οπότε ο browser
+			// (κυρίως στο κινητό) το παίρνει για άγνωστο αρχείο: εικονίδιο «?»
+			// και κατέβασμα αντί για προβολή. Το λέμε ρητά — και του δίνουμε
+			// και σωστό όνομα αν τελικά το αποθηκεύσει.
+			if (bareRoot) {
+				headers.set("Content-Disposition", 'inline; filename="signature-logo.png"');
+			}
 			const loc = headers.get("Location");
 			if (loc && loc.startsWith("/assets")) {
 				headers.set("Location", loc.slice("/assets".length) || "/");

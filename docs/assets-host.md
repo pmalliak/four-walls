@@ -43,6 +43,11 @@ assets/signature-logo.png   →   https://assets.four-walls.gr/signature-logo.pn
 κάθεται ήδη μέσα σε σταλμένα email — αν αλλάξει, σπάει η εικόνα σε ό,τι έχει
 φύγει. Μένει alias για πάντα· τα **καινούργια** links γράφονται με πλήρες path.
 
+Επειδή αυτό το URL δεν έχει κατάληξη αρχείου, ο browser (κυρίως στο κινητό) το
+περνάει για άγνωστο αρχείο: εικονίδιο «?» και κατέβασμα αντί για προβολή. Γι'
+αυτό μόνο σε αυτό το path μπαίνει `Content-Disposition: inline; filename=…`.
+Μέσα σε `<img src>` δεν είχε ποτέ σημασία — μετράει το `Content-Type`.
+
 ## Setup (μία φορά)
 
 Το hostname μπορεί να είναι custom domain σε **έναν μόνο** Worker. Με τη σειρά:
