@@ -364,9 +364,16 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			setSel("condition", CONDITION_GR[f.condition] || f.condition);
 			setSel("heating", HEATING_GR[f.heating] || f.heating);
 			setSel("parking", f.parking > 0 ? "Ανοιχτό" : "Όχι");
+			// Στο CRM αυτά είναι checkboxes: ό,τι ΔΕΝ είναι τσεκαρισμένο
+			// σημαίνει «Όχι», όχι «άγνωστο» — αλλιώς το μοντέλο ζητά
+			// πληροφορία που στην πραγματικότητα έχουμε (π.χ. 1994900).
 			var feats = f.features || [];
-			if (feats.indexOf("has_elevator") >= 0) setSel("elevator", "Ναι");
-			if (feats.indexOf("has_storage_room") >= 0 || feats.indexOf("has_storage") >= 0) setSel("storage", "Ναι");
+			setSel("elevator", feats.indexOf("has_elevator") >= 0 ? "Ναι" : "Όχι");
+			setSel("storage", (feats.indexOf("has_storage_room") >= 0 || feats.indexOf("has_storage") >= 0) ? "Ναι" : "Όχι");
+			var hasPool = feats.some(function(s){ return /pool/i.test(s); });
+			// Με πισίνα δεν ξέρουμε κοινόχρηστη/ιδιωτική — το αφήνουμε στον
+			// σύμβουλο· χωρίς slug, είναι βέβαιο «Όχι».
+			if (!hasPool) setSel("pool", "Όχι");
 			var views = (f.view || []).map(function(vv){ return VIEW_GR[vv] || vv; });
 			if (views.length) $("view").value = views.join(", ");
 			toast("Συμπληρώθηκαν όλα τα στοιχεία από το CRM. Διόρθωσε ό,τι θες.", "ok");

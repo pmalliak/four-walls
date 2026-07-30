@@ -191,6 +191,11 @@ function mergeProperty(feed, d) {
 		const s = String(formVal == null ? "" : formVal).trim();
 		return s !== "" ? s : (feedVal == null ? "" : String(feedVal));
 	};
+	// Checkboxes του CRM: το άδειο σημαίνει «Όχι», όχι «άγνωστο». Ισχύει
+	// μόνο όταν το ακίνητο ήρθε από το feed — σε χειροκίνητη φόρμα το κενό
+	// παραμένει πραγματικά άγνωστο.
+	const feats = Array.isArray(f.features) ? f.features : null;
+	const featYesNo = (test) => (feats ? (feats.some(test) ? "Ναι" : "Όχι") : "");
 	return {
 		listingCode: pick(d.listing_code, f.code),
 		fromCrm: !!fromFeed,
@@ -208,16 +213,18 @@ function mergeProperty(feed, d) {
 		energyClass: pick(d.energy_class, f.energyClass),
 		condition: pick(d.condition, f.condition),
 		heating: pick(d.heating, f.heating),
-		elevator: String(d.elevator || "").trim(),      // ναι | όχι | ""
-		parking: pick(d.parking, f.parking ? "ναι" : ""),
-		storage: String(d.storage || "").trim(),
+		elevator: pick(d.elevator, featYesNo((s) => s === "has_elevator")),
+		parking: pick(d.parking, f.parking != null ? (f.parking > 0 ? "Ναι" : "Όχι") : ""),
+		storage: pick(d.storage, featYesNo((s) => s === "has_storage_room" || s === "has_storage")),
 		view: pick(d.view, (f.view || []).join(", ")),
 		orientation: String(d.orientation || "").trim(),
 		// Οδηγοί αξίας εξοχικών (Χαλκιδική/Πιερία): χωρίς αυτά το μοντέλο
 		// αγκυρώνει στο «τυπικό διαμέρισμα» του πίνακα και βγαίνει χαμηλό.
 		seaDistanceM: num(d.sea_distance_m),
 		plotSqm: num(d.plot_sqm),
-		pool: String(d.pool || "").trim(),
+		// Πισίνα με slug δεν ξέρουμε αν είναι κοινόχρηστη/ιδιωτική — «Ναι»
+		// σκέτο· χωρίς slug σε ακίνητο του CRM, βέβαιο «Όχι».
+		pool: pick(d.pool, featYesNo((s) => /pool/i.test(s))),
 		balconies: String(d.balconies || "").trim(),
 		askingPrice: num(pick(d.asking_price_num || d.asking_price, f.price)),
 		monthlyMaintenance: num(pick("", f.monthlyMaintenance)),
