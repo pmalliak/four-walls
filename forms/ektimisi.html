@@ -45,6 +45,13 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 .mini{font:inherit;font-weight:700;font-size:12px;color:var(--navy);background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:6px 12px;min-height:34px;cursor:pointer;}
 .mini:active{transform:translateY(1px);}
 .mini[hidden]{display:none;}
+/* Inline edit της τιμής μέσα στο preview. Το ✏️ και το input δεν μπαίνουν
+   ποτέ στο PDF — το buildClientDoc(true) τα παραλείπει. */
+.doc .vrow{display:flex;align-items:center;gap:8px;}
+.doc .pen{font-size:15px;line-height:1;background:none;border:none;padding:2px 4px;cursor:pointer;opacity:.55;}
+.doc .pen:active{transform:translateY(1px);}
+.doc .editin{font:inherit;font-weight:800;font-size:24px;color:var(--pink);width:100%;max-width:260px;border:2px solid var(--pink);border-radius:8px;padding:4px 8px;background:#fff;}
+.doc .editin:focus{outline:none;}
 /* το «έγγραφο» της εκτίμησης: ίδια χάρτινη γλώσσα με τα άλλα έντυπα */
 .doc{width:100%;max-width:720px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:6px;color:#242a33;font-size:13.5px;line-height:1.55;padding:20px 22px;box-shadow:0 1px 4px rgba(20,30,50,.05);}
 .doc .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:2px solid var(--navy);padding-bottom:9px;position:relative;}
@@ -355,7 +362,8 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		btn.innerHTML = b ? '<span class="spin"></span>Υπολογίζεται… (μισό λεπτό)' : "Υπολογισμός εκτίμησης";
 	}
 
-	var result = null; // {ref, summary} μετά από επιτυχή υπολογισμό
+	var result = null;  // {ref, summary, j, edit?} μετά από επιτυχή υπολογισμό
+	var editing = null; // 'value' | 'rent' όσο γράφει ο σύμβουλος
 
 	async function send(){
 		if (!listing && !val("areaName")) { toast("Γράψε την περιοχή ή διάλεξε ακίνητο από το CRM.", "err"); return; }
@@ -472,8 +480,70 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 	   disclaimer. ΧΩΡΙΣ προσαρμογές, συγκριτικά, βεβαιότητα ή συμβουλή
 	   προς τον σύμβουλο (εσωτερικά). Κεντρική τιμή μπροστά, εύρος από
 	   κάτω, όπως οι CMA των μεγάλων γραφείων. */
-	function buildClientDoc(){
-		var j = result.j, v = j.v || {}, p = j.prop || {};
+	/* Ποιο νούμερο δείχνει/στέλνει το πελατικό έγγραφο. Ο σύμβουλος αλλάζει
+	   ΜΟΝΟ την κεντρική τιμή· το εύρος μετακινείται ΑΝΑΛΟΓΙΚΑ, αλλιώς θα
+	   έβγαινε έγγραφο που λέει «140.000, εύρος 144.000 έως 159.000». */
+	function clientVals(){
+		var v = result.j.v || {}, e = result.edit || {};
+		function shift(mid, lo, hi, override){
+			if (!override || !mid) return { mid: mid, lo: lo, hi: hi };
+			var k = override / mid;
+			return { mid: override, lo: Math.round((lo || 0) * k), hi: Math.round((hi || 0) * k) };
+		}
+		var s = shift(v.value_mid, v.value_low, v.value_high, e.value_mid);
+		var r = shift(v.rent_mid, v.rent_low, v.rent_high, e.rent_mid);
+		return { value_mid: s.mid, value_low: s.lo, value_high: s.hi,
+			rent_mid: r.mid, rent_low: r.lo, rent_high: r.hi,
+			edited: !!(e.value_mid || e.rent_mid) };
+	}
+
+	function roundTo(n, step){ return Math.max(step, Math.round(n / step) * step); }
+
+	/* Στο commit ΔΕΝ πειράζουμε το DOM: γράφουμε στα δεδομένα και ξαναχτίζεται
+	   το έγγραφο. Έτσι το εύρος, το PDF, το doc_html και η γραμμή ελέγχου
+	   βγαίνουν όλα συνεπή από μία πηγή, χωρίς contenteditable. */
+	function commitEdit(which, raw){
+		editing = null;
+		var v = result.j.v || {};
+		var base = which === "value" ? v.value_mid : v.rent_mid;
+		var n = Number(String(raw).replace(/[^\d]/g, ""));
+		if (n) {
+			n = roundTo(n, which === "value" ? 1000 : 10);
+			result.edit = result.edit || {};
+			result.edit[which === "value" ? "value_mid" : "rent_mid"] = n;
+			if (base && Math.abs(n - base) / base > 0.15) {
+				toast("Απόκλιση άνω του 15% από την εκτίμηση — σίγουρα;", "err");
+			}
+		}
+		showView("client");
+	}
+
+	/* Το νούμερο, με ✏️ δίπλα του — ή input στη θέση του όταν το πατήσεις.
+	   Στο forPrint τίποτα από τα δύο: ούτε μολύβι ούτε input στο PDF. */
+	function valueNode(cls, text, which, forPrint){
+		if (forPrint) return el("div", cls, text);
+		if (editing === which) {
+			var inp = el("input", "editin");
+			inp.type = "text";
+			inp.inputMode = "numeric";
+			inp.value = String(which === "value" ? clientVals().value_mid : clientVals().rent_mid);
+			inp.onkeydown = function(ev){ if (ev.key === "Enter") { ev.preventDefault(); inp.blur(); } };
+			inp.onblur = function(){ commitEdit(which, inp.value); };
+			setTimeout(function(){ inp.focus(); inp.select(); }, 0);
+			return inp;
+		}
+		var row = el("div", "vrow");
+		row.appendChild(el("div", cls, text));
+		var pen = el("button", "pen", "✏️");
+		pen.type = "button";
+		pen.title = "Άλλαξε το ποσό";
+		pen.onclick = function(){ editing = which; showView("client"); };
+		row.appendChild(pen);
+		return row;
+	}
+
+	function buildClientDoc(forPrint){
+		var j = result.j, v = j.v || {}, p = j.prop || {}, cv = clientVals();
 		var d = el("div", "doc");
 		var hd = el("div", "hd");
 		var wm = el("div", "wm");
@@ -490,14 +560,14 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		if (p.purpose !== "rent") {
 			var b = el("div", "bigval");
 			b.appendChild(el("div", "l", "ΕΚΤΙΜΩΜΕΝΗ ΑΞΙΑ"));
-			b.appendChild(el("div", "v", money(v.value_mid)));
-			b.appendChild(el("div", "r", "εύρος " + money(v.value_low) + " έως " + money(v.value_high)));
+			b.appendChild(valueNode("v", money(cv.value_mid), "value", forPrint));
+			b.appendChild(el("div", "r", "εύρος " + money(cv.value_low) + " έως " + money(cv.value_high)));
 			d.appendChild(b);
 		}
-		if (p.purpose !== "sale" && v.rent_mid) {
+		if (p.purpose !== "sale" && cv.rent_mid) {
 			var rb = el("div", "rentval");
 			rb.appendChild(el("div", "l", "ΕΚΤΙΜΩΜΕΝΟ ΜΙΣΘΩΜΑ"));
-			rb.appendChild(el("div", "r", money(v.rent_mid) + "/μήνα (εύρος " + money(v.rent_low) + " έως " + money(v.rent_high) + ")"));
+			rb.appendChild(valueNode("r", money(cv.rent_mid) + "/μήνα (εύρος " + money(cv.rent_low) + " έως " + money(cv.rent_high) + ")", "rent", forPrint));
 			d.appendChild(rb);
 		}
 		if (v.market_comment) { d.appendChild(el("h2", null, "Η ΑΓΟΡΑ ΣΤΗΝ ΠΕΡΙΟΧΗ")); d.appendChild(el("p", null, v.market_comment)); }
@@ -576,7 +646,8 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		btn.disabled = true;
 		btn.textContent = "Ετοιμάζεται το PDF…";
 		try {
-			var node = buildClientDoc();
+			var cv = clientVals();
+			var node = buildClientDoc(true); // χωρίς μολύβια στο PDF
 			node.style.width = "720px";
 			node.style.position = "absolute";
 			node.style.left = "-9999px";
@@ -598,7 +669,16 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 				submitted_at: new Date().toISOString(),
 				summary: result.summary,
 				valuation_ref: result.ref,
-				data: { summary: result.summary, client_email: email },
+				// Ίχνος: τι έφυγε στον πελάτη και τι είχε πει το μοντέλο. Σε
+				// μεσιτικό, το ποσό που κρατά ο ιδιοκτήτης μπορεί να
+				// συζητηθεί μήνες μετά — θέλουμε να ξέρουμε ποιος το άλλαξε.
+				data: {
+					summary: result.summary,
+					client_email: email,
+					value_sent: String(cv.value_mid || ""),
+					value_model: String((result.j.v || {}).value_mid || ""),
+					adjusted_by: cv.edited ? "σύμβουλος" : "",
+				},
 				pdf_base64: b64,
 				pdf_filename: "ektimisi-four-walls.pdf",
 				doc_html: html,
@@ -648,12 +728,15 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		var client = which === "client";
 		$("tabOffice").classList.toggle("on", !client);
 		$("tabClient").classList.toggle("on", client);
-		$("viewhint").textContent = client
-			? "Αυτό ακριβώς φεύγει ως PDF στον ιδιοκτήτη — χωρίς προσαρμογές, συγκριτικά ή εσωτερικά σχόλια. Δεν έχει σταλεί τίποτα ακόμα."
-			: "Η εκτίμηση δεν έχει σταλεί πουθενά ακόμα. Το πλήρες report πάει στο γραφείο· δες στη διπλανή καρτέλα τι ακριβώς θα λάβει ο ιδιοκτήτης.";
+		var cv = client ? clientVals() : null;
+		$("viewhint").textContent = !client
+			? "Η εκτίμηση δεν έχει σταλεί πουθενά ακόμα. Το πλήρες report πάει στο γραφείο· δες στη διπλανή καρτέλα τι ακριβώς θα λάβει ο ιδιοκτήτης."
+			: cv.edited
+				? "ΠΡΟΣΑΡΜΟΣΜΕΝΟ ΠΟΣΟ. Το μοντέλο είχε δώσει " + money(result.j.v.value_mid) + " — φεύγει ό,τι βλέπεις εδώ. Το γραφείο ενημερώνεται στο submit."
+				: "Αυτό ακριβώς φεύγει ως PDF στον ιδιοκτήτη — πάτα το ✏️ για να αλλάξεις το ποσό. Δεν έχει σταλεί τίποτα ακόμα.";
 		var box = $("docbox");
 		box.textContent = "";
-		box.appendChild(client ? buildClientDoc() : buildOfficeDoc(result.j));
+		box.appendChild(client ? buildClientDoc(false) : buildOfficeDoc(result.j));
 	}
 
 	/* Χτίζεται με DOM (textContent), όχι innerHTML: τα κείμενα έρχονται
@@ -752,6 +835,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		 "orientation","view","asking","notes"].forEach(function(id){ $(id).value = ""; });
 		renderListing();
 		result = null;
+		editing = null;
 		$("tabOffice").classList.add("on");
 		$("tabClient").classList.remove("on");
 		$("clientEmail").value = "";
