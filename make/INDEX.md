@@ -203,5 +203,5 @@
 
 ```
 1   http:ActionSendData · Έλεγχος τιμών (Worker: Gemini + Google Search)
-2   email:ActionSendEmail · Email στον Πάνο για έγκριση
+2   email:ActionSendEmail · Email στον Πάνο για έγκριση · [φίλτρο: Μόνο αν γύρισε πίνακας]
 ```

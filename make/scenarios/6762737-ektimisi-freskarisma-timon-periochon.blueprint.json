@@ -36,6 +36,17 @@
 		},
 		{
 			"id": 2,
+			"filter": {
+				"name": "Μόνο αν γύρισε πίνακας",
+				"conditions": [
+					[
+						{
+							"a": "{{1.data.html}}",
+							"o": "exist"
+						}
+					]
+				]
+			},
 			"mapper": {
 				"cc": [],
 				"to": [
@@ -45,8 +56,7 @@
 				"from": "info@four-walls.gr",
 				"html": "{{1.data.html}}",
 				"subject": "{{1.data.subject}}",
-				"attachments": [],
-				"contentType": "html"
+				"attachments": []
 			},
 			"module": "email:ActionSendEmail",
 			"version": 7,
