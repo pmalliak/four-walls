@@ -295,7 +295,7 @@ for (const e of emails) {
 			first_name: first, last_name: last,
 			source_id: 3, is_lead: true, is_company: false, is_active: true,
 			country: "GR", language_id: 1, office_id: 1, created_by: 2, users: [2],
-			tags: [12, 10], // claude, ΖΗΤΗΣΗ — δικό μας site, όχι spitogatos
+			tags: [12, 10], // ai (πρώην claude), ΖΗΤΗΣΗ — δικό μας site, όχι spitogatos
 			phones: l.phone ? [{ type: "mobile-personal", number: normPhone(l.phone), notes: "Από τη φόρμα του site" }] : [],
 			emails: l.email ? [{ type: "personal", email: l.email, email_address: l.email, notes: "Από τη φόρμα του site" }] : [],
 			notes,

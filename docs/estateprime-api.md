@@ -115,7 +115,10 @@ to.** Don't go looking again — the findings:
   the listing came *from* — not a publication target. In the live account it is
   `null` on 114 of 115 active listings. It is **not** "published on Spitogatos".
 - **`tags` are hand-maintained labels**, not integration state
-  (`/listings/tags` → `2=ilist`, `3=spitogatos`, `7=website-featured`).
+  (`/listings/tags` → `2=ilist`, `3=spitogatos`, `7=property-of-the-month`
+  — tag 7 was renamed from `website-featured` in the CRM UI 2026-07-31;
+  ids are stable across renames, names are not, so anything matching by
+  **name** (the Worker's `FEATURED_TAG` var) must follow a rename).
 
 Consequence for the feed: the integration pushes **every active listing** to
 Spitogatos, so `status === "active"` *is* the publication rule and the feed
@@ -165,10 +168,12 @@ documented `notes` is not returned.
 - **`DELETE /contacts/{id}` can answer `200` without deleting** — contact 72
   survived a `200` DELETE intact. Always re-GET to confirm a delete happened.
 - `tags` are integer ids from `GET /contacts/tags` (live: 1=ilist, 4=make,
-  9=spitogatos, 10=ΖΗΤΗΣΗ, 11=ΑΝΑΘΕΣΗ, 12=claude, 16=ΥΠΟΔΕΙΞΗ); there is no
-  tag-creation endpoint — new tags are made in the CRM UI. For
-  Claude-created Spitogatos leads, send them **in this order**:
-  `[12, 9, 10]` (claude, spitogatos, ΖΗΤΗΣΗ) — Panos's preference.
+  9=spitogatos, 10=ΖΗΤΗΣΗ, 11=ΑΝΑΘΕΣΗ, 12=ai, 16=ΥΠΟΔΕΙΞΗ, 17=website);
+  there is no tag-creation endpoint — new tags are made in the CRM UI.
+  Tag 12 was named `claude` until 2026-07-31 (renamed to `ai`, same id);
+  17=website is new the same day. For AI-created Spitogatos leads, send
+  them **in this order**: `[12, 9, 10]` (ai, spitogatos, ΖΗΤΗΣΗ) —
+  Panos's preference.
   Make-created leads always carry `spitogatos` too, see
   [spitogatos-leads.md](spitogatos-leads.md).
 - Claude-created Spitogatos leads are assigned to **Μάνος Χριστινάκης**
@@ -270,7 +275,8 @@ Field map, custom-field ids, and the Cloudflare Access setup:
 
 - Channels: `1=Κλήση, 2=Email, 3=SMS, 4=Δια ζώσης, 5=Άλλο`. `store_id` is 1.
 - **Communications have their own tag namespace** (`GET /communication/tags`):
-  live ids `5=make, 8=spitogatos, 15=claude` — different ids from contact tags.
+  live ids `5=make, 8=spitogatos, 15=ai (πρώην claude), 18=website` —
+  different ids from contact tags.
 - **Tag order is not preserved** — the API stores/returns tag ids sorted
   ascending regardless of submission order (sent `[15,8]`, got `[8,15]`).
   Same applies to contact tags. Display order in the UI follows tag id.
@@ -342,8 +348,8 @@ Field reference (from request 17/18):
   (array of listing subcategory slugs — Studio/Γκαρσονιέρα → `apartment`),
   `subtypes`, `price_min/max`, `size_min/max`, `floor_min/max`, `rooms_min/max`,
   `has_elevator` (bool), `contacts` (array of contact ids), `users`,
-  `tags` (request tag ids: **6=make, 13=claude, 14=spitogatos** — a THIRD tag
-  namespace), and `locations` (array of `{area_level1, area_level2,
+  `tags` (request tag ids: **6=make, 13=ai (πρώην claude), 14=spitogatos** —
+  a THIRD tag namespace), and `locations` (array of `{area_level1, area_level2,
   area_level3}` — resolve area names to ids via `GET /locations`; the 12
   Θεσσαλονίκη-Δήμος subareas live under `area_level1: 108`).
 - **`extra_fields`** is where the richer criteria land (object, not array):
@@ -355,7 +361,7 @@ Field reference (from request 17/18):
   category, subtype, price_max, size, floor, elevator, furnished, heating, and
   features (βεράντα → `has_balcony`, φοιτητικό → `suitable_for_students`) all
   come straight from the lead's structured fields and free-text message. Source
-  Spitogatos.gr, assigned to Μάνος, tags claude + spitogatos, contact linked.
+  Spitogatos.gr, assigned to Μάνος, tags ai + spitogatos, contact linked.
 
 ### Ματσαρίσματα ζήτησης — το tab «Ακίνητα» (mapped 2026-07-27)
 

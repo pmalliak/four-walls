@@ -109,8 +109,9 @@ notification). **Do NOT bulk-sweep** the `/api/search-enquiries` list endpoint. 
 dashboard are verified 1:1 identical.
 
 ## Tags — always by ID (Panos may rename tags)
-contact `tags:[12,9,10]` (claude,spitogatos,ΖΗΤΗΣΗ) · request `tags[]=13&tags[]=14` (claude,spitogatos)
-· comm `tags[]=15&tags[]=8` (claude,spitogatos). If a tag is deleted+recreated its id changes —
+contact `tags:[12,9,10]` (ai,spitogatos,ΖΗΤΗΣΗ) · request `tags[]=13&tags[]=14` (ai,spitogatos)
+· comm `tags[]=15&tags[]=8` (ai,spitogatos). The «ai» tag was named «claude» until 2026-07-31 —
+same ids, proving the by-ID rule right. If a tag is deleted+recreated its id changes —
 re-fetch from `/contacts|requests|communication/tags`.
 
 ## Procedure
@@ -250,7 +251,7 @@ Make απέτυχε (το email τότε γράφει «ΔΕΝ καταχωρή�
 **8. Report** to Panos: created / reused / skipped / failed counts, and any FAILs to retry, **plus
 το αποτέλεσμα του βήματος 7** (πόσες ζητήσεις / πόσα ακίνητα μπήκαν στο digest, ή «καμία
 εκκρεμότητα») **και του 7β** (πόσες ζητήσεις του site μπήκαν). Review a
-batch in the CRM by filtering the Επικοινωνίες list on the `claude` tag (comms sort by the lead's real
+batch in the CRM by filtering the Επικοινωνίες list on the `ai` tag (comms sort by the lead's real
 date, not creation time — they scatter, they don't cluster at top).
 
 ## Resume / idempotency
