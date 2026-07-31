@@ -56,16 +56,24 @@
 		return qAdd({ label: label || payload.title || payload.form, form: payload.form, created_at: new Date().toISOString(), attempts: 0, last_error: why, payload: payload }).then(badge);
 	}
 
-	/* Try to send now; on any failure keep it. Resolves {sent:true} or
-	   {queued:true, reason:'offline'|'auth'|'http_NNN'} — it only throws
-	   if even the local save failed (quota), so the form can warn that
-	   the έντυπο was NOT kept anywhere. */
+	/* Ο Worker κόβει το ίδιο έντυπο δεύτερη φορά (χαμένη απάντηση που μας
+	   έκανε να ξαναστείλουμε, ή δεύτερο πάτημα) και το δηλώνει. Το λέμε
+	   στον σύμβουλο: «στάλθηκε» και «είχε ήδη σταλεί» δεν είναι το ίδιο
+	   πράγμα όταν περιμένει ο πελάτης email. */
+	function isDuplicate(r) {
+		return r.json().then(function (j) { return !!(j && j.duplicate); }).catch(function () { return false; });
+	}
+
+	/* Try to send now; on any failure keep it. Resolves {sent:true,
+	   duplicate:bool} or {queued:true, reason:'offline'|'auth'|'http_NNN'}
+	   — it only throws if even the local save failed (quota), so the form
+	   can warn that the έντυπο was NOT kept anywhere. */
 	async function submit(payload, label) {
 		if (navigator.onLine === false) { await queue(payload, label, 'offline'); return { queued: true, reason: 'offline' }; }
 		var r;
 		try { r = await post(payload); }
 		catch (e) { await queue(payload, label, 'network'); return { queued: true, reason: 'offline' }; }
-		if (r.ok) return { sent: true };
+		if (r.ok) return { sent: true, duplicate: await isDuplicate(r) };
 		var reason = (r.status === 401 || r.status === 403) ? 'auth' : 'http_' + r.status;
 		await queue(payload, label, reason);
 		return { queued: true, reason: reason };
@@ -77,7 +85,7 @@
 	async function flush() {
 		if (_flushing) return;
 		_flushing = true;
-		var sent = 0, auth = false;
+		var sent = 0, dup = 0, auth = false;
 		try {
 			var recs = await qAll();
 			for (var i = 0; i < recs.length; i++) {
@@ -85,7 +93,9 @@
 				var rec = recs[i], r;
 				try { r = await post(rec.payload); }
 				catch (e) { break; } /* network died mid-run */
-				if (r.ok) { await qDel(rec.id); sent++; continue; }
+				/* Το ίδιο έντυπο που είχε ήδη φτάσει: φεύγει από την ουρά
+				   σαν τακτοποιημένο, αλλά δεν το λέμε «στάλθηκε τώρα». */
+				if (r.ok) { await qDel(rec.id); if (await isDuplicate(r)) dup++; else sent++; continue; }
 				rec.attempts = (rec.attempts || 0) + 1;
 				if (r.status === 401 || r.status === 403) { rec.last_error = 'auth'; await qPut(rec); auth = true; break; }
 				rec.last_error = 'http_' + r.status; await qPut(rec);
@@ -93,6 +103,7 @@
 		} finally { _flushing = false; }
 		badge();
 		if (sent > 0) toast(sent === 1 ? 'Το εκκρεμές έντυπο στάλθηκε.' : 'Στάλθηκαν ' + sent + ' εκκρεμή έντυπα.', 'ok');
+		if (dup > 0) toast(dup === 1 ? 'Ένα εκκρεμές έντυπο είχε ήδη σταλεί. Δεν ξαναστάλθηκε.' : dup + ' εκκρεμή έντυπα είχαν ήδη σταλεί. Δεν ξαναστάλθηκαν.', 'ok');
 		if (auth) toast('Χρειάζεται σύνδεση χρήστη — κλείσε και άνοιξε ξανά την εφαρμογή.', 'err');
 		return sent;
 	}

@@ -816,7 +816,7 @@ async function doSubmit(){
        outbox (see _outbox.fw.js) retries it when the network returns. */
     const res=await FWOutbox.submit(payload,"Καταχώριση — "+(state.address_el||state.owner_name||""));
     if(window.FWDrafts)FWDrafts.discard(); /* στάλθηκε ή μπήκε στο outbox — το πρόχειρο δεν χρειάζεται πια */
-    if(res.sent) toast(state.send_to_client===true ? "Στάλθηκε — και στον ιδιοκτήτη." : "Στάλθηκε.","ok");
+    if(res.sent) toast(res.duplicate ? "Είχε ήδη σταλεί. Δεν ξαναστάλθηκε." : (state.send_to_client===true ? "Στάλθηκε — και στον ιδιοκτήτη." : "Στάλθηκε."),"ok");
     else if(res.reason==="auth") toast("Αποθηκεύτηκε. Χρειάζεται σύνδεση χρήστη — άνοιξε ξανά την εφαρμογή για να σταλεί.","err");
     else toast("Δεν υπάρχει σύνδεση — αποθηκεύτηκε και θα σταλεί αυτόματα μόλις βρεθεί δίκτυο.","ok");
   }catch(err){

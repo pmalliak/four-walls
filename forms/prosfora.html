@@ -267,7 +267,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 					? "Χρειάζεται σύνδεση. Άνοιξε ξανά την εφαρμογή για να σταλεί."
 					: "Χωρίς δίκτυο. Θα σταλεί αυτόματα μόλις βρεθεί σύνδεση.", "err");
 			} else {
-				toast("Στάλθηκε.", "ok");
+				toast(res.duplicate ? "Είχε ήδη σταλεί. Δεν ξαναστάλθηκε." : "Στάλθηκε.", "ok");
 			}
 			window.scrollTo(0, 0);
 		} catch (e) {

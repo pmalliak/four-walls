@@ -191,7 +191,7 @@ async function sendMake(){var _v=collect().v;if(!String(_v.entoleas_email||'').t
   var payload={form:CONFIG.id,title:CONFIG.title,submitted_at:new Date().toISOString(),data:c.v,signatures:c.s,pdf_filename:r.fn,pdf_base64:r.uri.split(',')[1],doc_html:DOCHTML()};
   var res=await FWOutbox.submit(payload,CONFIG.title+' — '+(c.v.entoleas_onomatepwnymo||''));
   if(window.FWDrafts)FWDrafts.discard(); /* στάλθηκε ή μπήκε στο outbox — το πρόχειρο δεν χρειάζεται πια */
-  if(res.sent)toast('Στάλθηκε.','ok');
+  if(res.sent)toast(res.duplicate?'Είχε ήδη σταλεί. Δεν ξαναστάλθηκε.':'Στάλθηκε.','ok');
   else if(res.reason==='auth')toast('Αποθηκεύτηκε. Χρειάζεται σύνδεση χρήστη — άνοιξε ξανά την εφαρμογή για να σταλεί.','err');
   else toast('Δεν υπάρχει σύνδεση — αποθηκεύτηκε και θα σταλεί αυτόματα μόλις βρεθεί δίκτυο.','ok');
  }catch(e){console.error(e);toast('Αποτυχία — το έντυπο δεν στάλθηκε ούτε αποθηκεύτηκε.','err');}finally{busy(false);}}

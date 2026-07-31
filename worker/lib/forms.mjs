@@ -35,6 +35,50 @@ const FORM_IDS = new Set(["anathesi", "ypodeixi", "apodeixi", "katachorisi", "pr
    body that could only be a mistake or an attack. */
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
 
+/* Ένα έντυπο φεύγει μία φορά.
+
+   Το tablet στέλνει μέσα από το outbox: αν η απάντηση χαθεί στον δρόμο
+   (κλείδωμα οθόνης, Wi-Fi που γίνεται 4G, στιγμιαίο κενό σήματος) η
+   συσκευή το θεωρεί αποτυχία και ξαναστέλνει κάτι που είχε ήδη φτάσει.
+   Έτσι έφυγε διπλή εκτίμηση στις 2026-07-31, και στην ανάθεση το ίδιο
+   θα σήμαινε δεύτερο email και στον πελάτη.
+
+   Το κλειδί ΔΕΝ έρχεται από τον client: ένα δεύτερο πάτημα φτιάχνει
+   καινούργιο id και θα περνούσε. Υπογράφουμε το ίδιο το περιεχόμενο, και
+   αφήνουμε απ' έξω ό,τι αλλάζει χωρίς να αλλάζει το έντυπο: η ώρα του
+   tap, το PDF (το html2pdf γράφει CreationDate, άρα άλλα bytes σε κάθε
+   δημιουργία) και το `ref` της καταχώρισης, που είναι κι αυτό ρολόι.
+
+   Παράθυρο 6 ωρών: τα retries έρχονται σε δευτερόλεπτα ή λεπτά (και στην
+   κλειδωμένη συσκευή, όσο κρατήσει το κλείδωμα), ενώ μια αυριανή σκόπιμη
+   επαναποστολή του ίδιου εντύπου πρέπει να δουλεύει. Μέσα στο παράθυρο η
+   φόρμα το μαθαίνει και το λέει, δεν σωπαίνει. */
+const DEDUPE_PREFIX = "forms:sent:";
+const DEDUPE_SECONDS = 6 * 60 * 60;
+const DEDUPE_SKIP = new Set([
+	"submitted_at", "submitted_by", "received_at", "ref",
+	"pdf_base64", "pdf_filename", "pdf_mime", "pdf_rendered", "doc_html",
+]);
+
+async function submissionHash(payload) {
+	// Σταθερή σειρά κλειδιών, ώστε το ίδιο έντυπο να δίνει το ίδιο hash
+	// ακόμα κι αν μια φόρμα αλλάξει τη σειρά των πεδίων της.
+	const stable = (v) => {
+		if (v === null || typeof v !== "object") return v;
+		if (Array.isArray(v)) return v.map(stable);
+		const out = {};
+		for (const k of Object.keys(v).sort()) out[k] = stable(v[k]);
+		return out;
+	};
+	const subset = {};
+	for (const k of Object.keys(payload)) {
+		if (!DEDUPE_SKIP.has(k)) subset[k] = payload[k];
+	}
+	const bytes = new TextEncoder().encode(JSON.stringify(stable(subset)));
+	const digest = await crypto.subtle.digest("SHA-256", bytes);
+	return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export async function handleFormSubmit(request, env, email) {
 	if (request.method !== "POST") {
 		return json({ error: "method_not_allowed" }, 405);
@@ -110,6 +154,25 @@ export async function handleFormSubmit(request, env, email) {
 		}
 	}
 
+	// Το ίδιο έντυπο δεύτερη φορά μέσα στο παράθυρο: απαντάμε «εντάξει»
+	// χωρίς να ειδοποιήσουμε το Make, και το δηλώνουμε ώστε η φόρμα να μη
+	// γράψει «στάλθηκε» για email που δεν έφυγε. Fail-open: αν το KV
+	// γκρινιάξει, προτιμότερο διπλό έντυπο από χαμένο.
+	let dedupeKey = null;
+	try {
+		dedupeKey = DEDUPE_PREFIX + (await submissionHash(payload));
+		if (await env.LISTINGS_KV.get(dedupeKey)) {
+			console.log(`forms: duplicate ${form} suppressed`);
+			return json({ ok: true, duplicate: true });
+		}
+		// Γράφεται ΠΡΙΝ την προώθηση: δύο σχεδόν ταυτόχρονες προσπάθειες
+		// (tap και flush μαζί) δεν πρέπει να φύγουν και οι δύο.
+		await env.LISTINGS_KV.put(dedupeKey, payload.received_at, { expirationTtl: DEDUPE_SECONDS });
+	} catch (err) {
+		dedupeKey = null;
+		console.warn(`forms: dedupe unavailable, forwarding anyway: ${String(err)}`);
+	}
+
 	const fwd = await fetch(env.MAKE_FORMS_WEBHOOK, {
 		method: "POST",
 		headers: {
@@ -123,6 +186,9 @@ export async function handleFormSubmit(request, env, email) {
 		body: JSON.stringify(payload),
 	});
 	if (!fwd.ok) {
+		// Το έντυπο δεν έφυγε: ξεκλείδωσε το hash, αλλιώς το retry του
+		// outbox θα έπαιρνε «στάλθηκε» για κάτι που δεν στάλθηκε ποτέ.
+		if (dedupeKey) await env.LISTINGS_KV.delete(dedupeKey).catch(() => {});
 		// Never echo Make's own error text back to the tablet — it can
 		// carry account details. The full story goes to the logs.
 		console.error(`forms: Make forward failed for ${form} (HTTP ${fwd.status})`);

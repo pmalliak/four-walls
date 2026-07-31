@@ -618,7 +618,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 					: "ΔΕΝ στάλθηκε (" + res.reason + "). Μπήκε σε αναμονή — δες με τον Πάνο.", "err");
 			return;
 		}
-		toast("Στάλθηκε στο info@.", "ok");
+		toast(res.duplicate ? "Είχε ήδη σταλεί. Δεν ξαναστάλθηκε." : "Στάλθηκε στο info@.", "ok");
 		btn.textContent = "Στάλθηκε ✓";
 	}
 
@@ -842,7 +842,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 						: "ΔΕΝ στάλθηκε (" + res.reason + "). Μπήκε σε αναμονή — δες με τον Πάνο.", "err");
 				return;
 			}
-			toast("Στάλθηκε στον ιδιοκτήτη.", "ok");
+			toast(res.duplicate ? "Είχε ήδη σταλεί. Δεν ξαναστάλθηκε." : "Στάλθηκε στον ιδιοκτήτη.", "ok");
 			btn.textContent = "Στάλθηκε στον ιδιοκτήτη ✓";
 		} catch (e) {
 			console.error(e);

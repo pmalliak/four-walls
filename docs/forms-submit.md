@@ -76,7 +76,9 @@ IndexedDB and retried automatically: on the `online` event, when the tablet is
 unlocked (`visibilitychange` — the app is never swiped away, only locked), and
 on a 3-minute timer while visible. A tap-to-send pill at the top shows how many
 έντυπα are queued; `submitted_at` stays the tap-time, `received_at` the upload
-time, so a queued form can legitimately show hours between the two.
+time, so a queued form can legitimately show hours between the two. Retrying
+blindly would mail the same έντυπο twice, so the Worker de-duplicates on
+content (next section).
 
 [../forms/sw.js](../forms/sw.js) makes the app itself work offline: it
 precaches the pages + **self-hosted** `html2pdf.bundle.min.js` (the cdnjs tag
@@ -91,6 +93,39 @@ app is open — which is exactly the unlock/reopen moment hooked above. Use the
 storage, and only the installed app is exempt from Safari's 7-day storage
 eviction. The old `fw_last_failed` localStorage dead-drop in katachorisi was
 removed — the outbox supersedes it.
+
+## One έντυπο, one send
+
+The outbox retries anything whose POST didn't come back, but a lost
+**response** is not a lost **submission**. On 2026-07-31 an εκτίμηση reached
+Make twice, 27 seconds apart: same `valuation_ref`, byte-identical report,
+two «ΕΚΤΙΜΗΣΗ · …» emails in info@.
+
+So the Worker refuses to forward the same έντυπο twice. It hashes the payload
+(SHA-256) minus everything that changes without the document changing:
+`submitted_at`, the PDF (html2pdf stamps a CreationDate, so the bytes differ
+on every render), katachorisi's clock-based `ref`, and the server-side stamps.
+The hash lives in KV as `forms:sent:<hash>` for **6 hours**; a second POST
+carrying it gets `{ok:true, duplicate:true}` and Make never hears about it.
+
+- **Content, not a client id.** An id minted by the browser would be fresh on
+  a second tap and sail through, and the second tap is one of the two ways
+  this happens: when the outbox thinks a send failed, it re-enables the button
+  and shows «ΔΕΝ στάλθηκε», so the consultant presses again.
+- **Written before the forward, deleted if it fails**, so two near-simultaneous
+  attempts can't both go out and a Make outage doesn't lock an έντυπο out of
+  its own retry.
+- **Not silent.** The form says «Είχε ήδη σταλεί. Δεν ξαναστάλθηκε.» instead of
+  «Στάλθηκε» (`duplicate` flows back through `FWOutbox.submit`), because when a
+  client is waiting for that email the two are different facts.
+- **Fail-open.** If KV errors, the έντυπο is forwarded anyway: a duplicate
+  beats a lost contract.
+- Six hours covers the retries (seconds, or as long as a locked tablet stays
+  locked) while a deliberate re-send tomorrow still works. Inside the window,
+  a genuinely new έντυπο differs anyway, if only in its signatures.
+
+The two εκτίμηση sends stay separate because their payloads differ: the office
+one carries only the ref, the owner one adds `client_email` and the PDF.
 
 ## Make
 
