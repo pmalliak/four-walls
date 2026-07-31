@@ -72,7 +72,7 @@
 					},
 					{
 						"name": "area",
-						"value": "{{if(contains(2.text; \"Εμβαδό:\"); replace(replace(trim(replace(2.text; \"/[\\s\\S]*?Εμβαδό:[^\\S\\r\\n]*([^\\r\\n]*)[\\s\\S]*/\"; \"$1\")); \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\"); \"\")}}"
+						"value": "{{trim(replace(if(contains(2.text; \"Εμβαδό:\"); replace(replace(trim(replace(2.text; \"/[\\s\\S]*?Εμβαδό:[^\\S\\r\\n]*([^\\r\\n]*)[\\s\\S]*/\"; \"$1\")); \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\"); \"\"); \"/\\s*τ\\.?\\s*μ\\.?\\s*$/\"; \"\"))}}"
 					},
 					{
 						"name": "availability",
@@ -100,11 +100,11 @@
 					},
 					{
 						"name": "greeting",
-						"value": "{{if(parseNumber(formatDate(now; \"H\"; \"Europe/Athens\"); \".\") >= 5 and parseNumber(formatDate(now; \"H\"; \"Europe/Athens\"); \".\") < 12; \"Καλημέρα\"; \"Καλησπέρα\")}}"
+						"value": "{{if(parseNumber(formatDate(now; \"H\"; \"Europe/Athens\"); \".\") < 5; \"Καλησπέρα\"; if(parseNumber(formatDate(now; \"H\"; \"Europe/Athens\"); \".\") < 12; \"Καλημέρα\"; \"Καλησπέρα\"))}}"
 					},
 					{
 						"name": "callTiming",
-						"value": "{{if(parseNumber(formatDate(now; \"H\"; \"Europe/Athens\"); \".\") >= 8 and parseNumber(formatDate(now; \"H\"; \"Europe/Athens\"); \".\") < 22; \"μέσα στα επόμενα λεπτά\"; \"το συντομότερο δυνατό\")}}"
+						"value": "{{if(parseNumber(formatDate(now; \"H\"; \"Europe/Athens\"); \".\") < 8; \"το συντομότερο δυνατό\"; if(parseNumber(formatDate(now; \"H\"; \"Europe/Athens\"); \".\") < 22; \"μέσα στα επόμενα λεπτά\"; \"το συντομότερο δυνατό\"))}}"
 					},
 					{
 						"name": "phoneDigits",
