@@ -7,7 +7,7 @@
 |---|---|---|---|---|---|
 | `6405443` | Spitogatos - Αίτηση ανάθεσης | ναι | άμεσα (webhook/mailhook) | 22 | [6405443-spitogatos-aitisi-anathesis.blueprint.json](scenarios/6405443-spitogatos-aitisi-anathesis.blueprint.json) |
 | `6530594` | Site - Φόρμα επικοινωνίας | ναι | άμεσα (webhook/mailhook) | 33 | [6530594-site-forma-epikoinonias.blueprint.json](scenarios/6530594-site-forma-epikoinonias.blueprint.json) |
-| `6600035` | Έντυπα — υποβολή φόρμας | ναι | άμεσα (webhook/mailhook) | 12 | [6600035-entypa-ypovoli-formas.blueprint.json](scenarios/6600035-entypa-ypovoli-formas.blueprint.json) |
+| `6600035` | Έντυπα — υποβολή φόρμας | ναι | άμεσα (webhook/mailhook) | 15 | [6600035-entypa-ypovoli-formas.blueprint.json](scenarios/6600035-entypa-ypovoli-formas.blueprint.json) |
 | `6604242` | Spitogatos - Ενδιαφέρον για ακίνητο | ναι | άμεσα (webhook/mailhook) | 21 | [6604242-spitogatos-endiaferon-gia-akinito.blueprint.json](scenarios/6604242-spitogatos-endiaferon-gia-akinito.blueprint.json) |
 | `6683649` | Site - Ολοκλήρωση αναζήτησης | ναι | άμεσα (webhook/mailhook) | 2 | [6683649-site-oloklirosi-anazitisis.blueprint.json](scenarios/6683649-site-oloklirosi-anazitisis.blueprint.json) |
 | `6688477` | Photos — AI enhance | ναι | άμεσα (webhook/mailhook) | 21 | [6688477-photos-ai-enhance.blueprint.json](scenarios/6688477-photos-ai-enhance.blueprint.json) |
@@ -94,10 +94,13 @@
 1   gateway:CustomWebHook · Έντυπα PWA
 2   builtin:BasicRouter · Ποιο έντυπο;
   ├─ route 1
+    24  email:ActionSendEmail · Αρχείο CRM · ανάθεση · [φίλτρο: ανάθεση]
     3   email:ActionSendEmail · Email · ανάθεση · [φίλτρο: ανάθεση]
   ├─ route 2
+    25  email:ActionSendEmail · Αρχείο CRM · υπόδειξη · [φίλτρο: υπόδειξη]
     4   email:ActionSendEmail · Email · υπόδειξη · [φίλτρο: υπόδειξη]
   ├─ route 3
+    26  email:ActionSendEmail · Αρχείο CRM · απόδειξη · [φίλτρο: απόδειξη]
     6   email:ActionSendEmail · Email · απόδειξη · [φίλτρο: απόδειξη]
   ├─ route 4
     5   email:ActionSendEmail · Υπενθύμιση · γραφείο · [φίλτρο: καταχώριση]

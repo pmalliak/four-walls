@@ -118,8 +118,10 @@ jsPDF fails to load, but the email module's attachment mapping requires
 
 | branch | to | copies |
 |---|---|---|
-| anathesi / ypodeixi | `entoleas_email`, falling back to `info@` when blank | cc `submitted_by` |
-| apodeixi | `katavallon_email`, same fallback | cc `submitted_by` |
+| anathesi / ypodeixi (πρώτο email) | `info@`: internal «ΓΙΑ ΑΡΧΕΙΟ CRM», the signed PDF plus where to file it in the CRM | none |
+| anathesi / ypodeixi (δεύτερο) | `entoleas_email` (no fallback: a blank address errors the bundle into the DLQ) | cc `submitted_by` |
+| apodeixi (πρώτο email) | `info@`: internal «ΓΙΑ ΑΡΧΕΙΟ CRM», same shape | none |
+| apodeixi (δεύτερο) | `katavallon_email` (no fallback, same DLQ behaviour) | cc `submitted_by` |
 | katachorisi (always) | `info@` — internal «ΓΙΑ ΚΑΤΑΧΩΡΙΣΗ» reminder to enter listing+contact | none |
 | katachorisi (ΝΑΙ on the form) | `owner_email` — client-facing confirmation | cc `submitted_by` |
 | prosfora | `info@` — internal «ΝΕΑ ΠΡΟΣΦΟΡΑ» notice to record the offer | none |
@@ -134,6 +136,13 @@ submissions carry `submitted_by: null`. The fixed personal copies to
 is kept: every module sends through the info@ Zoho account with
 `saveAfterSent: true`, so the client emails are already searchable in the
 info@ Sent folder.
+
+The internal «ΓΙΑ ΑΡΧΕΙΟ CRM» emails (modules 24/25/26, added 2026-07-31)
+sit **first** in each branch, before the client email: the office copy with
+its filing instructions goes out even when the client email later fails on
+a blank address. Where each PDF gets filed is written in the email body
+itself (ανάθεση: επαφή ιδιοκτήτη + ακίνητο μόλις καταχωριστεί· υπόδειξη:
+επαφή πελάτη· απόδειξη: επαφή καταβάλλοντα + ακίνητο).
 
 The προσφορά never mails the client: an offer is the office's information,
 and the interested party already knows what they offered.

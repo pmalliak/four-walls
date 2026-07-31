@@ -24,6 +24,289 @@
 				{
 					"flow": [
 						{
+							"id": 24,
+							"filter": {
+								"name": "ανάθεση",
+								"conditions": [
+									[
+										{
+											"a": "{{1.form}}",
+											"b": "anathesi",
+											"o": "text:equal"
+										}
+									]
+								]
+							},
+							"mapper": {
+								"cc": [],
+								"to": [
+									"info@four-walls.gr"
+								],
+								"bcc": [],
+								"from": "info@four-walls.gr",
+								"html": "<!DOCTYPE html><html lang='el'><head><meta charset='utf-8'></head><body style='margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background:#f4f5f7;padding:18px 0;'><tr><td align='center'><table role='presentation' width='560' cellpadding='0' cellspacing='0' style='max-width:560px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;'><tr><td style='background:#16233A;padding:16px 24px 6px 24px;'><span style='font-weight:bold;font-size:15px;letter-spacing:3px;color:#ffffff;'>FOUR WALLS</span><span style='font-weight:bold;font-size:10px;letter-spacing:2px;color:#FF1462;padding-left:8px;'>REAL ESTATE</span></td></tr><tr><td style='background:#16233A;padding:0 24px 14px 24px;color:#ffffff;font-size:16px;font-weight:bold;letter-spacing:1px;'>ΥΠΟΓΡΑΦΗΚΕ ΑΝΑΘΕΣΗ</td></tr><tr><td style='height:3px;background:#FF1462;'></td></tr><tr><td style='padding:22px 24px 4px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 4px 0;'>Υπογράφτηκε <strong>εντολή ανάθεσης</strong> ({{1.submitted_by}}). Το υπογεγραμμένο έντυπο είναι συνημμένο. Φύλαξέ το στο EstatePrime σε δύο σημεία:</p><ol style='margin:8px 0 4px 0;padding-left:20px;'><li style='margin:0 0 6px 0;'>Στην <strong>επαφή του ιδιοκτήτη</strong> (αν δεν υπάρχει, φτιάξ' την).</li><li style='margin:0;'>Στο <strong>ακίνητο</strong>, μόλις καταχωριστεί. Η φόρμα καταχώρισης έρχεται σε χωριστό email «ΓΙΑ ΚΑΤΑΧΩΡΙΣΗ»· αν το ακίνητο υπάρχει ήδη στο CRM, ανέβασέ το τώρα.</li></ol></td></tr><tr><td style='padding:10px 24px 6px 24px;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='font-size:14px;line-height:1.7;color:#16233A;border-top:1px solid #e6e9ef;border-bottom:1px solid #e6e9ef;'><tr><td style='color:#777777;width:150px;padding:6px 0 2px 0;vertical-align:top;'>Ιδιοκτήτης</td><td style='padding:6px 0 2px 0;font-weight:bold;'>{{1.data.entoleas_onomatepwnymo}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>ΑΦΜ</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.entoleas_afm}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Τηλέφωνο</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.entoleas_tilefono}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Email</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.entoleas_email}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Ακίνητο</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.akinito_typos}}</td></tr><tr><td style='color:#777777;padding:2px 0 6px 0;vertical-align:top;'>Διεύθυνση</td><td style='padding:2px 0 6px 0;font-weight:bold;'>{{1.data.akinito_odos}}, {{1.data.akinito_tk}} {{1.data.akinito_perioxi}}</td></tr></table></td></tr><tr><td style='padding:14px 24px 20px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0;color:#777777;font-size:13.5px;'>{{1.received_at}} · Το πλήρες υπογεγραμμένο έντυπο στο συνημμένο PDF.</p></td></tr><tr><td style='background:#16233A;padding:16px 24px;'><p style='margin:0;font-size:12px;line-height:1.6;color:#cdd3de;'><strong style='color:#ffffff;'>Four Walls Real Estate</strong> · εσωτερική ειδοποίηση</p></td></tr></table></td></tr></table></body></html>",
+								"sender": "",
+								"headers": [],
+								"replyTo": "",
+								"subject": "ΓΙΑ ΑΡΧΕΙΟ CRM · Ανάθεση · {{1.data.entoleas_onomatepwnymo}}",
+								"priority": "normal",
+								"inReplyTo": "",
+								"references": [],
+								"attachments": [
+									{
+										"cid": "",
+										"data": "{{toBinary(1.pdf_base64; \"base64\")}}",
+										"fileName": "{{1.pdf_filename}}"
+									}
+								],
+								"contentType": "html"
+							},
+							"module": "email:ActionSendEmail",
+							"version": 7,
+							"metadata": {
+								"expect": [
+									{
+										"name": "to",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email address",
+											"required": true
+										},
+										"type": "array",
+										"label": "To",
+										"required": true
+									},
+									{
+										"name": "subject",
+										"type": "text",
+										"label": "Subject"
+									},
+									{
+										"name": "contentType",
+										"type": "select",
+										"label": "Content Type",
+										"required": true,
+										"validate": {
+											"enum": [
+												"html",
+												"text"
+											]
+										}
+									},
+									{
+										"name": "attachments",
+										"spec": [
+											{
+												"name": "fileName",
+												"type": "filename",
+												"label": "File name",
+												"required": true,
+												"semantic": "file:name"
+											},
+											{
+												"name": "data",
+												"type": "buffer",
+												"label": "Data",
+												"required": true,
+												"semantic": "file:data"
+											},
+											{
+												"name": "cid",
+												"type": "text",
+												"label": "Content-ID"
+											}
+										],
+										"type": "array",
+										"label": "Attachments"
+									},
+									{
+										"name": "cc",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email address"
+										},
+										"type": "array",
+										"label": "Copy recipient"
+									},
+									{
+										"name": "bcc",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email address"
+										},
+										"type": "array",
+										"label": "Blind copy recipient"
+									},
+									{
+										"name": "from",
+										"type": "text",
+										"label": "From"
+									},
+									{
+										"name": "sender",
+										"type": "text",
+										"label": "Sender"
+									},
+									{
+										"name": "replyTo",
+										"type": "text",
+										"label": "Reply-To"
+									},
+									{
+										"name": "inReplyTo",
+										"type": "text",
+										"label": "In-Reply-To"
+									},
+									{
+										"name": "references",
+										"spec": {
+											"name": "value",
+											"type": "text",
+											"label": "Reference",
+											"required": true
+										},
+										"type": "array",
+										"label": "References"
+									},
+									{
+										"name": "priority",
+										"type": "select",
+										"label": "Priority",
+										"validate": {
+											"enum": [
+												"high",
+												"normal",
+												"low"
+											]
+										}
+									},
+									{
+										"name": "headers",
+										"spec": [
+											{
+												"name": "key",
+												"type": "text",
+												"label": "Key",
+												"required": true
+											},
+											{
+												"name": "value",
+												"type": "text",
+												"label": "Value",
+												"required": true
+											}
+										],
+										"type": "array",
+										"label": "Headers"
+									},
+									{
+										"name": "html",
+										"type": "text",
+										"label": "Content"
+									}
+								],
+								"restore": {
+									"expect": {
+										"cc": {
+											"mode": "chose"
+										},
+										"to": {
+											"mode": "chose",
+											"items": [
+												null
+											]
+										},
+										"bcc": {
+											"mode": "chose"
+										},
+										"priority": {
+											"label": "Normal"
+										},
+										"references": {
+											"mode": "chose"
+										},
+										"attachments": {
+											"mode": "chose",
+											"items": [
+												null
+											]
+										},
+										"contentType": {
+											"label": "HTML"
+										}
+									},
+									"parameters": {
+										"folder": {
+											"label": "Sent"
+										},
+										"account": {
+											"data": {
+												"scoped": "true",
+												"connection": "smtp"
+											},
+											"label": "Zoho SMTP (SMTP info@four-walls.gr)"
+										},
+										"accountImap": {
+											"data": {
+												"scoped": "true",
+												"connection": "imap"
+											},
+											"label": "Zoho IMAP (IMAP info@four-walls.gr)"
+										},
+										"saveAfterSent": {
+											"label": "Yes"
+										}
+									}
+								},
+								"designer": {
+									"x": 0,
+									"y": -400,
+									"name": "Αρχείο CRM · ανάθεση"
+								},
+								"parameters": [
+									{
+										"name": "account",
+										"type": "account:smtp,google-restricted,microsoft-smtp-imap",
+										"label": "Connection",
+										"required": true
+									},
+									{
+										"name": "saveAfterSent",
+										"type": "select",
+										"label": "Save message after sending",
+										"required": true,
+										"validate": {
+											"enum": [
+												true,
+												false
+											]
+										}
+									},
+									{
+										"name": "accountImap",
+										"type": "account:imap,google-restricted,microsoft-smtp-imap",
+										"label": "Connection",
+										"required": true
+									},
+									{
+										"name": "folder",
+										"type": "select",
+										"label": "Folder",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"folder": "Sent",
+								"account": 8845630,
+								"accountImap": 8845636,
+								"saveAfterSent": true
+							}
+						},
+						{
 							"id": 3,
 							"filter": {
 								"name": "ανάθεση",
@@ -268,7 +551,7 @@
 								},
 								"advanced": true,
 								"designer": {
-									"x": 0,
+									"x": 300,
 									"y": -400,
 									"name": "Email · ανάθεση"
 								},
@@ -316,6 +599,289 @@
 				},
 				{
 					"flow": [
+						{
+							"id": 25,
+							"filter": {
+								"name": "υπόδειξη",
+								"conditions": [
+									[
+										{
+											"a": "{{1.form}}",
+											"b": "ypodeixi",
+											"o": "text:equal"
+										}
+									]
+								]
+							},
+							"mapper": {
+								"cc": [],
+								"to": [
+									"info@four-walls.gr"
+								],
+								"bcc": [],
+								"from": "info@four-walls.gr",
+								"html": "<!DOCTYPE html><html lang='el'><head><meta charset='utf-8'></head><body style='margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background:#f4f5f7;padding:18px 0;'><tr><td align='center'><table role='presentation' width='560' cellpadding='0' cellspacing='0' style='max-width:560px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;'><tr><td style='background:#16233A;padding:16px 24px 6px 24px;'><span style='font-weight:bold;font-size:15px;letter-spacing:3px;color:#ffffff;'>FOUR WALLS</span><span style='font-weight:bold;font-size:10px;letter-spacing:2px;color:#FF1462;padding-left:8px;'>REAL ESTATE</span></td></tr><tr><td style='background:#16233A;padding:0 24px 14px 24px;color:#ffffff;font-size:16px;font-weight:bold;letter-spacing:1px;'>ΥΠΟΓΡΑΦΗΚΕ ΥΠΟΔΕΙΞΗ</td></tr><tr><td style='height:3px;background:#FF1462;'></td></tr><tr><td style='padding:22px 24px 4px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 4px 0;'>Υπογράφτηκε <strong>δήλωση υπόδειξης</strong> ({{1.submitted_by}}). Ανέβασε το συνημμένο PDF στην <strong>επαφή του πελάτη</strong> στο EstatePrime (αν δεν υπάρχει, φτιάξ' την).</p></td></tr><tr><td style='padding:10px 24px 6px 24px;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='font-size:14px;line-height:1.7;color:#16233A;border-top:1px solid #e6e9ef;border-bottom:1px solid #e6e9ef;'><tr><td style='color:#777777;width:150px;padding:6px 0 2px 0;vertical-align:top;'>Πελάτης</td><td style='padding:6px 0 2px 0;font-weight:bold;'>{{1.data.entoleas_onomatepwnymo}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>ΑΦΜ</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.entoleas_afm}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Τηλέφωνο</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.entoleas_tilefono}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Email</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.entoleas_email}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Κωδικοί ακινήτων</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.akinito_1_kodikos}} {{1.data.akinito_2_kodikos}} {{1.data.akinito_3_kodikos}} {{1.data.akinito_4_kodikos}} {{1.data.akinito_5_kodikos}}</td></tr><tr><td style='color:#777777;padding:2px 0 6px 0;vertical-align:top;'>Ημερομηνία</td><td style='padding:2px 0 6px 0;font-weight:bold;'>{{1.data.imerominia}}</td></tr></table></td></tr><tr><td style='padding:14px 24px 20px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0;color:#777777;font-size:13.5px;'>{{1.received_at}} · Το πλήρες υπογεγραμμένο έντυπο στο συνημμένο PDF.</p></td></tr><tr><td style='background:#16233A;padding:16px 24px;'><p style='margin:0;font-size:12px;line-height:1.6;color:#cdd3de;'><strong style='color:#ffffff;'>Four Walls Real Estate</strong> · εσωτερική ειδοποίηση</p></td></tr></table></td></tr></table></body></html>",
+								"sender": "",
+								"headers": [],
+								"replyTo": "",
+								"subject": "ΓΙΑ ΑΡΧΕΙΟ CRM · Υπόδειξη · {{1.data.entoleas_onomatepwnymo}}",
+								"priority": "normal",
+								"inReplyTo": "",
+								"references": [],
+								"attachments": [
+									{
+										"cid": "",
+										"data": "{{toBinary(1.pdf_base64; \"base64\")}}",
+										"fileName": "{{1.pdf_filename}}"
+									}
+								],
+								"contentType": "html"
+							},
+							"module": "email:ActionSendEmail",
+							"version": 7,
+							"metadata": {
+								"expect": [
+									{
+										"name": "to",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email address",
+											"required": true
+										},
+										"type": "array",
+										"label": "To",
+										"required": true
+									},
+									{
+										"name": "subject",
+										"type": "text",
+										"label": "Subject"
+									},
+									{
+										"name": "contentType",
+										"type": "select",
+										"label": "Content Type",
+										"required": true,
+										"validate": {
+											"enum": [
+												"html",
+												"text"
+											]
+										}
+									},
+									{
+										"name": "attachments",
+										"spec": [
+											{
+												"name": "fileName",
+												"type": "filename",
+												"label": "File name",
+												"required": true,
+												"semantic": "file:name"
+											},
+											{
+												"name": "data",
+												"type": "buffer",
+												"label": "Data",
+												"required": true,
+												"semantic": "file:data"
+											},
+											{
+												"name": "cid",
+												"type": "text",
+												"label": "Content-ID"
+											}
+										],
+										"type": "array",
+										"label": "Attachments"
+									},
+									{
+										"name": "cc",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email address"
+										},
+										"type": "array",
+										"label": "Copy recipient"
+									},
+									{
+										"name": "bcc",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email address"
+										},
+										"type": "array",
+										"label": "Blind copy recipient"
+									},
+									{
+										"name": "from",
+										"type": "text",
+										"label": "From"
+									},
+									{
+										"name": "sender",
+										"type": "text",
+										"label": "Sender"
+									},
+									{
+										"name": "replyTo",
+										"type": "text",
+										"label": "Reply-To"
+									},
+									{
+										"name": "inReplyTo",
+										"type": "text",
+										"label": "In-Reply-To"
+									},
+									{
+										"name": "references",
+										"spec": {
+											"name": "value",
+											"type": "text",
+											"label": "Reference",
+											"required": true
+										},
+										"type": "array",
+										"label": "References"
+									},
+									{
+										"name": "priority",
+										"type": "select",
+										"label": "Priority",
+										"validate": {
+											"enum": [
+												"high",
+												"normal",
+												"low"
+											]
+										}
+									},
+									{
+										"name": "headers",
+										"spec": [
+											{
+												"name": "key",
+												"type": "text",
+												"label": "Key",
+												"required": true
+											},
+											{
+												"name": "value",
+												"type": "text",
+												"label": "Value",
+												"required": true
+											}
+										],
+										"type": "array",
+										"label": "Headers"
+									},
+									{
+										"name": "html",
+										"type": "text",
+										"label": "Content"
+									}
+								],
+								"restore": {
+									"expect": {
+										"cc": {
+											"mode": "chose"
+										},
+										"to": {
+											"mode": "chose",
+											"items": [
+												null
+											]
+										},
+										"bcc": {
+											"mode": "chose"
+										},
+										"priority": {
+											"label": "Normal"
+										},
+										"references": {
+											"mode": "chose"
+										},
+										"attachments": {
+											"mode": "chose",
+											"items": [
+												null
+											]
+										},
+										"contentType": {
+											"label": "HTML"
+										}
+									},
+									"parameters": {
+										"folder": {
+											"label": "Sent"
+										},
+										"account": {
+											"data": {
+												"scoped": "true",
+												"connection": "smtp"
+											},
+											"label": "Zoho SMTP (SMTP info@four-walls.gr)"
+										},
+										"accountImap": {
+											"data": {
+												"scoped": "true",
+												"connection": "imap"
+											},
+											"label": "Zoho IMAP (IMAP info@four-walls.gr)"
+										},
+										"saveAfterSent": {
+											"label": "Yes"
+										}
+									}
+								},
+								"designer": {
+									"x": 0,
+									"y": -140,
+									"name": "Αρχείο CRM · υπόδειξη"
+								},
+								"parameters": [
+									{
+										"name": "account",
+										"type": "account:smtp,google-restricted,microsoft-smtp-imap",
+										"label": "Connection",
+										"required": true
+									},
+									{
+										"name": "saveAfterSent",
+										"type": "select",
+										"label": "Save message after sending",
+										"required": true,
+										"validate": {
+											"enum": [
+												true,
+												false
+											]
+										}
+									},
+									{
+										"name": "accountImap",
+										"type": "account:imap,google-restricted,microsoft-smtp-imap",
+										"label": "Connection",
+										"required": true
+									},
+									{
+										"name": "folder",
+										"type": "select",
+										"label": "Folder",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"folder": "Sent",
+								"account": 8845630,
+								"accountImap": 8845636,
+								"saveAfterSent": true
+							}
+						},
 						{
 							"id": 4,
 							"filter": {
@@ -561,7 +1127,7 @@
 								},
 								"advanced": true,
 								"designer": {
-									"x": 0,
+									"x": 300,
 									"y": -140,
 									"name": "Email · υπόδειξη"
 								},
@@ -609,6 +1175,289 @@
 				},
 				{
 					"flow": [
+						{
+							"id": 26,
+							"filter": {
+								"name": "απόδειξη",
+								"conditions": [
+									[
+										{
+											"a": "{{1.form}}",
+											"b": "apodeixi",
+											"o": "text:equal"
+										}
+									]
+								]
+							},
+							"mapper": {
+								"cc": [],
+								"to": [
+									"info@four-walls.gr"
+								],
+								"bcc": [],
+								"from": "info@four-walls.gr",
+								"html": "<!DOCTYPE html><html lang='el'><head><meta charset='utf-8'></head><body style='margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background:#f4f5f7;padding:18px 0;'><tr><td align='center'><table role='presentation' width='560' cellpadding='0' cellspacing='0' style='max-width:560px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;'><tr><td style='background:#16233A;padding:16px 24px 6px 24px;'><span style='font-weight:bold;font-size:15px;letter-spacing:3px;color:#ffffff;'>FOUR WALLS</span><span style='font-weight:bold;font-size:10px;letter-spacing:2px;color:#FF1462;padding-left:8px;'>REAL ESTATE</span></td></tr><tr><td style='background:#16233A;padding:0 24px 14px 24px;color:#ffffff;font-size:16px;font-weight:bold;letter-spacing:1px;'>ΕΚΔΟΘΗΚΕ ΑΠΟΔΕΙΞΗ</td></tr><tr><td style='height:3px;background:#FF1462;'></td></tr><tr><td style='padding:22px 24px 4px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 4px 0;'>Εκδόθηκε <strong>απόδειξη είσπραξης</strong> ({{1.submitted_by}}). Ανέβασε το συνημμένο PDF στην <strong>επαφή του καταβάλλοντα</strong> και στο <strong>ακίνητο</strong> που αφορά (θα το βρεις από την αιτιολογία).</p></td></tr><tr><td style='padding:10px 24px 6px 24px;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='font-size:14px;line-height:1.7;color:#16233A;border-top:1px solid #e6e9ef;border-bottom:1px solid #e6e9ef;'><tr><td style='color:#777777;width:150px;padding:6px 0 2px 0;vertical-align:top;'>Καταβάλλων</td><td style='padding:6px 0 2px 0;font-weight:bold;'>{{1.data.katavallon_geniki}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>ΑΦΜ</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.katavallon_afm}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Τηλέφωνο</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.katavallon_tilefono}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Email</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.katavallon_email}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Εντολέας</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.entoleas_geniki}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Ποσό</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.poso_arithmitikos}} €</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Αιτιολογία</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.aitiologia}}</td></tr><tr><td style='color:#777777;padding:2px 0 6px 0;vertical-align:top;'>Ημερομηνία</td><td style='padding:2px 0 6px 0;font-weight:bold;'>{{1.data.imerominia}}</td></tr></table></td></tr><tr><td style='padding:14px 24px 20px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0;color:#777777;font-size:13.5px;'>{{1.received_at}} · Το πλήρες υπογεγραμμένο έντυπο στο συνημμένο PDF.</p></td></tr><tr><td style='background:#16233A;padding:16px 24px;'><p style='margin:0;font-size:12px;line-height:1.6;color:#cdd3de;'><strong style='color:#ffffff;'>Four Walls Real Estate</strong> · εσωτερική ειδοποίηση</p></td></tr></table></td></tr></table></body></html>",
+								"sender": "",
+								"headers": [],
+								"replyTo": "",
+								"subject": "ΓΙΑ ΑΡΧΕΙΟ CRM · Απόδειξη · {{1.data.katavallon_geniki}}",
+								"priority": "normal",
+								"inReplyTo": "",
+								"references": [],
+								"attachments": [
+									{
+										"cid": "",
+										"data": "{{toBinary(1.pdf_base64; \"base64\")}}",
+										"fileName": "{{1.pdf_filename}}"
+									}
+								],
+								"contentType": "html"
+							},
+							"module": "email:ActionSendEmail",
+							"version": 7,
+							"metadata": {
+								"expect": [
+									{
+										"name": "to",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email address",
+											"required": true
+										},
+										"type": "array",
+										"label": "To",
+										"required": true
+									},
+									{
+										"name": "subject",
+										"type": "text",
+										"label": "Subject"
+									},
+									{
+										"name": "contentType",
+										"type": "select",
+										"label": "Content Type",
+										"required": true,
+										"validate": {
+											"enum": [
+												"html",
+												"text"
+											]
+										}
+									},
+									{
+										"name": "attachments",
+										"spec": [
+											{
+												"name": "fileName",
+												"type": "filename",
+												"label": "File name",
+												"required": true,
+												"semantic": "file:name"
+											},
+											{
+												"name": "data",
+												"type": "buffer",
+												"label": "Data",
+												"required": true,
+												"semantic": "file:data"
+											},
+											{
+												"name": "cid",
+												"type": "text",
+												"label": "Content-ID"
+											}
+										],
+										"type": "array",
+										"label": "Attachments"
+									},
+									{
+										"name": "cc",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email address"
+										},
+										"type": "array",
+										"label": "Copy recipient"
+									},
+									{
+										"name": "bcc",
+										"spec": {
+											"name": "value",
+											"type": "email",
+											"label": "Email address"
+										},
+										"type": "array",
+										"label": "Blind copy recipient"
+									},
+									{
+										"name": "from",
+										"type": "text",
+										"label": "From"
+									},
+									{
+										"name": "sender",
+										"type": "text",
+										"label": "Sender"
+									},
+									{
+										"name": "replyTo",
+										"type": "text",
+										"label": "Reply-To"
+									},
+									{
+										"name": "inReplyTo",
+										"type": "text",
+										"label": "In-Reply-To"
+									},
+									{
+										"name": "references",
+										"spec": {
+											"name": "value",
+											"type": "text",
+											"label": "Reference",
+											"required": true
+										},
+										"type": "array",
+										"label": "References"
+									},
+									{
+										"name": "priority",
+										"type": "select",
+										"label": "Priority",
+										"validate": {
+											"enum": [
+												"high",
+												"normal",
+												"low"
+											]
+										}
+									},
+									{
+										"name": "headers",
+										"spec": [
+											{
+												"name": "key",
+												"type": "text",
+												"label": "Key",
+												"required": true
+											},
+											{
+												"name": "value",
+												"type": "text",
+												"label": "Value",
+												"required": true
+											}
+										],
+										"type": "array",
+										"label": "Headers"
+									},
+									{
+										"name": "html",
+										"type": "text",
+										"label": "Content"
+									}
+								],
+								"restore": {
+									"expect": {
+										"cc": {
+											"mode": "chose"
+										},
+										"to": {
+											"mode": "chose",
+											"items": [
+												null
+											]
+										},
+										"bcc": {
+											"mode": "chose"
+										},
+										"priority": {
+											"label": "Normal"
+										},
+										"references": {
+											"mode": "chose"
+										},
+										"attachments": {
+											"mode": "chose",
+											"items": [
+												null
+											]
+										},
+										"contentType": {
+											"label": "HTML"
+										}
+									},
+									"parameters": {
+										"folder": {
+											"label": "Sent"
+										},
+										"account": {
+											"data": {
+												"scoped": "true",
+												"connection": "smtp"
+											},
+											"label": "Zoho SMTP (SMTP info@four-walls.gr)"
+										},
+										"accountImap": {
+											"data": {
+												"scoped": "true",
+												"connection": "imap"
+											},
+											"label": "Zoho IMAP (IMAP info@four-walls.gr)"
+										},
+										"saveAfterSent": {
+											"label": "Yes"
+										}
+									}
+								},
+								"designer": {
+									"x": 0,
+									"y": 120,
+									"name": "Αρχείο CRM · απόδειξη"
+								},
+								"parameters": [
+									{
+										"name": "account",
+										"type": "account:smtp,google-restricted,microsoft-smtp-imap",
+										"label": "Connection",
+										"required": true
+									},
+									{
+										"name": "saveAfterSent",
+										"type": "select",
+										"label": "Save message after sending",
+										"required": true,
+										"validate": {
+											"enum": [
+												true,
+												false
+											]
+										}
+									},
+									{
+										"name": "accountImap",
+										"type": "account:imap,google-restricted,microsoft-smtp-imap",
+										"label": "Connection",
+										"required": true
+									},
+									{
+										"name": "folder",
+										"type": "select",
+										"label": "Folder",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"folder": "Sent",
+								"account": 8845630,
+								"accountImap": 8845636,
+								"saveAfterSent": true
+							}
+						},
 						{
 							"id": 6,
 							"filter": {
@@ -854,7 +1703,7 @@
 								},
 								"advanced": true,
 								"designer": {
-									"x": 0,
+									"x": 300,
 									"y": 120,
 									"name": "Email · απόδειξη"
 								},
