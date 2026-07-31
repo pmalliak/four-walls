@@ -36,6 +36,20 @@ Claude Opus 5, λιγότερο με Gemini. Οι αποστολές (γραφε
 μια περίληψή του. Το PDF φτιάχνεται στη συσκευή (html2pdf, ίδια βιβλιοθήκη με τα
 άλλα έντυπα) και φεύγει μέσω Make κατευθείαν στον ιδιοκτήτη, με bcc το γραφείο.
 
+**Ονόματα των δύο PDF.** Επειδή το γραφείο λαμβάνει και τα δύο (το email του
+ιδιοκτήτη έχει bcc), το καθένα λέει τι είναι, ποιο ακίνητο και πότε, στο ύφος
+των υπόλοιπων εντύπων (`anathesi_Papadopoulos_2026-07-31.pdf`):
+
+| | |
+|---|---|
+| Πλήρης αναφορά γραφείου | `ektimisi_anafora_kod1234_Fragkini_9_Kentro_2026-07-31.pdf` (`valuationPdfName` στο `worker/lib/valuation.mjs`) |
+| Έγγραφο ιδιοκτήτη | `four-walls_ektimisi_kod1234_Fragkini_9_Kentro_2026-07-31.pdf` (`clientPdfName` στο `forms/ektimisi.html`) |
+
+Χωρίς κωδικό CRM μπαίνει διεύθυνση και περιοχή, και σε εκτίμηση χωρίς τίποτα
+από τα δύο μένει `akinito` με την ημερομηνία. Τα ονόματα είναι greeklish και
+μόνο `[A-Za-z0-9_]`: ελληνικοί χαρακτήρες σε συνημμένο ταξιδεύουν άσχημα σε
+mail clients και Windows shares. Ημερομηνία Ελλάδας, όχι UTC.
+
 ```
 ektimisi.html ──POST──► /api/forms/submit ─┬─► KV: valuation:req:<ref>  (TTL 2d)
    (Access)      forms.mjs                 └─► Make hook (payload + valuation_ref)

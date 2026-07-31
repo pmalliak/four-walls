@@ -297,6 +297,38 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 	function digits(s){ return String(s == null ? "" : s).replace(/\D+/g, ""); }
 	function val(id){ return $(id).value.trim(); }
 
+	/* --- όνομα του PDF που λαμβάνει ο ιδιοκτήτης ---------------------
+	   Ήταν σταθερό («ektimisi-four-walls.pdf») για κάθε πελάτη και κάθε
+	   ακίνητο: στα Λήψεις του ιδιοκτήτη, και στον φάκελο του γραφείου
+	   (το email έχει bcc), η δεύτερη εκτίμηση γινόταν «(1)». Ίδια λογική
+	   με τα υπόλοιπα έντυπα (anathesi_Papadopoulos_2026-07-31.pdf): ΤΙ
+	   ακίνητο, ΠΟΤΕ. Το πρόθεμα της μάρκας μένει, εδώ το αρχείο το κρατά
+	   πελάτης. Greeklish και μόνο [A-Za-z0-9_]: ελληνικοί χαρακτήρες σε
+	   όνομα συνημμένου ταξιδεύουν άσχημα σε mail clients και Windows. */
+	var GREEKLISH = {"α":"a","ά":"a","β":"v","γ":"g","δ":"d","ε":"e","έ":"e","ζ":"z","η":"i","ή":"i","θ":"th","ι":"i","ί":"i","ϊ":"i","ΐ":"i","κ":"k","λ":"l","μ":"m","ν":"n","ξ":"x","ο":"o","ό":"o","π":"p","ρ":"r","σ":"s","ς":"s","τ":"t","υ":"y","ύ":"y","ϋ":"y","ΰ":"y","φ":"f","χ":"ch","ψ":"ps","ω":"o","ώ":"o"};
+	function fileSlug(parts, max){
+		return parts.filter(Boolean).join(" ").split("").map(function(c){
+			var low = c.toLowerCase(), t = GREEKLISH[low];
+			if (t == null) return c;
+			return c === low ? t : t.charAt(0).toUpperCase() + t.slice(1);
+		}).join("").replace(/[^A-Za-z0-9]+/g, "_").slice(0, max || 44).replace(/^_+|_+$/g, "");
+	}
+	/* Τοπική ημερομηνία, όχι UTC: μια εκτίμηση στις 11 το βράδυ δεν
+	   πρέπει να φύγει με τη χθεσινή ημερομηνία στο όνομα. */
+	function todayLocal(){
+		var d = new Date();
+		return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+	}
+	function clientPdfName(){
+		var p = (result && result.j && result.j.prop) || {};
+		var who = fileSlug([
+			p.listingCode ? "kod" + p.listingCode : "",
+			p.address || val("address"),
+			p.areaName || val("areaName"),
+		]);
+		return "four-walls_ektimisi_" + (who || "akinito") + "_" + todayLocal() + ".pdf";
+	}
+
 	/* Το CRM δίνει slug (apartment, office…), το select μιλάει ελληνικά. */
 	var SLUG_GR = {
 		apartment: "Διαμέρισμα", studio: "Studio / Γκαρσονιέρα",
@@ -794,7 +826,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 					adjusted_by: cv.edited ? "σύμβουλος" : "",
 				},
 				pdf_base64: b64,
-				pdf_filename: "ektimisi-four-walls.pdf",
+				pdf_filename: clientPdfName(),
 				doc_html: html,
 			}, "Εκτίμηση προς ιδιοκτήτη · " + result.summary);
 			// Ειλικρινές μήνυμα: «queued» ΔΕΝ σημαίνει στάλθηκε, και ένα

@@ -157,12 +157,66 @@ async function withPdf(env, ref, result, wantsPdf) {
 		if (b64) await env.LISTINGS_KV.put(key, b64, { expirationTtl: 7 * 24 * 3600 });
 	}
 	if (!b64) return result;
-	const code = (result.prop && result.prop.listingCode) || "";
 	return {
 		...result,
 		pdf_base64: b64,
-		pdf_filename: `ektimisi-${code || "akinito"}.pdf`,
+		pdf_filename: valuationPdfName(result.prop),
 	};
+}
+
+/* Το όνομα του συνημμένου. Χωρίς κωδικό CRM (εκτίμηση με το χέρι) το
+   παλιό «ektimisi-akinito.pdf» ήταν ίδιο για κάθε πελάτη: η γραμματεία
+   κατέβαζε δύο εκτιμήσεις στον ίδιο φάκελο και η δεύτερη γινόταν
+   «ektimisi-akinito (1).pdf». Ίδια λογική με τα υπόλοιπα έντυπα
+   (anathesi_Papadopoulos_2026-07-31.pdf): ΤΙ ακίνητο, ΠΟΤΕ. Το
+   «anafora» ξεχωρίζει την πλήρη αναφορά του γραφείου από το έγγραφο
+   του ιδιοκτήτη (four-walls_ektimisi_…, φτιάχνεται στη φόρμα), γιατί
+   το γραφείο λαμβάνει και τα δύο: το email στον ιδιοκτήτη έχει bcc. */
+function valuationPdfName(prop) {
+	const p = prop || {};
+	const who = fileSlug([
+		p.listingCode ? `kod${p.listingCode}` : "",
+		p.address || "",
+		p.areaName || "",
+	]);
+	return `ektimisi_anafora_${who || "akinito"}_${athensDate()}.pdf`;
+}
+
+/* Ημερομηνία Ελλάδας, όχι UTC: μια εκτίμηση στις 11 το βράδυ δεν
+   πρέπει να αρχειοθετηθεί με τη χθεσινή ημερομηνία. Με δίχτυ: ένα
+   όνομα αρχείου δεν επιτρέπεται να ρίξει μια εκτίμηση που πληρώθηκε. */
+function athensDate() {
+	try {
+		return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Athens" });
+	} catch (err) {
+		return new Date().toISOString().slice(0, 10);
+	}
+}
+
+const GREEKLISH = {
+	α: "a", ά: "a", β: "v", γ: "g", δ: "d", ε: "e", έ: "e", ζ: "z", η: "i",
+	ή: "i", θ: "th", ι: "i", ί: "i", ϊ: "i", ΐ: "i", κ: "k", λ: "l", μ: "m",
+	ν: "n", ξ: "x", ο: "o", ό: "o", π: "p", ρ: "r", σ: "s", ς: "s", τ: "t",
+	υ: "y", ύ: "y", ϋ: "y", ΰ: "y", φ: "f", χ: "ch", ψ: "ps", ω: "o", ώ: "o",
+};
+
+/* Greeklish + μόνο [A-Za-z0-9_]: ελληνικοί χαρακτήρες σε όνομα
+   συνημμένου ταξιδεύουν σε mail clients και Windows shares άσχημα. */
+function fileSlug(parts, max = 44) {
+	return parts
+		.filter(Boolean)
+		.join(" ")
+		.split("")
+		.map((c) => {
+			const low = c.toLowerCase();
+			const t = GREEKLISH[low];
+			if (t == null) return c;
+			return c === low ? t : t.charAt(0).toUpperCase() + t.slice(1);
+		})
+		.join("")
+		.replace(/[^A-Za-z0-9]+/g, "_")
+		.slice(0, max)
+		.replace(/^_+|_+$/g, "");
 }
 
 function respond(result, wantsHtml) {
