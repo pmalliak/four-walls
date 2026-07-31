@@ -44,9 +44,7 @@
 								"to": [
 									"{{1.data.entoleas_email}}"
 								],
-								"bcc": [
-									"info@four-walls.gr"
-								],
+								"bcc": [],
 								"from": "info@four-walls.gr",
 								"html": "<!DOCTYPE html><html lang='el'><head><meta charset='utf-8'></head><body style='margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background:#f4f5f7;padding:18px 0;'><tr><td align='center'><table role='presentation' width='560' cellpadding='0' cellspacing='0' style='max-width:560px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;'><tr><td style='background:#16233A;padding:16px 24px 6px 24px;'><span style='font-weight:bold;font-size:15px;letter-spacing:3px;color:#ffffff;'>FOUR WALLS</span><span style='font-weight:bold;font-size:10px;letter-spacing:2px;color:#FF1462;padding-left:8px;'>REAL ESTATE</span></td></tr><tr><td style='background:#16233A;padding:0 24px 14px 24px;color:#ffffff;font-size:16px;font-weight:bold;letter-spacing:1px;'>Η ΕΝΤΟΛΗ ΑΝΑΘΕΣΗΣ ΣΑΣ</td></tr><tr><td style='height:3px;background:#FF1462;'></td></tr><tr><td style='padding:22px 24px 4px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 12px 0;'>Σας ευχαριστούμε για την εμπιστοσύνη σας.</p><p style='margin:0 0 4px 0;'>Επισυνάπτουμε αντίγραφο της <strong>εντολής ανάθεσης</strong> που υπογράψατε, για το αρχείο σας.</p></td></tr><tr><td style='padding:10px 24px 6px 24px;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='font-size:14px;line-height:1.7;color:#16233A;border-top:1px solid #e6e9ef;border-bottom:1px solid #e6e9ef;'><tr><td style='color:#777777;width:150px;padding:6px 0 2px 0;vertical-align:top;'>Εντολέας</td><td style='padding:6px 0 2px 0;font-weight:bold;'>{{1.data.entoleas_onomatepwnymo}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Ακίνητο</td><td style='padding:2px 0;'>{{1.data.akinito_typos}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Διεύθυνση</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.akinito_odos}}, {{1.data.akinito_tk}} {{1.data.akinito_perioxi}}</td></tr><tr><td style='color:#777777;padding:2px 0 6px 0;vertical-align:top;'>Επιφάνεια</td><td style='padding:2px 0 6px 0;'>{{1.data.akinito_epifaneia}} τ.μ.</td></tr></table></td></tr><tr><td style='padding:14px 24px 20px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 12px 0;'>Από εδώ και πέρα αναλαμβάνουμε την προβολή του ακινήτου σας και τη διαχείριση των ενδιαφερομένων. Θα σας ενημερώνουμε σε κάθε βήμα.</p><p style='margin:0;color:#777777;font-size:13.5px;'>Για οτιδήποτε χρειαστείτε, καλέστε μας στο <strong style='color:#16233A;'>+30 6907 483 463</strong> ή απαντήστε σε αυτό το email.</p></td></tr><tr><td style='background:#16233A;padding:16px 24px;'><p style='margin:0;font-size:12px;line-height:1.6;color:#cdd3de;'><strong style='color:#ffffff;'>Four Walls Real Estate</strong> · <a href=\"tel:+306907483463\" style=\"color:#ffffff; text-decoration:underline;\">+30 6907 483 463</a> · <a href=\"mailto:info@four-walls.gr\" style=\"color:#ffffff; text-decoration:underline;\">info@four-walls.gr</a><br>\nΦραγκίνη 9, Θεσσαλονίκη · <a href=\"https://four-walls.gr/go?to=/&amp;c=CAMPAIGN\" style=\"color:#ffffff; text-decoration:underline;\">four-walls.gr</a></p></td></tr></table></td></tr></table></body></html>",
 								"sender": "",
@@ -227,10 +225,7 @@
 											]
 										},
 										"bcc": {
-											"mode": "chose",
-											"items": [
-												null
-											]
+											"mode": "chose"
 										},
 										"priority": {
 											"label": "Normal"
@@ -342,9 +337,7 @@
 								"to": [
 									"{{1.data.entoleas_email}}"
 								],
-								"bcc": [
-									"info@four-walls.gr"
-								],
+								"bcc": [],
 								"from": "info@four-walls.gr",
 								"html": "<!DOCTYPE html><html lang='el'><head><meta charset='utf-8'></head><body style='margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background:#f4f5f7;padding:18px 0;'><tr><td align='center'><table role='presentation' width='560' cellpadding='0' cellspacing='0' style='max-width:560px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;'><tr><td style='background:#16233A;padding:16px 24px 6px 24px;'><span style='font-weight:bold;font-size:15px;letter-spacing:3px;color:#ffffff;'>FOUR WALLS</span><span style='font-weight:bold;font-size:10px;letter-spacing:2px;color:#FF1462;padding-left:8px;'>REAL ESTATE</span></td></tr><tr><td style='background:#16233A;padding:0 24px 14px 24px;color:#ffffff;font-size:16px;font-weight:bold;letter-spacing:1px;'>ΤΑ ΑΚΙΝΗΤΑ ΠΟΥ ΣΑΣ ΥΠΟΔΕΙΞΑΜΕ</td></tr><tr><td style='height:3px;background:#FF1462;'></td></tr><tr><td style='padding:22px 24px 4px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 12px 0;'>Σας ευχαριστούμε για τη συνάντηση.</p><p style='margin:0 0 4px 0;'>Επισυνάπτουμε αντίγραφο της <strong>εντολής υπόδειξης</strong> που υπογράψατε. Στο PDF θα βρείτε τον πλήρη πίνακα με τα ακίνητα που είδατε, τις τιμές και τη συμφωνημένη αμοιβή για το καθένα.</p></td></tr><tr><td style='padding:10px 24px 6px 24px;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='font-size:14px;line-height:1.7;color:#16233A;border-top:1px solid #e6e9ef;border-bottom:1px solid #e6e9ef;'><tr><td style='color:#777777;width:150px;padding:6px 0 2px 0;vertical-align:top;'>Εντολέας</td><td style='padding:6px 0 2px 0;font-weight:bold;'>{{1.data.entoleas_onomatepwnymo}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Κωδικοί ακινήτων</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.akinito_1_kodikos}} {{1.data.akinito_2_kodikos}} {{1.data.akinito_3_kodikos}} {{1.data.akinito_4_kodikos}} {{1.data.akinito_5_kodikos}}</td></tr><tr><td style='color:#777777;padding:2px 0 6px 0;vertical-align:top;'>Ημερομηνία</td><td style='padding:2px 0 6px 0;'>{{1.data.imerominia}}</td></tr></table></td></tr><tr><td style='padding:14px 24px 20px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 12px 0;'>Αν θέλετε να προχωρήσουμε σε κάποιο από αυτά ή να κανονίσουμε δεύτερη επίσκεψη, είμαστε στη διάθεσή σας.</p><p style='margin:0;color:#777777;font-size:13.5px;'>Για οτιδήποτε χρειαστείτε, καλέστε μας στο <strong style='color:#16233A;'>+30 6907 483 463</strong> ή απαντήστε σε αυτό το email.</p></td></tr><tr><td style='background:#16233A;padding:16px 24px;'><p style='margin:0;font-size:12px;line-height:1.6;color:#cdd3de;'><strong style='color:#ffffff;'>Four Walls Real Estate</strong> · <a href=\"tel:+306907483463\" style=\"color:#ffffff; text-decoration:underline;\">+30 6907 483 463</a> · <a href=\"mailto:info@four-walls.gr\" style=\"color:#ffffff; text-decoration:underline;\">info@four-walls.gr</a><br>\nΦραγκίνη 9, Θεσσαλονίκη · <a href=\"https://four-walls.gr/go?to=/&amp;c=CAMPAIGN\" style=\"color:#ffffff; text-decoration:underline;\">four-walls.gr</a></p></td></tr></table></td></tr></table></body></html>",
 								"sender": "",
@@ -525,10 +518,7 @@
 											]
 										},
 										"bcc": {
-											"mode": "chose",
-											"items": [
-												null
-											]
+											"mode": "chose"
 										},
 										"priority": {
 											"label": "Normal"
@@ -640,9 +630,7 @@
 								"to": [
 									"{{1.data.katavallon_email}}"
 								],
-								"bcc": [
-									"info@four-walls.gr"
-								],
+								"bcc": [],
 								"from": "info@four-walls.gr",
 								"html": "<!DOCTYPE html><html lang='el'><head><meta charset='utf-8'></head><body style='margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background:#f4f5f7;padding:18px 0;'><tr><td align='center'><table role='presentation' width='560' cellpadding='0' cellspacing='0' style='max-width:560px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;'><tr><td style='background:#16233A;padding:16px 24px 6px 24px;'><span style='font-weight:bold;font-size:15px;letter-spacing:3px;color:#ffffff;'>FOUR WALLS</span><span style='font-weight:bold;font-size:10px;letter-spacing:2px;color:#FF1462;padding-left:8px;'>REAL ESTATE</span></td></tr><tr><td style='background:#16233A;padding:0 24px 14px 24px;color:#ffffff;font-size:16px;font-weight:bold;letter-spacing:1px;'>Η ΑΠΟΔΕΙΞΗ ΤΗΣ ΠΛΗΡΩΜΗΣ ΣΑΣ</td></tr><tr><td style='height:3px;background:#FF1462;'></td></tr><tr><td style='padding:22px 24px 4px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 12px 0;'>Σας ευχαριστούμε για την πληρωμή σας.</p><p style='margin:0 0 4px 0;'>Επισυνάπτουμε την <strong>απόδειξη είσπραξης</strong> για το αρχείο σας.</p></td></tr><tr><td style='padding:18px 24px 8px 24px;' align='center'><div style='font-size:30px;font-weight:bold;color:#FF1462;letter-spacing:-0.5px;'>{{1.data.poso_arithmitikos}} €</div></td></tr><tr><td style='padding:8px 24px 6px 24px;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='font-size:14px;line-height:1.7;color:#16233A;border-top:1px solid #e6e9ef;border-bottom:1px solid #e6e9ef;'><tr><td style='color:#777777;width:150px;padding:6px 0 2px 0;vertical-align:top;'>Αιτία είσπραξης</td><td style='padding:6px 0 2px 0;'>{{1.data.aitiologia}}</td></tr><tr><td style='color:#777777;padding:2px 0 6px 0;vertical-align:top;'>Ημερομηνία</td><td style='padding:2px 0 6px 0;font-weight:bold;'>{{1.data.imerominia}}</td></tr></table></td></tr><tr><td style='padding:14px 24px 20px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0;color:#777777;font-size:13.5px;'>Για οτιδήποτε χρειαστείτε, καλέστε μας στο <strong style='color:#16233A;'>+30 6907 483 463</strong> ή απαντήστε σε αυτό το email.</p></td></tr><tr><td style='background:#16233A;padding:16px 24px;'><p style='margin:0;font-size:12px;line-height:1.6;color:#cdd3de;'><strong style='color:#ffffff;'>Four Walls Real Estate</strong> · <a href=\"tel:+306907483463\" style=\"color:#ffffff; text-decoration:underline;\">+30 6907 483 463</a> · <a href=\"mailto:info@four-walls.gr\" style=\"color:#ffffff; text-decoration:underline;\">info@four-walls.gr</a><br>\nΦραγκίνη 9, Θεσσαλονίκη · <a href=\"https://four-walls.gr/go?to=/&amp;c=CAMPAIGN\" style=\"color:#ffffff; text-decoration:underline;\">four-walls.gr</a></p></td></tr></table></td></tr></table></body></html>",
 								"sender": "",
@@ -823,10 +811,7 @@
 											]
 										},
 										"bcc": {
-											"mode": "chose",
-											"items": [
-												null
-											]
+											"mode": "chose"
 										},
 										"priority": {
 											"label": "Normal"
@@ -1225,9 +1210,7 @@
 								"to": [
 									"{{1.data.owner_email}}"
 								],
-								"bcc": [
-									"info@four-walls.gr"
-								],
+								"bcc": [],
 								"from": "info@four-walls.gr",
 								"html": "<!DOCTYPE html><html lang='el'><head><meta charset='utf-8'></head><body style='margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background:#f4f5f7;padding:18px 0;'><tr><td align='center'><table role='presentation' width='560' cellpadding='0' cellspacing='0' style='max-width:560px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;'><tr><td style='background:#16233A;padding:16px 24px 6px 24px;'><span style='font-weight:bold;font-size:15px;letter-spacing:3px;color:#ffffff;'>FOUR WALLS</span><span style='font-weight:bold;font-size:10px;letter-spacing:2px;color:#FF1462;padding-left:8px;'>REAL ESTATE</span></td></tr><tr><td style='background:#16233A;padding:0 24px 14px 24px;color:#ffffff;font-size:16px;font-weight:bold;letter-spacing:1px;'>ΤΑ ΣΤΟΙΧΕΙΑ ΤΟΥ ΑΚΙΝΗΤΟΥ ΣΑΣ</td></tr><tr><td style='height:3px;background:#FF1462;'></td></tr><tr><td style='padding:22px 24px 4px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 12px 0;'>Σας ευχαριστούμε για την εμπιστοσύνη σας.</p><p style='margin:0 0 4px 0;'>Καταγράψαμε τα στοιχεία του ακινήτου σας όπως φαίνονται παρακάτω. <strong>Ρίξτε μια ματιά</strong> και πείτε μας αν κάτι χρειάζεται διόρθωση — με βάση αυτά θα ετοιμάσουμε την προβολή.</p></td></tr><tr><td style='padding:10px 24px 6px 24px;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='font-size:14px;line-height:1.7;color:#16233A;border-top:1px solid #e6e9ef;border-bottom:1px solid #e6e9ef;'><tr><td style='color:#777777;width:150px;padding:6px 0 2px 0;vertical-align:top;'>Συναλλαγή</td><td style='padding:6px 0 2px 0;font-weight:bold;'>{{1.data.transaction_type}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Ακίνητο</td><td style='padding:2px 0;'>{{1.data.category}} · {{1.data.subtype}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Διεύθυνση</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.address}}, {{1.data.tk}} {{1.data.region}}</td></tr><tr><td style='color:#777777;padding:2px 0;vertical-align:top;'>Τιμή</td><td style='padding:2px 0;font-weight:bold;'>{{1.data.price}} €</td></tr><tr><td style='color:#777777;padding:2px 0 6px 0;vertical-align:top;'>Εμβαδόν</td><td style='padding:2px 0 6px 0;'>{{1.data.area}} τ.μ.</td></tr></table></td></tr><tr><td style='padding:14px 24px 20px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0;color:#777777;font-size:13.5px;'>Πλήρη στοιχεία στο συνημμένο PDF. Για οτιδήποτε χρειαστείτε, καλέστε μας στο <strong style='color:#16233A;'>+30 6907 483 463</strong> ή απαντήστε σε αυτό το email.</p></td></tr><tr><td style='background:#16233A;padding:16px 24px;'><p style='margin:0;font-size:12px;line-height:1.6;color:#cdd3de;'><strong style='color:#ffffff;'>Four Walls Real Estate</strong> · <a href=\"tel:+306907483463\" style=\"color:#ffffff; text-decoration:underline;\">+30 6907 483 463</a> · <a href=\"mailto:info@four-walls.gr\" style=\"color:#ffffff; text-decoration:underline;\">info@four-walls.gr</a><br>\nΦραγκίνη 9, Θεσσαλονίκη · <a href=\"https://four-walls.gr/go?to=/&amp;c=CAMPAIGN\" style=\"color:#ffffff; text-decoration:underline;\">four-walls.gr</a></p></td></tr></table></td></tr></table></body></html>",
 								"sender": "",
@@ -1408,10 +1391,7 @@
 											]
 										},
 										"bcc": {
-											"mode": "chose",
-											"items": [
-												null
-											]
+											"mode": "chose"
 										},
 										"priority": {
 											"label": "Normal"
@@ -2177,9 +2157,7 @@
 												"to": [
 													"{{1.data.client_email}}"
 												],
-												"bcc": [
-													"info@four-walls.gr"
-												],
+												"bcc": [],
 												"from": "info@four-walls.gr",
 												"html": "<!DOCTYPE html><html lang='el'><head><meta charset='utf-8'></head><body style='margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background:#f4f5f7;padding:18px 0;'><tr><td align='center'><table role='presentation' width='560' cellpadding='0' cellspacing='0' style='max-width:560px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;'><tr><td style='background:#16233A;padding:16px 24px 6px 24px;'><span style='font-weight:bold;font-size:15px;letter-spacing:3px;color:#ffffff;'>FOUR WALLS</span><span style='font-weight:bold;font-size:10px;letter-spacing:2px;color:#FF1462;padding-left:8px;'>REAL ESTATE</span></td></tr><tr><td style='background:#16233A;padding:0 24px 14px 24px;color:#ffffff;font-size:16px;font-weight:bold;letter-spacing:1px;'>Η ΕΚΤΙΜΗΣΗ ΤΟΥ ΑΚΙΝΗΤΟΥ ΣΑΣ</td></tr><tr><td style='height:3px;background:#FF1462;'></td></tr><tr><td style='padding:22px 24px 4px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 12px 0;'>Σας ευχαριστούμε για την εμπιστοσύνη σας.</p><p style='margin:0 0 4px 0;'>Επισυνάπτουμε την <strong>εκτίμηση αξίας</strong> για το ακίνητό σας ({{1.summary}}), όπως προέκυψε από τα στοιχεία της αγοράς και τα συγκριτικά της περιοχής.</p></td></tr><tr><td style='padding:14px 24px 20px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 12px 0;'>Θα χαρούμε να τη συζητήσουμε μαζί σας και να δούμε τα επόμενα βήματα για το ακίνητό σας.</p><p style='margin:0;color:#777777;font-size:13.5px;'>Καλέστε μας στο <strong style='color:#16233A;'>+30 6907 483 463</strong> ή απαντήστε σε αυτό το email.</p></td></tr><tr><td style='background:#16233A;padding:16px 24px;'><p style='margin:0;font-size:12px;line-height:1.6;color:#cdd3de;'><strong style='color:#ffffff;'>Four Walls Real Estate</strong> · <a href=\"tel:+306907483463\" style=\"color:#ffffff; text-decoration:underline;\">+30 6907 483 463</a> · <a href=\"mailto:info@four-walls.gr\" style=\"color:#ffffff; text-decoration:underline;\">info@four-walls.gr</a><br>\nΦραγκίνη 9, Θεσσαλονίκη · <a href=\"https://four-walls.gr/go?to=/&amp;c=ektimisi\" style=\"color:#ffffff; text-decoration:underline;\">four-walls.gr</a></p></td></tr></table></td></tr></table></body></html>",
 												"sender": "",
@@ -2360,10 +2338,7 @@
 															]
 														},
 														"bcc": {
-															"mode": "chose",
-															"items": [
-																null
-															]
+															"mode": "chose"
 														},
 														"priority": {
 															"label": "Normal"

@@ -118,19 +118,22 @@ jsPDF fails to load, but the email module's attachment mapping requires
 
 | branch | to | copies |
 |---|---|---|
-| anathesi / ypodeixi | `entoleas_email`, falling back to `info@` when blank | cc `submitted_by`, bcc `info@` |
-| apodeixi | `katavallon_email`, same fallback | cc `submitted_by`, bcc `info@` |
+| anathesi / ypodeixi | `entoleas_email`, falling back to `info@` when blank | cc `submitted_by` |
+| apodeixi | `katavallon_email`, same fallback | cc `submitted_by` |
 | katachorisi (always) | `info@` — internal «ΓΙΑ ΚΑΤΑΧΩΡΙΣΗ» reminder to enter listing+contact | none |
-| katachorisi (ΝΑΙ on the form) | `owner_email` — client-facing confirmation | cc `submitted_by`, bcc `info@` |
+| katachorisi (ΝΑΙ on the form) | `owner_email` — client-facing confirmation | cc `submitted_by` |
 | prosfora | `info@` — internal «ΝΕΑ ΠΡΟΣΦΟΡΑ» notice to record the offer | none |
 | ektimisi (office) | `info@` — the AI valuation report (subject «ΕΚΤΙΜΗΣΗ · …»), fetched from `/api/valuation` | cc `submitted_by` |
-| ektimisi (owner, «Προς ιδιοκτήτη») | `client_email` — client-facing report | cc `submitted_by`, bcc `info@` |
+| ektimisi (owner, «Προς ιδιοκτήτη») | `client_email` — client-facing report | cc `submitted_by` |
 
 `submitted_by` is the consultant's email that the Worker stamps from the
 Access JWT, so the person who filled the form gets the copy; the mapping is
 `{{ifempty(1.submitted_by; "info@four-walls.gr")}}` because local-dev
 submissions carry `submitted_by: null`. The fixed personal copies to
-`panos@` and `manos@` were dropped on 2026-07-31.
+`panos@` and `manos@` were dropped on 2026-07-31, and no bcc archive copy
+is kept: every module sends through the info@ Zoho account with
+`saveAfterSent: true`, so the client emails are already searchable in the
+info@ Sent folder.
 
 The προσφορά never mails the client: an offer is the office's information,
 and the interested party already knows what they offered.

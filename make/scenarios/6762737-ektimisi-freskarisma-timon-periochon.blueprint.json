@@ -72,7 +72,7 @@
 				"folder": "Sent",
 				"account": 8845630,
 				"accountImap": 8845636,
-				"saveAfterSent": false
+				"saveAfterSent": true
 			}
 		}
 	],
