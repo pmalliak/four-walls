@@ -38,6 +38,7 @@ deeper, one topic per file:
 | [request-matchings.md](request-matchings.md) | Νέα ακίνητα σε ζητήσεις: σάρωση του tab «Ακίνητα» όλων των ενεργών ζητήσεων → digest email στη γραμματεία |
 | [photo-enhance.md](photo-enhance.md) | AI photo enhancement: enhance.html → Worker/R2 → Make (Gemini "Nano Banana") → Google Drive + email; the edit toggles and Make build recipe |
 | [assets-host.md](assets-host.md) | `assets.four-walls.gr`: ο φάκελος `assets/` του repo ως δημόσιο CDN για υπογραφές email/πρότυπα CRM — cache, όρια, το setup του custom domain |
+| [error-monitoring.md](error-monitoring.md) | Bugsnag και στα δύο front-ends: self-hosted notifier, μόνο production, το offline queue του PWA, τα δύο projects/keys, το SmartBear MCP |
 | [manual-site.md](manual-site.md) | Εγχειρίδιο γραμματείας στο `docs.four-walls.gr` (`manual/`): μη-τεχνικές οδηγίες, ξεκινώντας από τα email του `info@` |
 | [listing-description-prompt.md](listing-description-prompt.md) | Έτοιμο AI prompt για την περιγραφή αγγελίας (το AI του CRM φτιάχνει μόνο περιγραφή) στο ύφος του γραφείου — κανόνας «παραλία», slugs→ελληνικά, παραδείγματα |
 | [../.claude/skills/area-accessibility/SKILL.md](../.claude/skills/area-accessibility/SKILL.md) | «Προσβασιμότητα περιοχής»: πώς ανανεώνονται οι βαθμολογίες OpenStreetMap (`/area-accessibility`), τα προφίλ ανά τύπο ακινήτου |
