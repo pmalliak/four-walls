@@ -206,6 +206,13 @@ export function mapListing(raw) {
 			.filter(Boolean),
 		features: Array.isArray(raw.features) ? raw.features : [],
 		updatedAt: raw.date_updated ?? raw.date_created ?? null,
+		// Πότε μπήκε στην αγορά. Το date_updated κουνιέται σε κάθε
+		// επεξεργασία, το date_created όχι — και η διαφορά του από το
+		// σήμερα είναι το «πόσο κάθεται», σήμα τιμολόγησης που διαβάζει η
+		// εκτίμηση (βλ. daysOnMarket στο valuation.mjs). Δεν εμφανίζεται
+		// πουθενά στο site: ο επισκέπτης δεν έχει λόγο να ξέρει ποιο
+		// ακίνητο παλιώνει.
+		listedAt: raw.date_created ?? null,
 	};
 }
 

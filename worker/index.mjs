@@ -43,7 +43,7 @@ import { handlePhotoApi, servePhotoFile, applyWatermark } from "./lib/photos.mjs
 import { handleLeadReply } from "./lib/lead-reply.mjs";
 import { handlePropertyRequest } from "./lib/property-request.mjs";
 import { handlePropertyAssignment } from "./lib/property-assignment.mjs";
-import { handleValuation } from "./lib/valuation.mjs";
+import { handleValuation, handleValuationLog } from "./lib/valuation.mjs";
 import { handleAreaPricesRefresh } from "./lib/area-prices-refresh.mjs";
 
 const FEED_KEY = "listings.json";
@@ -71,22 +71,24 @@ export default {
 		}
 
 		// The Έντυπα PWA's private API: the CRM pickers read the client
-		// database, and /api/forms/submit carries a signed contract. Both
-		// are client PII, so both live on exactly two hostnames — the forms
-		// domain, which Cloudflare Access sits in front of, and localhost
-		// for `wrangler dev`. NOT on workers.dev: that URL is kept alive for
-		// the CRM webhook and bypasses Access entirely, which would leave
-		// the whole client database wide open. The host check is defence in
-		// depth; requireAccess() below is the real gate, for both.
-		if (pathname.startsWith("/api/crm/") || pathname === "/api/forms/submit") {
+		// database, /api/forms/submit carries a signed contract, and
+		// /api/valuation-log lists every valuation we ever produced
+		// (addresses + numbers). All are client PII, so all live on exactly
+		// two hostnames — the forms domain, which Cloudflare Access sits in
+		// front of, and localhost for `wrangler dev`. NOT on workers.dev:
+		// that URL is kept alive for the CRM webhook and bypasses Access
+		// entirely, which would leave the whole client database wide open.
+		// The host check is defence in depth; requireAccess() below is the
+		// real gate, for all three.
+		if (pathname.startsWith("/api/crm/") || pathname === "/api/forms/submit" || pathname === "/api/valuation-log") {
 			if (!(url.hostname.startsWith("forms.") || isLocalDev(url, env))) {
 				return new Response("Not Found", { status: 404 });
 			}
 			const { denied, email } = await requireAccess(request, env, url);
 			if (denied) return denied;
-			return pathname === "/api/forms/submit"
-				? handleFormSubmit(request, env, email)
-				: handleCrm(request, env, pathname, url);
+			if (pathname === "/api/forms/submit") return handleFormSubmit(request, env, email);
+			if (pathname === "/api/valuation-log") return handleValuationLog(request, env, url);
+			return handleCrm(request, env, pathname, url);
 		}
 
 		// AI photo enhancement — the STAFF half (init/upload/finalize). Same

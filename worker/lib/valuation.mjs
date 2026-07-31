@@ -41,6 +41,9 @@ const VALUATION_RES_PREFIX = "valuation:res:";
    (Arial, στενή κολόνα) αντί για το χάρτινο design των εντύπων. Νέο
    πρόθεμα ώστε τα παλιά κασαρισμένα να αγνοηθούν και να λήξουν μόνα τους. */
 const VALUATION_PDF_PREFIX = "valuation:pdf2:";
+/* Μόνιμο ιστορικό εκτιμήσεων: ένα KV key ανά μήνα, ΧΩΡΙΣ TTL — βλ.
+   logValuation παρακάτω. */
+const VALUATION_LOG_PREFIX = "valuation:log:";
 export const VALUATION_TTL_SECONDS = 2 * 24 * 3600;
 
 const FEED_KEY = "listings.json"; // ίδιο με FEED_KEY στο worker/index.mjs
@@ -110,6 +113,7 @@ export async function handleValuation(request, env, url, ctx) {
 		await env.LISTINGS_KV.put(VALUATION_RES_PREFIX + ref, JSON.stringify(result), {
 			expirationTtl: 7 * 24 * 3600,
 		});
+		await logValuation(env, ref, prop, v, payload);
 		return result;
 	})();
 	if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work);
@@ -168,6 +172,150 @@ function json(obj, status) {
 	return new Response(JSON.stringify(obj), {
 		status,
 		headers: { "Content-Type": "application/json; charset=utf-8" },
+	});
+}
+
+/* ------------------------------------------------------------------ */
+/* Μόνιμο ιστορικό εκτιμήσεων                                          */
+/* ------------------------------------------------------------------ */
+
+/* Το report στο KV λήγει σε 7 μέρες, και email υπάρχει μόνο αν πατήθηκε
+   «Αποστολή στο info@» — χωρίς αυτό εδώ, σε λίγους μήνες κανείς δεν
+   ξέρει τι εκτιμήσαμε και πόσο. Μία συμπυκνωμένη γραμμή ανά εκτίμηση,
+   σε ένα key ανά μήνα, χωρίς TTL: αρκεί για το «τι εκτιμήσαμε το Χ;»
+   και, αργότερα, για βαθμονόμηση απέναντι σε πραγματικές τιμές εντολής
+   και κλεισίματος. Το price_table λέει ΠΟΙΟΣ πίνακας περιοχών ίσχυε.
+
+   Αποτυχία εδώ ΔΕΝ ρίχνει την εκτίμηση (try/catch): το ιστορικό είναι
+   δευτερεύον. Το read-modify-write δεν έχει κλείδωμα — δύο ταυτόχρονες
+   εκτιμήσεις μπορεί να χάσουν τη μία γραμμή· στους δικούς μας όγκους
+   (λίγες τον μήνα) το δεχόμαστε, το χειρότερο είναι μία γραμμή
+   λιγότερη, ποτέ χαλασμένο JSON. */
+async function logValuation(env, ref, prop, v, payload) {
+	try {
+		const key = VALUATION_LOG_PREFIX + new Date().toISOString().slice(0, 7);
+		const entries = JSON.parse((await env.LISTINGS_KV.get(key)) || "[]");
+		if (entries.some((e) => e.ref === ref)) return;
+		entries.push({
+			ts: new Date().toISOString(),
+			ref,
+			by: String(payload.submitted_by || ""),
+			code: prop.listingCode || "",
+			category: prop.category,
+			kind: prop.subcategory || "",
+			area: prop.areaName || "",
+			address: prop.address || "",
+			sqm: prop.size,
+			purpose: prop.purpose,
+			asking: prop.askingPrice,
+			eur_per_sqm: v.eur_per_sqm,
+			value_low: v.value_low,
+			value_mid: v.value_mid,
+			value_high: v.value_high,
+			rent_mid: v.rent_mid,
+			yield_pct: v.gross_yield_pct,
+			confidence: v.confidence || "",
+			renovation_gain: v.renovation ? (v.renovation.net_gain ?? null) : null,
+			price_table: AREA_PRICES_META.asOf,
+		});
+		await env.LISTINGS_KV.put(key, JSON.stringify(entries));
+	} catch (err) {
+		console.warn(`valuation: history append failed for ${ref}: ${String(err)}`);
+	}
+}
+
+/* GET /api/valuation-log[?month=YYYY-MM][&format=json] — το ιστορικό σε
+   πίνακα, ένας μήνας τη φορά. Δρομολογείται ΜΟΝΟ στο forms hostname
+   πίσω από το Cloudflare Access (worker/index.mjs): κάθε γραμμή είναι
+   διεύθυνση και νούμερα πελάτη. */
+export async function handleValuationLog(request, env, url) {
+	if (request.method !== "GET") return json({ error: "method_not_allowed" }, 405);
+	const current = new Date().toISOString().slice(0, 7);
+	const month = String(url.searchParams.get("month") || current);
+	if (!/^\d{4}-\d{2}$/.test(month)) return json({ error: "bad_month" }, 400);
+
+	let entries = [];
+	try {
+		entries = JSON.parse((await env.LISTINGS_KV.get(VALUATION_LOG_PREFIX + month)) || "[]");
+	} catch { /* χαλασμένο key: δείξε άδειο μήνα, όχι 500 */ }
+	entries.sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
+
+	if (url.searchParams.get("format") === "json") {
+		return json({ month, count: entries.length, entries }, 200);
+	}
+
+	// Ποιοι μήνες έχουν ιστορικό: ένα key ανά μήνα, το list αρκεί.
+	let months = [];
+	try {
+		months = (await env.LISTINGS_KV.list({ prefix: VALUATION_LOG_PREFIX }))
+			.keys.map((k) => k.name.slice(VALUATION_LOG_PREFIX.length));
+	} catch { /* χωρίς δείκτη μηνών η σελίδα παραμένει χρήσιμη */ }
+	if (!months.includes(month)) months.push(month);
+	months.sort().reverse();
+
+	const monthLabel = (m) => {
+		const [y, mo] = m.split("-");
+		const names = ["Ιανουάριος", "Φεβρουάριος", "Μάρτιος", "Απρίλιος", "Μάιος", "Ιούνιος",
+			"Ιούλιος", "Αύγουστος", "Σεπτέμβριος", "Οκτώβριος", "Νοέμβριος", "Δεκέμβριος"];
+		return `${names[Number(mo) - 1] || mo} ${y}`;
+	};
+	const nav = months.map((m) => m === month
+		? `<span style="font-weight:bold; color:${NAVY};">${esc(monthLabel(m))}</span>`
+		: `<a href="/api/valuation-log?month=${esc(m)}" style="color:${PINK};">${esc(monthLabel(m))}</a>`
+	).join(" · ");
+
+	const rows = entries.map((e) => {
+		const when = e.ts ? new Date(e.ts).toLocaleDateString("el-GR", { timeZone: "Europe/Athens" }) : "";
+		const what = [e.kind || labelCategory(e.category), e.code ? `κωδ. ${e.code}` : "", e.area, e.address]
+			.filter(Boolean).join(" · ");
+		const sale = e.value_mid
+			? `<strong>${eur(e.value_mid)}</strong> <span style="color:#6b7280;">(${eur(e.value_low)} έως ${eur(e.value_high)})</span>`
+			: "";
+		return `<tr>
+			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; white-space:nowrap;">${esc(when)}</td>
+			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; color:${NAVY};">${esc(what)}</td>
+			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right;">${e.sqm ? esc(String(e.sqm)) + " τ.μ." : ""}</td>
+			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; white-space:nowrap;">${sale}</td>
+			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right; color:#6b7280;">${e.eur_per_sqm ? eur(e.eur_per_sqm) + "/τ.μ." : ""}</td>
+			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; white-space:nowrap;">${e.rent_mid ? eur(e.rent_mid) + "/μήνα" : ""}</td>
+			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px;">${esc(e.confidence || "")}</td>
+			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; color:#6b7280;">${esc(e.by || "")}</td>
+			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px;"><a href="/api/valuation?ref=${esc(e.ref)}&format=html" style="color:${PINK};">report</a></td>
+		</tr>`;
+	}).join("");
+
+	const html = `<!doctype html><html lang="el"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Ιστορικό εκτιμήσεων · ${esc(month)}</title></head>
+<body style="margin:0; padding:24px 12px; background:#f4f5f7; font-family:Arial,sans-serif;">
+<div style="max-width:1000px; margin:0 auto; background:#ffffff; border-radius:8px; overflow:hidden;">
+	<div style="background:${NAVY}; padding:15px 20px;"><span style="color:#ffffff; font-size:18px; font-weight:bold; letter-spacing:1.5px;">FOUR WALLS</span><span style="color:${PINK}; font-size:10px; font-weight:bold; letter-spacing:2px;">&nbsp;&nbsp;REAL ESTATE</span></div>
+	<div style="height:3px; background:${PINK};"></div>
+	<div style="padding:20px;">
+		<div style="font-size:11px; font-weight:bold; letter-spacing:1.5px; color:${PINK};">ΙΣΤΟΡΙΚΟ ΕΚΤΙΜΗΣΕΩΝ</div>
+		<div style="font-size:17px; font-weight:bold; color:${NAVY}; margin:4px 0 10px;">${esc(monthLabel(month))} · ${entries.length} ${entries.length === 1 ? "εκτίμηση" : "εκτιμήσεις"}</div>
+		<div style="font-size:12.5px; color:#6b7280; margin-bottom:14px;">${nav}</div>
+		${entries.length ? `<div style="overflow-x:auto;"><table cellpadding="0" cellspacing="0" style="width:100%; border-collapse:collapse; border:1px solid #eceef2; border-radius:6px;">
+			<tr>
+				<td style="padding:7px 10px; font-size:11px; font-weight:bold; color:#6b7280;">ΗΜ/ΝΙΑ</td>
+				<td style="padding:7px 10px; font-size:11px; font-weight:bold; color:#6b7280;">ΑΚΙΝΗΤΟ</td>
+				<td style="padding:7px 10px; font-size:11px; font-weight:bold; color:#6b7280; text-align:right;">ΕΜΒΑΔΟΝ</td>
+				<td style="padding:7px 10px; font-size:11px; font-weight:bold; color:#6b7280;">ΑΞΙΑ ΠΩΛΗΣΗΣ</td>
+				<td style="padding:7px 10px; font-size:11px; font-weight:bold; color:#6b7280; text-align:right;">ΑΝΑ τ.μ.</td>
+				<td style="padding:7px 10px; font-size:11px; font-weight:bold; color:#6b7280;">ΜΙΣΘΩΜΑ</td>
+				<td style="padding:7px 10px; font-size:11px; font-weight:bold; color:#6b7280;">ΒΕΒΑΙΟΤΗΤΑ</td>
+				<td style="padding:7px 10px; font-size:11px; font-weight:bold; color:#6b7280;">ΑΠΟ</td>
+				<td style="padding:7px 10px; font-size:11px; font-weight:bold; color:#6b7280;"></td>
+			</tr>
+			${rows}
+		</table></div>` : `<div style="background:#f4f7fb; border:1px solid #c9d4e4; border-radius:8px; padding:12px 16px; font-size:13px; color:${NAVY};">Καμία εκτίμηση αυτόν τον μήνα.</div>`}
+		<div style="font-size:11px; color:#9aa3af; margin-top:14px; line-height:1.6;">Ο σύνδεσμος «report» ανοίγει το πλήρες report όσο ζει στο cache (7 μέρες)· οι γραμμές του ιστορικού μένουν για πάντα. Πρόσβαση με JSON: <code>/api/valuation-log?month=${esc(month)}&amp;format=json</code>.</div>
+	</div>
+</div>
+</body></html>`;
+	return new Response(html, {
+		headers: { "Content-Type": "text/html; charset=utf-8", "X-Robots-Tag": "noindex" },
 	});
 }
 

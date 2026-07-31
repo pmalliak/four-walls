@@ -19,6 +19,9 @@
    (Spitogatos «Τιμές ακινήτων» / SPI, xe.gr στατιστικά) και την εικόνα
    του γραφείου. Ενημέρωσε το asOf σε κάθε αλλαγή. Όσο το asOf μένει
    πίσω, τόσο πιο επιφυλακτικό γίνεται το report (βλ. valuation.mjs).
+   Μετά από ΚΑΘΕ αλλαγή του πίνακα τρέξε `node tools/area-prices-log.mjs`
+   πριν το commit: κρατά τη χρονοσειρά των εγκεκριμένων πινάκων στο
+   area-prices-history.json δίπλα (ίδιο commit, βλ. docs/valuation.md).
    ===================================================================== */
 
 export const AREA_PRICES_META = {

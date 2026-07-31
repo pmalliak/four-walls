@@ -1,0 +1,529 @@
+{
+	"_readme": "Ιστορικό του πίνακα τιμών περιοχών (worker/lib/area-prices.mjs). Μία εγγραφή ανά έγκριση του μηνιαίου ελέγχου, γραμμένη από το tools/area-prices-log.mjs στο βήμα της έγκρισης. Append-only, μην το επεξεργάζεσαι με το χέρι.",
+	"entries": [
+		{
+			"recordedAt": "2026-07-30T00:43:34+03:00",
+			"commit": "26556f6",
+			"note": "Αρχικό γέμισμα του πίνακα (εκτίμηση προς επαλήθευση).",
+			"source": "Αρχικό γέμισμα από δημοσιευμένα στοιχεία αγγελιών (Spitogatos, xe.gr) και την εικόνα του γραφείου. Προς επαλήθευση ανά τρίμηνο.",
+			"asOf": "2026-07",
+			"trend": null,
+			"rows": [
+				{
+					"area": "Κέντρο Θεσσαλονίκης",
+					"saleLow": 2300,
+					"saleHigh": 3200,
+					"rentLow": 9,
+					"rentHigh": 12.5
+				},
+				{
+					"area": "Ανάληψη / Ντεπώ / Φάληρο",
+					"saleLow": 2300,
+					"saleHigh": 3000,
+					"rentLow": 8.5,
+					"rentHigh": 11.5
+				},
+				{
+					"area": "Τριανδρία",
+					"saleLow": 1900,
+					"saleHigh": 2500,
+					"rentLow": 8,
+					"rentHigh": 10.5
+				},
+				{
+					"area": "Τούμπα",
+					"saleLow": 1700,
+					"saleHigh": 2300,
+					"rentLow": 7.5,
+					"rentHigh": 10
+				},
+				{
+					"area": "Χαριλάου",
+					"saleLow": 1900,
+					"saleHigh": 2500,
+					"rentLow": 8,
+					"rentHigh": 10.5
+				},
+				{
+					"area": "Καλαμαριά",
+					"saleLow": 2400,
+					"saleHigh": 3200,
+					"rentLow": 8.5,
+					"rentHigh": 12
+				},
+				{
+					"area": "Πυλαία",
+					"saleLow": 2200,
+					"saleHigh": 3000,
+					"rentLow": 8,
+					"rentHigh": 11
+				},
+				{
+					"area": "Πανόραμα",
+					"saleLow": 2300,
+					"saleHigh": 3200,
+					"rentLow": 7.5,
+					"rentHigh": 10.5
+				},
+				{
+					"area": "Θέρμη",
+					"saleLow": 2000,
+					"saleHigh": 2800,
+					"rentLow": 7.5,
+					"rentHigh": 10
+				},
+				{
+					"area": "Θερμαϊκός (Περαία, Ν. Επιβάτες, Αγ. Τριάδα)",
+					"saleLow": 1600,
+					"saleHigh": 2300,
+					"rentLow": 6.5,
+					"rentHigh": 9
+				},
+				{
+					"area": "Εύοσμος",
+					"saleLow": 1400,
+					"saleHigh": 1900,
+					"rentLow": 6.5,
+					"rentHigh": 8.5
+				},
+				{
+					"area": "Κορδελιό",
+					"saleLow": 1200,
+					"saleHigh": 1700,
+					"rentLow": 6,
+					"rentHigh": 8
+				},
+				{
+					"area": "Αμπελόκηποι",
+					"saleLow": 1300,
+					"saleHigh": 1800,
+					"rentLow": 6.5,
+					"rentHigh": 8.5
+				},
+				{
+					"area": "Μενεμένη",
+					"saleLow": 1000,
+					"saleHigh": 1500,
+					"rentLow": 5.5,
+					"rentHigh": 7.5
+				},
+				{
+					"area": "Σταυρούπολη",
+					"saleLow": 1300,
+					"saleHigh": 1800,
+					"rentLow": 6.5,
+					"rentHigh": 8.5
+				},
+				{
+					"area": "Πολίχνη",
+					"saleLow": 1300,
+					"saleHigh": 1800,
+					"rentLow": 6.5,
+					"rentHigh": 8.5
+				},
+				{
+					"area": "Νεάπολη",
+					"saleLow": 1200,
+					"saleHigh": 1700,
+					"rentLow": 6.5,
+					"rentHigh": 8.5
+				},
+				{
+					"area": "Συκιές",
+					"saleLow": 1200,
+					"saleHigh": 1700,
+					"rentLow": 6.5,
+					"rentHigh": 8.5
+				},
+				{
+					"area": "Ωραιόκαστρο",
+					"saleLow": 1500,
+					"saleHigh": 2100,
+					"rentLow": 6.5,
+					"rentHigh": 9
+				},
+				{
+					"area": "Καλλιθέα (Παύλου Μελά)",
+					"saleLow": 1200,
+					"saleHigh": 1700,
+					"rentLow": 6,
+					"rentHigh": 8
+				},
+				{
+					"area": "Λαγκαδάς",
+					"saleLow": 900,
+					"saleHigh": 1300,
+					"rentLow": 5,
+					"rentHigh": 7
+				},
+				{
+					"area": "Ασπροβάλτα / Σταυρός",
+					"saleLow": 1200,
+					"saleHigh": 1800,
+					"rentLow": 5.5,
+					"rentHigh": 8
+				},
+				{
+					"area": "Νέα Μουδανιά / Ν. Καλλικράτεια",
+					"saleLow": 1500,
+					"saleHigh": 2300,
+					"rentLow": 6,
+					"rentHigh": 8.5
+				},
+				{
+					"area": "Κασσάνδρα Χαλκιδικής",
+					"saleLow": 1800,
+					"saleHigh": 2900,
+					"rentLow": 5.5,
+					"rentHigh": 8.5
+				},
+				{
+					"area": "Σιθωνία Χαλκιδικής",
+					"saleLow": 1800,
+					"saleHigh": 3000,
+					"rentLow": 5.5,
+					"rentHigh": 8.5
+				},
+				{
+					"area": "Πολύγυρος",
+					"saleLow": 1000,
+					"saleHigh": 1500,
+					"rentLow": 4.5,
+					"rentHigh": 6.5
+				},
+				{
+					"area": "Κατερίνη",
+					"saleLow": 1000,
+					"saleHigh": 1500,
+					"rentLow": 5,
+					"rentHigh": 7
+				},
+				{
+					"area": "Παραλία Κατερίνης / Ολυμπιακή Ακτή",
+					"saleLow": 1300,
+					"saleHigh": 2000,
+					"rentLow": 5,
+					"rentHigh": 7.5
+				},
+				{
+					"area": "Λιτόχωρο / Λεπτοκαρυά / Πλαταμώνας",
+					"saleLow": 1200,
+					"saleHigh": 1900,
+					"rentLow": 5,
+					"rentHigh": 7
+				},
+				{
+					"area": "Σέρρες",
+					"saleLow": 900,
+					"saleHigh": 1300,
+					"rentLow": 4.5,
+					"rentHigh": 6.5
+				},
+				{
+					"area": "Βέροια",
+					"saleLow": 800,
+					"saleHigh": 1200,
+					"rentLow": 4.5,
+					"rentHigh": 6.5
+				},
+				{
+					"area": "Νάουσα",
+					"saleLow": 600,
+					"saleHigh": 1000,
+					"rentLow": 4,
+					"rentHigh": 6
+				},
+				{
+					"area": "Αλεξάνδρεια Ημαθίας",
+					"saleLow": 700,
+					"saleHigh": 1100,
+					"rentLow": 4,
+					"rentHigh": 6
+				},
+				{
+					"area": "Έδεσσα",
+					"saleLow": 700,
+					"saleHigh": 1100,
+					"rentLow": 4,
+					"rentHigh": 6
+				},
+				{
+					"area": "Γιαννιτσά",
+					"saleLow": 800,
+					"saleHigh": 1200,
+					"rentLow": 4.5,
+					"rentHigh": 6.5
+				},
+				{
+					"area": "Κιλκίς",
+					"saleLow": 700,
+					"saleHigh": 1100,
+					"rentLow": 4,
+					"rentHigh": 6
+				}
+			]
+		},
+		{
+			"recordedAt": "2026-07-30T20:00:24+03:00",
+			"commit": "5400f4d",
+			"note": "Πρώτος εγκεκριμένος μηνιαίος έλεγχος (το trend προστέθηκε με το a646acd, ίδια έγκριση).",
+			"source": "Μηνιαίος έλεγχος με live αναζήτηση (Spitogatos, xe.gr, δείκτες ΤτΕ/SPI), εγκεκριμένος από τον Πάνο 2026-07-30. Επόμενο email ελέγχου: 1η του μήνα.",
+			"asOf": "2026-07",
+			"trend": "Spitogatos SPI πώλησης: Δήμος Θεσσαλονίκης +3,4%, προάστια +12,8%, πανελλαδικά +6,1% (Β' τρίμηνο 2026)· δείκτης τιμών διαμερισμάτων ΤτΕ Θεσσαλονίκη +6,4% ετησίως (Α' τρίμηνο 2026).",
+			"rows": [
+				{
+					"area": "Κέντρο Θεσσαλονίκης",
+					"saleLow": 2400,
+					"saleHigh": 3350,
+					"rentLow": 9.5,
+					"rentHigh": 13
+				},
+				{
+					"area": "Ανάληψη / Ντεπώ / Φάληρο",
+					"saleLow": 2400,
+					"saleHigh": 3150,
+					"rentLow": 9,
+					"rentHigh": 12
+				},
+				{
+					"area": "Τριανδρία",
+					"saleLow": 2000,
+					"saleHigh": 2650,
+					"rentLow": 8.5,
+					"rentHigh": 11
+				},
+				{
+					"area": "Τούμπα",
+					"saleLow": 1800,
+					"saleHigh": 2450,
+					"rentLow": 8,
+					"rentHigh": 10.5
+				},
+				{
+					"area": "Χαριλάου",
+					"saleLow": 2000,
+					"saleHigh": 2650,
+					"rentLow": 8.5,
+					"rentHigh": 11
+				},
+				{
+					"area": "Καλαμαριά",
+					"saleLow": 2550,
+					"saleHigh": 3350,
+					"rentLow": 9,
+					"rentHigh": 12.5
+				},
+				{
+					"area": "Πυλαία",
+					"saleLow": 2350,
+					"saleHigh": 3150,
+					"rentLow": 8.5,
+					"rentHigh": 11.5
+				},
+				{
+					"area": "Πανόραμα",
+					"saleLow": 2450,
+					"saleHigh": 3350,
+					"rentLow": 8,
+					"rentHigh": 11
+				},
+				{
+					"area": "Θέρμη",
+					"saleLow": 2150,
+					"saleHigh": 2950,
+					"rentLow": 8,
+					"rentHigh": 10.5
+				},
+				{
+					"area": "Θερμαϊκός (Περαία, Ν. Επιβάτες, Αγ. Τριάδα)",
+					"saleLow": 1700,
+					"saleHigh": 2450,
+					"rentLow": 7,
+					"rentHigh": 9.5
+				},
+				{
+					"area": "Εύοσμος",
+					"saleLow": 1500,
+					"saleHigh": 2050,
+					"rentLow": 7,
+					"rentHigh": 9
+				},
+				{
+					"area": "Κορδελιό",
+					"saleLow": 1300,
+					"saleHigh": 1850,
+					"rentLow": 6.5,
+					"rentHigh": 8.5
+				},
+				{
+					"area": "Αμπελόκηποι",
+					"saleLow": 1400,
+					"saleHigh": 1950,
+					"rentLow": 7,
+					"rentHigh": 9
+				},
+				{
+					"area": "Μενεμένη",
+					"saleLow": 1100,
+					"saleHigh": 1650,
+					"rentLow": 6,
+					"rentHigh": 8
+				},
+				{
+					"area": "Σταυρούπολη",
+					"saleLow": 1400,
+					"saleHigh": 1950,
+					"rentLow": 7,
+					"rentHigh": 9
+				},
+				{
+					"area": "Πολίχνη",
+					"saleLow": 1400,
+					"saleHigh": 1950,
+					"rentLow": 7,
+					"rentHigh": 9
+				},
+				{
+					"area": "Νεάπολη",
+					"saleLow": 1300,
+					"saleHigh": 1850,
+					"rentLow": 7,
+					"rentHigh": 9
+				},
+				{
+					"area": "Συκιές",
+					"saleLow": 1350,
+					"saleHigh": 1900,
+					"rentLow": 7,
+					"rentHigh": 9
+				},
+				{
+					"area": "Ωραιόκαστρο",
+					"saleLow": 1600,
+					"saleHigh": 2250,
+					"rentLow": 7,
+					"rentHigh": 9.5
+				},
+				{
+					"area": "Καλλιθέα (Παύλου Μελά)",
+					"saleLow": 1300,
+					"saleHigh": 1850,
+					"rentLow": 6.5,
+					"rentHigh": 8.5
+				},
+				{
+					"area": "Λαγκαδάς",
+					"saleLow": 950,
+					"saleHigh": 1400,
+					"rentLow": 5.5,
+					"rentHigh": 7.5
+				},
+				{
+					"area": "Ασπροβάλτα / Σταυρός",
+					"saleLow": 1300,
+					"saleHigh": 1950,
+					"rentLow": 6,
+					"rentHigh": 8.5
+				},
+				{
+					"area": "Νέα Μουδανιά / Ν. Καλλικράτεια",
+					"saleLow": 1600,
+					"saleHigh": 2450,
+					"rentLow": 6.5,
+					"rentHigh": 9
+				},
+				{
+					"area": "Κασσάνδρα Χαλκιδικής",
+					"saleLow": 1950,
+					"saleHigh": 3100,
+					"rentLow": 6,
+					"rentHigh": 9
+				},
+				{
+					"area": "Σιθωνία Χαλκιδικής",
+					"saleLow": 1950,
+					"saleHigh": 3200,
+					"rentLow": 6,
+					"rentHigh": 9
+				},
+				{
+					"area": "Πολύγυρος",
+					"saleLow": 1050,
+					"saleHigh": 1600,
+					"rentLow": 5,
+					"rentHigh": 7
+				},
+				{
+					"area": "Κατερίνη",
+					"saleLow": 1050,
+					"saleHigh": 1600,
+					"rentLow": 5.5,
+					"rentHigh": 7.5
+				},
+				{
+					"area": "Παραλία Κατερίνης / Ολυμπιακή Ακτή",
+					"saleLow": 1400,
+					"saleHigh": 2150,
+					"rentLow": 5.5,
+					"rentHigh": 8
+				},
+				{
+					"area": "Λιτόχωρο / Λεπτοκαρυά / Πλαταμώνας",
+					"saleLow": 1300,
+					"saleHigh": 2050,
+					"rentLow": 5.5,
+					"rentHigh": 7.5
+				},
+				{
+					"area": "Σέρρες",
+					"saleLow": 950,
+					"saleHigh": 1400,
+					"rentLow": 5,
+					"rentHigh": 7
+				},
+				{
+					"area": "Βέροια",
+					"saleLow": 850,
+					"saleHigh": 1300,
+					"rentLow": 5,
+					"rentHigh": 7
+				},
+				{
+					"area": "Νάουσα",
+					"saleLow": 650,
+					"saleHigh": 1100,
+					"rentLow": 4.5,
+					"rentHigh": 6.5
+				},
+				{
+					"area": "Αλεξάνδρεια Ημαθίας",
+					"saleLow": 750,
+					"saleHigh": 1200,
+					"rentLow": 4.5,
+					"rentHigh": 6.5
+				},
+				{
+					"area": "Έδεσσα",
+					"saleLow": 750,
+					"saleHigh": 1200,
+					"rentLow": 4.5,
+					"rentHigh": 6.5
+				},
+				{
+					"area": "Γιαννιτσά",
+					"saleLow": 850,
+					"saleHigh": 1300,
+					"rentLow": 5,
+					"rentHigh": 7
+				},
+				{
+					"area": "Κιλκίς",
+					"saleLow": 750,
+					"saleHigh": 1200,
+					"rentLow": 4.5,
+					"rentHigh": 6.5
+				}
+			]
+		}
+	]
+}

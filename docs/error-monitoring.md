@@ -59,9 +59,23 @@ Invoke-WebRequest -Uri 'https://notify.bugsnag.com/' -Method Post -ContentType '
 
 ## MCP (ανάγνωση σφαλμάτων από AI)
 
-Ο επίσημος SmartBear MCP server (`@smartbear/mcp`) υπάρχει ήδη
-καταχωρημένος στο **VS Code** (user-level `%APPDATA%\Code\User\mcp.json`,
-entry `smartbear`)· θέλει το **BUGSNAG_AUTH_TOKEN** (personal auth token)
-για να ενεργοποιηθούν τα Bugsnag tools. Η αντίστοιχη καταχώρηση στο
-**Claude Code** εκκρεμεί μέχρι να υπάρξει διαθέσιμο token (το token δεν
-μπαίνει ποτέ στο repo).
+Ο επίσημος SmartBear MCP server (`@smartbear/mcp`) δίνει εργαλεία
+`bugsnag_*` (λίστα projects, errors, events, releases). Είναι
+καταχωρημένος σε δύο σημεία, με διαφορετικό μηχανισμό το καθένα:
+
+| Πελάτης | Πού | Πώς παίρνει το token |
+|---------|-----|----------------------|
+| **VS Code** (Copilot) | `%APPDATA%\Code\User\mcp.json`, entry `smartbear` | ρωτάει τον χρήστη (`${input:bugsnag_auth_token}`) |
+| **Claude Code** | [.mcp.json](../.mcp.json) στη ρίζα του repo | από το `.dev.vars`, μέσω [tools/mcp-smartbear.mjs](../tools/mcp-smartbear.mjs) |
+
+Το `.mcp.json` δείχνει σε έναν μικρό launcher, [tools/mcp-smartbear.mjs](../tools/mcp-smartbear.mjs),
+που διαβάζει το **`BUGSNAG_AUTH_TOKEN`** από το `.dev.vars` (gitignored,
+δίπλα στα `BW_SESSION` / `MAKE_API_TOKEN`) και μετά παραδίδει το stdio
+στο `npx @smartbear/mcp`. Έτσι το token δεν μπαίνει ποτέ ούτε στο repo
+ούτε σε αρχείο ρυθμίσεων.
+
+Το token είναι **personal auth token** του Bugsnag: dashboard → My
+account → Personal auth tokens → Generate. Χωρίς αυτό ο server ξεκινά
+κανονικά αλλά τα εργαλεία Bugsnag είναι ανενεργά (ο launcher το γράφει
+ως προειδοποίηση στο stderr). Μετά την προσθήκη του token θέλει
+`/mcp reconnect` ή restart του Claude Code.
