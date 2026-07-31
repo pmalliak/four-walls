@@ -85,11 +85,18 @@ Design rules:
 (home-page banner); all other listings omit the key.
 
 `listedAt` is the CRM's `date_created`, i.e. **when the listing went on the
-market**, as opposed to `updatedAt` which moves on every edit. Nothing on the
-public site renders it — it exists so the valuation can compute *days on
-market* and read it as the market's own answer to the asking price (see
-[valuation.md](valuation.md)). Live coverage is complete (19/19 active
-listings carried a valid date when checked on 2026-07-31).
+market**, as opposed to `updatedAt` which moves on every edit. It exists so the
+valuation can compute *days on market* and read it as the market's own answer
+to the asking price (see [valuation.md](valuation.md)). Live coverage is
+complete (19/19 active listings carried a valid date when checked 2026-07-31).
+
+**It is stripped from the served feed** (`FEED_PRIVATE_FIELDS` in
+[../worker/index.mjs](../worker/index.mjs)) and shown above only to document
+the KV shape. How long a property has been sitting is commercially sensitive:
+a buyer who sees «449 days» knows the owner is tired and lowballs accordingly,
+which is our own client's money. The field stays in KV, where the valuation
+reads it directly; nothing that reaches the network carries it. Anything added
+to the feed for internal use later belongs in that same list.
 
 The `*_en` fields (`title_en`, `description_en`, `location.area_en`,
 `location.neighbourhood_en`, `location.city_en`) are **optional and additive**:

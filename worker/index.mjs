@@ -624,6 +624,13 @@ function contactJson(obj, status, extraHeaders) {
 	});
 }
 
+/* ΕΜΠΟΡΙΚΑ ΕΥΑΙΣΘΗΤΑ ΠΕΔΙΑ: μένουν στο KV, ΔΕΝ φεύγουν στο δίκτυο.
+   Το listedAt λέει πόσο καιρό κάθεται ένα ακίνητο — ο υποψήφιος αγοραστής
+   που το βλέπει ξέρει ότι ο ιδιοκτήτης έχει κουραστεί, και κατεβάζει την
+   προσφορά του. Το χρειάζεται μόνο η εκτίμηση, που διαβάζει το KV
+   απευθείας (valuation.mjs), οπότε κανένας client δεν χάνει τίποτα. */
+const FEED_PRIVATE_FIELDS = ["listedAt"];
+
 async function serveFeed(env) {
 	const feed = await env.LISTINGS_KV.get(FEED_KEY);
 	if (feed === null) {
@@ -632,7 +639,19 @@ async function serveFeed(env) {
 			headers: { "Content-Type": "application/json; charset=utf-8", "Retry-After": "60" },
 		});
 	}
-	return new Response(feed, {
+	let body = feed;
+	try {
+		const parsed = JSON.parse(feed);
+		for (const l of parsed.listings || []) {
+			for (const f of FEED_PRIVATE_FIELDS) delete l[f];
+		}
+		body = JSON.stringify(parsed);
+	} catch (err) {
+		// Χαλασμένο JSON στο KV: σέρβιρε ό,τι υπάρχει (η παλιά συμπεριφορά)
+		// αντί να ρίξεις το feed ολόκληρο για ένα πεδίο που κρύβουμε.
+		console.warn(`serveFeed: could not strip private fields: ${String(err)}`);
+	}
+	return new Response(body, {
 		headers: {
 			"Content-Type": "application/json; charset=utf-8",
 			"Cache-Control": "public, max-age=60",
