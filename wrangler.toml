@@ -105,7 +105,9 @@ ESTATEPRIME_SUBDOMAIN = "fourwalls"
 # «Ακίνητο του μήνα»: the listing carrying this EstatePrime tag gets
 # featured:true in the feed and fills the home-page banner. Tag missing
 # or nothing tagged -> front-end falls back (FEATURED_ID, then newest).
-FEATURED_TAG = "website-featured"
+# Matched BY NAME against /listings/tags, so a rename in the CRM UI must
+# be mirrored here (2026-07-31: was "website-featured").
+FEATURED_TAG = "property-of-the-month"
 # TRIAL — server-rendered (real-text) PDFs for the έντυπα attachments via
 # the Browser Rendering REST API. "0" = off: the client's html2pdf capture
 # flows as before, so this is also the instant rollback switch. Turning it

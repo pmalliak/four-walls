@@ -32,9 +32,12 @@ Design rules:
   only publication signal the API offers — see
   [estateprime-api.md](estateprime-api.md#portals--publication-state-not-exposed).
 - **«Ακίνητο του μήνα» tag:** the listing carrying the EstatePrime tag named
-  by the `FEATURED_TAG` var (currently `website-featured`) is published with
-  `featured: true` and fills the home-page banner — so the pick is made in
-  the CRM, no deploy needed. If several listings carry the tag, the most
+  by the `FEATURED_TAG` var (currently `property-of-the-month`; ήταν
+  `website-featured` έως τη μετονομασία στο CRM UI 2026-07-31) is published
+  with `featured: true` and fills the home-page banner — so the pick is made
+  in the CRM, no deploy needed. **The match is by tag NAME**, so renaming
+  the tag in the CRM silently un-features everything until the var is
+  updated + deployed. If several listings carry the tag, the most
   recently updated wins. Tag missing or nothing tagged → the front-end
   falls back to the hardcoded `FEATURED_ID` in `js/listings.fw.js`, then
   to the newest listing.
