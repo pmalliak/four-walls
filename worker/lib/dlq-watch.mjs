@@ -160,7 +160,7 @@ async function buildDlqReport(env) {
 	for (const item of stuck.slice(0, MAX_DETAIL)) {
 		try {
 			const b = await api(`/dlqs/${item.id}/bundle?teamId=${team}`);
-			item.detail = describeBundle(b?.response);
+			Object.assign(item, describeBundle(b?.response));
 		} catch {
 			/* χωρίς λεπτομέρεια, το email στέκει και με το όνομα του σεναρίου */
 		}
@@ -174,10 +174,19 @@ async function buildDlqReport(env) {
 }
 
 /* Το payload του webhook είναι το module 1 του σεναρίου. Για τα έντυπα
-   ξέρουμε το σχήμα του (docs/forms-submit.md) και βγάζουμε όνομα πελάτη. */
+   ξέρουμε το σχήμα του (docs/forms-submit.md) και βγάζουμε όνομα πελάτη.
+
+   Οταν ΔΕΝ βρίσκεται τίποτα, το λέμε ρητά αντί να αφήσουμε σκέτο «Εντολή
+   Ανάθεσης», που δεν βοηθάει κανέναν: άδειο payload + `submitted_by: null`
+   (δηλαδή δεν πέρασε από το Access, άρα δεν ήρθε από το iPad) σημαίνει
+   σχεδόν πάντα δοκιμή από τοπική ανάπτυξη. Το είδαμε στις 31/07/2026, όπου
+   και τα εννιά ανεπίλυτα ήταν δοκιμές. */
 function describeBundle(response) {
 	const first = response && typeof response === "object" ? response["1"] : null;
-	if (!first || typeof first !== "object") return "";
+	const out = { detail: "", note: "", link: "" };
+	out.link = response?.$inputvars?.context?.scenario?.executionUrl || "";
+	if (!first || typeof first !== "object") return out;
+
 	const d = first.data || {};
 	const bits = [];
 	if (first.form) bits.push(FORM_LABELS[first.form] || first.form);
@@ -189,8 +198,20 @@ function describeBundle(response) {
 		d.name ||
 		first.summary;
 	if (who) bits.push(String(who));
+
+	const contact = d.entoleas_email || d.katavallon_email || d.owner_email || d.client_email;
+	const phone = d.entoleas_tilefono || d.katavallon_tilefono || d.owner_phone;
+	if (contact) bits.push(String(contact));
+	if (phone) bits.push(String(phone));
 	if (first.submitted_by) bits.push(`από ${first.submitted_by}`);
-	return bits.join(" · ");
+
+	out.detail = bits.join(" · ");
+	if (!who && !contact) {
+		out.note = first.submitted_by
+			? "Δεν σώθηκαν στοιχεία πελάτη, δες το στο Make."
+			: "Χωρίς στοιχεία πελάτη και χωρίς σύμβουλο: δεν ήρθε από το tablet, είναι σχεδόν σίγουρα δοκιμή.";
+	}
+	return out;
 }
 
 function buildHtml(items) {
@@ -204,11 +225,21 @@ function buildHtml(items) {
 			const detail = it.detail
 				? `<div style="font-size:14px;color:#16233A;padding-top:2px;">${esc(it.detail)}</div>`
 				: "";
+			// Οταν λείπουν τα στοιχεία, η οδηγία «πες στον Μάνο» είναι άχρηστη:
+			// δεν ξέρει κανείς ποιο έντυπο να ξανακάνει. Λέμε τι ξέρουμε.
+			const note = it.note
+				? `<div style="font-size:14px;color:#8a6d00;padding-top:2px;">${esc(it.note)}</div>`
+				: "";
+			const link = it.link
+				? `<div style="font-size:13px;padding-top:6px;"><a href="${esc(it.link)}" style="color:#FF1462;">Δες το στο Make</a></div>`
+				: "";
 			return `<tr><td style="padding:14px 0;border-bottom:1px solid #e6e9ef;">
 				<div style="font-size:15px;font-weight:bold;color:#16233A;">${esc(meta.what)}</div>
 				${detail}
+				${note}
 				<div style="font-size:13.5px;color:#777777;padding-top:2px;">${esc(when)}</div>
 				<div style="font-size:14px;color:#16233A;padding-top:6px;"><strong>Τι κάνουμε:</strong> ${esc(meta.action)}</div>
+				${link}
 			</td></tr>`;
 		})
 		.join("");
