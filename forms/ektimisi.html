@@ -927,21 +927,26 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			b.appendChild(el("div", "r", "εύρος " + money(v.value_low) + " έως " + money(v.value_high) + " · " + money(v.eur_per_sqm) + "/τ.μ."));
 			d.appendChild(b);
 		}
+		/* Σε εκτίμηση ΜΟΝΟ ενοικίασης η αξία πώλησης δεν τυπώνεται, οπότε η
+		   απόδοση «στην εκτιμώμενη αξία» κρεμόταν από νούμερο που δεν φαίνεται
+		   πουθενά — εδώ το λέει, και η αφετηρία €/τ.μ. δηλώνει ότι είναι αξίας. */
+		var saleShown = p.purpose !== "rent";
 		if (p.purpose !== "sale") {
 			var rb = el("div", "rentval");
 			rb.appendChild(el("div", "l", "ΕΚΤΙΜΩΜΕΝΟ ΜΙΣΘΩΜΑ"));
 			rb.appendChild(el("div", "r", money(v.rent_mid) + "/μήνα (εύρος " + money(v.rent_low) + " έως " + money(v.rent_high) + ")"));
-			if (v.gross_yield_pct) rb.appendChild(el("div", "y", "Μικτή απόδοση ~" + String(v.gross_yield_pct).replace(".", ",") + "% στην εκτιμώμενη αξία"));
+			if (v.gross_yield_pct) rb.appendChild(el("div", "y", "Μικτή απόδοση ~" + String(v.gross_yield_pct).replace(".", ",") + "% "
+				+ (saleShown ? "στην εκτιμώμενη αξία" : "σε εκτιμώμενη αξία " + money(v.value_mid))));
 			d.appendChild(rb);
 		}
 		if (p.askingPrice && v.asking_comment) {
-			d.appendChild(el("h2", null, "ΣΕ ΣΧΕΣΗ ΜΕ ΤΗ ΖΗΤΟΥΜΕΝΗ (" + money(p.askingPrice) + ")"));
+			d.appendChild(el("h2", null, "ΣΕ ΣΧΕΣΗ ΜΕ ΤΗ ΖΗΤΟΥΜΕΝΗ (" + money(p.askingPrice) + (saleShown ? "" : "/μήνα") + ")"));
 			d.appendChild(el("p", null, v.asking_comment));
 		}
 
 		var adj = Array.isArray(v.adjustments) ? v.adjustments : [];
 		if (adj.length) {
-			d.appendChild(el("h2", null, "ΠΩΣ ΒΓΗΚΕ ΤΟ ΝΟΥΜΕΡΟ · ΑΦΕΤΗΡΙΑ " + money(v.base_eur_per_sqm) + "/τ.μ."));
+			d.appendChild(el("h2", null, "ΠΩΣ ΒΓΗΚΕ ΤΟ ΝΟΥΜΕΡΟ · ΑΦΕΤΗΡΙΑ " + money(v.base_eur_per_sqm) + "/τ.μ." + (saleShown ? "" : " ΑΞΙΑΣ")));
 			var t = el("table");
 			adj.forEach(function(a){
 				var tr = el("tr");
@@ -953,19 +958,36 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			d.appendChild(t);
 		}
 
-		if (comps.length) {
-			d.appendChild(el("h2", null, "ΣΥΓΚΡΙΤΙΚΑ ΑΠΟ ΤΟ ΧΑΡΤΟΦΥΛΑΚΙΟ ΜΑΣ"));
+		/* Ένας πίνακας ανά πράξη. Ο Worker στέλνει μόνο τα συγκριτικά που
+		   τυπώνονται (πώλησης σε εκτίμηση πώλησης, ενοικίασης σε εκτίμηση
+		   ενοικίασης), με το transaction σε κάθε γραμμή για τις μονάδες. */
+		var groups = [
+			{ transaction: "sale", title: "ΣΥΓΚΡΙΤΙΚΑ ΠΩΛΗΣΗΣ ΑΠΟ ΤΟ ΧΑΡΤΟΦΥΛΑΚΙΟ ΜΑΣ" },
+			{ transaction: "rent", title: "ΣΥΓΚΡΙΤΙΚΑ ΕΝΟΙΚΙΑΣΗΣ ΑΠΟ ΤΟ ΧΑΡΤΟΦΥΛΑΚΙΟ ΜΑΣ" },
+		];
+		var shown = false;
+		groups.forEach(function(g){
+			var rows = comps.filter(function(c){ return (c.transaction === "rent") === (g.transaction === "rent"); });
+			if (!rows.length) return;
+			shown = true;
+			d.appendChild(el("h2", null, g.title));
 			var ct = el("table");
-			comps.forEach(function(c){
+			rows.forEach(function(c){
+				var rent = g.transaction === "rent";
 				var tr = el("tr");
 				tr.appendChild(el("td", null, (c.code ? c.code + " · " : "") + [c.kind, c.area].filter(Boolean).join(", ")));
 				tr.appendChild(el("td", null, c.sqm ? c.sqm + " τ.μ." : ""));
-				tr.appendChild(el("td", null, money(c.price)));
-				tr.appendChild(el("td", null, c.sqm && c.price ? money(Math.round(c.price / c.sqm)) + "/τ.μ." : ""));
+				tr.appendChild(el("td", null, money(c.price) + (rent ? "/μήνα" : "")));
+				tr.appendChild(el("td", null, !(c.sqm && c.price) ? ""
+					: rent ? String((c.price / c.sqm).toFixed(1)).replace(".", ",") + " €/τ.μ./μήνα"
+					: money(Math.round(c.price / c.sqm)) + "/τ.μ."));
 				ct.appendChild(tr);
 			});
 			d.appendChild(ct);
-			if (v.comps_comment) d.appendChild(el("p", "mut", v.comps_comment));
+		});
+		if (v.comps_comment) {
+			if (!shown) d.appendChild(el("h2", null, "ΤΙ ΔΕΙΧΝΟΥΝ ΤΑ ΣΥΓΚΡΙΤΙΚΑ"));
+			d.appendChild(el("p", "mut", v.comps_comment));
 		}
 
 		if (v.market_comment) {

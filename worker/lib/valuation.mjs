@@ -406,11 +406,19 @@ function mergeProperty(feed, d) {
 	const feats = Array.isArray(f.features) ? f.features : null;
 	const featYesNo = (test) => (feats ? (feats.some(test) ? "Ναι" : "Όχι") : "");
 	const category = pick(d.category, f.category) || "residential";
+	const purpose = String(d.purpose || "both"); // sale | rent | both
+	/* Η τιμή του feed είναι η ζητούμενη ΤΗΣ ΑΓΓΕΛΙΑΣ: σε ακίνητο πώλησης
+	   τίμημα, σε ακίνητο ενοικίασης μίσθωμα. Όταν η εκτίμηση ζητά το άλλο
+	   σκέλος, η τιμή αυτή δεν είναι «ζητούμενη» για ό,τι εκτιμάμε — κενό
+	   είναι καλύτερο από ένα «σε σχέση με τη ζητούμενη €180.000» κάτω από
+	   μίσθωμα €920/μήνα. Ό,τι έγραψε ο σύμβουλος υπερισχύει, όπως πάντα. */
+	const feedIsRent = f.transaction === "rent";
+	const feedAsking = (purpose === "rent" && !feedIsRent) || (purpose === "sale" && feedIsRent) ? "" : f.price;
 	return {
 		listingCode: pick(d.listing_code, f.code),
 		listingId: fromFeed ? String(fromFeed.id) : null, // για το GET /offers
 		fromCrm: !!fromFeed,
-		purpose: String(d.purpose || "both"), // sale | rent | both
+		purpose,
 		category,
 		subcategory: labelKind(pick(d.subcategory, f.subcategory), category),
 		areaName: pick(d.area_name, loc.area || loc.neighbourhood),
@@ -437,7 +445,7 @@ function mergeProperty(feed, d) {
 		// σκέτο· χωρίς slug σε ακίνητο του CRM, βέβαιο «Όχι».
 		pool: pick(d.pool, featYesNo((s) => /pool/i.test(s))),
 		balconies: String(d.balconies || "").trim(),
-		askingPrice: num(pick(d.asking_price_num || d.asking_price, f.price)),
+		askingPrice: num(pick(d.asking_price_num || d.asking_price, feedAsking)),
 		monthlyMaintenance: num(pick("", f.monthlyMaintenance)),
 		// Πόσο κάθεται στην αγορά με τη ΣΗΜΕΡΙΝΗ ζητούμενη. Μόνο για
 		// ακίνητα του CRM: σε εκτίμηση με το χέρι δεν υπάρχει αγγελία.
@@ -563,6 +571,47 @@ function pickComps(feed, prop) {
 	return { sale, rent };
 }
 
+/* Ποια συγκριτικά ΤΥΠΩΝΟΝΤΑΙ: αυτά της πράξης που ζητήθηκε. Το prompt
+   παίρνει και τα δύο σκέλη (η απόδοση θέλει και αξία και ενοίκιο), το
+   έγγραφο όχι — σε εκτίμηση ενοικίασης, τιμές πώλησης €180.000 κάτω από
+   ένα μίσθωμα €920/μήνα διαβάζονται ως λάθος, και δίκαια. Το `transaction`
+   ταξιδεύει μαζί με κάθε γραμμή, ώστε και τα τρία renderers (email, έντυπο,
+   PWA) να βάζουν τις σωστές μονάδες. */
+function docComps(comps, purpose) {
+	const row = (l, transaction) => ({
+		transaction,
+		code: l.code, kind: labelKind(l.subcategory, l.category),
+		area: (l.location || {}).area, sqm: l.area, price: l.price,
+	});
+	return [
+		...(purpose === "rent" ? [] : comps.sale.map((l) => row(l, "sale"))),
+		...(purpose === "sale" ? [] : comps.rent.map((l) => row(l, "rent"))),
+	];
+}
+
+/* Οι γραμμές σε πίνακες, με τον τίτλο τους. Γραμμή χωρίς `transaction`
+   (εκτίμηση που κάθεται ήδη στο KV από πριν) μετράει ως πώληση, όπως ήταν. */
+function compGroups(rows) {
+	const of = (t) => (Array.isArray(rows) ? rows : []).filter((r) => (r.transaction === "rent") === (t === "rent"));
+	return [
+		{ transaction: "sale", title: "ΣΥΓΚΡΙΤΙΚΑ ΠΩΛΗΣΗΣ ΑΠΟ ΤΟ ΧΑΡΤΟΦΥΛΑΚΙΟ ΜΑΣ", rows: of("sale") },
+		{ transaction: "rent", title: "ΣΥΓΚΡΙΤΙΚΑ ΕΝΟΙΚΙΑΣΗΣ ΑΠΟ ΤΟ ΧΑΡΤΟΦΥΛΑΚΙΟ ΜΑΣ", rows: of("rent") },
+	].filter((g) => g.rows.length);
+}
+
+function compPrice(price, transaction) {
+	return transaction === "rent" ? `${eur(price)}/μήνα` : eur(price);
+}
+
+/* Στην πώληση το €/τ.μ. είναι ακέραιος (€2.700). Στο ενοίκιο όχι: 11,5 και
+   11 €/τ.μ./μήνα απέχουν 5%, και το στρογγύλεμα κρύβει τη διαφορά. */
+function compPerSqm(price, sqm, transaction) {
+	if (!price || !sqm) return "";
+	return transaction === "rent"
+		? `€${(price / sqm).toFixed(1).replace(".", ",")}/τ.μ./μήνα`
+		: `${eur(price / sqm)}/τ.μ.`;
+}
+
 function areaOf(l) {
 	return normName((l.location && (l.location.area || l.location.neighbourhood)) || "");
 }
@@ -643,8 +692,22 @@ const PASS2_SYSTEM = `Είσαι ο αυστηρός ελεγκτής εκτιμ
 
 const PASS2_ASK = `Έλεγξε, διόρθωσε όπου χρειάζεται, και επίστρεψε το τελικό JSON (ίδιο σχήμα, συν "review_notes").`;
 
+/* ΤΙ ΖΗΤΕΙΤΑΙ (πώληση, ενοικίαση ή και τα δύο) — το επιλέγει ο σύμβουλος
+   στη φόρμα και ΚΑΘΟΡΙΖΕΙ ΤΙ ΤΥΠΩΝΕΤΑΙ: σε «μόνο ενοικίαση» η αναφορά δεν
+   δείχνει καθόλου αξία πώλησης. Χωρίς αυτή την ενημέρωση το μοντέλο έγραφε
+   κείμενα πώλησης κάτω από ένα μίσθωμα, και διάβαζε τη ζητούμενη τιμή ως
+   τίμημα ενώ ήταν €/μήνα. Και τα δύο σκέλη ζητούνται πάντα ως νούμερα,
+   γιατί η μικτή απόδοση θέλει και αξία και ενοίκιο. */
+const PURPOSE_BRIEF = {
+	both: `ΤΙ ΖΗΤΕΙΤΑΙ: εκτίμηση ΚΑΙ για πώληση ΚΑΙ για ενοικίαση, και τα δύο τυπώνονται στην αναφορά. Η «ζητούμενη_ή_επιθυμητή_τιμή», αν υπάρχει, είναι τίμημα ΠΩΛΗΣΗΣ.`,
+	sale: `ΤΙ ΖΗΤΕΙΤΑΙ: εκτίμηση ΠΩΛΗΣΗΣ. Η αναφορά δείχνει την αξία πώλησης, ΟΧΙ το μίσθωμα: τα rent_* συμπλήρωσέ τα μόνο για να βγει η μικτή απόδοση και μην τα σχολιάζεις. Η «ζητούμενη_ή_επιθυμητή_τιμή» είναι τίμημα πώλησης. Όλα τα κείμενα (market_comment, comps_comment, asking_comment, advice, confidence_reason) μιλούν για την αγορά ΠΩΛΗΣΗΣ, και το comps_comment για τα ΣΥΓΚΡΙΤΙΚΑ ΠΩΛΗΣΗΣ, τα μόνα που τυπώνονται.`,
+	rent: `ΤΙ ΖΗΤΕΙΤΑΙ: εκτίμηση ΕΝΟΙΚΙΑΣΗΣ. Η αναφορά δείχνει το μηνιαίο μίσθωμα, ΟΧΙ την αξία πώλησης: τα value_* συμπλήρωσέ τα κανονικά (τα χρειάζεται η μικτή απόδοση) αλλά μην τα σχολιάζεις πουθενά ως ζητούμενο του πελάτη. Η «ζητούμενη_ή_επιθυμητή_τιμή», αν υπάρχει, είναι ΜΗΝΙΑΙΟ ΜΙΣΘΩΜΑ σε €/μήνα, όχι τίμημα — το asking_comment τη συγκρίνει με το rent_mid. Όλα τα κείμενα (market_comment, comps_comment, asking_comment, advice, confidence_reason) μιλούν για την αγορά ΕΝΟΙΚΙΑΣΗΣ: ζήτηση ενοικιαστών, χρόνος μίσθωσης, τι πιάνει το ακίνητο τον μήνα. Στα συγκριτικά βάρυνε τα ΣΥΓΚΡΙΤΙΚΑ ΕΝΟΙΚΙΑΣΗΣ (μόνο αυτά τυπώνονται) και τον πίνακα €/τ.μ./μήνα· αν είναι λίγα ή κανένα, πες το ρητά στο comps_comment και στήριξε το νούμερο στον πίνακα και στην αναζήτηση, όχι στις τιμές πώλησης.`,
+};
+
 function buildDataBlock(prop, comps, stats, priceRow, offers) {
 	const lines = [];
+	lines.push(PURPOSE_BRIEF[prop.purpose] || PURPOSE_BRIEF.both);
+	lines.push("");
 	lines.push("ΤΟ ΑΚΙΝΗΤΟ ΠΡΟΣ ΕΚΤΙΜΗΣΗ:");
 	lines.push(JSON.stringify({
 		κατηγορία: prop.category, είδος: prop.subcategory || null,
@@ -899,13 +962,19 @@ function renderReport(prop, comps, stats, priceRow, v, payload, offers) {
 		</tr>`;
 	}).join("");
 
-	const compRows = comps.sale.map((l) => `<tr>
-		<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; color:${NAVY};">${esc(l.code || "")}</td>
-		<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; color:${NAVY};">${esc([labelKind(l.subcategory, l.category), (l.location || {}).area || ""].filter(Boolean).join(", "))}</td>
-		<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right;">${l.area} τ.μ.</td>
-		<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right; font-weight:bold;">${eur(l.price)}</td>
-		<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right; color:#6b7280;">${eur(l.price / l.area)}/τ.μ.</td>
-	</tr>`).join("");
+	// Ένας πίνακας ανά πράξη, μόνο για ό,τι τυπώνεται (docComps): πώληση,
+	// ενοικίαση, ή και τα δύο χωριστά.
+	const docRows = docComps(comps, prop.purpose);
+	const compSections = compGroups(docRows).map((g) => `<tr><td style="padding:18px 20px 0;">
+		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">${g.title}</div>
+		<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eceef2; border-radius:6px;">${g.rows.map((c) => `<tr>
+			<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; color:${NAVY};">${esc(c.code || "")}</td>
+			<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; color:${NAVY};">${esc([c.kind, c.area].filter(Boolean).join(", "))}</td>
+			<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right;">${c.sqm} τ.μ.</td>
+			<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right; font-weight:bold;">${compPrice(c.price, g.transaction)}</td>
+			<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right; color:#6b7280;">${compPerSqm(c.price, c.sqm, g.transaction)}</td>
+		</tr>`).join("")}</table>
+	</td></tr>`).join("");
 
 	// Οι προσφορές μπαίνουν ΜΟΝΟ στην αναφορά γραφείου. Ο σύμβουλος πρέπει
 	// να τις έχει μπροστά του με νούμερα, όχι μόνο μέσα σε μια πρόταση του
@@ -971,16 +1040,16 @@ function renderReport(prop, comps, stats, priceRow, v, payload, offers) {
 			<td style="background:#f4f7fb; border:1px solid #c9d4e4; border-radius:8px; padding:12px 16px;">
 				<div style="font-size:11px; font-weight:bold; letter-spacing:1px; color:#6b7280;">ΕΚΤΙΜΩΜΕΝΟ ΜΙΣΘΩΜΑ</div>
 				<div style="font-size:19px; font-weight:bold; color:${NAVY}; margin-top:2px;">${eur(v.rent_mid)}/μήνα <span style="font-weight:normal; font-size:13px; color:#6b7280;">(εύρος ${eur(v.rent_low)} έως ${eur(v.rent_high)})</span></div>
-				${Number(v.gross_yield_pct) ? `<div style="font-size:12.5px; color:#6b7280; margin-top:2px;">Μικτή απόδοση ~${esc(String(v.gross_yield_pct).replace(".", ","))}% στην εκτιμώμενη αξία</div>` : ""}
+				${Number(v.gross_yield_pct) ? `<div style="font-size:12.5px; color:#6b7280; margin-top:2px;">Μικτή απόδοση ~${esc(String(v.gross_yield_pct).replace(".", ","))}% ${wantsSale ? "στην εκτιμώμενη αξία" : `σε εκτιμώμενη αξία ${eur(v.value_mid)}`}</div>` : ""}
 			</td>
 		</tr></table>
 	</td></tr>` : ""}
 	${prop.askingPrice && v.asking_comment ? `<tr><td style="padding:12px 20px 0;">
-		<div style="background:#f7f8fa; border-left:3px solid ${PINK}; border-radius:6px; padding:10px 14px; font-size:13px; line-height:1.55; color:${NAVY};"><strong>Σε σχέση με τη ζητούμενη (${eur(prop.askingPrice)}):</strong> ${esc(v.asking_comment)}</div>
+		<div style="background:#f7f8fa; border-left:3px solid ${PINK}; border-radius:6px; padding:10px 14px; font-size:13px; line-height:1.55; color:${NAVY};"><strong>Σε σχέση με τη ζητούμενη (${eur(prop.askingPrice)}${wantsSale ? "" : "/μήνα"}):</strong> ${esc(v.asking_comment)}</div>
 	</td></tr>` : ""}
 	${adjRows ? `<tr><td style="padding:18px 20px 0;">
 		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΠΩΣ ΒΓΗΚΕ ΤΟ ΝΟΥΜΕΡΟ</div>
-		<div style="font-size:12.5px; color:#444; margin-bottom:6px;">Αφετηρία ${eur(v.base_eur_per_sqm)}/τ.μ. για την περιοχή, με τις εξής προσαρμογές:</div>
+		<div style="font-size:12.5px; color:#444; margin-bottom:6px;">Αφετηρία ${eur(v.base_eur_per_sqm)}/τ.μ. ${wantsSale ? "για την περιοχή" : "αξίας για την περιοχή (από εκεί βγαίνει το μίσθωμα, με την απόδοση)"}, με τις εξής προσαρμογές:</div>
 		<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eceef2; border-radius:6px;">${adjRows}</table>
 	</td></tr>` : ""}
 	${offerRows ? `<tr><td style="padding:18px 20px 0;">
@@ -996,10 +1065,10 @@ function renderReport(prop, comps, stats, priceRow, v, payload, offers) {
 		</table>
 		<div style="font-size:11.5px; color:#6b7280; margin-top:6px; line-height:1.5;">Το μόνο στοιχείο εδώ που δείχνει τι <strong>δίνει</strong> ο αγοραστής· όλα τα υπόλοιπα είναι ζητούμενες τιμές. Μία χαμηλή προσφορά είναι ψάρεμα, πολλές γύρω από το ίδιο επίπεδο είναι η απάντηση της αγοράς.</div>
 	</td></tr>` : ""}
-	${compRows ? `<tr><td style="padding:18px 20px 0;">
-		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΣΥΓΚΡΙΤΙΚΑ ΑΠΟ ΤΟ ΧΑΡΤΟΦΥΛΑΚΙΟ ΜΑΣ</div>
-		<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eceef2; border-radius:6px;">${compRows}</table>
-		${v.comps_comment ? `<div style="font-size:12px; color:#6b7280; margin-top:6px; line-height:1.5;">${esc(v.comps_comment)}</div>` : ""}
+	${compSections}
+	${v.comps_comment ? `<tr><td style="padding:${compSections ? "6px" : "18px"} 20px 0;">
+		${compSections ? "" : `<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΤΙ ΔΕΙΧΝΟΥΝ ΤΑ ΣΥΓΚΡΙΤΙΚΑ</div>`}
+		<div style="font-size:12px; color:#6b7280; line-height:1.5;">${esc(v.comps_comment)}</div>
 	</td></tr>` : ""}
 	${v.market_comment ? `<tr><td style="padding:18px 20px 0;">
 		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">Η ΑΓΟΡΑ</div>
@@ -1074,10 +1143,7 @@ function renderReport(prop, comps, stats, priceRow, v, payload, offers) {
 		// του μοντέλου, τα στοιχεία του ακινήτου και τα συγκριτικά. Το
 		// Make αγνοεί αυτά τα πεδία.
 		v, prop,
-		comps: comps.sale.map((l) => ({
-			code: l.code, kind: labelKind(l.subcategory, l.category),
-			area: (l.location || {}).area, sqm: l.area, price: l.price,
-		})),
+		comps: docRows,
 	};
 }
 
@@ -1121,12 +1187,12 @@ function renderPrintHtml(result) {
 		return `<tr><td>${esc(a.factor)}</td><td class="${pct >= 0 ? "pos" : "neg"}">${pct > 0 ? "+" : ""}${esc(String(pct).replace(".", ","))}%</td><td class="mut">${esc(a.reason)}</td></tr>`;
 	}).join("");
 
-	const compRows = comps.map((c) => `<tr>
+	const compSections = compGroups(comps).map((g) => `<h2>${g.title}</h2><table>${g.rows.map((c) => `<tr>
 		<td>${esc((c.code ? c.code + " · " : "") + [c.kind, c.area].filter(Boolean).join(", "))}</td>
 		<td class="num">${c.sqm ? esc(String(c.sqm)) + " τ.μ." : ""}</td>
-		<td class="num"><strong>${eur(c.price)}</strong></td>
-		<td class="num mut">${c.sqm && c.price ? eur(Math.round(c.price / c.sqm)) + "/τ.μ." : ""}</td>
-	</tr>`).join("");
+		<td class="num"><strong>${compPrice(c.price, g.transaction)}</strong></td>
+		<td class="num mut">${compPerSqm(c.price, c.sqm, g.transaction)}</td>
+	</tr>`).join("")}</table>`).join("");
 
 	const facts = [
 		["Είδος", p.subcategory || labelCategory(p.category)],
@@ -1208,12 +1274,12 @@ td.num{text-align:right;white-space:nowrap;}
 	${wantsRent && v.rent_mid ? `<div class="rentval">
 		<div class="l">ΕΚΤΙΜΩΜΕΝΟ ΜΙΣΘΩΜΑ</div>
 		<div class="r">${eur(v.rent_mid)}/μήνα (εύρος ${eur(v.rent_low)} έως ${eur(v.rent_high)})</div>
-		${Number(v.gross_yield_pct) ? `<div class="y">Μικτή απόδοση ~${esc(String(v.gross_yield_pct).replace(".", ","))}% στην εκτιμώμενη αξία</div>` : ""}
+		${Number(v.gross_yield_pct) ? `<div class="y">Μικτή απόδοση ~${esc(String(v.gross_yield_pct).replace(".", ","))}% ${wantsSale ? "στην εκτιμώμενη αξία" : `σε εκτιμώμενη αξία ${eur(v.value_mid)}`}</div>` : ""}
 	</div>` : ""}
-	${p.askingPrice && v.asking_comment ? `<h2>ΣΕ ΣΧΕΣΗ ΜΕ ΤΗ ΖΗΤΟΥΜΕΝΗ (${eur(p.askingPrice)})</h2><p>${esc(v.asking_comment)}</p>` : ""}
-	${adj ? `<h2>ΠΩΣ ΒΓΗΚΕ ΤΟ ΝΟΥΜΕΡΟ · ΑΦΕΤΗΡΙΑ ${eur(v.base_eur_per_sqm)}/τ.μ.</h2><table>${adj}</table>` : ""}
-	${compRows ? `<h2>ΣΥΓΚΡΙΤΙΚΑ ΑΠΟ ΤΟ ΧΑΡΤΟΦΥΛΑΚΙΟ ΜΑΣ</h2><table>${compRows}</table>
-		${v.comps_comment ? `<p class="mut" style="margin-top:6px;">${esc(v.comps_comment)}</p>` : ""}` : ""}
+	${p.askingPrice && v.asking_comment ? `<h2>ΣΕ ΣΧΕΣΗ ΜΕ ΤΗ ΖΗΤΟΥΜΕΝΗ (${eur(p.askingPrice)}${wantsSale ? "" : "/μήνα"})</h2><p>${esc(v.asking_comment)}</p>` : ""}
+	${adj ? `<h2>ΠΩΣ ΒΓΗΚΕ ΤΟ ΝΟΥΜΕΡΟ · ΑΦΕΤΗΡΙΑ ${eur(v.base_eur_per_sqm)}/τ.μ.${wantsSale ? "" : " ΑΞΙΑΣ"}</h2><table>${adj}</table>` : ""}
+	${compSections || (v.comps_comment ? "<h2>ΤΙ ΔΕΙΧΝΟΥΝ ΤΑ ΣΥΓΚΡΙΤΙΚΑ</h2>" : "")}
+	${v.comps_comment ? `<p class="mut" style="margin-top:6px;">${esc(v.comps_comment)}</p>` : ""}
 	${v.market_comment ? `<h2>Η ΑΓΟΡΑ</h2><p>${esc(v.market_comment)}</p>` : ""}
 	<h2>ΒΕΒΑΙΟΤΗΤΑ: ${esc(grUpper(v.confidence))}</h2>
 	${v.confidence_reason ? `<p>${esc(v.confidence_reason)}</p>` : ""}
