@@ -68,14 +68,26 @@ Invoke-WebRequest -Uri 'https://notify.bugsnag.com/' -Method Post -ContentType '
 | **VS Code** (Copilot) | `%APPDATA%\Code\User\mcp.json`, entry `smartbear` | ρωτάει τον χρήστη (`${input:bugsnag_auth_token}`) |
 | **Claude Code** | [.mcp.json](../.mcp.json) στη ρίζα του repo | από το `.dev.vars`, μέσω [tools/mcp-smartbear.mjs](../tools/mcp-smartbear.mjs) |
 
-Το `.mcp.json` δείχνει σε έναν μικρό launcher, [tools/mcp-smartbear.mjs](../tools/mcp-smartbear.mjs),
-που διαβάζει το **`BUGSNAG_AUTH_TOKEN`** από το `.dev.vars` (gitignored,
-δίπλα στα `BW_SESSION` / `MAKE_API_TOKEN`) και μετά παραδίδει το stdio
-στο `npx @smartbear/mcp`. Έτσι το token δεν μπαίνει ποτέ ούτε στο repo
-ούτε σε αρχείο ρυθμίσεων.
+Το `.mcp.json` δείχνει σε έναν μικρό launcher,
+[tools/mcp-smartbear.mjs](../tools/mcp-smartbear.mjs), που βρίσκει το
+token και μετά παραδίδει το stdio στο `npx @smartbear/mcp`. Έτσι το
+token δεν μπαίνει ποτέ ούτε στο repo ούτε σε αρχείο ρυθμίσεων.
 
-Το token είναι **personal auth token** του Bugsnag: dashboard → My
-account → Personal auth tokens → Generate. Χωρίς αυτό ο server ξεκινά
-κανονικά αλλά τα εργαλεία Bugsnag είναι ανενεργά (ο launcher το γράφει
-ως προειδοποίηση στο stderr). Μετά την προσθήκη του token θέλει
-`/mcp reconnect` ή restart του Claude Code.
+Ψάχνει με αυτή τη σειρά, πρώτη επιτυχία κερδίζει:
+
+1. `BUGSNAG_AUTH_TOKEN` στο `.dev.vars` (χειροκίνητη παράκαμψη).
+2. **Bitwarden Secrets Manager**, το secret «Bugsnag Claude PC Token»
+   στο project «Four Walls», μέσω `bws` με το `BW_ACCESS_TOKEN` του
+   `.dev.vars`. Αυτός είναι ο κανονικός δρόμος: μία πηγή αλήθειας, ο
+   κωδικός δεν κάθεται σε δεύτερο αρχείο.
+
+Το token είναι **personal auth token** του Bugsnag (dashboard → My
+account → Personal auth tokens). Χωρίς αυτό ο server ξεκινά κανονικά
+αλλά τα εργαλεία Bugsnag είναι ανενεργά, με προειδοποίηση στο stderr.
+Αλλαγή στο token θέλει `/mcp reconnect` ή restart του Claude Code.
+
+Παγίδες του `bws` (δες και [environment.md](environment.md)):
+το CLI ζητά `BWS_ACCESS_TOKEN` ενώ στο `.dev.vars` η μεταβλητή λέγεται
+`BW_ACCESS_TOKEN`, και ένα machine account χωρίς πρόσβαση στο project
+επιστρέφει **κενή λίστα με exit 0**, όχι σφάλμα. Άκυρο token, αντίθετα,
+σκάει με exit 1.
