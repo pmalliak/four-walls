@@ -1,7 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Four Walls">
-	<!-- Viber Business profile avatar: brand cube on full-bleed pink.
-	     Square so Viber's circular crop never clips the mark.
-	     Derived from images/fav-icon/icon.fw.svg. -->
-	<rect width="64" height="64" fill="#FF0062"/>
-	<path fill="#FFFFFF" fill-rule="evenodd" d="M50.03 23.15L50.03 42.16L32.98 52L32.98 32.98L36.92 31.02L36.92 46.1L40.2 44.13L40.2 29.7L43.47 27.74L43.47 42.16L46.75 40.2L46.75 25.12ZM13.97 23.15L13.97 42.16L31.02 52L31.02 32.98L27.08 31.02L27.08 46.1L23.8 44.13L23.8 29.7L20.53 27.74L20.53 42.16L17.25 40.2L17.25 25.12ZM29.05 13.97L32.33 12L47.41 21.18L44.13 23.15ZM15.93 21.18L29.05 29.05L41.65 21.21L38.53 18.99L28.39 25.11L18.56 19.21Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="109.53 32.79 73.78 73.78" role="img" aria-label="Four Walls">
+	<!-- Viber Business profile avatar: canonical brand cube on full-bleed pink.
+	     Icon paths copied verbatim from brand/fourwalls_logo_vertical.svg (the
+	     authoritative geometry), recoloured white, centred with favicon-style
+	     padding. Square so Viber's circular crop never clips the mark. -->
+	<rect x="109.53" y="32.79" width="73.78" height="73.78" fill="#FF0062"/>
+	<g fill="#FFFFFF">
+		<path d="m 0,0 v -16.441 l -14.74,-8.504 v 16.441 l 3.401,1.701 v -13.039 l 2.835,1.7 v 12.473 l 2.834,1.7 v -12.472 l 2.835,1.701 v 13.039 z" transform="matrix(1.3333333,0,0,-1.3333333,167.2108,59.472)"/>
+		<path d="m 0,0 v -16.441 l 14.74,-8.504 v 16.441 l -3.401,1.701 v -13.039 l -2.835,1.7 v 12.473 l -2.834,1.7 v -12.472 l -2.835,1.701 v 13.039 z" transform="matrix(1.3333333,0,0,-1.3333333,125.6352,59.472)"/>
+		<path d="m 0,0 2.834,1.701 13.04,-7.937 -2.835,-1.701 z" transform="matrix(1.3333333,0,0,-1.3333333,143.022,48.889333)"/>
+		<path d="m 0,0 11.339,-6.803 10.89,6.779 -2.698,1.915 -8.76,-5.292 -8.503,5.102 z" transform="matrix(1.3333333,0,0,-1.3333333,127.90347,57.2044)"/>
+	</g>
 </svg>
