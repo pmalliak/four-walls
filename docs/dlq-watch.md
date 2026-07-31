@@ -85,10 +85,32 @@ GET /api/dlq-report?key=<WEBHOOK_KEY>&format=html  # το email στον browser
 - **Σενάριο απενεργοποιημένο ή σβησμένο.** Ο φύλακας βλέπει μόνο bundles
   που σκόνταψαν, όχι σενάρια που δεν έτρεξαν ποτέ.
 
-## Το ξεκαθάρισμα του DLQ γίνεται με το χέρι
+## Το ξεκαθάρισμα του DLQ
 
 Το Make **δεν έχει «σήμανση ως τακτοποιημένο»**: ένα bundle γίνεται
 `resolved` μόνο με επιτυχημένο retry, αλλιώς σβήνεται. Retry σε παλιό
-bundle ξαναστέλνει πραγματικά email, οπότε δεν γίνεται στα τυφλά. Το
-ξεκαθάρισμα (Scenario → Incomplete executions) το κάνει άνθρωπος, αφού δει
-τι είναι το καθένα.
+bundle **ξαναστέλνει πραγματικά email**, οπότε δεν γίνεται στα τυφλά.
+
+Από το UI: σενάριο → *Incomplete executions* → επιλογή → Delete.
+Από το API (χρήσιμο για μαζικό καθάρισμα δοκιμών):
+
+```bash
+# τι υπάρχει
+curl -H "Authorization: Token $MAKE_API_TOKEN" \
+  "https://eu1.make.com/api/v2/dlqs?teamId=2060918&scenarioId=<id>"
+# τι είναι το καθένα (payload του webhook)
+curl -H "Authorization: Token $MAKE_API_TOKEN" \
+  "https://eu1.make.com/api/v2/dlqs/<dlqId>/bundle?teamId=2060918"
+# διαγραφή, μία μία, ΜΗ ΑΝΑΣΤΡΕΨΙΜΗ
+curl -X DELETE -H "Authorization: Token $MAKE_API_TOKEN" \
+  "https://eu1.make.com/api/v2/dlqs/<dlqId>?teamId=2060918"
+```
+
+**Πάντα διάβασε το bundle πριν σβήσεις.** Στο ξεκαθάρισμα της 31/07/2026
+(οκτώ bundles του photo pipeline) τα επτά είχαν ψεύτικο `batch_id` και
+κωδικό ακινήτου `TEST`, αλλά το όγδοο αφορούσε **αληθινό ακίνητο**
+(`2400005`). Σβήστηκε κι αυτό μόνο αφού φάνηκε ότι είχε σκοντάψει σε
+σφάλμα διαμόρφωσης του module (`Missing value of required parameter
+'stopOnHttpError'`), όχι στα δεδομένα, και ότι οι δοκιμές λίγα λεπτά
+αργότερα είχαν πετύχει. Ο κωδικός ακινήτου μέσα στο payload είναι ο
+γρήγορος τρόπος να ξεχωρίσεις δοκιμή από πραγματική δουλειά.
