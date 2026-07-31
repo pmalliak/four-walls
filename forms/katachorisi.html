@@ -773,7 +773,7 @@ function showStep(n){
   window.scrollTo(0,0);
 }
 function toPreview(){ document.getElementById("doc").innerHTML=buildDoc(); showStep(2); fit(); }
-function toEdit(){ showStep(1); }
+function toEdit(){ clearQueued(); showStep(1); }
 function fit(){
   if(document.getElementById("step2").classList.contains("hide"))return;
   const el=document.getElementById("doc"),sc=document.getElementById("pvscale"),wrap=document.getElementById("pvwrap");
@@ -800,6 +800,14 @@ async function makePdf(mode){
 function savePDF(){ try{ window.print(); }catch(e){} }
 function toast(msg,type){ const t=document.getElementById("toast"); if(!t) return; t.className="toast "+(type||""); t.textContent=msg; t.style.display="block"; clearTimeout(t._t); t._t=setTimeout(()=>{ t.style.display="none"; },4600); }
 function sendLabel(){ return state.send_to_client===true ? "Αποστολή + email στον ιδιοκτήτη" : "Αποστολή"; }
+/* Όσο η καταχώριση περιμένει στην ουρά, το κουμπί δεν ξαναπροσφέρεται: το
+   outbox τη στέλνει μόνο του μόλις βρεθεί σήμα, και το δεύτερο πάτημα
+   («ήρθαν γραμμές, να το ξαναστείλω») είναι ακριβώς αυτό που έστελνε δύο
+   φορές το ίδιο έντυπο. Η ουρά ζει έξω από τη φόρμα, οπότε ο σύμβουλος
+   προχωράει ελεύθερα στο επόμενο έντυπο. */
+function isQueued(){ const b=document.getElementById("submitBtn"); return !!b&&b.textContent.indexOf("αναμονή")>=0; }
+function markQueued(){ const b=document.getElementById("submitBtn"); if(b){ b.textContent="Σε αναμονή ⏳"; b.disabled=true; } }
+function clearQueued(){ const b=document.getElementById("submitBtn"); if(isQueued()){ b.disabled=false; b.textContent=sendLabel(); } }
 function refreshSendLabel(){ const b=document.getElementById("submitBtn"); if(b&&!b.disabled) b.textContent=sendLabel(); }
 function DOCHTML(){var st='';document.querySelectorAll('style').forEach(function(x){st+=x.textContent;});var doc=document.getElementById('doc');var inner=doc&&doc.innerHTML?doc.innerHTML:buildDoc();return '<!doctype html><html lang="el"><head><meta charset="utf-8">'+'<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'+'<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">'+'<style>'+st+'</style>'+'<style>@media print{@page{size:A4;margin:10mm 10mm 12mm}}html,body{background:#fff!important;margin:0;padding:0;}.doc{width:auto!important;padding:0 3mm!important;}</style>'+'</head><body><div class="doc">'+inner+'</div></body></html>';}
 async function doSubmit(){
@@ -818,11 +826,11 @@ async function doSubmit(){
     if(window.FWDrafts)FWDrafts.discard(); /* στάλθηκε ή μπήκε στο outbox — το πρόχειρο δεν χρειάζεται πια */
     if(res.sent) toast(res.duplicate ? "Είχε ήδη σταλεί. Δεν ξαναστάλθηκε." : (state.send_to_client===true ? "Στάλθηκε — και στον ιδιοκτήτη." : "Στάλθηκε."),"ok");
     else if(res.reason==="auth") toast("Αποθηκεύτηκε. Χρειάζεται σύνδεση χρήστη — άνοιξε ξανά την εφαρμογή για να σταλεί.","err");
-    else toast("Δεν υπάρχει σύνδεση — αποθηκεύτηκε και θα σταλεί αυτόματα μόλις βρεθεί δίκτυο.","ok");
+    else { markQueued(); toast("Χωρίς δίκτυο. Μπήκε σε αναμονή και φεύγει μόνο του μόλις βρεθεί σήμα.","ok"); }
   }catch(err){
     toast("Αποτυχία — το έντυπο δεν στάλθηκε ούτε αποθηκεύτηκε.","err");
   }finally{
-    btn.disabled=false; btn.textContent=sendLabel();
+    if(!isQueued()){ btn.disabled=false; btn.textContent=sendLabel(); }
   }
 }
 

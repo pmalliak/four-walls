@@ -164,7 +164,7 @@ function showStep(n){document.getElementById('step1').classList.toggle('hide',n!
  document.getElementById('st1').classList.toggle('on',n===1);document.getElementById('st2').classList.toggle('on',n===2);
  window.scrollTo(0,0);}
 function toPreview(){var c=collect();document.getElementById('doc').innerHTML=CONFIG.buildDoc(c.v,c.s);showStep(2);fit();}
-function toEdit(){showStep(1);}
+function toEdit(){clearQueued();showStep(1);}
 
 function GRK(s){var M={'α':'a','ά':'a','β':'v','γ':'g','δ':'d','ε':'e','έ':'e','ζ':'z','η':'i','ή':'i','θ':'th','ι':'i','ί':'i','ϊ':'i','ΐ':'i','κ':'k','λ':'l','μ':'m','ν':'n','ξ':'x','ο':'o','ό':'o','π':'p','ρ':'r','σ':'s','ς':'s','τ':'t','υ':'y','ύ':'y','ϋ':'y','ΰ':'y','φ':'f','χ':'ch','ψ':'ps','ω':'o','ώ':'o'};return String(s==null?'':s).split('').map(function(c){var l=c.toLowerCase();if(M[l]==null)return c;var t=M[l];return c===l?t:(t.charAt(0).toUpperCase()+t.slice(1));}).join('');}
 function fileName(v){var nm=GRK(v.entoleas_onomatepwnymo||v.katavallon_geniki||'').replace(/[^\p{L}\p{N}]+/gu,'_').slice(0,28);var d=(v.imerominia||new Date().toISOString().slice(0,10));return CONFIG.id+(nm?'_'+nm:'')+'_'+d+'.pdf';}
@@ -176,7 +176,16 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 async function ready(el){try{if(document.fonts&&document.fonts.ready)await document.fonts.ready;}catch(e){}
  var imgs=[].slice.call(el.querySelectorAll('img'));await Promise.all(imgs.map(function(im){return (im.complete&&im.naturalWidth)?0:new Promise(function(r){im.onload=im.onerror=r;});}));await sleep(120);}
 function toast(msg,type){var t=document.getElementById('toast');t.className='toast '+(type||'');t.textContent=msg;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(function(){t.style.display='none';},4600);}
-function busy(b){['btnPdf','btnSend','btnBack'].forEach(function(id){var e=document.getElementById(id);if(e)e.disabled=b;});}
+/* Όσο το έντυπο περιμένει στην ουρά, το κουμπί αποστολής ΔΕΝ ξαναπροσφέρεται:
+   το outbox το στέλνει μόνο του μόλις βρεθεί σήμα, και το δεύτερο πάτημα
+   («ήρθαν γραμμές, να το ξαναστείλω») είναι ακριβώς αυτό που έστελνε δύο
+   φορές το ίδιο έντυπο. Η ουρά ζει έξω από τη φόρμα, οπότε ο σύμβουλος
+   προχωράει ελεύθερα στο επόμενο έντυπο. Πίσω για αλλαγές το ξεκλειδώνει:
+   αλλαγμένα στοιχεία είναι άλλο έντυπο. */
+function busy(b){['btnPdf','btnSend','btnBack'].forEach(function(id){var e=document.getElementById(id);if(e)e.disabled=b||(id==='btnSend'&&isQueued());});}
+function isQueued(){var b=document.getElementById('btnSend');return !!b&&b.textContent.indexOf('αναμονή')>=0;}
+function markQueued(){var b=document.getElementById('btnSend');if(b){b.textContent='Σε αναμονή ⏳';b.disabled=true;}}
+function clearQueued(){var b=document.getElementById('btnSend');if(isQueued()){b.textContent='Αποστολή';b.disabled=false;}}
 
 async function makePdf(mode){var src=document.getElementById('doc');var holder=document.createElement('div');holder.style.cssText='position:absolute;left:0;top:0;width:720px;z-index:-1;background:#fff;';holder.innerHTML='<div class="doc">'+src.innerHTML+'</div>';document.body.appendChild(holder);var el=holder.firstChild;window.scrollTo(0,0);await ready(el);
  try{var v=collect().v;var fn=fileName(v);
@@ -193,7 +202,7 @@ async function sendMake(){var _v=collect().v;if(!String(_v.entoleas_email||'').t
   if(window.FWDrafts)FWDrafts.discard(); /* στάλθηκε ή μπήκε στο outbox — το πρόχειρο δεν χρειάζεται πια */
   if(res.sent)toast(res.duplicate?'Είχε ήδη σταλεί. Δεν ξαναστάλθηκε.':'Στάλθηκε.','ok');
   else if(res.reason==='auth')toast('Αποθηκεύτηκε. Χρειάζεται σύνδεση χρήστη — άνοιξε ξανά την εφαρμογή για να σταλεί.','err');
-  else toast('Δεν υπάρχει σύνδεση — αποθηκεύτηκε και θα σταλεί αυτόματα μόλις βρεθεί δίκτυο.','ok');
+  else {markQueued();toast('Χωρίς δίκτυο. Μπήκε σε αναμονή και φεύγει μόνο του μόλις βρεθεί σήμα.','ok');}
  }catch(e){console.error(e);toast('Αποτυχία — το έντυπο δεν στάλθηκε ούτε αποθηκεύτηκε.','err');}finally{busy(false);}}
 
 function init(){renderEditor();

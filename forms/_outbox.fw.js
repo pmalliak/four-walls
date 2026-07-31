@@ -101,7 +101,9 @@
 				rec.last_error = 'http_' + r.status; await qPut(rec);
 			}
 		} finally { _flushing = false; }
-		badge();
+		// Με await, ώστε όποιος περιμένει το flush να βρίσκει και το pill
+		// και τα κουμπιά «Σε αναμονή» ήδη ενημερωμένα.
+		await badge();
 		if (sent > 0) toast(sent === 1 ? 'Το εκκρεμές έντυπο στάλθηκε.' : 'Στάλθηκαν ' + sent + ' εκκρεμή έντυπα.', 'ok');
 		if (dup > 0) toast(dup === 1 ? 'Ένα εκκρεμές έντυπο είχε ήδη σταλεί. Δεν ξαναστάλθηκε.' : dup + ' εκκρεμή έντυπα είχαν ήδη σταλεί. Δεν ξαναστάλθηκαν.', 'ok');
 		if (auth) toast('Χρειάζεται σύνδεση χρήστη — κλείσε και άνοιξε ξανά την εφαρμογή.', 'err');
@@ -125,10 +127,20 @@
 		el.textContent = msg; el.style.display = 'block';
 		clearTimeout(el._t); el._t = setTimeout(function () { el.style.display = 'none'; }, 4600);
 	}
+	/* Το κουμπί «Σε αναμονή» ανήκει στη φόρμα, αλλά μόνο εδώ ξέρουμε πότε
+	   άδειασε η ουρά: χωρίς αυτό θα έμενε να λέει «σε αναμονή» για κάτι
+	   που έχει ήδη φύγει. Μία γραμμή εδώ αντί για handler σε πέντε έντυπα. */
+	function clearQueuedButtons() {
+		var bs = document.querySelectorAll('button');
+		for (var i = 0; i < bs.length; i++) {
+			if (bs[i].textContent.indexOf('Σε αναμονή') === 0) bs[i].textContent = 'Στάλθηκε ✓';
+		}
+	}
+
 	function badge() {
 		return qAll().then(function (recs) {
 			var n = recs.length, el = document.getElementById('fwObBadge');
-			if (!n) { if (el) el.remove(); return n; }
+			if (!n) { if (el) el.remove(); clearQueuedButtons(); return n; }
 			if (!el) {
 				el = document.createElement('button'); el.id = 'fwObBadge'; el.type = 'button';
 				el.style.cssText = 'position:fixed;top:calc(10px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:#1C3457;color:#fff;border:0;border-radius:999px;padding:9px 16px;font:700 13px/1 Manrope,system-ui,Arial,sans-serif;box-shadow:0 6px 18px rgba(20,30,50,.35);z-index:70;cursor:pointer;';

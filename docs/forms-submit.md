@@ -80,6 +80,18 @@ time, so a queued form can legitimately show hours between the two. Retrying
 blindly would mail the same έντυπο twice, so the Worker de-duplicates on
 content (next section).
 
+While an έντυπο waits in the queue its send button stays **locked** as «Σε
+αναμονή ⏳» instead of offering itself again. That is what actually happened on
+2026-07-31: tapped with no signal, queued, and tapped again the moment the bars
+came back — so the queue drained *and* the fresh tap went out. The queue lives
+outside the form (IndexedDB, not the draft: the draft is discarded the moment
+the payload is safely queued), so the consultant moves on to the next έντυπο
+and it leaves on its own; «Πίσω» for edits unlocks the button, because changed
+fields are a different document. `clearQueuedButtons()` in the outbox flips the
+label to «Στάλθηκε ✓» when the queue empties, so no button is left claiming to
+be waiting for something that already left. Queued for any other reason (Access
+session, HTTP error) still unlocks it: those need a human.
+
 [../forms/sw.js](../forms/sw.js) makes the app itself work offline: it
 precaches the pages + **self-hosted** `html2pdf.bundle.min.js` (the cdnjs tag
 is gone — offline PDF generation needs the library locally) and runtime-caches
