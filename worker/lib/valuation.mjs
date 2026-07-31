@@ -376,6 +376,9 @@ function mergeProperty(feed, d) {
 		balconies: String(d.balconies || "").trim(),
 		askingPrice: num(pick(d.asking_price_num || d.asking_price, f.price)),
 		monthlyMaintenance: num(pick("", f.monthlyMaintenance)),
+		// Πόσο κάθεται στην αγορά με τη ΣΗΜΕΡΙΝΗ ζητούμενη. Μόνο για
+		// ακίνητα του CRM: σε εκτίμηση με το χέρι δεν υπάρχει αγγελία.
+		daysOnMarket: daysSince(f.listedAt),
 		notes: String(d.notes || "").trim(),
 	};
 }
@@ -383,6 +386,18 @@ function mergeProperty(feed, d) {
 function num(v) {
 	const n = Number(String(v == null ? "" : v).replace(/\./g, "").replace(",", "."));
 	return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/* Μέρες από μια ημερομηνία του EstatePrime («YYYY-MM-DD HH:MM:SS»,
+   Europe/Athens). Το κενό γίνεται "T" γιατί αλλιώς το parsing είναι
+   implementation-defined. Μελλοντική ή άκυρη ημερομηνία → null. */
+function daysSince(raw) {
+	const s = String(raw || "").trim();
+	if (!s) return null;
+	const t = Date.parse(s.replace(" ", "T"));
+	if (!Number.isFinite(t)) return null;
+	const days = Math.floor((Date.now() - t) / 86400000);
+	return days >= 0 ? days : null;
 }
 
 /* Συγκριτικά από το ίδιο μας το χαρτοφυλάκιο: ίδια κατηγορία, ίδια
@@ -502,6 +517,7 @@ function buildDataBlock(prop, comps, stats, priceRow) {
 		μπαλκόνια_τμ: prop.balconies || null,
 		κοινόχρηστα_μήνα: prop.monthlyMaintenance,
 		ζητούμενη_ή_επιθυμητή_τιμή: prop.askingPrice,
+		μέρες_στην_αγορά: prop.daysOnMarket,
 		παρατηρήσεις_συμβούλου: prop.notes || null,
 	}));
 	lines.push("");
@@ -520,6 +536,7 @@ function buildDataBlock(prop, comps, stats, priceRow) {
 		ανά_τμ: Math.round(l.price / l.area), όροφος: l.floor || null,
 		έτος: l.yearBuilt || null, ενεργειακή: l.energyClass || null,
 		κατάσταση: l.condition || null,
+		μέρες_στην_αγορά: daysSince(l.listedAt),
 	});
 	lines.push(`ΕΝΔΕΙΚΤΙΚΑ ΚΟΣΤΗ ΑΝΑΚΑΙΝΙΣΗΣ (€/τ.μ., ${RENOVATION_COSTS_META.asOf} — ${RENOVATION_COSTS_META.source}):`);
 	lines.push(JSON.stringify(RENOVATION_COSTS));
@@ -530,6 +547,12 @@ function buildDataBlock(prop, comps, stats, priceRow) {
 	lines.push(JSON.stringify(comps.rent.map(compRow)));
 	if (stats.sale) lines.push(`Διάμεσος ζητούμενη €/τ.μ. πώλησης στο ενεργό στοκ μας για την περιοχή: ${Math.round(stats.sale.median)} (${stats.sale.count} ακίνητα).`);
 	if (stats.rent) lines.push(`Διάμεσος ζητούμενη €/τ.μ./μήνα ενοικίασης: ${stats.rent.median.toFixed(1)} (${stats.rent.count} ακίνητα).`);
+	lines.push("");
+	lines.push(`ΠΩΣ ΔΙΑΒΑΖΕΤΑΙ ΤΟ «μέρες_στην_αγορά» (πόσο καιρό είναι καταχωρισμένο, με τη σημερινή ζητούμενη):
+- Είναι ΖΩΝΤΑΝΗ ΑΠΑΝΤΗΣΗ ΤΗΣ ΑΓΟΡΑΣ, το μόνο δεδομένο εδώ που δείχνει τι ΔΕΝ δέχτηκε ο αγοραστής. Ακίνητο που κάθεται πολύ (πάνω από ~180 μέρες για κατοικία) με ζητούμενη πάνω από την εκτίμησή σου επιβεβαιώνει την εκτίμηση: η αγορά την έχει ήδη απορρίψει. Γράψ' το στο advice ως επιχείρημα προς τον ιδιοκτήτη («το ακίνητο είναι X μήνες στην αγορά χωρίς να κλείσει, αυτό μας το λέει η ίδια η αγορά»), ΟΧΙ ως κατηγορία εναντίον του.
+- ΔΕΝ μειώνει την αξία από μόνο του. Ο χρόνος δείχνει ότι η ΖΗΤΟΥΜΕΝΗ είναι ψηλά, όχι ότι το ακίνητο αξίζει λιγότερο. Μην κόψεις την εκτίμηση επειδή κάθεται· κόψε την επειδή το λένε τα συγκριτικά και τα χαρακτηριστικά.
+- ΣΤΑΘΜΙΣΗ ΣΥΓΚΡΙΤΙΚΩΝ: ένα συγκριτικό που κάθεται πολλούς μήνες αποδεικνύει μόνο ότι κάποιος ΖΗΤΑΕΙ αυτή την τιμή, όχι ότι η αγορά τη δίνει. Βάρυνε περισσότερο τα φρέσκα (κάτω από ~90 μέρες) και ανάφερέ το στο comps_comment όταν τα ακριβά συγκριτικά είναι και τα πιο λιμνασμένα.
+- Λίγες μέρες δεν σημαίνει τίποτα: πολύ φρέσκια αγγελία δεν έχει προλάβει να δοκιμαστεί. Κενό (null) σημαίνει ότι δεν είναι δικό μας καταχωρισμένο ακίνητο, αγνόησέ το.`);
 	return lines.join("\n");
 }
 

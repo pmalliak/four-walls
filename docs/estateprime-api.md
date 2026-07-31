@@ -478,8 +478,26 @@ Notes:
   were written EL+EN mirroring the appointment emails; sources in
   [../crm/](../crm/README.md) (`*.sms.twig`). Auto-send left Ανενεργή.
 
+## Offers / προσφορές (read-only, and currently EMPTY — probed 2026-07-31)
+
+`GET /offers` works and is **read-only**: the spec exposes only `get` on
+`/offers` and `/offers/{id}`, no create. Filters (spec body): `page`, `status`,
+`is_active`, `listing_id`, `request_id`, `store_id`. `OfferStatus` enum:
+`draft | submitted | under_negotiation | accepted | rejected | withdrawn`.
+Single-offer responses carry a **`rounds` array** (the negotiation history);
+the list response omits it. `/offers/statuses` does not exist (404 «Offer not
+found» — the path is parsed as an id).
+
+**The blocker is that it is empty**: `GET /offers` returns
+`total_results: 0`, because nothing writes offers. The Έντυπα «προσφορά» form
+only emails info@ (see [forms-prosfora.md](forms-prosfora.md)) and nobody
+re-enters them in the CRM. Pulling offers into the valuation is therefore
+gated on **someone writing them first**, not on the read side. Creating them
+will almost certainly need the internal web endpoint with a session cookie,
+the same pattern as ζητήσεις (`POST /requests/form`) — untested.
+
 ## Other resources (exist, unused)
 
 Calendar, Communication, Contracts, Expenses, External Listings, Files,
-Incomes, Knowledge Base, Locations, Offers, Reminders (POST only), Requests,
+Incomes, Knowledge Base, Locations, Reminders (POST only), Requests,
 Tasks, Users, Webmail. Support: tech@estateprime.gr.

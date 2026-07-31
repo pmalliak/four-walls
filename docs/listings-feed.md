@@ -75,13 +75,21 @@ Design rules:
 			"area_en": "Kalamaria", "city_en": "Thessaloniki", "lat": 0, "lng": 0 },
 		"images": ["…"], "features": ["…"], "description": "…", "description_en": "…",
 		"featured": true,
-		"updatedAt": "2026-07-01T09:00:00Z"
+		"updatedAt": "2026-07-01T09:00:00Z",
+		"listedAt": "2026-04-24 14:10:46"
 	}]
 }
 ```
 
 `featured` appears only on the listing(s) tagged `FEATURED_TAG` in the CRM
 (home-page banner); all other listings omit the key.
+
+`listedAt` is the CRM's `date_created`, i.e. **when the listing went on the
+market**, as opposed to `updatedAt` which moves on every edit. Nothing on the
+public site renders it — it exists so the valuation can compute *days on
+market* and read it as the market's own answer to the asking price (see
+[valuation.md](valuation.md)). Live coverage is complete (19/19 active
+listings carried a valid date when checked on 2026-07-31).
 
 The `*_en` fields (`title_en`, `description_en`, `location.area_en`,
 `location.neighbourhood_en`, `location.city_en`) are **optional and additive**:
