@@ -34,6 +34,7 @@ import { AREA_PRICES, AREA_PRICES_META, findAreaPrices } from "./area-prices.mjs
 import { RENOVATION_COSTS, RENOVATION_COSTS_META } from "./renovation-costs.mjs";
 import { renderDocPdf } from "./pdfrender.mjs";
 import { apiConfig } from "./estateprime.mjs";
+import { subcategoryLabel } from "./seo.mjs";
 
 /* KV keys — το request γράφεται από forms.mjs, το result από εδώ. */
 export const VALUATION_REQ_PREFIX = "valuation:req:";
@@ -271,7 +272,8 @@ export async function handleValuationLog(request, env, url) {
 
 	const rows = entries.map((e) => {
 		const when = e.ts ? new Date(e.ts).toLocaleDateString("el-GR", { timeZone: "Europe/Athens" }) : "";
-		const what = [e.kind || labelCategory(e.category), e.code ? `κωδ. ${e.code}` : "", e.area, e.address]
+		// labelKind και εδώ: οι εγγραφές πριν τη διόρθωση κρατούν slug.
+		const what = [labelKind(e.kind, e.category) || labelCategory(e.category), e.code ? `κωδ. ${e.code}` : "", e.area, e.address]
 			.filter(Boolean).join(" · ");
 		const sale = e.value_mid
 			? `<strong>${eur(e.value_mid)}</strong> <span style="color:#6b7280;">(${eur(e.value_low)} έως ${eur(e.value_high)})</span>`
@@ -349,13 +351,14 @@ function mergeProperty(feed, d) {
 	// παραμένει πραγματικά άγνωστο.
 	const feats = Array.isArray(f.features) ? f.features : null;
 	const featYesNo = (test) => (feats ? (feats.some(test) ? "Ναι" : "Όχι") : "");
+	const category = pick(d.category, f.category) || "residential";
 	return {
 		listingCode: pick(d.listing_code, f.code),
 		listingId: fromFeed ? String(fromFeed.id) : null, // για το GET /offers
 		fromCrm: !!fromFeed,
 		purpose: String(d.purpose || "both"), // sale | rent | both
-		category: pick(d.category, f.category) || "residential",
-		subcategory: pick(d.subcategory, f.subcategory),
+		category,
+		subcategory: labelKind(pick(d.subcategory, f.subcategory), category),
 		areaName: pick(d.area_name, loc.area || loc.neighbourhood),
 		address: pick(d.address, loc.address),
 		size: num(pick(d.size, f.area)),
@@ -620,7 +623,7 @@ function buildDataBlock(prop, comps, stats, priceRow, offers) {
 	lines.push("");
 	const compRow = (l) => ({
 		κωδικός: l.code, περιοχή: (l.location || {}).area || null,
-		είδος: l.subcategory || null, τμ: l.area, τιμή: l.price,
+		είδος: labelKind(l.subcategory, l.category) || null, τμ: l.area, τιμή: l.price,
 		ανά_τμ: Math.round(l.price / l.area), όροφος: l.floor || null,
 		έτος: l.yearBuilt || null, ενεργειακή: l.energyClass || null,
 		κατάσταση: l.condition || null,
@@ -844,7 +847,7 @@ function renderReport(prop, comps, stats, priceRow, v, payload, offers) {
 
 	const compRows = comps.sale.map((l) => `<tr>
 		<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; color:${NAVY};">${esc(l.code || "")}</td>
-		<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; color:${NAVY};">${esc(l.subcategory || "")} ${esc((l.location || {}).area || "")}</td>
+		<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; color:${NAVY};">${esc([labelKind(l.subcategory, l.category), (l.location || {}).area || ""].filter(Boolean).join(", "))}</td>
 		<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right;">${l.area} τ.μ.</td>
 		<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right; font-weight:bold;">${eur(l.price)}</td>
 		<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right; color:#6b7280;">${eur(l.price / l.area)}/τ.μ.</td>
@@ -1018,13 +1021,23 @@ function renderReport(prop, comps, stats, priceRow, v, payload, offers) {
 		// Make αγνοεί αυτά τα πεδία.
 		v, prop,
 		comps: comps.sale.map((l) => ({
-			code: l.code, area: (l.location || {}).area, sqm: l.area, price: l.price,
+			code: l.code, kind: labelKind(l.subcategory, l.category),
+			area: (l.location || {}).area, sqm: l.area, price: l.price,
 		})),
 	};
 }
 
 function labelCategory(c) {
 	return { residential: "Κατοικία", commercial: "Επαγγελματικό", land: "Οικόπεδο" }[c] || "Ακίνητο";
+}
+
+/* Το είδος ΠΑΝΤΑ σε ελληνική ετικέτα. Η φόρμα στέλνει ήδη ελληνικά
+   («Διαμέρισμα»), το feed και το CRM όμως δίνουν slug («apartment»), που
+   δεν έχει θέση σε ελληνικό report: ούτε στο θέμα του email, ούτε στα
+   συγκριτικά, ούτε στο prompt του μοντέλου. Ο ίδιος χάρτης με τις
+   σελίδες ακινήτων (seo.mjs)· ό,τι δεν είναι slug περνάει ως έχει. */
+function labelKind(subcategory, category) {
+	return subcategoryLabel({ subcategory: subcategory || "", category: category || "" });
 }
 
 /* ------------------------------------------------------------------ */
@@ -1055,7 +1068,7 @@ function renderPrintHtml(result) {
 	}).join("");
 
 	const compRows = comps.map((c) => `<tr>
-		<td>${esc((c.code ? c.code + " · " : "") + (c.area || ""))}</td>
+		<td>${esc((c.code ? c.code + " · " : "") + [c.kind, c.area].filter(Boolean).join(", "))}</td>
 		<td class="num">${c.sqm ? esc(String(c.sqm)) + " τ.μ." : ""}</td>
 		<td class="num"><strong>${eur(c.price)}</strong></td>
 		<td class="num mut">${c.sqm && c.price ? eur(Math.round(c.price / c.sqm)) + "/τ.μ." : ""}</td>

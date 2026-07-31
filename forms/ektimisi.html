@@ -916,7 +916,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			var ct = el("table");
 			comps.forEach(function(c){
 				var tr = el("tr");
-				tr.appendChild(el("td", null, (c.code ? c.code + " · " : "") + (c.area || "")));
+				tr.appendChild(el("td", null, (c.code ? c.code + " · " : "") + [c.kind, c.area].filter(Boolean).join(", ")));
 				tr.appendChild(el("td", null, c.sqm ? c.sqm + " τ.μ." : ""));
 				tr.appendChild(el("td", null, money(c.price)));
 				tr.appendChild(el("td", null, c.sqm && c.price ? money(Math.round(c.price / c.sqm)) + "/τ.μ." : ""));
