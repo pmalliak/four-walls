@@ -33,6 +33,7 @@
 import { AREA_PRICES, AREA_PRICES_META, findAreaPrices } from "./area-prices.mjs";
 import { RENOVATION_COSTS, RENOVATION_COSTS_META } from "./renovation-costs.mjs";
 import { renderDocPdf } from "./pdfrender.mjs";
+import { apiConfig } from "./estateprime.mjs";
 
 /* KV keys — το request γράφεται από forms.mjs, το result από εδώ. */
 export const VALUATION_REQ_PREFIX = "valuation:req:";
@@ -90,8 +91,12 @@ export async function handleValuation(request, env, url, ctx) {
 	const comps = pickComps(feed, prop);
 	const stats = areaStats(feed, prop);
 	const priceRow = findAreaPrices(prop.areaName);
+	// Οι προσφορές του ίδιου του ακινήτου, ζωντανά από το CRM: πρέπει να
+	// είναι φρέσκες τη στιγμή της συζήτησης, γι' αυτό δεν περνούν από το
+	// feed. Αποτυχία ή άδειο δεν σταματά τίποτα.
+	const offers = await fetchOffers(env, prop.listingId);
 
-	const dataBlock = buildDataBlock(prop, comps, stats, priceRow);
+	const dataBlock = buildDataBlock(prop, comps, stats, priceRow, offers);
 
 	// Πέρασμα 1: η εκτίμηση. Πέρασμα 2: αυστηρός έλεγχος της εκτίμησης
 	// (αριθμητική, σύγκριση με συγκριτικά και εύρη περιοχής, υπερβολές).
@@ -109,7 +114,7 @@ export async function handleValuation(request, env, url, ctx) {
 			PASS2_SYSTEM,
 			dataBlock + "\n\nΗ ΕΚΤΙΜΗΣΗ ΠΡΟΣ ΕΛΕΓΧΟ (JSON):\n" + JSON.stringify(draftJson) + "\n\n" + PASS2_ASK,
 		);
-		const result = renderReport(prop, comps, stats, priceRow, v, payload);
+		const result = renderReport(prop, comps, stats, priceRow, v, payload, offers);
 		await env.LISTINGS_KV.put(VALUATION_RES_PREFIX + ref, JSON.stringify(result), {
 			expirationTtl: 7 * 24 * 3600,
 		});
@@ -346,6 +351,7 @@ function mergeProperty(feed, d) {
 	const featYesNo = (test) => (feats ? (feats.some(test) ? "Ναι" : "Όχι") : "");
 	return {
 		listingCode: pick(d.listing_code, f.code),
+		listingId: fromFeed ? String(fromFeed.id) : null, // για το GET /offers
 		fromCrm: !!fromFeed,
 		purpose: String(d.purpose || "both"), // sale | rent | both
 		category: pick(d.category, f.category) || "residential",
@@ -387,6 +393,88 @@ function num(v) {
 	const n = Number(String(v == null ? "" : v).replace(/\./g, "").replace(",", "."));
 	return Number.isFinite(n) && n > 0 ? n : null;
 }
+
+/* ΟΙ ΠΡΟΣΦΟΡΕΣ — το μόνο δεδομένο για το τι ΔΙΝΕΙ ο αγοραστής
+   ------------------------------------------------------------------
+   Όλα τα υπόλοιπα εδώ (πίνακας περιοχών, συγκριτικά, δείκτες) είναι
+   ΖΗΤΟΥΜΕΝΕΣ τιμές. Η προσφορά είναι η άλλη πλευρά του τραπεζιού, και
+   μια δεκτή προσφορά είναι πρακτικά τιμή κλεισίματος.
+
+   Το γράψιμο ξεκίνησε στο CRM τη Δευτέρα 03/08/2026, οπότε στην αρχή οι
+   περισσότερες κλήσεις γυρίζουν άδειο· αυτό είναι φυσιολογικό, όχι
+   σφάλμα. Το σχήμα του Offer ΔΕΝ είναι τεκμηριωμένο (το OpenAPI είναι
+   κομμένο πριν από αυτό), γι' αυτό διαβάζουμε κάθε πεδίο με πολλαπλά
+   πιθανά ονόματα και κρατάμε ό,τι βγάζει νόημα. Όταν μπουν τα πρώτα
+   πραγματικά δεδομένα, κοίτα τα logs («valuation: offers …») και
+   στένεψε τα ονόματα. */
+const OFFERS_TIMEOUT_MS = 4000;
+
+async function fetchOffers(env, listingId) {
+	if (!listingId) return [];
+	let cfg;
+	try {
+		cfg = apiConfig(env);
+	} catch {
+		return []; // χωρίς κλειδιά CRM η εκτίμηση συνεχίζει κανονικά
+	}
+	try {
+		const res = await fetch(`${cfg.base}/offers?listing_id=${encodeURIComponent(listingId)}`, {
+			headers: cfg.headers,
+			signal: AbortSignal.timeout(OFFERS_TIMEOUT_MS),
+		});
+		if (!res.ok) {
+			console.warn(`valuation: offers HTTP ${res.status} for listing ${listingId}`);
+			return [];
+		}
+		const body = await res.json();
+		const rows = Array.isArray(body.data) ? body.data : [];
+		// Το φίλτρο listing_id είναι body param στο spec· αν ο server το
+		// αγνοήσει στο query string θα γυρίσει ΟΛΕΣ τις προσφορές, οπότε
+		// ξαναφιλτράρουμε εδώ. Καλύτερα καμία προσφορά παρά ξένες.
+		const mine = rows.filter((o) => {
+			const id = o.listing_id ?? o.listingId ?? (o.listing && o.listing.id);
+			return id == null || String(id) === String(listingId);
+		});
+		console.log(`valuation: offers for listing ${listingId}: ${mine.length} από ${rows.length}`);
+		return mine.map(normalizeOffer).filter((o) => o.amount);
+	} catch (err) {
+		console.warn(`valuation: offers unavailable: ${String(err).slice(0, 160)}`);
+		return [];
+	}
+}
+
+/* Άγνωστο σχήμα, γνωστά νοήματα: ποσό, πότε, σε τι κατάσταση. */
+function normalizeOffer(o) {
+	const firstNum = (...keys) => {
+		for (const k of keys) {
+			const n = Number(o[k]);
+			if (Number.isFinite(n) && n > 0) return n;
+		}
+		return null;
+	};
+	const firstStr = (...keys) => {
+		for (const k of keys) {
+			const s = String(o[k] == null ? "" : o[k]).trim();
+			if (s) return s;
+		}
+		return null;
+	};
+	return {
+		amount: firstNum("amount", "price", "offer_price", "offer_amount", "value"),
+		status: firstStr("status", "offer_status", "state"),
+		date: firstStr("date_created", "created_at", "date", "date_offer"),
+		rounds: Array.isArray(o.rounds) ? o.rounds.length : null,
+	};
+}
+
+const OFFER_STATUS_EL = {
+	draft: "πρόχειρη",
+	submitted: "υποβλήθηκε",
+	under_negotiation: "σε διαπραγμάτευση",
+	accepted: "ΕΓΙΝΕ ΔΕΚΤΗ",
+	rejected: "απορρίφθηκε",
+	withdrawn: "αποσύρθηκε",
+};
 
 /* Μέρες από μια ημερομηνία του EstatePrime («YYYY-MM-DD HH:MM:SS»,
    Europe/Athens). Το κενό γίνεται "T" γιατί αλλιώς το parsing είναι
@@ -498,7 +586,7 @@ const PASS2_SYSTEM = `Είσαι ο αυστηρός ελεγκτής εκτιμ
 
 const PASS2_ASK = `Έλεγξε, διόρθωσε όπου χρειάζεται, και επίστρεψε το τελικό JSON (ίδιο σχήμα, συν "review_notes").`;
 
-function buildDataBlock(prop, comps, stats, priceRow) {
+function buildDataBlock(prop, comps, stats, priceRow, offers) {
 	const lines = [];
 	lines.push("ΤΟ ΑΚΙΝΗΤΟ ΠΡΟΣ ΕΚΤΙΜΗΣΗ:");
 	lines.push(JSON.stringify({
@@ -547,6 +635,28 @@ function buildDataBlock(prop, comps, stats, priceRow) {
 	lines.push(JSON.stringify(comps.rent.map(compRow)));
 	if (stats.sale) lines.push(`Διάμεσος ζητούμενη €/τ.μ. πώλησης στο ενεργό στοκ μας για την περιοχή: ${Math.round(stats.sale.median)} (${stats.sale.count} ακίνητα).`);
 	if (stats.rent) lines.push(`Διάμεσος ζητούμενη €/τ.μ./μήνα ενοικίασης: ${stats.rent.median.toFixed(1)} (${stats.rent.count} ακίνητα).`);
+	const offerRows = Array.isArray(offers) ? offers : [];
+	if (offerRows.length) {
+		const ask = prop.askingPrice;
+		lines.push("");
+		lines.push(`ΠΡΑΓΜΑΤΙΚΕΣ ΠΡΟΣΦΟΡΕΣ ΓΙΑ ΑΥΤΟ ΤΟ ΑΚΙΝΗΤΟ (${offerRows.length}):`);
+		lines.push(JSON.stringify(offerRows.map((o) => ({
+			ποσό: o.amount,
+			απόσταση_από_ζητούμενη: ask && o.amount ? `${Math.round(((o.amount - ask) / ask) * 100)}%` : null,
+			κατάσταση: OFFER_STATUS_EL[o.status] || o.status || null,
+			πριν_μέρες: daysSince(o.date),
+			γύροι_διαπραγμάτευσης: o.rounds,
+		}))));
+		lines.push(`ΠΩΣ ΔΙΑΒΑΖΟΝΤΑΙ ΟΙ ΠΡΟΣΦΟΡΕΣ — προσοχή, είναι το ΙΣΧΥΡΟΤΕΡΟ και το πιο επικίνδυνο δεδομένο εδώ:
+- Είναι το ΜΟΝΟ στοιχείο που δείχνει τι ΔΙΝΕΙ ο αγοραστής· όλα τα άλλα (πίνακας, συγκριτικά, δείκτες) είναι ΖΗΤΟΥΜΕΝΕΣ τιμές. Μια προσφορά «ΕΓΙΝΕ ΔΕΚΤΗ» είναι πρακτικά τιμή κλεισίματος: βάρυνέ τη ΠΑΝΩ ΑΠΟ ΟΛΑ τα άλλα και πες το στο comps_comment.
+- ΜΙΑ μεμονωμένη χαμηλή προσφορά ΔΕΝ είναι η αξία. Οι αγοραστές ψαρεύουν, και μια προσφορά μείον 30% δείχνει τι δοκίμασε κάποιος, όχι τι αξίζει το ακίνητο. Μην κατεβάσεις την εκτίμηση σε μία απορριφθείσα προσφορά.
+- ΤΟ ΜΟΤΙΒΟ ΜΕΤΡΑΕΙ, ΟΧΙ Η ΜΕΜΟΝΩΜΕΝΗ: πολλές ανεξάρτητες προσφορές που μαζεύονται γύρω από το ίδιο επίπεδο, σε ακίνητο που κάθεται καιρό, είναι ισχυρή ένδειξη ότι η αγορά τιμολογεί εκεί. Τότε ναι, φέρε την εκτίμηση προς τα εκεί και γράψε το ρητά στο confidence_reason.
+- Απορριφθείσα ή αποσυρμένη σημαίνει ότι ο ΙΔΙΟΚΤΗΤΗΣ δεν δέχτηκε, όχι ότι η αξία είναι εκεί. Πρόχειρη προσφορά αγνοείται.
+- Στο advice: αν υπάρχουν προσφορές, ο σύμβουλος πάει στη συζήτηση με πραγματικά νούμερα στο χέρι. Πες του πώς να τα χρησιμοποιήσει.`);
+	} else if (prop.fromCrm) {
+		lines.push("");
+		lines.push("ΠΡΟΣΦΟΡΕΣ ΓΙΑ ΑΥΤΟ ΤΟ ΑΚΙΝΗΤΟ: καμία καταγεγραμμένη. ΠΡΟΣΟΧΗ: η καταγραφή προσφορών στο CRM ξεκίνησε στις 03/08/2026, οπότε το κενό ΔΕΝ σημαίνει «κανείς δεν έδειξε ενδιαφέρον» — μην το χρησιμοποιήσεις ως αρνητικό επιχείρημα ούτε το αναφέρεις στο report.");
+	}
 	lines.push("");
 	lines.push(`ΠΩΣ ΔΙΑΒΑΖΕΤΑΙ ΤΟ «μέρες_στην_αγορά» (πόσο καιρό είναι καταχωρισμένο, με τη σημερινή ζητούμενη):
 - Είναι ΖΩΝΤΑΝΗ ΑΠΑΝΤΗΣΗ ΤΗΣ ΑΓΟΡΑΣ, το μόνο δεδομένο εδώ που δείχνει τι ΔΕΝ δέχτηκε ο αγοραστής. Ακίνητο που κάθεται πολύ (πάνω από ~180 μέρες για κατοικία) με ζητούμενη πάνω από την εκτίμησή σου επιβεβαιώνει την εκτίμηση: η αγορά την έχει ήδη απορρίψει. Γράψ' το στο advice ως επιχείρημα προς τον ιδιοκτήτη («το ακίνητο είναι X μήνες στην αγορά χωρίς να κλείσει, αυτό μας το λέει η ίδια η αγορά»), ΟΧΙ ως κατηγορία εναντίον του.
@@ -711,7 +821,7 @@ function eur(n) {
 	return "€" + String(Math.round(Number(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
-function renderReport(prop, comps, stats, priceRow, v, payload) {
+function renderReport(prop, comps, stats, priceRow, v, payload, offers) {
 	const identity = [
 		prop.subcategory || labelCategory(prop.category),
 		prop.size ? `${prop.size} τ.μ.` : "",
@@ -739,6 +849,23 @@ function renderReport(prop, comps, stats, priceRow, v, payload) {
 		<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right; font-weight:bold;">${eur(l.price)}</td>
 		<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right; color:#6b7280;">${eur(l.price / l.area)}/τ.μ.</td>
 	</tr>`).join("");
+
+	// Οι προσφορές μπαίνουν ΜΟΝΟ στην αναφορά γραφείου. Ο σύμβουλος πρέπει
+	// να τις έχει μπροστά του με νούμερα, όχι μόνο μέσα σε μια πρόταση του
+	// μοντέλου· το έγγραφο του ιδιοκτήτη μένει καθαρό (buildClientDoc).
+	const offerRows = (Array.isArray(offers) ? offers : []).map((o) => {
+		const diff = prop.askingPrice && o.amount
+			? Math.round(((o.amount - prop.askingPrice) / prop.askingPrice) * 100)
+			: null;
+		const accepted = o.status === "accepted";
+		const days = daysSince(o.date);
+		return `<tr${accepted ? ' style="background:#f2f9f4;"' : ""}>
+			<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right; font-weight:bold; color:${NAVY};">${eur(o.amount)}</td>
+			<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right; color:${diff == null ? "#6b7280" : (diff < 0 ? "#c62828" : "#2e9e5b")};">${diff == null ? "" : (diff > 0 ? "+" : "") + diff + "%"}</td>
+			<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; color:${accepted ? "#2e9e5b" : NAVY};">${accepted ? "<strong>" : ""}${esc(OFFER_STATUS_EL[o.status] || o.status || "")}${accepted ? "</strong>" : ""}</td>
+			<td style="padding:6px 10px; border-bottom:1px solid #eceef2; font-size:12px; color:#6b7280;">${days == null ? "" : `πριν ${days} μέρες`}${o.rounds > 1 ? ` · ${o.rounds} γύροι` : ""}</td>
+		</tr>`;
+	}).join("");
 
 	const missing = (Array.isArray(v.missing_info) ? v.missing_info : []).filter(Boolean);
 	const propFacts = [
@@ -798,6 +925,19 @@ function renderReport(prop, comps, stats, priceRow, v, payload) {
 		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΠΩΣ ΒΓΗΚΕ ΤΟ ΝΟΥΜΕΡΟ</div>
 		<div style="font-size:12.5px; color:#444; margin-bottom:6px;">Αφετηρία ${eur(v.base_eur_per_sqm)}/τ.μ. για την περιοχή, με τις εξής προσαρμογές:</div>
 		<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eceef2; border-radius:6px;">${adjRows}</table>
+	</td></tr>` : ""}
+	${offerRows ? `<tr><td style="padding:18px 20px 0;">
+		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΠΡΑΓΜΑΤΙΚΕΣ ΠΡΟΣΦΟΡΕΣ ΓΙΑ ΤΟ ΑΚΙΝΗΤΟ</div>
+		<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eceef2; border-radius:6px;">
+			<tr>
+				<td style="padding:6px 10px; font-size:11px; font-weight:bold; color:#6b7280; text-align:right;">ΠΟΣΟ</td>
+				<td style="padding:6px 10px; font-size:11px; font-weight:bold; color:#6b7280; text-align:right;">ΑΠΟ ΖΗΤΟΥΜΕΝΗ</td>
+				<td style="padding:6px 10px; font-size:11px; font-weight:bold; color:#6b7280;">ΚΑΤΑΣΤΑΣΗ</td>
+				<td style="padding:6px 10px; font-size:11px; font-weight:bold; color:#6b7280;">ΠΟΤΕ</td>
+			</tr>
+			${offerRows}
+		</table>
+		<div style="font-size:11.5px; color:#6b7280; margin-top:6px; line-height:1.5;">Το μόνο στοιχείο εδώ που δείχνει τι <strong>δίνει</strong> ο αγοραστής· όλα τα υπόλοιπα είναι ζητούμενες τιμές. Μία χαμηλή προσφορά είναι ψάρεμα, πολλές γύρω από το ίδιο επίπεδο είναι η απάντηση της αγοράς.</div>
 	</td></tr>` : ""}
 	${compRows ? `<tr><td style="padding:18px 20px 0;">
 		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΣΥΓΚΡΙΤΙΚΑ ΑΠΟ ΤΟ ΧΑΡΤΟΦΥΛΑΚΙΟ ΜΑΣ</div>

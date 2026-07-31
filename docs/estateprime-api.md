@@ -488,13 +488,22 @@ Single-offer responses carry a **`rounds` array** (the negotiation history);
 the list response omits it. `/offers/statuses` does not exist (404 «Offer not
 found» — the path is parsed as an id).
 
-**The blocker is that it is empty**: `GET /offers` returns
-`total_results: 0`, because nothing writes offers. The Έντυπα «προσφορά» form
-only emails info@ (see [forms-prosfora.md](forms-prosfora.md)) and nobody
-re-enters them in the CRM. Pulling offers into the valuation is therefore
-gated on **someone writing them first**, not on the read side. Creating them
-will almost certainly need the internal web endpoint with a session cookie,
-the same pattern as ζητήσεις (`POST /requests/form`) — untested.
+It was **empty** when probed (`total_results: 0`), because nothing had ever
+written an offer: the Έντυπα «προσφορά» form only emails info@ (see
+[forms-prosfora.md](forms-prosfora.md)). **From 2026-08-03 the secretary
+enters them in the CRM by hand**, so the read side is what matters, and the
+valuation now consumes it (`fetchOffers` in
+[../worker/lib/valuation.mjs](../worker/lib/valuation.mjs), see
+[valuation.md](valuation.md)). Automating the write from the form is deferred
+until the volume justifies it; it would need the internal web endpoint with a
+session cookie, the same pattern as ζητήσεις (`POST /requests/form`).
+
+Two cautions for whoever reads offers next. The **`Offer` schema is not in the
+yaml** (truncated before it), so field names are unverified — normalize
+defensively and check the `valuation: offers …` logs against the first real
+records. And `listing_id` is documented as a **body** param: it is accepted in
+the query string and returns `200`, but with an empty table there is no proof
+it actually filters, so **re-filter client-side** rather than trusting it.
 
 ## Other resources (exist, unused)
 
