@@ -1,0 +1,84 @@
+{
+	"flow": [
+		{
+			"id": 1,
+			"mapper": {},
+			"module": "gateway:CustomWebHook",
+			"version": 1,
+			"metadata": {
+				"designer": {
+					"x": 0,
+					"y": 0,
+					"name": "Ο Worker βρήκε εκκρεμότητες"
+				}
+			},
+			"parameters": {
+				"hook": 3478656
+			}
+		},
+		{
+			"id": 2,
+			"filter": {
+				"name": "Μόνο αν υπάρχει κάτι",
+				"conditions": [
+					[
+						{
+							"a": "{{1.count}}",
+							"b": "0",
+							"o": "number:greater"
+						}
+					]
+				]
+			},
+			"mapper": {
+				"cc": [
+					"panos@four-walls.gr"
+				],
+				"to": [
+					"info@four-walls.gr"
+				],
+				"bcc": [],
+				"from": "info@four-walls.gr",
+				"html": "{{1.html}}",
+				"subject": "{{1.subject}}",
+				"attachments": [],
+				"contentType": "html"
+			},
+			"module": "email:ActionSendEmail",
+			"version": 7,
+			"metadata": {
+				"designer": {
+					"x": 300,
+					"y": 0,
+					"name": "Email στη γραμματεία"
+				}
+			},
+			"parameters": {
+				"folder": "Sent",
+				"account": 8845630,
+				"accountImap": 8845636,
+				"saveAfterSent": true
+			}
+		}
+	],
+	"name": "Φύλακας — ό,τι δεν στάλθηκε",
+	"metadata": {
+		"instant": true,
+		"version": 1,
+		"designer": {
+			"orphans": []
+		},
+		"scenario": {
+			"dlq": true,
+			"slots": null,
+			"dataloss": false,
+			"maxErrors": 3,
+			"autoCommit": true,
+			"roundtrips": 1,
+			"sequential": false,
+			"confidential": false,
+			"freshVariables": false,
+			"autoCommitTriggerLast": true
+		}
+	}
+}

@@ -45,6 +45,7 @@ import { handlePropertyRequest } from "./lib/property-request.mjs";
 import { handlePropertyAssignment } from "./lib/property-assignment.mjs";
 import { handleValuation, handleValuationLog } from "./lib/valuation.mjs";
 import { handleAreaPricesRefresh } from "./lib/area-prices-refresh.mjs";
+import { maybeRunDlqWatch, handleDlqReport } from "./lib/dlq-watch.mjs";
 
 const FEED_KEY = "listings.json";
 const DEFAULT_WEBHOOK_PATH = "/listings"; // overridden by WEBHOOK_PATH var
@@ -241,6 +242,12 @@ export default {
 		if (pathname === "/api/area-prices-refresh") {
 			return handleAreaPricesRefresh(request, env);
 		}
+		// Προεπισκόπηση του ημερήσιου φύλακα (ό,τι σκόνταψε στο Make και
+		// περιμένει άνθρωπο). Θέλει ?key= γιατί γράφει ονόματα πελατών.
+		// Το κανονικό email το στέλνει ο cron. Βλ. worker/lib/dlq-watch.mjs.
+		if (pathname === "/api/dlq-report") {
+			return handleDlqReport(request, env, url);
+		}
 		// Our own ζήτηση form (/request): criteria + contact details ->
 		// Make -> email to the office. See docs/site-request-form.md.
 		if (pathname === "/api/property-request") {
@@ -363,6 +370,12 @@ export default {
 
 	async scheduled(_event, env, ctx) {
 		ctx.waitUntil(regenerate(env, "cron"));
+		// Μία φορά την ημέρα (το ίδιο το module κρατάει την ημερομηνία στο
+		// KV): τι σκόνταψε στο Make και περιμένει άνθρωπο. Ποτέ δεν ρίχνει
+		// τον cron του feed, ο φύλακας είναι δευτερεύων.
+		ctx.waitUntil(
+			maybeRunDlqWatch(env).catch((err) => console.error("dlq-watch", err?.stack || String(err))),
+		);
 	},
 };
 

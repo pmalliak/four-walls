@@ -13,6 +13,7 @@
 | `6688477` | Photos — AI enhance | ναι | άμεσα (webhook/mailhook) | 21 | [6688477-photos-ai-enhance.blueprint.json](scenarios/6688477-photos-ai-enhance.blueprint.json) |
 | `6722234` | CRM - Νέα ακίνητα σε ζητήσεις | ναι | άμεσα (webhook/mailhook) | 2 | [6722234-crm-nea-akinita-se-zitiseis.blueprint.json](scenarios/6722234-crm-nea-akinita-se-zitiseis.blueprint.json) |
 | `6762737` | Εκτίμηση — φρεσκάρισμα τιμών περιοχών | ναι | monthly 09:00 1 | 2 | [6762737-ektimisi-freskarisma-timon-periochon.blueprint.json](scenarios/6762737-ektimisi-freskarisma-timon-periochon.blueprint.json) |
+| `6775485` | Φύλακας — ό,τι δεν στάλθηκε | ναι | άμεσα (webhook/mailhook) | 2 | [6775485-fylakas-o-ti-den-stalthike.blueprint.json](scenarios/6775485-fylakas-o-ti-den-stalthike.blueprint.json) |
 
 ## Spitogatos - Αίτηση ανάθεσης `6405443`
 
@@ -207,4 +208,15 @@
 ```
 1   http:ActionSendData · Έλεγχος τιμών (Worker: Gemini + Google Search)
 2   email:ActionSendEmail · Email στον Πάνο για έγκριση · [φίλτρο: Μόνο αν γύρισε πίνακας]
+```
+
+## Φύλακας — ό,τι δεν στάλθηκε `6775485`
+
+- Ενεργό: ναι · χρονισμός: άμεσα (webhook/mailhook)
+- Hook: `3478656` (Φύλακας — ό,τι δεν στάλθηκε)
+- DLQ: ναι · maxErrors: 3 · sequential: όχι
+
+```
+1   gateway:CustomWebHook · Ο Worker βρήκε εκκρεμότητες
+2   email:ActionSendEmail · Email στη γραμματεία · [φίλτρο: Μόνο αν υπάρχει κάτι]
 ```

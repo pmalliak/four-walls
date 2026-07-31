@@ -115,6 +115,10 @@ FEATURED_TAG = "property-of-the-month"
 # Account → Browser Rendering → Edit). See worker/lib/pdfrender.mjs.
 PDF_RENDER = "1"
 CF_ACCOUNT_ID = "94b15dbfc8d916d5af9808c1c9bc3f16"
+# Φύλακας αποτυχημένων εκτελέσεων (worker/lib/dlq-watch.mjs): ποια ομάδα
+# Make ρωτάει ο ημερήσιος έλεγχος. Δημόσια αναγνωριστικά, όχι μυστικά.
+MAKE_TEAM_ID = "2060918"
+MAKE_ZONE = "eu1.make.com"
 
 # Secrets (NOT here — set with `npx wrangler secret put <NAME>`):
 #   WEBHOOK_KEY              shared secret for the EstatePrime webhook
@@ -137,3 +141,8 @@ CF_ACCOUNT_ID = "94b15dbfc8d916d5af9808c1c9bc3f16"
 #   PHOTO_SIGN_KEY           HMAC secret that signs the per-photo download URLs
 #                            Make fetches. Any long random string:
 #                            `npx wrangler secret put PHOTO_SIGN_KEY`
+#   MAKE_API_TOKEN           Make API token (read-only χρήση: σενάρια + DLQ).
+#                            Ο ημερήσιος φύλακας ρωτάει μ' αυτό τι σκόνταψε.
+#   MAKE_DLQ_WEBHOOK         Make hook του σεναρίου «Φύλακας — ό,τι δεν
+#                            στάλθηκε» (6775485). Χωρίς τα δύο αυτά ο
+#                            φύλακας μένει σιωπηλός. Βλ. docs/dlq-watch.md.

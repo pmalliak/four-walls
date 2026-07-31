@@ -116,6 +116,13 @@
 			"type": "web",
 			"scenarioId": 6722234,
 			"udid": "(κρυφό)"
+		},
+		{
+			"id": 3478656,
+			"name": "Φύλακας — ό,τι δεν στάλθηκε",
+			"type": "web",
+			"scenarioId": 6775485,
+			"udid": "(κρυφό)"
 		}
 	],
 	"dataStores": []
