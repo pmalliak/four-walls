@@ -361,6 +361,10 @@ function buildDataBlock(prop, comps, stats, priceRow) {
 	if (priceRow) lines.push("Κοντινότερη περιοχή του πίνακα: " + JSON.stringify(priceRow));
 	lines.push(JSON.stringify(AREA_PRICES));
 	lines.push(`Πηγή πίνακα: ${AREA_PRICES_META.source}`);
+	if (AREA_PRICES_META.trend) {
+		lines.push(`ΤΑΣΗ ΑΓΟΡΑΣ (δημοσιευμένοι δείκτες): ${AREA_PRICES_META.trend}`);
+		lines.push("Χρήση της τάσης: πλαισίωσε με αυτήν το market_comment και το advice (σε ανοδική αγορά η υποτιμολόγηση χαρίζει αξία του ιδιοκτήτη· σε πτωτική, το φουσκωμένο ζητούμενο παλιώνει την αγγελία). ΜΗΝ την εφαρμόσεις ως πρόσθετο συντελεστή πάνω στη βάση, στα εύρη ή στις προσαρμογές: οι τρέχουσες ζητούμενες τιμές την ενσωματώνουν ήδη, θα μετρούσες το ίδιο πράγμα δύο φορές.");
+	}
 	lines.push("");
 	const compRow = (l) => ({
 		κωδικός: l.code, περιοχή: (l.location || {}).area || null,

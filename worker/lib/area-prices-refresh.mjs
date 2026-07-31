@@ -223,6 +223,12 @@ function buildEmail(data, stock) {
 	const jsBlock = proposed.map((r) =>
 		`\t{ area: ${JSON.stringify(r.area)}, saleLow: ${r.saleLow}, saleHigh: ${r.saleHigh}, rentLow: ${r.rentLow}, rentHigh: ${r.rentHigh} },`
 	).join("\n");
+	// Η ίδια έγκριση ανανεώνει και το AREA_PRICES_META.trend: οι δείκτες
+	// του email γίνονται μία έτοιμη γραμμή, ώστε η εκτίμηση να ξέρει το
+	// πρόσημο της αγοράς χωρίς δεύτερο χέρι.
+	const trendLine = (Array.isArray(data.indices) ? data.indices : [])
+		.map((ix) => [ix.name, ix.change, ix.period ? `(${ix.period})` : ""].filter(Boolean).join(" "))
+		.join("· ");
 
 	const subject = `Τιμές περιοχών ${today}: ${flagged ? `${flagged} περιοχές θέλουν το μάτι σου` : "χωρίς μεγάλες αλλαγές"}`;
 
@@ -274,7 +280,7 @@ function buildEmail(data, stock) {
 	</td></tr>
 	<tr><td style="padding:16px 20px 0;">
 		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΓΙΑ ΤΟ area-prices.mjs (αν εγκριθεί)</div>
-		<pre style="background:#f7f8fa; border:1px solid #eceef2; border-radius:6px; padding:10px 12px; font-size:11px; line-height:1.5; overflow:auto; margin:0;">${esc(jsBlock)}</pre>
+		<pre style="background:#f7f8fa; border:1px solid #eceef2; border-radius:6px; padding:10px 12px; font-size:11px; line-height:1.5; overflow:auto; margin:0;">${esc(jsBlock)}${trendLine ? esc(`\n\n// και στο AREA_PRICES_META:\ntrend: ${JSON.stringify(trendLine)},`) : ""}</pre>
 	</td></tr>
 	<tr><td style="padding:16px 20px 20px;">
 		<div style="border-top:1px solid #eceef2; padding-top:10px; font-size:11px; color:#9aa3af; line-height:1.6;">Αυτόματος μηνιαίος έλεγχος (Gemini + Google Search). Οι τιμές είναι ζητούμενες αγγελιών, όπως τις χρειάζεται η εκτίμηση. Ο πίνακας στο git αλλάζει ΜΟΝΟ με ανθρώπινη έγκριση.</div>
@@ -283,10 +289,10 @@ function buildEmail(data, stock) {
 </td></tr></table>
 </body></html>`;
 
-	// Τα rows μπαίνουν και στο cached αντικείμενο ώστε το «εφάρμοσε τον
-	// πίνακα από το email» να διαβάζει δομημένα δεδομένα από το KV αντί
-	// να κάνει parsing στο HTML.
-	return { subject, html, flagged, proposed_count: proposed.length, rows: proposed };
+	// Τα rows (και οι δείκτες/τάση) μπαίνουν και στο cached αντικείμενο
+	// ώστε το «εφάρμοσε τον πίνακα από το email» να διαβάζει δομημένα
+	// δεδομένα από το KV αντί να κάνει parsing στο HTML.
+	return { subject, html, flagged, proposed_count: proposed.length, rows: proposed, indices: Array.isArray(data.indices) ? data.indices : [], trend: trendLine };
 }
 
 function json(obj, status) {
