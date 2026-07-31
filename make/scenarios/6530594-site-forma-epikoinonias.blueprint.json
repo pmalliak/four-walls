@@ -1309,7 +1309,6 @@
 												"encoding": "UTF-8",
 												"accountId": "5796850000000008002",
 												"ccAddress": [
-													"panos@four-walls.gr",
 													"manos@four-walls.gr"
 												],
 												"toAddress": [
@@ -1442,7 +1441,6 @@
 														},
 														"ccAddress": {
 															"items": [
-																null,
 																null
 															]
 														},
@@ -1603,7 +1601,6 @@
 												"encoding": "UTF-8",
 												"accountId": "5796850000000008002",
 												"ccAddress": [
-													"panos@four-walls.gr",
 													"manos@four-walls.gr"
 												],
 												"toAddress": [
@@ -1736,7 +1733,6 @@
 														},
 														"ccAddress": {
 															"items": [
-																null,
 																null
 															]
 														},
@@ -1806,7 +1802,6 @@
 												"encoding": "UTF-8",
 												"accountId": "5796850000000008002",
 												"ccAddress": [
-													"panos@four-walls.gr",
 													"manos@four-walls.gr"
 												],
 												"toAddress": [
@@ -1939,7 +1934,6 @@
 														},
 														"ccAddress": {
 															"items": [
-																null,
 																null
 															]
 														},

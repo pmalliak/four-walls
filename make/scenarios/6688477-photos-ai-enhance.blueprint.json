@@ -495,8 +495,7 @@
 			"id": 9,
 			"mapper": {
 				"cc": [
-					"panos@four-walls.gr",
-					"manos@four-walls.gr"
+					"{{ifempty(1.submitted_by; \"info@four-walls.gr\")}}"
 				],
 				"to": [
 					"info@four-walls.gr"
@@ -520,7 +519,7 @@
 				"designer": {
 					"x": 2400,
 					"y": 0,
-					"name": "Email · info@ (cc Πάνος, Μάνος)"
+					"name": "Email · info@ (cc αποστολέας)"
 				}
 			},
 			"parameters": {

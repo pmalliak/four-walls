@@ -48,8 +48,7 @@
 				"encoding": "UTF-8",
 				"accountId": "5796850000000008002",
 				"ccAddress": [
-					"manos@four-walls.gr",
-					"panos@four-walls.gr"
+					"manos@four-walls.gr"
 				],
 				"toAddress": [
 					"info@four-walls.gr"
@@ -143,7 +142,6 @@
 						},
 						"ccAddress": {
 							"items": [
-								null,
 								null
 							]
 						},

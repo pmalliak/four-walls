@@ -961,7 +961,6 @@
 								"encoding": "UTF-8",
 								"accountId": "5796850000000008002",
 								"ccAddress": [
-									"panos@four-walls.gr",
 									"manos@four-walls.gr"
 								],
 								"toAddress": [
@@ -1094,7 +1093,6 @@
 										},
 										"ccAddress": {
 											"items": [
-												null,
 												null
 											]
 										},
@@ -1253,7 +1251,9 @@
 								"toAddress": [
 									"{{3.clientEmail}}"
 								],
-								"bccAddress": [],
+								"bccAddress": [
+									"panos@four-walls.gr"
+								],
 								"mailFormat": "html",
 								"fromAddress": "info@four-walls.gr"
 							},

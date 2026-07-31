@@ -55,7 +55,7 @@ secret answers `500 not_configured` instead).
 | Secret | `MAKE_REQUEST_CLOSED_WEBHOOK` — the URL itself is the credential |
 
 Two modules, cloned from the contact-form scenario (`6530594`): webhook →
-Zoho Mail **to `info@`, cc `manos@` + `panos@`** (from `info@four-walls.gr`, the
+Zoho Mail **to `info@`, no cc** (from `info@four-walls.gr`, the
 same connection). The mail says in plain words that the ζήτηση is **not** closed
 automatically and links to `/requests/view/<request_id>` in the CRM. When the API
 grows a request-update endpoint, a module goes **after** the mail one — nothing

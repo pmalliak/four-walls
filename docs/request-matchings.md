@@ -14,7 +14,7 @@ tools/crm-request-matchings.mjs
   │  POST /listings ×N            (session cookie)  → τα «Νέα» ανά ζήτηση
   │  GET /api/contacts/{id}       (Basic auth)      → όνομα + τηλέφωνο
   ▼
-Make hook ──► Zoho ──► info@four-walls.gr (cc manos@, panos@)
+Make hook ──► Zoho ──► info@four-walls.gr (cc manos@)
 ```
 
 ## Γιατί δεν γίνεται από τον Worker

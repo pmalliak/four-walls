@@ -118,12 +118,19 @@ jsPDF fails to load, but the email module's attachment mapping requires
 
 | branch | to | copies |
 |---|---|---|
-| anathesi / ypodeixi | `entoleas_email`, falling back to `info@` when blank | cc `manos@` + `panos@` |
-| apodeixi | `katavallon_email`, same fallback | cc `manos@` + `panos@` |
-| katachorisi (always) | `info@` — internal «ΓΙΑ ΚΑΤΑΧΩΡΙΣΗ» reminder to enter listing+contact | cc `panos@` + `manos@` |
-| katachorisi (ΝΑΙ on the form) | `owner_email` — client-facing confirmation | bcc `panos@` + `manos@` |
-| prosfora | `info@` — internal «ΝΕΑ ΠΡΟΣΦΟΡΑ» notice to record the offer | cc `panos@` + `manos@` |
-| ektimisi | `info@` — the AI valuation report (subject «ΕΚΤΙΜΗΣΗ · …»), fetched from `/api/valuation` | cc `panos@` + `manos@` |
+| anathesi / ypodeixi | `entoleas_email`, falling back to `info@` when blank | cc `submitted_by`, bcc `info@` |
+| apodeixi | `katavallon_email`, same fallback | cc `submitted_by`, bcc `info@` |
+| katachorisi (always) | `info@` — internal «ΓΙΑ ΚΑΤΑΧΩΡΙΣΗ» reminder to enter listing+contact | none |
+| katachorisi (ΝΑΙ on the form) | `owner_email` — client-facing confirmation | cc `submitted_by`, bcc `info@` |
+| prosfora | `info@` — internal «ΝΕΑ ΠΡΟΣΦΟΡΑ» notice to record the offer | none |
+| ektimisi (office) | `info@` — the AI valuation report (subject «ΕΚΤΙΜΗΣΗ · …»), fetched from `/api/valuation` | cc `submitted_by` |
+| ektimisi (owner, «Προς ιδιοκτήτη») | `client_email` — client-facing report | cc `submitted_by`, bcc `info@` |
+
+`submitted_by` is the consultant's email that the Worker stamps from the
+Access JWT, so the person who filled the form gets the copy; the mapping is
+`{{ifempty(1.submitted_by; "info@four-walls.gr")}}` because local-dev
+submissions carry `submitted_by: null`. The fixed personal copies to
+`panos@` and `manos@` were dropped on 2026-07-31.
 
 The προσφορά never mails the client: an offer is the office's information,
 and the interested party already knows what they offered.

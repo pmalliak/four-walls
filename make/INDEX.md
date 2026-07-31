@@ -140,7 +140,7 @@
     30  zoho-mail:sendMail · Notification · [onerror: builtin:Ignore]
   ├─ route 3
     60  http:ActionSendData · Site: φτιάξε το email απάντησης · [φίλτρο: Μόνο με email πελάτη + κωδικό αγγελίας] · [onerror: builtin:Ignore]
-    61  zoho-mail:sendMail · Απάντηση στον πελάτη (προς έγκριση: πάει στο info@) · [φίλτρο: Μόνο αν γύρισε HTML] · [onerror: builtin:Ignore]
+    61  zoho-mail:sendMail · Απάντηση στον πελάτη · [φίλτρο: Μόνο αν γύρισε HTML] · [onerror: builtin:Ignore]
 ```
 
 ## Site - Ολοκλήρωση αναζήτησης `6683649`
@@ -182,7 +182,7 @@
   ├─ route 3
     24  google-drive:uploadAFile · → originals/ (μόνο) · [φίλτρο: σκέτη αρχειοθέτηση]
 8   builtin:BasicAggregator · Όλες μαζί
-9   email:ActionSendEmail · Email · info@ (cc Πάνος, Μάνος)
+9   email:ActionSendEmail · Email · info@ (cc αποστολέας)
 ```
 
 ## CRM - Νέα ακίνητα σε ζητήσεις `6722234`

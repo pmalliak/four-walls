@@ -3,7 +3,7 @@
 A consultant uploads a property's photos from their phone; Gemini ("Nano
 Banana") declutters / brightens / fixes them per the options ticked; the
 originals + edited land in a Google Drive folder; and an email goes to info@
-(cc Panos, Manos) with the Drive link and a link to the CRM property (or to
+(cc the consultant who submitted) with the Drive link and a link to the CRM property (or to
 create one). **Nothing auto-publishes** — a human reviews and uploads to the
 CRM, because AI edits occasionally warp a scene and a listing photo must not
 misrepresent the property.
@@ -20,7 +20,7 @@ Cloudflare Worker  (worker/lib/photos.mjs)
         ▼
 Make scenario «Photos — AI enhance»
         │  per photo:  GET signed url → Gemini edit → upload original+edited to Drive
-        │  once:       email info@ (cc panos, manos) with Drive link + CRM link
+        │  once:       email info@ (cc submitter) with Drive link + CRM link
         ▼
 Google Drive  four-walls/…            +    Zoho email
 ```
@@ -300,7 +300,7 @@ Team **Four Walls** (`2060918`). **Exact wiring values for this account:**
 | Google Drive connection | `9265298` (panos.malliakoudis@gmail.com) |
 | Drive parent folder "Four Walls" | id `1LV68zqq7Z54LOUPD9kL1wQi6f_6t5Kbh` |
 | Email (send) connection | Zoho SMTP `8845630` (+ IMAP `8845636` for "save to Sent") |
-| Recipients | To `info@four-walls.gr`; Cc/Bcc `panos@four-walls.gr`, `manos@four-walls.gr` |
+| Recipients | To `info@four-walls.gr`; Cc the submitter (`{{1.submitted_by}}`, falls back to `info@`) — since 2026-07-31 |
 | Gemini model | `gemini-3-pro-image-preview` (paste your key into the HTTP module) |
 
 Modules (mirrors your other Site/CRM scenarios — same email app):
