@@ -40,6 +40,7 @@ import { requireAccess, isLocalDev, json } from "./lib/access.mjs";
 import { contactsIndex, contactDetail, listingsIndex } from "./lib/crm.mjs";
 import { handleFormSubmit } from "./lib/forms.mjs";
 import { handlePhotoApi, servePhotoFile, applyWatermark } from "./lib/photos.mjs";
+import { handleLeadApi, serveLeadFile } from "./lib/leads.mjs";
 import { handleLeadReply } from "./lib/lead-reply.mjs";
 import { handlePropertyRequest } from "./lib/property-request.mjs";
 import { handlePropertyAssignment } from "./lib/property-assignment.mjs";
@@ -104,6 +105,19 @@ export default {
 			const { denied, email } = await requireAccess(request, env, url);
 			if (denied) return denied;
 			return handlePhotoApi(request, env, url, email);
+		}
+
+		// Γρήγορη καταχώριση lead από πινακίδα — ίδια πύλη με το photos API
+		// από πάνω (forms host + Access JWT): μόνο συνδεδεμένος σύμβουλος
+		// ανεβάζει φωτογραφίες και ξοδεύει Gemini credits. Το δημόσιο μισό
+		// (/api/leads/file/) μένει έξω — το ανοίγει το email, όχι ο browser.
+		if (pathname.startsWith("/api/leads/") && !pathname.startsWith("/api/leads/file/")) {
+			if (!(url.hostname.startsWith("forms.") || isLocalDev(url, env))) {
+				return new Response("Not Found", { status: 404 });
+			}
+			const { denied, email } = await requireAccess(request, env, url);
+			if (denied) return denied;
+			return handleLeadApi(request, env, url, email);
 		}
 
 		// forms.four-walls.gr serves ONLY the Έντυπα PWA: the forms/ folder
@@ -215,6 +229,11 @@ export default {
 		// as the file serving above; Make POSTs each AI-edited image here.
 		if (pathname.startsWith("/api/photos/watermark/")) {
 			return applyWatermark(request, env, url);
+		}
+		// Οι φωτογραφίες των leads, όπως τις ζητάει ο image proxy του email
+		// (Zoho/Gmail) — apex, χωρίς Access, με HMAC + 30 ημέρες λήξη.
+		if (pathname.startsWith("/api/leads/file/")) {
+			return serveLeadFile(request, env, url);
 		}
 		if (pathname === "/api/contact") {
 			return handleContact(request, env);
