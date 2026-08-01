@@ -39,6 +39,7 @@
    ===================================================================== */
 
 import { json } from "./access.mjs";
+import { normPhone, fmtPhone, crmMatches, webLookup, reconcile } from "./phone-lookup.mjs";
 
 /* ------------------------------------------------------------ limits */
 
@@ -167,30 +168,15 @@ function clip(v, max) {
 	return s ? s.slice(0, max) : "";
 }
 
-/* Ελληνικά τηλέφωνα: 10 ψηφία, σταθερό 2xxxxxxxxx, κινητό 69xxxxxxxx.
-   Καθαρίζει +30 / 0030 / κενά / παύλες. Επιστρέφει null όταν αυτό που
-   διάβασε το μοντέλο δεν μοιάζει καν με τηλέφωνο — καλύτερα κενό πεδίο
-   παρά λάθος κλήση. */
-function normPhone(raw) {
-	let d = String(raw || "").replace(/[^\d+]/g, "");
-	if (d.startsWith("+30")) d = d.slice(3);
-	else if (d.startsWith("0030")) d = d.slice(4);
-	d = d.replace(/\D/g, "");
-	// Δέκα ψηφία και στα δύο: κινητό 69XXXXXXXX, σταθερό 2XXXXXXXXX.
-	if (/^(69\d{8}|2\d{9})$/.test(d)) return d;
-	return null;
-}
-
-function fmtPhone(d) {
-	if (!d) return "";
-	return d.startsWith("69")
-		? `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`
-		: `${d.slice(0, 4)} ${d.slice(4, 7)} ${d.slice(7)}`;
-}
-
 const TYPE_LABEL = { sale: "Πώληση", rent: "Ενοικίαση", unknown: "—" };
-const ADVERTISER_LABEL = { private: "Ιδιώτης", agency: "Μεσιτικό γραφείο", unknown: "Άγνωστο" };
+const ADVERTISER_LABEL = {
+	private: "Ιδιώτης", agency: "Μεσιτικό γραφείο",
+	business: "Επιχείρηση (όχι μεσιτικό)", unknown: "Άγνωστο",
+};
 const CONFIDENCE_LABEL = { high: "υψηλή", medium: "μέτρια", low: "χαμηλή" };
+/* Πόσο «βαρύ» είναι ένα εύρημα του web όταν μια πινακίδα έχει πολλά
+   τηλέφωνα — μεσιτικό νικάει επιχείρηση, επιχείρηση νικάει το τίποτα. */
+const WEB_RANK = { agency: 3, business: 2, private: 1 };
 const SOURCE_LABEL = {
 	device: "στίγμα συσκευής",
 	exif: "metadata φωτογραφίας",
@@ -305,6 +291,34 @@ function mapsLink(l) {
 	return l.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.address)}` : null;
 }
 
+/* Η γραμμή κάτω από κάθε τηλέφωνο: τι απάντησαν το CRM και το web. Το
+   «δεν βρέθηκε πουθενά» τυπώνεται ΠΡΑΣΙΝΟ, όχι γκρι — για μια πινακίδα
+   αυτό σημαίνει «ιδιώτης, δικό μας lead», και είναι το καλύτερο νέο της
+   γραμμής. Ο σύνδεσμος της πηγής μπαίνει πάντα, ώστε να μπορεί κάποιος
+   να διαψεύσει το μοντέλο σε ένα κλικ. */
+function phoneCheck(p) {
+	const bits = [];
+	if (p.crm) {
+		bits.push(`<span style="color:#b45309; font-weight:bold;">ήδη στο CRM:</span> ${esc(p.crm.name || "επαφή")}`);
+	}
+	const w = p.web;
+	if (w) {
+		if (w.kind === "agency" || w.kind === "business") {
+			const label = w.kind === "agency" ? "μεσιτικό γραφείο" : "επιχείρηση";
+			bits.push(`<span style="color:${w.kind === "agency" ? "#b45309" : NAVY}; font-weight:bold;">${label}</span>`
+				+ (w.name ? " · " + esc(w.name) : "")
+				+ (w.website ? ` · <a href="${esc(w.website)}" style="color:${MUTED};">πηγή</a>` : "")
+				+ (w.confidence !== "high" ? ` <span style="color:${MUTED};">(βεβαιότητα ${esc(CONFIDENCE_LABEL[w.confidence] || w.confidence)})</span>` : ""));
+		} else if (w.kind === "private") {
+			bits.push(`<span style="color:#12855b;">δεν βρέθηκε σε επιχείρηση — μάλλον ιδιώτης</span>`);
+		} else {
+			bits.push(`<span style="color:${MUTED};">ο έλεγχος δεν κατέληξε</span>`);
+		}
+	}
+	if (!bits.length) return "";
+	return `<div style="font-size:12px; color:${MUTED}; margin:2px 0 6px 0; line-height:1.5;">↳ ${bits.join(" · ")}</div>`;
+}
+
 function leadCard(l, i) {
 	const phones = l.phones || [];
 	const flagged = !phones.length;
@@ -323,7 +337,8 @@ function leadCard(l, i) {
 
 	if (phones.length) {
 		row("Τηλέφωνο", phones.map((p) => `<a href="tel:+30${p.digits}" style="color:${PINK}; font-weight:bold; text-decoration:none;">${esc(p.display)}</a>`
-			+ (p.duplicate ? `<span style="color:${MUTED}; font-size:12px;"> (ίδιο με προηγούμενο)</span>` : "")).join("<br>"));
+			+ (p.duplicate ? `<span style="color:${MUTED}; font-size:12px;"> (ίδιο με προηγούμενο)</span>` : "")
+			+ phoneCheck(p)).join("<br>"));
 	}
 	row("Είδος", esc(TYPE_LABEL[l.listing_type] || "—")
 		+ (l.property_type ? " · " + esc(l.property_type) : ""));
@@ -343,6 +358,7 @@ function leadCard(l, i) {
 	<tr><td style="padding:12px 14px;">
 		<div style="font-size:15px; font-weight:bold; color:${NAVY}; margin-bottom:8px;">${i + 1}. ${esc(l.address || TYPE_LABEL[l.listing_type] || "Lead")}</div>
 		${flagged ? `<div style="background:#fdeee7; border-radius:5px; padding:8px 10px; margin-bottom:9px; font-size:13px; color:#8a2c06;"><strong>ΧΩΡΙΣ ΤΗΛΕΦΩΝΟ</strong> — δες τη φωτογραφία${l.error ? " (η ανάγνωση απέτυχε)" : ""}.</div>` : ""}
+		${l.conflict ? `<div style="background:#fdeee7; border-radius:5px; padding:8px 10px; margin-bottom:9px; font-size:13px; color:#8a2c06;"><strong>ΠΡΟΣΟΧΗ</strong> — η πινακίδα δεν γράφει γραφείο, αλλά το τηλέφωνο βγαίνει μεσιτικό.</div>` : ""}
 		<table role="presentation" cellpadding="0" cellspacing="0" width="100%">${rows.join("\n\t\t")}</table>
 		<a href="${esc(l.url)}" style="display:block; margin-top:10px;"><img src="${esc(l.url)}" alt="" width="240" style="width:240px; max-width:100%; border-radius:5px; border:1px solid ${LINE}; display:block;"></a>
 	</td></tr>
@@ -357,10 +373,12 @@ function buildEmail(payload) {
 	const subject = `Νέα leads από πινακίδες — ${count} ${count === 1 ? "φωτογραφία" : "φωτογραφίες"}`
 		+ (withPhone < count ? ` (${withPhone} με τηλέφωνο)` : "");
 
+	const known = leads.filter((l) => l.known_contact).length;
 	const summary = [
 		`${count} ${count === 1 ? "φωτογραφία" : "φωτογραφίες"}`,
 		`${withPhone} με τηλέφωνο`,
 		agencies ? `${agencies} από μεσιτικό γραφείο` : "",
+		known ? `${known} ήδη στο CRM` : "",
 	].filter(Boolean).join(" · ");
 
 	const html = `<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(subject)}</title></head>
@@ -392,7 +410,13 @@ function buildEmail(payload) {
 		"",
 		...leads.map((l, i) => [
 			`${i + 1}. ${l.address || (l.lat != null ? `${l.lat.toFixed(5)}, ${l.lng.toFixed(5)}` : "χωρίς τοποθεσία")}`,
-			`   Τηλ: ${(l.phones || []).map((p) => p.display).join(", ") || "— ΧΩΡΙΣ ΤΗΛΕΦΩΝΟ, δες τη φωτό"}`,
+			`   Τηλ: ${(l.phones || []).map((p) => p.display
+				+ (p.crm ? ` [ήδη στο CRM: ${p.crm.name}]` : "")
+				+ (p.web?.kind === "agency" ? ` [μεσιτικό${p.web.name ? ": " + p.web.name : ""}]`
+					: p.web?.kind === "business" ? ` [επιχείρηση${p.web.name ? ": " + p.web.name : ""}]`
+					: p.web?.kind === "private" ? " [δεν βρέθηκε σε επιχείρηση]" : "")).join(", ")
+				|| "— ΧΩΡΙΣ ΤΗΛΕΦΩΝΟ, δες τη φωτό"}`,
+			l.conflict ? "   ΠΡΟΣΟΧΗ: η πινακίδα δεν γράφει γραφείο, αλλά το τηλέφωνο βγαίνει μεσιτικό." : "",
 			`   ${TYPE_LABEL[l.listing_type] || "—"}${l.property_type ? " · " + l.property_type : ""} · ${ADVERTISER_LABEL[l.advertiser]}${l.agency_name ? " (" + l.agency_name + ")" : ""}`,
 			l.price || l.size_sqm || l.floor ? `   ${[l.size_sqm ? l.size_sqm + " τ.μ." : "", l.floor, l.price].filter(Boolean).join(" · ")}` : "",
 			`   ${l.url}`,
@@ -598,6 +622,37 @@ async function finalizeBatch(request, env, url, batchId) {
 		}
 	}
 
+	/* Ποιος έχει αυτό το τηλέφωνο; Τρέχει ΜΙΑ φορά ανά μοναδικό νούμερο,
+	   όχι ανά φωτογραφία, και πάντα πριν φύγει το email: η γραμματεία
+	   πρέπει να ξέρει ΠΡΙΝ σηκώσει το ακουστικό αν μιλάει σε συνάδελφο ή
+	   σε δικιά μας επαφή. Το CRM πρώτα (δωρεάν, αυθεντικό)· στο web
+	   πηγαίνουν μόνο όσα δεν τα ξέρουμε ήδη. */
+	const uniquePhones = [...new Set(leads.flatMap((l) => l.phones.map((p) => p.digits)))];
+	const crm = await crmMatches(env, uniquePhones);
+	const web = await webLookup(env, uniquePhones.filter((d) => !crm.has(d)));
+	for (const l of leads) {
+		for (const p of l.phones) {
+			p.crm = crm.get(p.digits) || null;
+			p.web = web.get(p.digits) || null;
+		}
+		/* Το τελικό «από ποιον» σταθμίζει πινακίδα και web μαζί — και
+		   κρατάει τη διαφωνία, που είναι η πιο χρήσιμη πληροφορία εδώ.
+		   Όταν η πινακίδα έχει δύο νούμερα (συνήθως ένα κινητό κι ένα
+		   σταθερό), μετράει το ΙΣΧΥΡΟΤΕΡΟ εύρημα, όχι το πρώτο: αν έστω
+		   ένα από τα δύο ανήκει σε γραφείο, η πινακίδα είναι γραφείου.
+		   Το «δεν βρέθηκε τίποτα» για το κινητό δεν αναιρεί το σταθερό. */
+		const strongest = l.phones
+			.filter((p) => p.web && p.web.kind !== "unknown")
+			.sort((a, b) => (WEB_RANK[b.web.kind] || 0) - (WEB_RANK[a.web.kind] || 0))[0];
+		const { verdict, conflict } = reconcile(l.advertiser, strongest?.web);
+		l.advertiser = verdict;
+		l.conflict = conflict;
+		if (!l.agency_name && strongest?.web?.kind === "agency" && strongest.web.name) {
+			l.agency_name = strongest.web.name;
+		}
+		l.known_contact = l.phones.find((p) => p.crm)?.crm || null;
+	}
+
 	/* Η χειρόγραφη διεύθυνση υπερισχύει — ο άνθρωπος που στεκόταν εκεί
 	   ξέρει καλύτερα από το OSM. Το reverse geocode συμπληρώνει τα υπόλοιπα. */
 	await reverseGeocodeAll(leads);
@@ -636,12 +691,16 @@ async function finalizeBatch(request, env, url, batchId) {
 		event: "lead_batch", batch_id: batchId, count: leads.length,
 		with_phone: leads.filter((l) => l.phones.length).length,
 		agencies: leads.filter((l) => l.advertiser === "agency").length,
+		known_contacts: leads.filter((l) => l.known_contact).length,
+		conflicts: leads.filter((l) => l.conflict).length,
 		by: meta.submitted_by, ts: new Date().toISOString(),
 	}));
 	return json({
 		ok: true,
 		count: leads.length,
 		with_phone: leads.filter((l) => l.phones.length).length,
+		agencies: leads.filter((l) => l.advertiser === "agency").length,
+		known_contacts: leads.filter((l) => l.known_contact).length,
 	});
 }
 
