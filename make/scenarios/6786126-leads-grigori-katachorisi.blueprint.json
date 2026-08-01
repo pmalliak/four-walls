@@ -36,7 +36,7 @@
 				]
 			},
 			"parameters": {
-				"hook": null,
+				"hook": 3482735,
 				"maxResults": 1
 			}
 		},
@@ -69,12 +69,12 @@
 							"mode": "chose",
 							"label": "info@four-walls.gr"
 						},
-						"toAddress": {
+						"ccAddress": {
 							"items": [
 								null
 							]
 						},
-						"ccAddress": {
+						"toAddress": {
 							"items": [
 								null
 							]

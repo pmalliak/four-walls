@@ -223,24 +223,20 @@ Nominatim (OSM), `zoom=18`, `accept-language=el`, με τον `User-Agent` πο�
 
 **Cloudflare** (deploy = push στο `main`· τα secrets δεν θέλουν deploy):
 
-- [ ] `npx wrangler secret put MAKE_LEADS_WEBHOOK` — το URL του νέου hook
-- [x] `PHOTO_SIGN_KEY`, `GEMINI_API_KEY`, `PHOTO_BUCKET` — υπάρχουν ήδη
-- [ ] **R2 lifecycle rule** για το prefix `leads/`: **30 ημέρες** (όχι 7 όπως
-      το `photos/` — οι φωτογραφίες ζουν μέσα στο email):
-      `npx wrangler r2 bucket lifecycle add four-walls-photos --name expire-leads --prefix leads/ --expire-days 30`
+- [x] `MAKE_LEADS_WEBHOOK` — μπήκε 2026-08-01
+- [x] `PHOTO_SIGN_KEY`, `GEMINI_API_KEY`, `PHOTO_BUCKET` — υπήρχαν ήδη
+- [x] **R2 lifecycle rule** `expire-leads`: prefix `leads/`, **30 ημέρες** (όχι 7
+      όπως το `photos/` — οι φωτογραφίες ζουν μέσα στο email)
 
-**Make** (ομάδα Four Walls): το σενάριο «Leads — γρήγορη καταχώριση» είναι
-**έτοιμο για import** στο
-[make/pending/leads-grigori-katachorisi.blueprint.json](../make/pending/leads-grigori-katachorisi.blueprint.json)
-— webhook + ένα Zoho email module (To `info@four-walls.gr`, Cc
-`{{1.submitted_by}}`, Subject `{{1.subject}}`, HTML `{{1.html}}`). Οδηγίες
-βήμα-βήμα: [make/pending/README.md](../make/pending/README.md).
+Παγίδα που κόστισε χρόνο: με το Workers Builds, το `wrangler secret put` αρνείται
+όσο η τελευταία version δεν είναι deployed — και ένα push σε branch φτιάχνει
+ακριβώς τέτοια version. Πρώτα merge στο `main`, μετά το secret.
 
-- [ ] Import + δημιουργία του webhook (το `hook` είναι `null` στο αρχείο)
-- [ ] Το URL του webhook → `MAKE_LEADS_WEBHOOK`
-- [ ] Ενεργοποίηση του σεναρίου
-- [ ] `node tools/make-pull.mjs` + commit, και σβήσιμο του αρχείου από το
-      `make/pending/`
+**Make** (ομάδα Four Walls): έτοιμο — σενάριο **«Leads — γρήγορη καταχώριση»**
+`6786126`, hook `3482735`, ενεργό από 2026-08-01. Δύο modules: webhook → Zoho
+email (To `info@four-walls.gr`, Cc ο αποστολέας, Subject `{{1.subject}}`, HTML
+`{{1.html}}`). Το blueprint είναι στο
+[make/scenarios/](../make/scenarios/6786126-leads-grigori-katachorisi.blueprint.json).
 
 ## Κόστος και όρια
 

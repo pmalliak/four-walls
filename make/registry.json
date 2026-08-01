@@ -123,6 +123,13 @@
 			"type": "web",
 			"scenarioId": 6775485,
 			"udid": "(κρυφό)"
+		},
+		{
+			"id": 3482735,
+			"name": "Leads — γρήγορη καταχώριση",
+			"type": "web",
+			"scenarioId": 6786126,
+			"udid": "(κρυφό)"
 		}
 	],
 	"dataStores": []
