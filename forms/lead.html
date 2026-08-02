@@ -44,10 +44,6 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 .lead:first-of-type{border-top:0;padding-top:4px;}
 .lead .ph{position:relative;flex:0 0 auto;width:78px;height:78px;border-radius:10px;overflow:hidden;background:#e6eaf0;}
 .lead .ph img{width:100%;height:100%;object-fit:cover;display:block;}
-/* 22px ήταν πολύ μικρό: κάτω από το όριο των ~44px για δάχτυλο, και τόσο
-   διακριτικό που δεν το έβλεπε κανείς. Τώρα είναι κανονικός στόχος, με
-   λευκό περίγραμμα ώστε να ξεχωρίζει και πάνω σε σκούρα φωτογραφία. */
-.lead .ph .x{position:absolute;top:2px;right:2px;width:30px;height:30px;border-radius:50%;background:rgba(20,30,50,.85);box-shadow:0 0 0 1.5px rgba(255,255,255,.9);color:#fff;border:0;font-size:17px;line-height:30px;padding:0;cursor:pointer;}
 .fix button.del{border-color:#c2410c;color:#c2410c;margin-left:auto;}
 .fix button.del.arm{background:#c2410c;color:#fff;}
 .lead .bd{flex:1;min-width:0;}
@@ -252,7 +248,7 @@ textarea:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 3px rgba(2
 			var row = document.createElement("div"); row.className = "lead";
 			var ok = hasLocation(it);
 			row.innerHTML =
-				'<div class="ph"><img alt=""><button class="x" type="button" aria-label="Αφαίρεση">×</button></div>' +
+				'<div class="ph"><img alt=""></div>' +
 				'<div class="bd">' +
 					'<div class="loc ' + (ok ? "ok" : "miss") + '">' + (ok ? "✓ Τοποθεσία" : "⚠ Λείπει τοποθεσία") + '</div>' +
 					'<div class="loc-d"></div>' +
@@ -265,15 +261,14 @@ textarea:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 3px rgba(2
 			var fix = row.querySelector(".fix");
 			fix.appendChild(mkBtn(ok ? "Αλλαγή θέσης" : "Είμαι εδώ", !ok, function(){ useHere(it); }));
 			fix.appendChild(mkBtn(it.address ? "Αλλαγή διεύθυνσης" : "Διεύθυνση…", false, function(){ askAddress(it); }, ok));
-			/* Και γραμμένο «Αφαίρεση», όχι μόνο το × πάνω στη φωτογραφία: εκεί
-			   κοιτάει ήδη το μάτι για το τι μπορεί να κάνει. Και τα δύο περνούν
-			   από το ίδιο «Σίγουρα;» — μια φωτογραφία που σβήστηκε κατά λάθος
-			   δεν ξαναβγαίνει, γιατί ο σύμβουλος έχει ήδη φύγει από το σημείο. */
+			/* Γραμμένο «Αφαίρεση», στη σειρά με τις υπόλοιπες ενέργειες: εκεί
+			   κοιτάει ήδη το μάτι για το τι μπορεί να κάνει. Ένα × πάνω στη
+			   μικρογραφία δοκιμάστηκε και βγήκε — για να φαίνεται έπρεπε να
+			   πιάνει ~15% της φωτογραφίας που ο σύμβουλος πρέπει να ελέγξει. */
 			var del = mkBtn("Αφαίρεση", false, null);
 			del.className = "del";
 			del.onclick = function(){ armRemove(it, idx, del); };
 			fix.appendChild(del);
-			row.querySelector(".x").onclick = function(){ armRemove(it, idx, del); };
 			list.appendChild(row);
 		});
 		var missing = items.filter(function(it){ return !hasLocation(it); }).length;
