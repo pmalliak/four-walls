@@ -491,6 +491,24 @@ const state={}; // key -> string slug | number | boolean | array (multi)
 const LS_DRAFT="fw_draft_kx2";
 const RERENDER=new Set(["availability","category","subcategory","area_level1"]);
 
+/* Προεπιλογές ημερομηνιών: το ακίνητο είναι διαθέσιμο από σήμερα και η
+   ανάθεση τρέχει 6 μήνες. Τοπική ημερομηνία, όχι toISOString(): μετά τα
+   μεσάνυχτα η UTC δίνει ακόμα τη χθεσινή. Μπαίνουν πριν το πρώτο render,
+   ώστε το FWDrafts baseline να τις μετρά ως «κενή φόρμα». */
+const isoDate=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+/* +n μήνες με κράτημα στο τέλος του μήνα: 31/8 → 28/2, όχι 3/3 */
+function addMonths(d,n){
+  const t=new Date(d.getFullYear(),d.getMonth()+n,1);
+  const last=new Date(t.getFullYear(),t.getMonth()+1,0).getDate();
+  t.setDate(Math.min(d.getDate(),last));
+  return t;
+}
+function applyDefaults(){
+  const now=new Date();
+  state.available_from=isoDate(now);
+  state.assignment_expires=isoDate(addMonths(now,6));
+}
+
 /* ---------- Render ---------- */
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function optsOf(f){ return typeof f.opts==="function"?f.opts(state):f.opts; }
@@ -841,7 +859,7 @@ function closeScrim(el){ el.classList.remove("show"); }
 /* ---------- Boot ---------- */
 document.addEventListener("DOMContentLoaded",()=>{
   try{ localStorage.removeItem("fw_draft"); }catch(e){} // παλιό draft, πριν το CRM schema
-  wire(); render(); loadDraft();
+  wire(); applyDefaults(); render(); loadDraft();
   document.getElementById("toNext").onclick=()=>{ if(validate()) toPreview(); };
   document.getElementById("btnBack").onclick=toEdit;
   refreshSendLabel();
