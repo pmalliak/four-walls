@@ -44,7 +44,12 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 .lead:first-of-type{border-top:0;padding-top:4px;}
 .lead .ph{position:relative;flex:0 0 auto;width:78px;height:78px;border-radius:10px;overflow:hidden;background:#e6eaf0;}
 .lead .ph img{width:100%;height:100%;object-fit:cover;display:block;}
-.lead .ph .x{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:rgba(20,30,50,.72);color:#fff;border:0;font-size:14px;line-height:22px;cursor:pointer;}
+/* 22px ήταν πολύ μικρό: κάτω από το όριο των ~44px για δάχτυλο, και τόσο
+   διακριτικό που δεν το έβλεπε κανείς. Τώρα είναι κανονικός στόχος, με
+   λευκό περίγραμμα ώστε να ξεχωρίζει και πάνω σε σκούρα φωτογραφία. */
+.lead .ph .x{position:absolute;top:2px;right:2px;width:30px;height:30px;border-radius:50%;background:rgba(20,30,50,.85);box-shadow:0 0 0 1.5px rgba(255,255,255,.9);color:#fff;border:0;font-size:17px;line-height:30px;padding:0;cursor:pointer;}
+.fix button.del{border-color:#c2410c;color:#c2410c;margin-left:auto;}
+.fix button.del.arm{background:#c2410c;color:#fff;}
 .lead .bd{flex:1;min-width:0;}
 .loc{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;}
 .loc.ok{color:var(--ok);}
@@ -254,15 +259,21 @@ textarea:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 3px rgba(2
 					'<div class="fix"></div>' +
 				'</div>';
 			row.querySelector("img").src = it.url;
-			row.querySelector(".x").onclick = function(){
-				URL.revokeObjectURL(it.url); items.splice(idx,1); render();
-			};
 			var d = row.querySelector(".loc-d");
 			d.textContent = ok ? locText(it) + " · " + srcText(it)
 				: "Δώσε τη θέση σου ή τη διεύθυνση — χωρίς αυτήν το lead είναι άχρηστο.";
 			var fix = row.querySelector(".fix");
 			fix.appendChild(mkBtn(ok ? "Αλλαγή θέσης" : "Είμαι εδώ", !ok, function(){ useHere(it); }));
 			fix.appendChild(mkBtn(it.address ? "Αλλαγή διεύθυνσης" : "Διεύθυνση…", false, function(){ askAddress(it); }, ok));
+			/* Και γραμμένο «Αφαίρεση», όχι μόνο το × πάνω στη φωτογραφία: εκεί
+			   κοιτάει ήδη το μάτι για το τι μπορεί να κάνει. Και τα δύο περνούν
+			   από το ίδιο «Σίγουρα;» — μια φωτογραφία που σβήστηκε κατά λάθος
+			   δεν ξαναβγαίνει, γιατί ο σύμβουλος έχει ήδη φύγει από το σημείο. */
+			var del = mkBtn("Αφαίρεση", false, null);
+			del.className = "del";
+			del.onclick = function(){ armRemove(it, idx, del); };
+			fix.appendChild(del);
+			row.querySelector(".x").onclick = function(){ armRemove(it, idx, del); };
 			list.appendChild(row);
 		});
 		var missing = items.filter(function(it){ return !hasLocation(it); }).length;
@@ -281,8 +292,24 @@ textarea:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 3px rgba(2
 		var b = document.createElement("button"); b.type = "button"; b.textContent = label;
 		if (warn) b.className = "warnb";
 		if (linkish) b.className = "linkish";
-		b.onclick = fn;
+		if (fn) b.onclick = fn;
 		return b;
+	}
+	/* Δύο πατήματα αντί για παράθυρο επιβεβαίωσης: το πρώτο οπλίζει το
+	   κουμπί για 3 δευτερόλεπτα, το δεύτερο σβήνει. Χωρίς dialog που κόβει
+	   τη ροή, και χωρίς να φεύγει φωτογραφία από κατά λάθος άγγιγμα. */
+	function armRemove(it, idx, btn){
+		if (btn.dataset.armed){
+			clearTimeout(armRemove._t);
+			URL.revokeObjectURL(it.url); items.splice(idx, 1); render();
+			return;
+		}
+		document.querySelectorAll(".fix button.del.arm").forEach(disarm);
+		btn.dataset.armed = "1"; btn.classList.add("arm"); btn.textContent = "Σίγουρα;";
+		armRemove._t = setTimeout(function(){ disarm(btn); }, 3000);
+	}
+	function disarm(btn){
+		delete btn.dataset.armed; btn.classList.remove("arm"); btn.textContent = "Αφαίρεση";
 	}
 
 	async function useHere(it){
