@@ -282,7 +282,7 @@ async function logValuation(env, ref, prop, v, payload) {
 			value_high: v.value_high,
 			rent_mid: v.rent_mid,
 			yield_pct: v.gross_yield_pct,
-			confidence: v.confidence || "",
+			confidence: normConfidence(v.confidence),
 			renovation_gain: v.renovation ? (v.renovation.net_gain ?? null) : null,
 			price_table: AREA_PRICES_META.asOf,
 		});
@@ -954,6 +954,8 @@ const PASS1_ASK = `Δώσε την εκτίμηση ως JSON ακριβώς μ�
 Το "method" λέει στον αναγνώστη ΠΩΣ βγήκε το νούμερο — γράψε τη μέθοδο που όντως ακολούθησες για ΑΥΤΟ το είδος ακινήτου, όχι «συγκριτικά» ως αυτόματη απάντηση.
 Για ΓΗ (οικόπεδο, αγροτεμάχιο): συμπλήρωσε "buildable_sqm" (εμβαδόν γης × συντελεστή δόμησης) και "eur_per_buildable_sqm" (η αξία ανά ΔΟΜΗΣΙΜΟ τ.μ., που είναι και η πραγματική σου βάση). Το "eur_per_sqm" μένει η αξία ανά τ.μ. ΓΗΣ, ώστε να διαβάζεται μαζί με τα συγκριτικά. Χωρίς γνωστό συντελεστή δόμησης βάλε 0 και στα δύο και εξήγησέ το. Για κάθε άλλο είδος βάλε 0 και στα δύο.
 Τα "caveats" είναι ΑΙΡΕΣΕΙΣ, όχι επιφυλάξεις γενικής χρήσης: μπαίνουν μόνο όταν κάτι συγκεκριμένο κρέμεται πάνω από τη μεταβίβαση ή την ίδια την εκτίμηση (αυθαίρετο χωρίς τακτοποίηση, μη οικοδομήσιμο ή αμφίβολης αρτιότητας γήπεδο, ψιλή κυριότητα, κατειλημμένο ακίνητο, κατάσχεση, δασικός χαρακτήρας, εκκρεμείς τίτλοι). Άδειος πίνακας όταν δεν υπάρχει τίποτα τέτοιο — μη γεμίζεις με «οι τιμές είναι ενδεικτικές», αυτό το λέει ήδη το έντυπο.
+Σε ΓΗ (οικόπεδο, αγροτεμάχιο) και σε θέση στάθμευσης, όταν ΔΕΝ ζητήθηκε εκτίμηση ενοικίασης, βάλε rent_low, rent_mid, rent_high και gross_yield_pct **στο 0**. Μην κατασκευάσεις μίσθωμα για να «γεμίσει» το σχήμα: ένα αδόμητο οικόπεδο δεν έχει αγορά μίσθωσης, και μια «απόδοση 1,5%» δεν σημαίνει τίποτα — ταξιδεύει όμως στο ιστορικό εκτιμήσεων ως θόρυβος.
+Το "confidence" παίρνει ΑΚΡΙΒΩΣ μία από τις τρεις λέξεις: "υψηλή", "μέτρια", "χαμηλή". Όχι συνώνυμα.
 Για το "renovation": σε ΓΗ (οικόπεδο, αγροτεμάχιο) και σε θέση στάθμευσης βάλε πάντα null — δεν ανακαινίζεται τίποτα.
 Για το "renovation": αν το ακίνητο είναι ήδη άριστο/πλήρως ανακαινισμένο ή μια ανακαίνιση δεν θα άλλαζε ουσιαστικά την αξία, βάλε "renovation": null (σκέτο null, όχι αντικείμενο). Το κόστος χτίζεται από τον πίνακα ανακαίνισης σε ΔΥΟ μέρη: (α) perSqm εύρος × εμβαδόν για τις εργασίες που κλιμακώνουν με τα τ.μ., ΣΥΝ (β) τα fixed ανά τεμάχιο — το μπάνιο ΕΠΙ ΤΟΝ ΑΡΙΘΜΟ ΤΩΝ ΜΠΑΝΙΩΝ του ακινήτου, η κουζίνα μία φορά αν η κλίμακα την περιλαμβάνει. Δύο μπάνια σημαίνουν σχεδόν διπλάσιο κόστος μπάνιων, όσα τ.μ. κι αν έχει το ακίνητο. Γράψε στο scope τι μέτρησες (π.χ. «μερική: δάπεδα/βαφές 120 τ.μ. + 2 μπάνια + κουζίνα»), σε φυσικά ελληνικά: ΜΗΝ αντιγράφεις σε κανένα κείμενο εσωτερικά ονόματα πεδίων του πίνακα όπως perSqm ή fixed, είναι ονόματα για τον υπολογισμό, όχι λέξεις για τον αναγνώστη. Στρογγύλεμα σε χιλιάδες. Το value_after τεκμηριωμένο από ανακαινισμένα/νεόδμητα επίπεδα της περιοχής — ΠΟΤΕ πάνω από νεόδμητο. net_gain = value_after_mid − value_mid − μέσο cost. Αν το όφελος είναι αρνητικό ή οριακό, γράψ' το ευθέως στο comment — ΜΗΝ προτείνεις ανακαίνιση που δεν αποδίδει.`;
 
@@ -1430,6 +1432,22 @@ function esc(s) {
 
 /* Ελληνικά κεφαλαία ΧΩΡΙΣ τόνους (κανόνας του repo). Το σκέτο
    toUpperCase() κρατά τον τόνο («υψηλή» → «ΥΨΗΛΉ») — λάθος. */
+/* Η βεβαιότητα είναι enum τριών λέξεων, αλλά τα μοντέλα γράφουν και
+   συνώνυμα («μέση» αντί «μέτρια») — φάνηκε στις πραγματικές δοκιμές.
+   Το κανονικοποιούμε ΕΔΩ και όχι μόνο στο prompt: το ιστορικό
+   εκτιμήσεων φιλτράρεται σε αυτή τη λέξη, και δύο ορθογραφίες για το
+   ίδιο πράγμα το κάνουν άχρηστο. Άγνωστη τιμή περνά αυτούσια. */
+const CONFIDENCE_ALIAS = {
+	"μέση": "μέτρια", "μεσαία": "μέτρια", "μετρια": "μέτρια", "μέτρια": "μέτρια",
+	"υψηλή": "υψηλή", "υψηλη": "υψηλή", "μεγάλη": "υψηλή",
+	"χαμηλή": "χαμηλή", "χαμηλη": "χαμηλή", "μικρή": "χαμηλή",
+};
+
+function normConfidence(s) {
+	const key = String(s == null ? "" : s).trim().toLowerCase();
+	return CONFIDENCE_ALIAS[key] || String(s == null ? "" : s).trim();
+}
+
 function grUpper(s) {
 	return String(s == null ? "" : s).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
 }
@@ -1609,7 +1627,7 @@ function renderReport(prop, comps, stats, priceRow, v, payload, offers) {
 		<div style="font-size:13px; color:#444; line-height:1.6;">${esc(v.market_comment)}</div>
 	</td></tr>` : ""}
 	<tr><td style="padding:18px 20px 0;">
-		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΒΕΒΑΙΟΤΗΤΑ: ${esc(grUpper(v.confidence))}</div>
+		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΒΕΒΑΙΟΤΗΤΑ: ${esc(grUpper(normConfidence(v.confidence)))}</div>
 		<div style="font-size:12.5px; color:#444; line-height:1.55;">${esc(v.confidence_reason || "")}</div>
 		${missing.length ? `<div style="font-size:12px; color:#6b7280; margin-top:6px;">Θα βοηθούσε να ξέρουμε: ${esc(missing.join(" · "))}</div>` : ""}
 	</td></tr>
@@ -1816,7 +1834,7 @@ td.num{text-align:right;white-space:nowrap;}
 	${compSections || (v.comps_comment ? "<h2>ΤΙ ΔΕΙΧΝΟΥΝ ΤΑ ΣΥΓΚΡΙΤΙΚΑ</h2>" : "")}
 	${v.comps_comment ? `<p class="mut" style="margin-top:6px;">${esc(v.comps_comment)}</p>` : ""}
 	${v.market_comment ? `<h2>Η ΑΓΟΡΑ</h2><p>${esc(v.market_comment)}</p>` : ""}
-	<h2>ΒΕΒΑΙΟΤΗΤΑ: ${esc(grUpper(v.confidence))}</h2>
+	<h2>ΒΕΒΑΙΟΤΗΤΑ: ${esc(grUpper(normConfidence(v.confidence)))}</h2>
 	${v.confidence_reason ? `<p>${esc(v.confidence_reason)}</p>` : ""}
 	${missing.length ? `<p class="mut">Θα βοηθούσε να ξέρουμε: ${esc(missing.join(" · "))}</p>` : ""}
 	${v.advice ? `<div class="note"><strong>Για τη συζήτηση με τον ιδιοκτήτη:</strong> ${esc(v.advice)}</div>` : ""}

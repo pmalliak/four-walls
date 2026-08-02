@@ -1320,6 +1320,19 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		return String(s == null ? "" : s).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
 	}
 
+	/* Η βεβαιότητα είναι enum τριών λέξεων, αλλά τα μοντέλα γράφουν και
+	   συνώνυμα («μέση» αντί «μέτρια») — φάνηκε στις πραγματικές δοκιμές.
+	   Ίδιος πίνακας με το normConfidence του Worker. */
+	var CONFIDENCE_ALIAS = {
+		"μέση": "μέτρια", "μεσαία": "μέτρια", "μετρια": "μέτρια", "μέτρια": "μέτρια",
+		"υψηλή": "υψηλή", "υψηλη": "υψηλή", "μεγάλη": "υψηλή",
+		"χαμηλή": "χαμηλή", "χαμηλη": "χαμηλή", "μικρή": "χαμηλή",
+	};
+	function normConfidence(s){
+		var raw = String(s == null ? "" : s).trim();
+		return CONFIDENCE_ALIAS[raw.toLowerCase()] || raw;
+	}
+
 	/* Οι δύο καρτέλες πάνω από το έγγραφο. Η όψη «ιδιοκτήτη» δεν είναι
 	   περίληψη του PDF: είναι ο ΙΔΙΟΣ κόμβος που στέλνεται (buildClientDoc),
 	   ώστε ό,τι βλέπει ο σύμβουλος να είναι ό,τι λαμβάνει ο πελάτης. */
@@ -1453,7 +1466,7 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 			d.appendChild(el("p", null, v.market_comment));
 		}
 
-		d.appendChild(el("h2", null, "ΒΕΒΑΙΟΤΗΤΑ: " + grUpper(v.confidence)));
+		d.appendChild(el("h2", null, "ΒΕΒΑΙΟΤΗΤΑ: " + grUpper(normConfidence(v.confidence))));
 		if (v.confidence_reason) d.appendChild(el("p", null, v.confidence_reason));
 		var missing = (Array.isArray(v.missing_info) ? v.missing_info : []).filter(Boolean);
 		if (missing.length) d.appendChild(el("p", "mut", "Θα βοηθούσε να ξέρουμε: " + missing.join(" · ")));
