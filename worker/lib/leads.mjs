@@ -426,6 +426,142 @@ function buildEmail(payload) {
 	return { subject, html, text, summary };
 }
 
+/* ------------------------------------------------ CRM (γράφει το Make)
+
+   Ο Worker ΔΕΝ γράφει στο EstatePrime: κάθε POST από Worker απαντιέται με
+   403 «Access denied» ανεξαρτήτως headers, ενώ το ίδιο POST από το Make
+   περνάει (docs/estateprime-api.md). Άρα εδώ ετοιμάζεται μόνο το σώμα και
+   το ποστάρει το σενάριο.
+
+   ΓΙΑΤΙ ΕΤΟΙΜΟ JSON ΚΑΙ ΟΧΙ ΠΕΔΙΑ: το Make χτίζει τα bodies ως σκέτο
+   κείμενο, οπότε ένα εισαγωγικό ή μια αλλαγή γραμμής μέσα σε τιμή αρκεί
+   για να βγει «Invalid JSON» — το ίδιο λάθος κόστισε μέρες στα Spitogatos
+   leads. Ένα `JSON.stringify()` εδώ το κλείνει μια για πάντα, και το
+   περιεχόμενο μένει σε κώδικα μέσα στο git αντί για IML μέσα στο Make.
+
+   ΠΟΙΑ leads περνάνε: μόνο όσα δεν αφήνουν περιθώριο λάθους. Το
+   `DELETE /contacts/{id}` απαντάει 200 ΧΩΡΙΣ να σβήνει, οπότε μια λάθος
+   ανάγνωση μένει για πάντα — και μια «ΠΙΝΑΚΙΔΑ» με ένα λάθος ψηφίο δεν
+   διορθώνεται ποτέ, γιατί κανείς δεν ξέρει ποιο ήταν το σωστό. */
+
+const CRM = {
+	lastName: "ΠΙΝΑΚΙΔΑ",       // σταθερό επώνυμο: κρατάει τα leads μαζί στη
+	                             // λίστα και τα κρύβει από τους pickers των
+	                             // εντύπων (worker/lib/crm.mjs isSignLead)
+	sourceId: 4,                 // «Ενοικιαστήριο/Πωλητήριο» — υπάρχει ήδη
+	userId: 1,                   // Αφεντούλα (info@): αυτή κάνει τις κλήσεις
+	officeId: 1,
+	languageId: 1,
+	storeId: 1,
+	contactTags: [12, 4, 19],    // ai, make, ΠΙΝΑΚΙΔΑ
+	commTags: [15, 5, 20],       // ai, make, ΠΙΝΑΚΙΔΑ — ΑΛΛΟ namespace, άλλα ids
+	commChannel: 4,              // «Δια ζώσης»: την πινακίδα την είδαμε στον δρόμο
+};
+
+/* Τιμή που θα καταλήξει σε χειρόγραφο JSON body του Make: χωρίς αλλαγές
+   γραμμής, χωρίς `"` και χωρίς `\`. Τα τρία αυτά είναι που το σπάνε. */
+function makeSafe(v, max) {
+	return clip(String(v == null ? "" : v)
+		.replace(/[\u0000-\u001F\u007F\\]/g, " ")
+		.replace(/"/g, "'")
+		.replace(/\s+/g, " "), max);
+}
+
+/* Το μόνο σταθερό αναγνωριστικό που θα υπάρξει ποτέ: σε cold call κανείς
+   δεν δίνει όνομα. Ίδια σκάλα με του email — διεύθυνση, μετά πινακίδα
+   δρόμου, μετά συντεταγμένες. Ποτέ κενό: δέκα επαφές «ΠΙΝΑΚΙΔΑ» χωρίς
+   τίποτα δίπλα δεν ξεχωρίζουν μεταξύ τους. */
+function crmGivenName(l) {
+	if (l.address) return makeSafe(l.address, 90);
+	if (l.street_hint) return makeSafe(`${l.street_hint} (από την πινακίδα)`, 90);
+	if (l.lat != null && l.lng != null) {
+		return makeSafe(`${l.area ? l.area + " " : ""}${l.lat.toFixed(5)}, ${l.lng.toFixed(5)}`, 90);
+	}
+	return "χωρίς διεύθυνση";
+}
+
+/* «YYYY-MM-DD HH:mm:ss» σε ώρα Ελλάδας, όπως τη θέλει το
+   `communication_date`. Το sv-SE δίνει ακριβώς αυτή τη μορφή. */
+function athensStamp(d = new Date()) {
+	return new Intl.DateTimeFormat("sv-SE", {
+		timeZone: "Europe/Athens", year: "numeric", month: "2-digit", day: "2-digit",
+		hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+	}).format(d).replace("T", " ");
+}
+
+function crmFor(l, meta) {
+	/* Διπλό τηλέφωνο μέσα στην ίδια βόλτα = μία επαφή. Χωρίς αυτό η δεύτερη
+	   δημιουργία σκάει σε 400 «Phone number is already in use» — σωστά, αλλά
+	   γεμίζει το σενάριο με κόκκινα που δεν σημαίνουν τίποτα. */
+	const phones = (l.phones || []).filter((p) => !p.duplicate);
+
+	const eligible = l.is_sign !== false          // δεν είναι καν πινακίδα
+		&& l.confidence === "high"                 // κάθε ψηφίο διαβάστηκε καθαρά
+		&& l.advertiser !== "agency"               // συνάδελφος, όχι lead
+		&& !l.error
+		&& phones.length > 0;
+	if (!eligible) return null;
+
+	const given = crmGivenName(l);
+	const what = [TYPE_LABEL[l.listing_type], l.property_type].filter((x) => x && x !== "—").join(" ");
+	const specs = [l.size_sqm ? l.size_sqm + " τ.μ." : "", l.floor, l.price].filter(Boolean).join(", ");
+	const note = makeSafe(`Πινακίδα ${what || ""} · ${given} · ${athensStamp().slice(0, 10)}`, 190);
+
+	/* Το πλήρες σώμα του POST /contacts, έτοιμο να μπει ως raw body. */
+	const contact = {
+		first_name: given,
+		last_name: CRM.lastName,
+		is_active: true,        // χωρίς αυτό μπαίνει «Ανενεργό» και ΔΕΝ διορθώνεται από API
+		is_lead: true,
+		country: "GR",
+		language_id: CRM.languageId,
+		office_id: CRM.officeId,
+		created_by: CRM.userId,
+		users: [CRM.userId],
+		source_id: CRM.sourceId,
+		tags: CRM.contactTags,
+		phones: phones.map((p) => ({
+			// 69… κινητό, 2… σταθερό — το normPhone εγγυάται ότι είναι ένα από τα δύο
+			type: p.digits.startsWith("69") ? "mobile-personal" : "land-home",
+			number: "+30" + p.digits,   // E.164 υποχρεωτικά, αλλιώς 400
+			notes: note,
+		})),
+	};
+
+	/* Το σχόλιο της επικοινωνίας είναι το ΜΟΝΟ σημείο που κρατάει την
+	   ιστορία: το contact-level `notes` δεν επιστρέφεται καν από το read
+	   model, ενώ το `comments` της επικοινωνίας κάνει round-trip. */
+	const web = phones.find((p) => p.web && p.web.kind !== "unknown")?.web;
+	const comments = makeSafe([
+		`Πινακίδα ${what || "—"}${specs ? " (" + specs + ")" : ""}`,
+		given,
+		phones.map((p) => p.display).join(" / "),
+		l.sign_text ? `Κείμενο πινακίδας: ${l.sign_text}` : "",
+		web?.kind === "private" ? "Έλεγχος web: δεν βρέθηκε σε επιχείρηση, μάλλον ιδιώτης"
+			: web?.kind === "business" ? `Έλεγχος web: επιχείρηση${web.name ? " " + web.name : ""}` : "",
+		l.taken_at ? `Λήψη: ${l.taken_at}` : "",
+		meta.submitted_by ? `Καταγραφή: ${meta.submitted_by}` : "",
+		`Φωτογραφία (ισχύει 30 ημέρες): ${l.url}`,
+	].filter(Boolean).join(" · "), 900);
+
+	return {
+		/* Ό,τι χρειάζεται το Make για να ψάξει πρώτα — η μοναδικότητα του
+		   τηλεφώνου στο CRM είναι το dedupe, ο Worker απλώς δίνει το κλειδί.
+		   Προτιμάται το ΚΙΝΗΤΟ όταν η πινακίδα έχει δύο νούμερα: το σταθερό
+		   μπορεί να είναι της πολυκατοικίας ή του μαγαζιού από κάτω και να
+		   ταιριάξει σε λάθος επαφή· το 69άρι είναι ενός ανθρώπου. */
+		search: (phones.find((p) => p.digits.startsWith("69")) || phones[0]).digits,
+		known_contact_id: phones.find((p) => p.crm)?.crm?.id ?? null,
+		contact_json: JSON.stringify(contact),
+		comments,
+		communication_date: athensStamp(),
+		channel: CRM.commChannel,
+		user_id: CRM.userId,
+		store_id: CRM.storeId,
+		tags_json: JSON.stringify(CRM.commTags),
+	};
+}
+
 /* ----------------------------------------------------- API routing
 
    Όλα εδώ έχουν ήδη περάσει από το Access (worker/index.mjs) — ο
@@ -665,12 +801,23 @@ async function finalizeBatch(request, env, url, batchId) {
 		}
 	}
 
+	/* Τελευταίο, γιατί χρειάζεται τη διεύθυνση: το όνομα της επαφής ΕΙΝΑΙ η
+	   διεύθυνση. Όσα δεν περνάνε το φίλτρο παίρνουν `crm: null` και μένουν
+	   μόνο στο email — εκεί αποφασίζει άνθρωπος. */
+	for (const l of leads) l.crm = crmFor(l, meta);
+	const crmReady = leads.filter((l) => l.crm);
+
 	const payload = {
 		batch_id: batchId,
 		submitted_by: meta.submitted_by,
 		submitted_at: new Date().toISOString(),
 		count: leads.length,
 		note: note || null,
+		/* Το σενάριο δουλεύει ΑΥΤΗ τη λίστα, όχι το `leads` — έτσι δεν
+		   χρειάζεται filter module μέσα στο Make, και ό,τι δεν πέρασε τον
+		   έλεγχο δεν φτάνει καν εκεί. Κενή λίστα = καμία εγγραφή στο CRM. */
+		crm: crmReady.map((l) => l.crm),
+		crm_count: crmReady.length,
 		leads,
 	};
 	Object.assign(payload, buildEmail(payload));
@@ -693,6 +840,7 @@ async function finalizeBatch(request, env, url, batchId) {
 		agencies: leads.filter((l) => l.advertiser === "agency").length,
 		known_contacts: leads.filter((l) => l.known_contact).length,
 		conflicts: leads.filter((l) => l.conflict).length,
+		crm_ready: crmReady.length,
 		by: meta.submitted_by, ts: new Date().toISOString(),
 	}));
 	return json({
