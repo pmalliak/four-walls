@@ -7,9 +7,11 @@
    drafts in localStorage. Reopening the form shows a banner listing the
    drafts («Συνέχεια» / «Διαγραφή»); the index page shows all of them.
 
-   One draft = one visit that typed something: the first meaningful
-   change creates a draft, every later change updates THAT draft. Loading
-   a draft makes it the current one. A successful submit deletes it.
+   One draft = one visit that got somewhere: a draft is born once ~10% of
+   the form is filled in (never fewer than MIN_FIELDS), so a tap on a
+   segment or a switch does not fill the «Πρόχειρα» list with nothing.
+   From then on every change updates THAT draft. Loading a draft makes it
+   the current one. A successful submit deletes it.
 
    Deliberately NOT saved: signatures. A signature belongs to the exact
    text signed at that moment — restoring it onto edited fields would
@@ -43,6 +45,10 @@
 	var TTL_MS = 30 * 24 * 3600 * 1000;  /* drafts expire after 30 days */
 	var MAX_PER_FORM = 10;
 	var DEBOUNCE_MS = 900;
+	/* Πότε γεννιέται πρόχειρο: το 10% των πεδίων της φόρμας, ποτέ λιγότερα
+	   από 3. Ένα κουμπί που άλλαξε δεν είναι μισοσυμπληρωμένο έντυπο. */
+	var MIN_FIELDS = 3;
+	var MIN_RATIO = 0.10;
 
 	var TITLES = {
 		anathesi: 'Εντολή Ανάθεσης', ypodeixi: 'Εντολή Υπόδειξης',
@@ -101,18 +107,31 @@
 	function labelOf(d) { return d.label || 'Χωρίς στοιχεία ακόμα'; }
 	function notify(msg) { if (cfg && cfg.onSave) cfg.onSave(msg); else if (statusEl) { statusEl.textContent = msg; statusEl.style.display = 'block'; } }
 
-	/* At least one value that differs from the baseline AND has content —
-	   so a prefilled date or an emptied field never creates a draft. */
-	function hasNewContent(v) {
+	/* Πόσο έχει πιάσει η φόρμα: πεδία που διαφέρουν από το baseline ΚΑΙ
+	   έχουν περιεχόμενο, ώστε μια προεπιλεγμένη ημερομηνία ή ένα άδειασμα
+	   πεδίου να μη μετράνε. Το επιλεγμένο ακίνητο/επαφή είναι ολόκληρη
+	   εγγραφή του CRM (αναζήτηση, όχι tap), οπότε μετράει για δύο. */
+	function countFilled(v) {
+		var n = 0;
 		for (var k in v) {
 			if (!Object.prototype.hasOwnProperty.call(v, k)) continue;
 			var a = v[k], b = baseVals ? baseVals[k] : undefined;
 			if (JSON.stringify(a) === JSON.stringify(b)) continue;
 			if (a == null || a === '' || a === false) continue;
 			if (typeof a === 'string' && !a.trim()) continue;
-			return true;
+			if (Array.isArray(a) && !a.length) continue;
+			n += (typeof a === 'object' && !Array.isArray(a)) ? 2 : 1;
 		}
-		return false;
+		return n;
+	}
+
+	/* Πρόχειρο μόνο όταν αξίζει να ξαναβρεθεί. Το κατώφλι βγαίνει από το
+	   μέγεθος της ίδιας της φόρμας: 10% των πεδίων του baseline, με
+	   κατώτατο τα MIN_FIELDS. Μόλις γεννηθεί, κάθε επόμενη αλλαγή (ακόμα
+	   και ένα κουμπί, ακόμα και σβήσιμο) ενημερώνει κανονικά. */
+	function worthSaving(v) {
+		var total = baseVals ? Object.keys(baseVals).length : 0;
+		return countFilled(v) >= Math.max(MIN_FIELDS, Math.ceil(total * MIN_RATIO));
 	}
 
 	/* ---------- autosave ---------- */
@@ -123,7 +142,7 @@
 		try { v = cfg.collect(); j = JSON.stringify(v); } catch (e) { return; }
 		if (j === lastJson) return;
 		if (curId == null) {
-			if (j === baseJson || !hasNewContent(v)) return;
+			if (j === baseJson || !worthSaving(v)) return;
 			curId = newId();
 		}
 		var o = readAll();
