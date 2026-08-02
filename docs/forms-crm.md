@@ -197,6 +197,22 @@ The native ΑΦΜ/ΑΔΤ pair is only editable in the CRM's contact **edit** for
 they are missing from the **create** form, which is why they look absent at
 first. Fill them by creating the contact, then editing it.
 
+### A half-filled contact does not leave gaps in the document
+
+Most of that block is optional, and a CRM contact often has only a name and an
+ΑΦΜ. The generated text adapts: `personIntro()` in `anathesi.html`,
+`ypodeixi.html` and `apodeixi.html` builds the sentence from the parts that
+actually have a value, so an owner with no ΑΔΤ reads «Ο/Η υπογράφων/ούσα Χ, με
+ΑΦΜ 134812923, ενεργώντας ατομικά…» instead of «κάτοικος , κάτοχος του δελτίου
+ταυτότητας/διαβατηρίου με αριθμό που εκδόθηκε στις από ,». Same idea for the
+property block (`PROPS()` in `anathesi.html`, where επιφάνεια and περιγραφή drop
+their row when empty) and for the ΑΦΜ next to each name on the απόδειξη.
+
+Only the name keeps its underlined blank when missing: it is the one field the
+document cannot stand without, so an empty line there is an invitation to write
+it by hand, not a bug. In the υπόδειξη property table an unfilled cell stays
+plainly empty (`VC()`), since a gap in a table column already reads as blank.
+
 The μεσιτική αμοιβή is deliberately **not** autofilled from `assignment_fee`:
 that is what the owner agreed to pay on the ανάθεση, which is not necessarily
 what this client is being asked for. A wrong number on a signed contract is
