@@ -126,7 +126,10 @@ export async function handleValuation(request, env, url, ctx) {
 	   με ένα κλικ και, χειρότερα, θα έβγαζε ΑΛΛΑ νούμερα από αυτά που
 	   στάλθηκαν τότε (νέος πίνακας τιμών, άλλο στοκ συγκριτικών). Τα
 	   νούμερα εκείνης της ημέρας τα κρατά η γραμμή του ιστορικού. */
-	if (cacheOnly) return expiredReport(ref, wantsHtml);
+	if (cacheOnly) {
+		const old = await readAnyVersion(env, ref);
+		return old ? respond(old, wantsHtml) : expiredReport(ref, wantsHtml);
+	}
 
 	if (!env.ANTHROPIC_API_KEY && !env.GEMINI_API_KEY) {
 		console.error("valuation: neither ANTHROPIC_API_KEY nor GEMINI_API_KEY is configured");
@@ -192,6 +195,32 @@ export async function handleValuation(request, env, url, ctx) {
 		return json({ error: "valuation_failed", detail: String(err).slice(0, 200) }, 502);
 	}
 	return respond(await withPdf(env, ref, result, wantsPdf), wantsHtml);
+}
+
+/* Το ιστορικό διαβάζει ΚΑΙ τις παλιότερες εκδόσεις του κλειδιού. Το
+   REPORT_VERSION ανεβαίνει για να μη σταλεί ξανά παλιά ΜΟΡΦΗ σε νέο email,
+   όχι για να σβήσει το αρχείο: το κείμενο που κασαρίστηκε με την έκδοση 3
+   είναι ακριβώς αυτό που έλαβε ο πελάτης, και είναι το μόνο σωστό να δείξει
+   ο σύνδεσμος «report». Χωρίς αυτό, κάθε bump άδειαζε το ιστορικό μονομιάς:
+   στις 02/08/2026 η έκδοση πήγε 3 → 5 μέσα σε μια μέρα και όλοι οι
+   σύνδεσμοι έλεγαν «δεν είναι πια διαθέσιμο».
+
+   Τα gets τρέχουν παράλληλα και μόνο σε αυτό το μονοπάτι (ανάγνωση από το
+   ιστορικό), ποτέ στη ροή της αποστολής. Το «valuation:res:» χωρίς νούμερο
+   είναι η πρώτη έκδοση που υπήρξε ποτέ. */
+async function readAnyVersion(env, ref) {
+	const keys = [];
+	for (let v = REPORT_VERSION - 1; v >= 2; v--) keys.push(`valuation:res${v}:${ref}`);
+	keys.push(`valuation:res:${ref}`);
+	const raws = await Promise.all(keys.map((k) => env.LISTINGS_KV.get(k)));
+	const hit = raws.find(Boolean); // η σειρά είναι νεότερη → παλαιότερη
+	if (!hit) return null;
+	try {
+		return JSON.parse(hit);
+	} catch (err) {
+		console.warn(`valuation: unreadable legacy report for ${ref}: ${String(err)}`);
+		return null;
+	}
 }
 
 /* Η απάντηση του «report» όταν το πλήρες κείμενο δεν υπάρχει πια: παλιά
