@@ -117,6 +117,14 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 .fld select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;}
 @media(max-width:480px){.grid2.wide1{grid-template-columns:1fr;}}
+/* Τύπος/Είδος: κουμπιά, όχι λίστα. Τα είδη του CRM είναι 26 και σε κινητό
+   το κύλισμα μέσα σε ένα select είναι βάσανο — ο τύπος κόβει τη λίστα σε
+   λίγα είδη και όλα φαίνονται μαζί. Ίδιο πρότυπο με την «καταχώριση». */
+.seg{display:flex;flex-wrap:wrap;gap:8px;}
+.seg button{font:inherit;font-size:14.5px;font-weight:600;color:var(--ink);background:#fff;border:1.5px solid #cdd5e0;border-radius:999px;padding:9px 14px;min-height:40px;cursor:pointer;}
+.seg button:active{transform:scale(.98);}
+.seg button.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700;}
+.seg button.on:active{transform:scale(.98);}
 /* the asking price gets the prosfora treatment: it is the one big number */
 .amt{position:relative;}
 .amt input{font-size:26px;font-weight:800;color:var(--navy);letter-spacing:.01em;padding:14px 46px 14px 14px;text-align:right;}
@@ -145,26 +153,27 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			<option value="sale">Μόνο πώληση</option>
 			<option value="rent">Μόνο ενοικίαση</option>
 		</select></div>
+		<!-- Τύπος → Είδος: τα δύο επίπεδα του CRM (και του site). Ο τύπος
+		     δείχνει μόνο τα δικά του είδη, ώστε να μη διαλέγει κανείς
+		     μέσα σε μια λίστα 26 επιλογών. Οι τιμές είναι τα slugs του
+		     CRM· τις ελληνικές ετικέτες τις βάζει ο Worker (seo.mjs). -->
+		<div class="fld"><label for="catSeg">Τύπος</label><div class="seg" id="catSeg"></div></div>
+		<div class="fld hide" id="kindFld"><label for="kindSeg">Είδος</label><div class="seg" id="kindSeg"></div></div>
+		<input type="hidden" id="category"><input type="hidden" id="subcategory">
 		<div class="grid2">
-			<div class="fld"><label for="subcategory">Είδος</label><select id="subcategory">
-				<option value=""></option>
-				<option>Διαμέρισμα</option><option>Studio / Γκαρσονιέρα</option>
-				<option>Μεζονέτα</option><option>Μονοκατοικία</option>
-				<option>Γραφείο</option><option>Κατάστημα</option>
-				<option>Αποθήκη</option><option>Οικόπεδο</option><option>Αγροτεμάχιο</option>
-			</select></div>
 			<div class="fld"><label for="size" class="imp">Εμβαδόν (τ.μ.)</label><input id="size" type="text" inputmode="numeric" autocomplete="off"></div>
-		</div>
-		<div class="fld"><label for="areaName" class="imp">Περιοχή</label><input id="areaName" type="text" autocomplete="off" placeholder="π.χ. Καλαμαριά, Άνω Τούμπα…"></div>
-		<div class="fld"><label for="address">Διεύθυνση (προαιρετικό)</label><input id="address" type="text" autocomplete="off"></div>
-		<div class="grid2">
 			<div class="fld"><label for="floor">Όροφος</label><select id="floor">
 				<option value=""></option>
 				<option>Υπόγειο</option><option>Ισόγειο</option><option>Ημιώροφος</option>
 				<option>1ος</option><option>2ος</option><option>3ος</option><option>4ος</option>
 				<option>5ος</option><option>6ος</option><option>7ος ή ψηλότερα</option><option>Ρετιρέ</option>
 			</select></div>
+		</div>
+		<div class="fld"><label for="areaName" class="imp">Περιοχή</label><input id="areaName" type="text" autocomplete="off" placeholder="π.χ. Καλαμαριά, Άνω Τούμπα…"></div>
+		<div class="fld"><label for="address">Διεύθυνση (προαιρετικό)</label><input id="address" type="text" autocomplete="off"></div>
+		<div class="grid2">
 			<div class="fld"><label for="yearBuilt" class="imp">Έτος κατασκευής</label><input id="yearBuilt" type="text" inputmode="numeric" autocomplete="off"></div>
+			<div class="fld"><label for="yearRenovated" class="imp">Έτος ανακαίνισης</label><input id="yearRenovated" type="text" inputmode="numeric" autocomplete="off"></div>
 		</div>
 		<div class="grid2">
 			<div class="fld"><label for="bedrooms">Υπνοδωμάτια</label><select id="bedrooms">
@@ -176,7 +185,11 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			</select></div>
 		</div>
 		<div class="grid2">
-			<div class="fld"><label for="yearRenovated" class="imp">Έτος ανακαίνισης</label><input id="yearRenovated" type="text" inputmode="numeric" autocomplete="off"></div>
+			<div class="fld"><label for="condition" class="imp">Κατάσταση</label><select id="condition">
+				<option value=""></option>
+				<option>Νεόδμητο</option><option>Ανακαινισμένο</option>
+				<option>Καλή κατάσταση</option><option>Χρήζει ανακαίνισης</option><option>Υπό κατασκευή</option>
+			</select></div>
 			<div class="fld"><label for="energyClass">Ενεργειακή κλάση</label><select id="energyClass">
 				<option value=""></option>
 				<option>Α+</option><option>Α</option><option>Β+</option><option>Β</option>
@@ -185,33 +198,28 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			</select></div>
 		</div>
 		<div class="grid2">
-			<div class="fld"><label for="condition" class="imp">Κατάσταση</label><select id="condition">
-				<option value=""></option>
-				<option>Νεόδμητο</option><option>Ανακαινισμένο</option>
-				<option>Καλή κατάσταση</option><option>Χρήζει ανακαίνισης</option><option>Υπό κατασκευή</option>
-			</select></div>
 			<div class="fld"><label for="heating">Θέρμανση</label><select id="heating">
 				<option value=""></option>
 				<option>Ατομική</option><option>Αυτόνομη</option><option>Κεντρική</option>
 				<option>Αντλία θερμότητας</option><option>Κλιματιστικά</option><option>Χωρίς θέρμανση</option>
 			</select></div>
-		</div>
-		<div class="grid2">
 			<div class="fld"><label for="elevator">Ασανσέρ</label><select id="elevator">
 				<option value=""></option><option>Ναι</option><option>Όχι</option>
 			</select></div>
+		</div>
+		<div class="grid2">
 			<div class="fld"><label for="parking">Πάρκινγκ</label><select id="parking">
 				<option value=""></option>
 				<option>Όχι</option><option>Ανοιχτό</option><option>Κλειστό</option><option>Πυλωτή</option>
 			</select></div>
-		</div>
-		<div class="grid2">
 			<div class="fld"><label for="storage">Αποθήκη</label><select id="storage">
 				<option value=""></option><option>Ναι</option><option>Όχι</option>
 			</select></div>
-			<div class="fld"><label for="orientation">Προσανατολισμός</label><input id="orientation" type="text" autocomplete="off" placeholder="π.χ. ΝΑ, διαμπερές"></div>
 		</div>
-		<div class="fld"><label for="view">Θέα</label><input id="view" type="text" autocomplete="off" placeholder="π.χ. θάλασσα, ακάλυπτος…"></div>
+		<div class="grid2">
+			<div class="fld"><label for="orientation">Προσανατολισμός</label><input id="orientation" type="text" autocomplete="off" placeholder="π.χ. ΝΑ, διαμπερές"></div>
+			<div class="fld"><label for="view">Θέα</label><input id="view" type="text" autocomplete="off" placeholder="π.χ. θάλασσα, ακάλυπτος…"></div>
+		</div>
 		<!-- Οι οδηγοί αξίας των εξοχικών: στη Χαλκιδική/Πιερία η απόσταση από
 		     τη θάλασσα, το οικόπεδο και η πισίνα κουνάνε την τιμή περισσότερο
 		     από όροφο και ασανσέρ. Χωρίς αυτά, η εκτίμηση αγκυρώνει στο
@@ -329,13 +337,87 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		return "four-walls_ektimisi_" + (who || "akinito") + "_" + todayLocal() + ".pdf";
 	}
 
-	/* Το CRM δίνει slug (apartment, office…), το select μιλάει ελληνικά. */
-	var SLUG_GR = {
-		apartment: "Διαμέρισμα", studio: "Studio / Γκαρσονιέρα",
-		maisonette: "Μεζονέτα", detached: "Μονοκατοικία", house: "Μονοκατοικία",
-		office: "Γραφείο", store: "Κατάστημα", shop: "Κατάστημα",
-		warehouse: "Αποθήκη", land: "Οικόπεδο", plot: "Οικόπεδο", field: "Αγροτεμάχιο",
+	/* ---------------- τύπος και είδος ακινήτου ------------------------
+	   Οι κατηγορίες του CRM (residential | commercial | land | other) και
+	   τα είδη της καθεμιάς, όπως στην «καταχώριση» και στο site. Δουλεύουμε
+	   με τα slugs του CRM: έτσι το ακίνητο από την καρτέλα κουμπώνει χωρίς
+	   μετάφραση, και τις ελληνικές ετικέτες της αναφοράς τις βάζει ο Worker
+	   (seo.mjs), οπότε γράφονται μία φορά. Οι ετικέτες εδώ είναι οι ίδιες
+	   με του site, ώστε ο σύμβουλος να διαβάζει την ίδια λέξη στη φόρμα και
+	   στην αναφορά. Σειρά: τα συνηθισμένα πρώτα, τα σπάνια στο τέλος. */
+	var CATS = [
+		["residential", "Κατοικία"],
+		["commercial", "Επαγγελματική στέγη"],
+		["land", "Γη ή οικόπεδο"],
+		["other", "Λοιπά"],
+	];
+	var KINDS = {
+		residential: [
+			["apartment", "Διαμέρισμα"], ["studio", "Στούντιο / Γκαρσονιέρα"],
+			["maisonette", "Μεζονέτα"], ["detached", "Μονοκατοικία"],
+			["villa", "Βίλα"], ["loft", "Loft"],
+			["residential_building", "Κτίριο κατοικιών"],
+			["apartment_complex", "Συγκρότημα διαμερισμάτων"],
+			["farmhouse", "Αγροικία"], ["houseboat", "Πλωτή κατοικία"],
+			["other_residential", "Άλλη κατοικία"],
+		],
+		commercial: [
+			["office", "Γραφείο"], ["store", "Κατάστημα"], ["warehouse", "Αποθήκη"],
+			["hotel", "Ξενοδοχείο"], ["commercial_building", "Επαγγελματικό κτίριο"],
+			["hall", "Αίθουσα"], ["industrial_space", "Βιομηχανικός χώρος"],
+			["craft_space", "Βιοτεχνικός χώρος"], ["other_commercial", "Άλλο επαγγελματικό"],
+		],
+		land: [["plot", "Οικόπεδο"], ["parcel", "Αγροτεμάχιο"], ["island", "Νησί"]],
+		other: [["parking", "Πάρκινγκ"], ["business", "Επιχείρηση"], ["air", "Αέρας"], ["other", "Άλλο"]],
 	};
+	/* είδος → τύπος, και είδος → ελληνικά (για summary και πρόχειρα). Το
+	   CRM στέλνει και μερικά συνώνυμα που δεν είναι στα κουμπιά. */
+	var KIND_CAT = {}, KIND_GR = {};
+	Object.keys(KINDS).forEach(function(cat){
+		KINDS[cat].forEach(function(k){ KIND_CAT[k[0]] = cat; KIND_GR[k[0]] = k[1]; });
+	});
+	var KIND_ALIAS = { house: "detached", shop: "store", field: "parcel" };
+
+	function kindLabel(slug){ return KIND_GR[slug] || slug || ""; }
+
+	/* Ζωγραφίζει τα κουμπιά και των δύο σειρών από τα hidden inputs. Μία
+	   συνάρτηση για κλικ, prefill, πρόχειρα και reset — καμία κατάσταση
+	   δεν ζει στο DOM. */
+	function renderKind(){
+		var cat = $("category").value, sub = $("subcategory").value;
+		fillSeg($("catSeg"), CATS, cat, function(v){
+			$("category").value = v === cat ? "" : v;
+			if (KIND_CAT[$("subcategory").value] !== $("category").value) $("subcategory").value = "";
+			renderKind();
+		});
+		var list = KINDS[cat] || [];
+		$("kindFld").classList.toggle("hide", !list.length);
+		fillSeg($("kindSeg"), list, sub, function(v){
+			$("subcategory").value = v === sub ? "" : v;
+			renderKind();
+		});
+	}
+
+	function fillSeg(box, opts, current, onPick){
+		box.textContent = "";
+		opts.forEach(function(o){
+			var b = document.createElement("button");
+			b.type = "button";
+			b.className = o[0] === current ? "on" : "";
+			b.textContent = o[1];
+			b.onclick = function(){ onPick(o[0]); };
+			box.appendChild(b);
+		});
+	}
+
+	/* Από slug του CRM (ή συνώνυμό του) στα δύο πεδία. Άγνωστο slug: μένει
+	   ο τύπος, ώστε τα συγκριτικά να φιλτράρουν σωστά. */
+	function setKind(sub, cat){
+		var s = KIND_ALIAS[sub] || sub || "";
+		$("subcategory").value = KIND_CAT[s] ? s : "";
+		$("category").value = KIND_CAT[s] || cat || "";
+		renderKind();
+	}
 
 	function renderListing(){
 		var box = $("listingBox");
@@ -390,11 +472,12 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		if (l.address) $("address").value = l.address;
 		if (l.size) $("size").value = String(l.size);
 		if (!l.hiddenPrice && l.price) $("asking").value = String(Math.round(l.price)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-		if (l.subcategory && SLUG_GR[l.subcategory]) setSel("subcategory", SLUG_GR[l.subcategory]);
+		if (l.subcategory) setKind(l.subcategory);
 		try {
 			if (!feedCache) feedCache = (await (await fetch("/data/listings.json")).json()).listings || [];
 			var f = feedCache.find(function(x){ return String(x.id) === String(l.id) || (l.code && String(x.code) === String(l.code)); });
 			if (!f) return;
+			if (f.subcategory || f.category) setKind(f.subcategory, f.category);
 			if (f.area) $("size").value = String(f.area);
 			if (f.bedrooms) setSel("bedrooms", String(f.bedrooms));
 			if (f.bathrooms) setSel("bathrooms", String(f.bathrooms));
@@ -427,12 +510,6 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		el.value = raw ? String(Number(raw)).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : "";
 	}
 
-	function categoryFor(sub){
-		if (sub === "Γραφείο" || sub === "Κατάστημα" || sub === "Αποθήκη") return "commercial";
-		if (sub === "Οικόπεδο" || sub === "Αγροτεμάχιο") return "land";
-		return "residential";
-	}
-
 	var computing = false;
 
 	function busy(b){
@@ -462,7 +539,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		if (navigator.onLine === false) { toast("Ο υπολογισμός θέλει σύνδεση στο internet.", "err"); return; }
 
 		var asking = Number(digits(val("asking")));
-		var summary = [val("subcategory") || "Ακίνητο",
+		var summary = [kindLabel(val("subcategory")) || "Ακίνητο",
 			digits(val("size")) ? digits(val("size")) + " τ.μ." : (listing && listing.size ? listing.size + " τ.μ." : ""),
 			val("areaName") || (listing && listing.area) || "",
 			listing && listing.code ? "κωδ. " + listing.code : ""].filter(Boolean).join(" · ");
@@ -478,7 +555,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 				listing_address: listing ? (listing.address || "") : "",
 				purpose: val("purpose") || "both",
 				subcategory: val("subcategory"),
-				category: val("subcategory") ? categoryFor(val("subcategory")) : "",
+				category: val("category"),
 				area_name: val("areaName"),
 				address: val("address"),
 				size: digits(val("size")),
@@ -1042,9 +1119,10 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 	function reset(){
 		listing = null;
 		["purpose"].forEach(function(id){ $(id).value = "both"; });
-		["subcategory","size","areaName","address","floor","yearBuilt","bedrooms","bathrooms",
+		["category","subcategory","size","areaName","address","floor","yearBuilt","bedrooms","bathrooms",
 		 "yearRenovated","energyClass","condition","heating","elevator","parking","storage",
 		 "orientation","view","seaDist","plot","pool","balconies","asking","notes"].forEach(function(id){ $(id).value = ""; });
+		renderKind();
 		renderListing();
 		result = null;
 		editing = null;
@@ -1062,6 +1140,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 	}
 
 	function init(){
+		renderKind();
 		$("pickListing").onclick = function(){
 			FWCrm.pickListing(function(l){ listing = l; renderListing(); prefill(l); });
 		};
@@ -1078,7 +1157,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		/* Πρόχειρα (_drafts.fw.js): κρατούν και το επιλεγμένο ακίνητο από
 		   το CRM (raw record) — οι τιμές των πεδίων όπως τις άφησες, μαζί
 		   με ό,τι είχε φέρει το prefill. */
-		var FLD = ["purpose","subcategory","size","areaName","address","floor","yearBuilt",
+		var FLD = ["purpose","category","subcategory","size","areaName","address","floor","yearBuilt",
 			"bedrooms","bathrooms","yearRenovated","energyClass","condition","heating",
 			"elevator","parking","storage","orientation","view","seaDist","plot","pool","balconies","asking","notes","clientEmail"];
 		if (window.FWDrafts) FWDrafts.register({
@@ -1092,11 +1171,12 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 				listing = d.listing || null;
 				FLD.forEach(function(id){ $(id).value = d[id] == null ? "" : d[id]; });
 				if (!d.purpose) $("purpose").value = "both";
+				renderKind();  /* τα κουμπιά ζωγραφίζονται από τα hidden πεδία */
 				renderListing(); /* χωρίς prefill(): οι τιμές είναι ήδη στο πρόχειρο */
 			},
 			label: function(d){
 				return [d.address || d.areaName || (d.listing && d.listing.address),
-					d.subcategory, d.size && d.size + " τ.μ."].filter(Boolean).join(" — ");
+					kindLabel(d.subcategory), d.size && d.size + " τ.μ."].filter(Boolean).join(" — ");
 			},
 		});
 	}
