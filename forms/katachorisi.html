@@ -132,7 +132,9 @@ input.invalid,select.invalid{border-color:var(--pink);background:#fff6f9}
 .stepper button:active{background:var(--bg)}
 .stepper .val{flex:1;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16.5px;color:var(--ink)}
 .stepper .val.empty{color:#aab0bf;font-weight:600}
-input[type=date]{-webkit-appearance:none;appearance:none;background:#fbfcfe}
+/* iOS: τα date πεδία αγνοούν box-sizing/πλάτος και ξεφεύγουν από την κάρτα */
+input[type=date]{-webkit-appearance:none;appearance:none;background:#fbfcfe;min-width:0;max-width:100%;text-align:left}
+input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;line-height:1.5}
 
 /* Action bar */
 .actionbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(255,255,255,.92);
