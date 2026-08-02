@@ -38,6 +38,7 @@ deeper, one topic per file:
 | [request-closed.md](request-closed.md) | «Ολοκλήρωσα την αναζήτηση»: matchings email → `/request-closed` → Worker → Make → email to info@ |
 | [request-matchings.md](request-matchings.md) | Νέα ακίνητα σε ζητήσεις: σάρωση του tab «Ακίνητα» όλων των ενεργών ζητήσεων → digest email στη γραμματεία |
 | [photo-enhance.md](photo-enhance.md) | AI photo enhancement: enhance.html → Worker/R2 → Make (Gemini "Nano Banana") → Google Drive + email; the edit toggles and Make build recipe |
+| [quick-leads.md](quick-leads.md) | Γρήγορο lead από πινακίδα: `lead.html` → Worker/R2 (Gemini vision + reverse geocode) → ένα email ανά βόλτα· γιατί το EXIF GPS λείπει τόσο συχνά και πώς κλειδώνει η τοποθεσία πάνω στον δρόμο |
 | [assets-host.md](assets-host.md) | `assets.four-walls.gr`: ο φάκελος `assets/` του repo ως δημόσιο CDN για υπογραφές email/πρότυπα CRM — cache, όρια, το setup του custom domain |
 | [error-monitoring.md](error-monitoring.md) | Bugsnag και στα δύο front-ends: self-hosted notifier, μόνο production, το offline queue του PWA, τα δύο projects/keys, το SmartBear MCP |
 | [manual-site.md](manual-site.md) | Εγχειρίδιο γραμματείας στο `docs.four-walls.gr` (`manual/`): μη-τεχνικές οδηγίες, ξεκινώντας από τα email του `info@` |

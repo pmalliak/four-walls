@@ -1,0 +1,135 @@
+{
+	"flow": [
+		{
+			"id": 1,
+			"mapper": {},
+			"module": "gateway:CustomWebHook",
+			"version": 1,
+			"metadata": {
+				"restore": {
+					"parameters": {
+						"hook": {
+							"data": {
+								"editable": "true"
+							},
+							"label": "Leads — γρήγορη καταχώριση"
+						}
+					}
+				},
+				"designer": {
+					"x": 0,
+					"y": 0,
+					"name": "Γρήγορο lead (lead.html)"
+				},
+				"parameters": [
+					{
+						"name": "hook",
+						"type": "hook:gateway-webhook",
+						"label": "Webhook",
+						"required": true
+					},
+					{
+						"name": "maxResults",
+						"type": "number",
+						"label": "Maximum number of results"
+					}
+				]
+			},
+			"parameters": {
+				"hook": 3482735,
+				"maxResults": 1
+			}
+		},
+		{
+			"id": 2,
+			"mapper": {
+				"content": "{{1.html}}",
+				"subject": "{{1.subject}}",
+				"encoding": "UTF-8",
+				"accountId": "5796850000000008002",
+				"ccAddress": [
+					"{{ifempty(1.submitted_by; \"info@four-walls.gr\")}}"
+				],
+				"toAddress": [
+					"info@four-walls.gr"
+				],
+				"bccAddress": [],
+				"mailFormat": "html",
+				"fromAddress": "info@four-walls.gr"
+			},
+			"module": "zoho-mail:sendMail",
+			"version": 1,
+			"metadata": {
+				"restore": {
+					"expect": {
+						"encoding": {
+							"label": "UTF-8"
+						},
+						"accountId": {
+							"mode": "chose",
+							"label": "info@four-walls.gr"
+						},
+						"ccAddress": {
+							"items": [
+								null
+							]
+						},
+						"toAddress": {
+							"items": [
+								null
+							]
+						},
+						"mailFormat": {
+							"label": "HTML"
+						}
+					},
+					"parameters": {
+						"__IMTCONN__": {
+							"data": {
+								"scoped": "true",
+								"connection": "zoho-mail"
+							},
+							"label": "My Zoho Mail connection"
+						}
+					}
+				},
+				"designer": {
+					"x": 300,
+					"y": 0,
+					"name": "Email στο info@ (cc αποστολέας)"
+				},
+				"parameters": [
+					{
+						"name": "__IMTCONN__",
+						"type": "account:zoho-mail",
+						"label": "Connection",
+						"required": true
+					}
+				]
+			},
+			"parameters": {
+				"__IMTCONN__": 8711103
+			}
+		}
+	],
+	"name": "Leads — γρήγορη καταχώριση",
+	"metadata": {
+		"instant": true,
+		"version": 1,
+		"designer": {
+			"orphans": []
+		},
+		"scenario": {
+			"dlq": true,
+			"slots": null,
+			"dataloss": false,
+			"maxErrors": 3,
+			"autoCommit": true,
+			"roundtrips": 1,
+			"sequential": false,
+			"confidential": false,
+			"freshVariables": false,
+			"autoCommitTriggerLast": true
+		}
+	}
+}

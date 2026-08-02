@@ -145,6 +145,11 @@ function indexEntry(raw) {
 		id: raw.id,
 		name: displayName(raw),
 		phone: raw.phones?.[0]?.number ?? null,
+		/* Όλα τα τηλέφωνα, όχι μόνο το πρώτο: ο έλεγχος «την ξέρουμε ήδη
+		   αυτή την πινακίδα;» (worker/lib/phone-lookup.mjs) αστοχούσε σε
+		   κάθε επαφή που έδωσε το κινητό της ως δεύτερο νούμερο. Ο picker
+		   των εντύπων εξακολουθεί να διαβάζει το `phone`. */
+		phones: (raw.phones || []).map((p) => p.number).filter(Boolean),
 		email: raw.emails?.[0]?.email ?? null,
 		isLead: !!raw.is_lead,
 	};

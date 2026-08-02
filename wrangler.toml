@@ -52,6 +52,9 @@ id = "faf7d0b092d94eb1bdb974c764e3191a"
 #   npx wrangler r2 bucket create four-walls-photos
 # Originals are throwaway once Make has them — a lifecycle rule that expires
 # objects after ~7 days keeps the bucket from growing (see docs/photo-enhance.md).
+# The same bucket also stages the γρήγορα leads under the `leads/` prefix
+# (worker/lib/leads.mjs) — those photos are embedded IN the email, so their
+# lifecycle rule must be ~30 days, not 7 (see docs/quick-leads.md).
 [[r2_buckets]]
 binding = "PHOTO_BUCKET"
 bucket_name = "four-walls-photos"
@@ -141,6 +144,14 @@ MAKE_ZONE = "eu1.make.com"
 #   PHOTO_SIGN_KEY           HMAC secret that signs the per-photo download URLs
 #                            Make fetches. Any long random string:
 #                            `npx wrangler secret put PHOTO_SIGN_KEY`
+#                            Also signs the lead photos (different namespace).
+#   MAKE_LEADS_WEBHOOK       Make hook for «Leads — γρήγορη καταχώριση». The
+#                            Worker does the AI reading and builds the email;
+#                            Make only sends it. See docs/quick-leads.md.
+#   MAKE_LEADS_APIKEY        optional: only if that hook gets API-key auth
+#   GEMINI_API_KEY           AI Studio key (billing on). Already used by the
+#                            εκτίμηση and the monthly area-price check; the
+#                            leads pipeline reads the signs with it too.
 #   MAKE_API_TOKEN           Make API token (read-only χρήση: σενάρια + DLQ).
 #                            Ο ημερήσιος φύλακας ρωτάει μ' αυτό τι σκόνταψε.
 #   MAKE_DLQ_WEBHOOK         Make hook του σεναρίου «Φύλακας — ό,τι δεν
