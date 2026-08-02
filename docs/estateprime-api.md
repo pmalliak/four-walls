@@ -150,7 +150,11 @@ documented `notes` is not returned.
 
 - **Required fields beyond the spec** — the API 400s with `Missing <field>` one
   at a time until all of these are present: `users` (array of user ids,
-  `GET /users` → 1=Πάνος, 2=Μάνος), `created_by`, `office_id` (1=Κεντρικό),
+  `GET /users` → **1=Αφεντούλα Στεφάνογλου** (`info@four-walls.gr`, η
+  γραμματεία — το seat ήταν του Πάνου μέχρι τον 8/2026 και άλλαξε πρόσωπο
+  αντί να αγοραστεί τρίτο· ο user id είναι ο ίδιος, οπότε **παλιές εγγραφές
+  με `created_by: 1` εμφανίζονται πλέον ως Αφεντούλα**), 2=Μάνος
+  Χριστινάκης), `created_by`, `office_id` (1=Κεντρικό),
   `language_id` (1=Greek), `country` (`"GR"`).
 - **Phone `type` uses UI slugs** like `"mobile-personal"`, not the spec's bare
   `"mobile"`.
