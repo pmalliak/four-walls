@@ -5,7 +5,7 @@
 
 | ID | Σενάριο | Ενεργό | Χρονισμός | Modules | Αρχείο |
 |---|---|---|---|---|---|
-| `6405443` | Spitogatos - Αίτηση ανάθεσης | ναι | άμεσα (webhook/mailhook) | 22 | [6405443-spitogatos-aitisi-anathesis.blueprint.json](scenarios/6405443-spitogatos-aitisi-anathesis.blueprint.json) |
+| `6405443` | Spitogatos - Αίτηση ανάθεσης | ναι | άμεσα (webhook/mailhook) | 24 | [6405443-spitogatos-aitisi-anathesis.blueprint.json](scenarios/6405443-spitogatos-aitisi-anathesis.blueprint.json) |
 | `6530594` | Site - Φόρμα επικοινωνίας | ναι | άμεσα (webhook/mailhook) | 33 | [6530594-site-forma-epikoinonias.blueprint.json](scenarios/6530594-site-forma-epikoinonias.blueprint.json) |
 | `6600035` | Έντυπα — υποβολή φόρμας | ναι | άμεσα (webhook/mailhook) | 15 | [6600035-entypa-ypovoli-formas.blueprint.json](scenarios/6600035-entypa-ypovoli-formas.blueprint.json) |
 | `6604242` | Spitogatos - Ενδιαφέρον για ακίνητο | ναι | άμεσα (webhook/mailhook) | 21 | [6604242-spitogatos-endiaferon-gia-akinito.blueprint.json](scenarios/6604242-spitogatos-endiaferon-gia-akinito.blueprint.json) |
@@ -40,7 +40,8 @@
         65  placeholder:Placeholder
   ├─ route 2
     30  zoho-mail:sendMail · Notification · [onerror: builtin:Resume]
-    35  builtin:BasicIfElse
+    70  http:ActionSendData · Site: μία απάντηση ανά ιδιοκτήτη · [onerror: builtin:Resume]
+    35  builtin:BasicIfElse · [φίλτρο: Μόνο την πρώτη φορά]
       ├─ condition «Πώληση»
         4   zoho-mail:sendMail · Send to Client (Sale)
       ├─ condition «Ενοικίαση»

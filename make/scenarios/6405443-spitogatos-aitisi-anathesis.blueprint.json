@@ -1161,6 +1161,18 @@
 						},
 						{
 							"id": 35,
+							"filter": {
+								"name": "Μόνο την πρώτη φορά",
+								"conditions": [
+									[
+										{
+											"a": "{{70.data.first}}",
+											"b": "false",
+											"o": "text:notequal"
+										}
+									]
+								]
+							},
 							"mapper": null,
 							"module": "builtin:BasicIfElse",
 							"version": 1,
@@ -1706,18 +1718,6 @@
 									"x": 1200,
 									"y": 2400
 								}
-							},
-							"filter": {
-								"name": "Μόνο την πρώτη φορά",
-								"conditions": [
-									[
-										{
-											"a": "{{70.data.first}}",
-											"b": "false",
-											"o": "text:notequal"
-										}
-									]
-								]
 							}
 						}
 					]
