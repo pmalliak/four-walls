@@ -500,6 +500,16 @@ function browserReport(html, url) {
 <meta name="robots" content="noindex">
 <style>
 @media (max-width:640px){
+	/* Οι πίνακες του email είναι φτιαγμένοι για 600px: τα συγκριτικά έχουν
+	   πέντε στήλες και μόνο τα κενά τους τρώνε 100px. Σε οθόνη κινητού το
+	   ελάχιστο πλάτος τους ξεπερνά τη σελίδα και ξεχειλίζει ΟΛΟ το report
+	   δεξιά. Λιγότερο κενό και ένα σκαλί μικρότερα γράμματα στα κελιά με
+	   νούμερα (τα μεγάλα ποσά είναι σε div, δεν τα αγγίζει). ΟΧΙ
+	   overflow-wrap:anywhere: δοκιμάστηκε και έσπαγε τα νούμερα στη μέση
+	   («265.00 / 0 €»), γιατί μηδενίζει το ελάχιστο πλάτος στήλης και ο
+	   πίνακας μοιράζει το πλάτος στα τυφλά. Το !important γιατί όλα τα
+	   styles του email είναι inline. */
+	td{padding-left:6px !important; padding-right:6px !important; font-size:11.5px !important; overflow-wrap:break-word;}
 	/* Τα τρία κουτάκια της ανακαίνισης (33% το καθένα, με νούμερα που δεν
 	   σπάνε) δεν χωρούν πλάι-πλάι σε οθόνη κινητού: το ένα κάτω από το άλλο. */
 	td[width="33%"]{display:block !important; width:auto !important; margin-bottom:6px;}
@@ -509,7 +519,11 @@ function browserReport(html, url) {
 	const bar = `<div style="position:sticky; top:0; z-index:9; background:${NAVY}; border-bottom:2px solid ${PINK}; padding:11px 16px;"><a href="${esc(logHref(url))}" style="color:#ffffff; font-family:Arial,sans-serif; font-size:13.5px; font-weight:bold; text-decoration:none;">&larr;&nbsp;&nbsp;Ιστορικό εκτιμήσεων</a></div>`;
 	return String(html || "")
 		.replace("</head>", head + "</head>")
-		.replace(/<body[^>]*>/i, (m) => m + bar);
+		.replace(/<body[^>]*>/i, (m) => m + bar)
+		// Σε στενή στήλη το «265.000 €» έσπαγε αφήνοντας το € μόνο του στην
+		// επόμενη γραμμή. Άκυρο σύμβολο χωρίς το ποσό του: τα δένει σκληρό
+		// κενό, μόνο εδώ, ώστε το email να μείνει byte για byte το ίδιο.
+		.replace(/ €/g, " €");
 }
 
 /* Ο μήνας του ιστορικού, όπως ήρθε από τον σύνδεσμο. Ό,τι δεν είναι
