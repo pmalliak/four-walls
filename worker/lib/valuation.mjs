@@ -57,6 +57,20 @@ const DEFAULT_MODEL = "claude-opus-5";
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
 
+/* Χαμηλή, όχι μηδενική: το μηδέν κολλάει τα μοντέλα σε επαναλαμβανόμενες
+   διατυπώσεις και βλάπτει τα κείμενα, ενώ τα νούμερα σταθεροποιούνται ήδη
+   πολύ πριν φτάσουμε εκεί. */
+const VALUATION_TEMPERATURE = 0.2;
+
+/* ΠΟΥ ΤΡΕΧΟΥΜΕ ΤΟ ΠΡΩΤΟ ΠΕΡΑΣΜΑ ΠΟΛΛΕΣ ΦΟΡΕΣ: στη γη. Είναι το μόνο
+   είδος χωρίς συγκριτικά και με πίνακα πρώτης έκδοσης, δηλαδή εκεί που η
+   διασπορά του μοντέλου είναι μεγαλύτερη. Τα δείγματα τρέχουν ΠΑΡΑΛΛΗΛΑ
+   (ίδιος χρόνος αναμονής, τριπλάσιο κόστος πρώτου περάσματος — δηλαδή
+   λίγα λεπτά του ευρώ) και κρατάμε το ΔΙΑΜΕΣΟ, όχι τον μέσο όρο: ένα
+   ακραίο δείγμα δεν παρασύρει τη διάμεσο. */
+const SAMPLED_PROFILES = new Set(["plot", "parcel"]);
+const PASS1_SAMPLES = 3;
+
 /* ctx: για το ctx.waitUntil. ΚΡΙΣΙΜΟ σε κινητό — ο υπολογισμός θέλει 25-45
    δευτερόλεπτα, και όταν κλειδώσει η οθόνη ή πάει η εφαρμογή στο background
    το fetch πεθαίνει. Χωρίς waitUntil, το Cloudflare ακυρώνει τον Worker μαζί
@@ -112,12 +126,15 @@ export async function handleValuation(request, env, url, ctx) {
 	// background), το promise συνεχίζει και γράφει στο KV. Το επόμενο fetch
 	// βρίσκει το report έτοιμο αντί να ξαναπληρώσει δύο κλήσεις AI.
 	const work = (async () => {
-		const draftJson = await askJson(env, PASS1_SYSTEM, dataBlock + "\n\n" + PASS1_ASK, { search: true });
+		const { draft, spread } = await firstPass(env, prop, dataBlock);
 		const v = await askJson(
 			env,
 			PASS2_SYSTEM,
-			dataBlock + "\n\nΗ ΕΚΤΙΜΗΣΗ ΠΡΟΣ ΕΛΕΓΧΟ (JSON):\n" + JSON.stringify(draftJson) + "\n\n" + PASS2_ASK,
+			dataBlock + spread + "\n\nΗ ΕΚΤΙΜΗΣΗ ΠΡΟΣ ΕΛΕΓΧΟ (JSON):\n" + JSON.stringify(draft) + "\n\n" + PASS2_ASK,
 		);
+		// Το φρένο τρέχει ΜΕΤΑ τον ελεγκτή: είναι το τελευταίο δίχτυ, και
+		// είναι σε κώδικα επίτηδες — τα prompts ξεχνιούνται, ο κώδικας όχι.
+		landSanityCheck(prop, v);
 		const result = renderReport(prop, comps, stats, priceRow, v, payload, offers);
 		await env.LISTINGS_KV.put(VALUATION_RES_PREFIX + ref, JSON.stringify(result), {
 			expirationTtl: 7 * 24 * 3600,
@@ -135,6 +152,69 @@ export async function handleValuation(request, env, url, ctx) {
 		return json({ error: "valuation_failed", detail: String(err).slice(0, 200) }, 502);
 	}
 	return respond(await withPdf(env, ref, result, wantsPdf), wantsHtml);
+}
+
+/* ΠΡΩΤΟ ΠΕΡΑΣΜΑ — ένα δείγμα, ή τρία και η διάμεσος στη γη.
+   Η διασπορά ΔΕΝ πετιέται: μπαίνει στο δεύτερο πέρασμα ως δεδομένο. Αν
+   τρία ανεξάρτητα δείγματα με τα ΙΔΙΑ στοιχεία απέχουν 20%, αυτό είναι
+   μέτρηση της αβεβαιότητας του ίδιου του μοντέλου, και ο ελεγκτής πρέπει
+   να την περάσει στο εύρος και στη βεβαιότητα αντί να την αγνοήσει. */
+async function firstPass(env, prop, dataBlock) {
+	const ask = () => askJson(env, PASS1_SYSTEM, dataBlock + "\n\n" + PASS1_ASK, { search: true });
+	if (!SAMPLED_PROFILES.has(prop.profile)) return { draft: await ask(), spread: "" };
+
+	// Παράλληλα: ο σύμβουλος περιμένει τον ίδιο χρόνο με ένα δείγμα.
+	// Ένα δείγμα που σκάει δεν ρίχνει την εκτίμηση — αρκεί ένα να ζήσει.
+	const settled = await Promise.allSettled(Array.from({ length: PASS1_SAMPLES }, ask));
+	const drafts = settled.filter((s) => s.status === "fulfilled").map((s) => s.value)
+		.filter((d) => Number(d && d.value_mid) > 0);
+	if (!drafts.length) {
+		const firstErr = settled.find((s) => s.status === "rejected");
+		throw firstErr ? firstErr.reason : new Error("first pass produced no usable draft");
+	}
+	drafts.sort((a, b) => Number(a.value_mid) - Number(b.value_mid));
+	const draft = drafts[Math.floor(drafts.length / 2)];
+	const lo = Number(drafts[0].value_mid);
+	const hi = Number(drafts[drafts.length - 1].value_mid);
+	const spreadPct = lo > 0 ? Math.round(((hi - lo) / lo) * 100) : 0;
+	console.log(`valuation: ${drafts.length} δείγματα πρώτου περάσματος, διασπορά ${spreadPct}%, διάμεσος ${draft.value_mid}`);
+	if (drafts.length < 2 || spreadPct < 8) return { draft, spread: "" };
+	return {
+		draft,
+		spread: `\n\nΔΙΑΣΠΟΡΑ ΑΝΕΞΑΡΤΗΤΩΝ ΕΚΤΙΜΗΣΕΩΝ: το πρώτο πέρασμα έτρεξε ${drafts.length} φορές με ΤΑ ΙΔΙΑ ακριβώς δεδομένα και έδωσε ${drafts.map((d) => Math.round(d.value_mid)).join(", ")} (διαφορά ${spreadPct}%). Σου δίνεται η ΔΙΑΜΕΣΟΣ. Αυτή η διασπορά είναι μέτρηση της πραγματικής αβεβαιότητας για το συγκεκριμένο ακίνητο: φρόντισε το εύρος low-high να την καλύπτει και η βεβαιότητα να μην είναι υψηλή όταν ξεπερνά το 15%.`,
+	};
+}
+
+/* ΝΤΕΤΕΡΜΙΝΙΣΤΙΚΟ ΦΡΕΝΟ ΓΙΑ ΤΗ ΓΗ.
+   Η άγκυρα (€/τ.μ. δόμησης της περιοχής) υπάρχει ήδη στο prompt, αλλά ένα
+   prompt είναι παράκληση. Εδώ ελέγχουμε σε κώδικα ότι το τελικό νούμερο
+   κάθεται μέσα σε λογικό πολλαπλάσιο της άγκυρας. Δεν ΔΙΟΡΘΩΝΟΥΜΕ την
+   τιμή — δεν ξέρουμε αν φταίει το μοντέλο ή ο πίνακας, και μια σιωπηλή
+   διόρθωση θα έκρυβε και τα δύο. Κατεβάζουμε τη βεβαιότητα, το γράφουμε
+   στο review_notes και βγάζει αίρεση: ο σύμβουλος πρέπει να το δει. */
+const LAND_SANITY_LOW = 0.5;
+const LAND_SANITY_HIGH = 2;
+
+function landSanityCheck(prop, v) {
+	if (!SAMPLED_PROFILES.has(prop.profile) || !v) return;
+	const anchor = landPricePerBuildableSqm(prop.areaName);
+	if (!anchor || !prop.size || !prop.buildFactor) return;
+	const buildable = prop.size * prop.buildFactor;
+	const perBuildable = Number(v.eur_per_buildable_sqm) > 0
+		? Number(v.eur_per_buildable_sqm)
+		: (Number(v.value_mid) > 0 ? Number(v.value_mid) / buildable : 0);
+	if (!(perBuildable > 0)) return;
+
+	const floor = anchor.low * LAND_SANITY_LOW;
+	const ceil = anchor.high * LAND_SANITY_HIGH;
+	if (perBuildable >= floor && perBuildable <= ceil) return;
+
+	const where = perBuildable < floor ? "ΧΑΜΗΛΟΤΕΡΑ" : "ΨΗΛΟΤΕΡΑ";
+	const note = `Αυτόματος έλεγχος: η εκτίμηση αντιστοιχεί σε ${Math.round(perBuildable)} €/τ.μ. δόμησης, πολύ ${where} από το εύρος της περιοχής (${anchor.low}-${anchor.high}). Είτε το ακίνητο έχει κάτι που δεν αποτυπώθηκε, είτε ο πίνακας τιμών γης χρειάζεται επικαιροποίηση — θέλει ανθρώπινο μάτι πριν σταλεί.`;
+	console.warn(`valuation: land sanity check failed (${Math.round(perBuildable)} vs ${anchor.low}-${anchor.high} €/τ.μ. δόμησης)`);
+	v.confidence = "χαμηλή";
+	v.review_notes = [v.review_notes, note].filter(Boolean).join(" ");
+	v.caveats = [...(Array.isArray(v.caveats) ? v.caveats : []), note];
 }
 
 /* Το PDF της ΠΛΗΡΟΥΣ αναφοράς, με πραγματικό κείμενο (Browser Rendering,
@@ -1336,6 +1416,13 @@ async function askGemini(env, system, user, opts) {
 			...(search ? { tools: [{ google_search: {} }] } : {}),
 			generationConfig: {
 				maxOutputTokens: 32000,
+				/* ΝΤΕΤΕΡΜΙΝΙΣΜΟΣ, ΟΧΙ ΕΜΠΝΕΥΣΗ. Χωρίς temperature το Flash
+				   τρέχει στο προεπιλεγμένο 1,0 — δηλαδή δειγματοληψία σαν να
+				   γράφει κείμενο. Στις πρώτες πραγματικές δοκιμές το ίδιο
+				   ακίνητο έδωσε 612.000 και 684.000 σε δύο εκτελέσεις (±12%)
+				   με ΤΑ ΙΔΙΑ δεδομένα. Μια εκτίμηση δεν επιτρέπεται να
+				   αλλάζει επειδή ξαναπατήθηκε το κουμπί. */
+				temperature: VALUATION_TEMPERATURE,
 				...(search ? {} : { responseMimeType: "application/json" }),
 			},
 		}),
@@ -1380,6 +1467,8 @@ async function askClaude(env, system, user, opts) {
 			// ακριβώς η παγίδα που έκοβε το Gemini στα 8000 (βλ. askGemini).
 			max_tokens: 24000,
 			output_config: { effort: "medium" },
+			// Ίδιος λόγος με το Gemini: η εκτίμηση θέλει σταθερότητα, όχι ποικιλία.
+			temperature: VALUATION_TEMPERATURE,
 			// Web search: server-side tool, τρέχει στην Anthropic — καμία
 			// αλλαγή στον βρόχο μας. Το max_uses κρατά κόστος/χρόνο φραγμένα.
 			...(search ? { tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5 }] } : {}),
