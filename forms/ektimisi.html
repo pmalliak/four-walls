@@ -86,6 +86,17 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
    (αυθαίρετο, μη οικοδομήσιμο γήπεδο, ψιλή κυριότητα). */
 .doc .caveat{background:#fff4f6;border:1px solid #f2b8c6;border-left:3px solid #c62828;border-radius:8px;padding:10px 13px;margin:0 0 8px;}
 .doc .caveat .l{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#c62828;margin-bottom:2px;}
+/* Βεβαιότητα: πράσινο/πορτοκαλί/κόκκινο, ίδια χρώματα με το email και το
+   PDF του Worker (CONFIDENCE_STYLE στο worker/lib/valuation.mjs). Τα
+   χρώματα μπαίνουν inline ανά επίπεδο· εδώ μένει ό,τι δεν αλλάζει. Τα
+   τρία τετραγωνάκια δίπλα στη λέξη λένε το ίδιο πράγμα χωρίς χρώμα, για
+   ασπρόμαυρη εκτύπωση και για ματιά που δεν ξεχωρίζει κόκκινο-πράσινο. */
+.doc .conf{border:1px solid #e3e6eb;border-left:3px solid #6b7280;border-radius:8px;padding:10px 13px;margin:10px 0 8px;}
+.doc .conf .l{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#6b7280;margin-bottom:5px;}
+.doc .conf .pill{display:inline-block;color:#fff;font-size:11.5px;font-weight:800;letter-spacing:.08em;padding:3px 11px;border-radius:11px;}
+.doc .conf .meter{display:inline-block;margin-left:10px;vertical-align:1px;}
+.doc .conf .meter i{display:inline-block;width:20px;height:5px;border-radius:3px;background:#dfe3e8;margin-left:3px;}
+.doc .conf p{margin:7px 0 0;}
 /* «Με ανακαίνιση»: η ιστορία σε τρία νούμερα — κόστος, αξία μετά, καθαρό
    όφελος. Stat-κουτιά αντί για παράγραφο· είναι το πωλησιακό σημείο. */
 .doc .renov{background:#f9f5ff;border:1px solid #cdb9ec;border-radius:10px;padding:12px 15px;margin:0 0 8px;}
@@ -104,7 +115,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
    γραμμή πίνακα δεν κόβεται στα δύο από αλλαγή σελίδας· ό,τι δεν χωράει
    πάει ολόκληρο στην επόμενη. Στην οθόνη ο κανόνας δεν κάνει τίποτα. */
 .doc h2{break-after:avoid;page-break-after:avoid;}
-.doc .bigval,.doc .rentval,.doc .note,.doc .caveat,.doc .renov,.doc .renov .st,.doc tr,.doc .disc{break-inside:avoid;page-break-inside:avoid;}
+.doc .bigval,.doc .rentval,.doc .note,.doc .caveat,.doc .conf,.doc .renov,.doc .renov .st,.doc tr,.doc .disc{break-inside:avoid;page-break-inside:avoid;}
 .spin{display:inline-block;width:15px;height:15px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-right:8px;}
 @keyframes sp{to{transform:rotate(360deg)}}
 /* chosen record (property from CRM) */
@@ -1452,6 +1463,19 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		return CONFIDENCE_ALIAS[raw.toLowerCase()] || raw;
 	}
 
+	/* Τα χρώματα της βεβαιότητας. Δίδυμος πίνακας του CONFIDENCE_STYLE στο
+	   worker/lib/valuation.mjs: ό,τι βλέπει ο σύμβουλος στη φόρμα πρέπει να
+	   είναι ακριβώς ό,τι θα δει στο email και στο PDF. Λέξη εκτός των τριών
+	   βγαίνει γκρι, ποτέ πράσινη: το αδιάγνωστο δεν είναι καλό νέο. */
+	var CONF_STYLE = {
+		"υψηλή": { fill: "#12855b", bg: "#f2f9f4", border: "#b7dfc5", steps: 3 },
+		"μέτρια": { fill: "#b26a00", bg: "#fff8e8", border: "#f0d3a0", steps: 2 },
+		"χαμηλή": { fill: "#c62828", bg: "#fff4f6", border: "#f2b8c6", steps: 1 },
+	};
+	function confStyle(c){
+		return CONF_STYLE[normConfidence(c)] || { fill: "#6b7280", bg: "#f7f8fa", border: "#e3e6eb", steps: 0 };
+	}
+
 	/* Οι δύο καρτέλες πάνω από το έγγραφο. Η όψη «ιδιοκτήτη» δεν είναι
 	   περίληψη του PDF: είναι ο ΙΔΙΟΣ κόμβος που στέλνεται (buildClientDoc),
 	   ώστε ό,τι βλέπει ο σύμβουλος να είναι ό,τι λαμβάνει ο πελάτης. */
@@ -1585,10 +1609,29 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 			d.appendChild(el("p", null, v.market_comment));
 		}
 
-		d.appendChild(el("h2", null, "ΒΕΒΑΙΟΤΗΤΑ: " + grUpper(normConfidence(v.confidence))));
-		if (v.confidence_reason) d.appendChild(el("p", null, v.confidence_reason));
+		/* Η βεβαιότητα χρωματιστή, ίδια με το email και το PDF. Ήταν μια
+		   επικεφαλίδα σαν όλες τις άλλες: «χαμηλή» και «υψηλή» διάβαζαν το
+		   ίδιο, και το νούμερο ταξίδευε σαν να ήταν σίγουρο. */
+		var cs = confStyle(v.confidence);
+		var cbox = el("div", "conf");
+		cbox.style.background = cs.bg;
+		cbox.style.borderColor = cs.border;
+		cbox.style.borderLeftColor = cs.fill;
+		cbox.appendChild(el("div", "l", "ΒΕΒΑΙΟΤΗΤΑ ΕΚΤΙΜΗΣΗΣ"));
+		var pill = el("span", "pill", grUpper(normConfidence(v.confidence)) || "ΑΓΝΩΣΤΗ");
+		pill.style.background = cs.fill;
+		cbox.appendChild(pill);
+		var meter = el("span", "meter");
+		for (var ci = 0; ci < 3; ci++) {
+			var seg = el("i");
+			if (ci < cs.steps) seg.style.background = cs.fill;
+			meter.appendChild(seg);
+		}
+		cbox.appendChild(meter);
+		if (v.confidence_reason) cbox.appendChild(el("p", null, v.confidence_reason));
 		var missing = (Array.isArray(v.missing_info) ? v.missing_info : []).filter(Boolean);
-		if (missing.length) d.appendChild(el("p", "mut", "Θα βοηθούσε να ξέρουμε: " + missing.join(" · ")));
+		if (missing.length) cbox.appendChild(el("p", "mut", "Θα βοηθούσε να ξέρουμε: " + missing.join(" · ")));
+		d.appendChild(cbox);
 
 		if (v.advice) {
 			var nt = el("div", "note");

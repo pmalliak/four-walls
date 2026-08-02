@@ -37,7 +37,7 @@ import {
 import { RENOVATION_COSTS, RENOVATION_COSTS_META } from "./renovation-costs.mjs";
 import { renderDocPdf } from "./pdfrender.mjs";
 import { apiConfig } from "./estateprime.mjs";
-import { subcategoryLabel } from "./seo.mjs";
+import { subcategoryLabel, canonicalUrl } from "./seo.mjs";
 
 /* KV keys — το request γράφεται από forms.mjs, το result από εδώ. */
 export const VALUATION_REQ_PREFIX = "valuation:req:";
@@ -52,10 +52,11 @@ export const VALUATION_REQ_PREFIX = "valuation:req:";
    ΑΥΞΗΣΕ ΤΟ όποτε αλλάζει το renderReport, το renderPrintHtml ή τα prompts:
    τα παλιά κλειδιά αγνοούνται και λήγουν μόνα τους, και ό,τι ξανασταλεί
    ΞΑΝΑΥΠΟΛΟΓΙΖΕΤΑΙ με τον νέο κώδικα. Κοστίζει δύο κλήσεις AI ανά τέτοιο
-   resend, άρα όχι για αλλαγές που δεν φαίνονται στο χαρτί. Το «3» είναι το
+   resend, άρα όχι για αλλαγές που δεν φαίνονται στο χαρτί. Το «3» ήταν το
    επόμενο νούμερο μετά το valuation:pdf2:, που είχε μπει μόνο του για τον
-   ίδιο λόγο (τα πρώτα PDF έβγαιναν με τη σχεδίαση του email). */
-const REPORT_VERSION = 3;
+   ίδιο λόγο (τα πρώτα PDF έβγαιναν με τη σχεδίαση του email)· το «4» είναι
+   η χρωματισμένη βεβαιότητα (02/08/2026), που φαίνεται στο χαρτί. */
+const REPORT_VERSION = 4;
 const VALUATION_RES_PREFIX = `valuation:res${REPORT_VERSION}:`;
 const VALUATION_PDF_PREFIX = `valuation:pdf${REPORT_VERSION}:`;
 
@@ -66,8 +67,20 @@ const VALUATION_LOG_PREFIX = "valuation:log:";
 /* Ένα TTL για το αίτημα ΚΑΙ για τα κασαρισμένα. Το αίτημα ζούσε 2 μέρες
    και το report 7: μετά από αύξηση του REPORT_VERSION ένα resend μέσα σε
    αυτό το κενό θα ξαναϋπολόγιζε, δεν θα έβρισκε το αίτημα και θα έσκαγε με
-   unknown_ref (404 → το bundle στο DLQ). Τώρα λήγουν μαζί. */
-export const VALUATION_TTL_SECONDS = 7 * 24 * 3600;
+   unknown_ref (404 → το bundle στο DLQ). Τώρα λήγουν μαζί.
+
+   ΕΝΑ ΕΤΟΣ, όχι 7 μέρες: ο λόγος του μικρού TTL ήταν ο όγκος, και ο όγκος
+   δεν υπάρχει. Το report είναι ~60 KB κείμενο, δηλαδή λίγες δεκάδες MB τον
+   χρόνο στους ρυθμούς μας, μέσα στο δωρεάν 1 GB του KV. Με 7 μέρες ο
+   σύνδεσμος «report» του ιστορικού ήταν νεκρός σχεδόν πάντα: η γραμμή
+   έμενε για πάντα και το κείμενο που την εξηγεί χανόταν σε μια βδομάδα. */
+export const VALUATION_TTL_SECONDS = 365 * 24 * 3600;
+
+/* Το PDF είναι base64 και ζυγίζει 10-20 φορές το report, χωρίς να το
+   χρειάζεται κανείς αργότερα: το ζητά μόνο το Make τη στιγμή της
+   αποστολής, λεπτά μετά τον υπολογισμό. Ό,τι σπάνια ξαναζητηθεί
+   ξαναφτιάχνεται από το report, χωρίς AI. */
+const VALUATION_PDF_TTL_SECONDS = 7 * 24 * 3600;
 
 const FEED_KEY = "listings.json"; // ίδιο με FEED_KEY στο worker/index.mjs
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
@@ -97,19 +110,28 @@ const PASS1_SAMPLES = 3;
    στο KV, οπότε το επόμενο fetch τη βρίσκει έτοιμη και δωρεάν. */
 export async function handleValuation(request, env, url, ctx) {
 	if (request.method !== "GET") return json({ error: "method_not_allowed" }, 405);
-	if (!env.ANTHROPIC_API_KEY && !env.GEMINI_API_KEY) {
-		console.error("valuation: neither ANTHROPIC_API_KEY nor GEMINI_API_KEY is configured");
-		return json({ error: "not_configured" }, 503);
-	}
 
 	const ref = String(url.searchParams.get("ref") || "").trim();
 	if (!/^[0-9a-f-]{16,64}$/i.test(ref)) return json({ error: "bad_ref" }, 400);
 	const wantsHtml = url.searchParams.get("format") === "html";
 	const wantsPdf = url.searchParams.get("pdf") === "1";
+	const cacheOnly = url.searchParams.get("cached") === "1";
 
 	// Idempotent: το ίδιο ref δίνει πάντα το ίδιο report, χωρίς νέο κόστος.
 	const cached = await env.LISTINGS_KV.get(VALUATION_RES_PREFIX + ref);
 	if (cached) return respond(await withPdf(env, ref, JSON.parse(cached), wantsPdf), wantsHtml);
+
+	/* ΜΟΝΟ ό,τι υπάρχει έτοιμο (ο σύνδεσμος του ιστορικού). Ένα ref μηνών
+	   πίσω δεν επιτρέπεται να ξαναπεράσει από το AI: θα χρέωνε δύο κλήσεις
+	   με ένα κλικ και, χειρότερα, θα έβγαζε ΑΛΛΑ νούμερα από αυτά που
+	   στάλθηκαν τότε (νέος πίνακας τιμών, άλλο στοκ συγκριτικών). Τα
+	   νούμερα εκείνης της ημέρας τα κρατά η γραμμή του ιστορικού. */
+	if (cacheOnly) return expiredReport(ref, wantsHtml);
+
+	if (!env.ANTHROPIC_API_KEY && !env.GEMINI_API_KEY) {
+		console.error("valuation: neither ANTHROPIC_API_KEY nor GEMINI_API_KEY is configured");
+		return json({ error: "not_configured" }, 503);
+	}
 
 	const rawReq = await env.LISTINGS_KV.get(VALUATION_REQ_PREFIX + ref);
 	if (!rawReq) return json({ error: "unknown_ref" }, 404);
@@ -170,6 +192,30 @@ export async function handleValuation(request, env, url, ctx) {
 		return json({ error: "valuation_failed", detail: String(err).slice(0, 200) }, 502);
 	}
 	return respond(await withPdf(env, ref, result, wantsPdf), wantsHtml);
+}
+
+/* Η απάντηση του «report» όταν το πλήρες κείμενο δεν υπάρχει πια: παλιά
+   εκτίμηση (πάνω από έναν χρόνο) ή εκτίμηση που υπολογίστηκε με παλιότερο
+   REPORT_VERSION. Σελίδα, όχι σκέτο 404, γιατί την ανοίγει άνθρωπος από το
+   ιστορικό, και λέει πού είναι τα νούμερα. */
+function expiredReport(ref, wantsHtml) {
+	if (!wantsHtml) return json({ error: "expired_report", ref }, 404);
+	const html = `<!doctype html><html lang="el"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Το report δεν είναι πια διαθέσιμο</title></head>
+<body style="margin:0; padding:40px 16px; background:#f4f5f7; font-family:Arial,sans-serif;">
+<div style="max-width:520px; margin:0 auto; background:#ffffff; border-radius:8px; padding:22px;">
+	<div style="font-size:11px; font-weight:bold; letter-spacing:1.5px; color:${PINK};">ΕΚΤΙΜΗΣΗ</div>
+	<div style="font-size:17px; font-weight:bold; color:${NAVY}; margin:4px 0 10px;">Το πλήρες report δεν είναι πια διαθέσιμο</div>
+	<div style="font-size:13.5px; color:#374151; line-height:1.7;">Τα νούμερα της εκτίμησης (εύρος αξίας, €/τ.μ., μίσθωμα, βεβαιότητα) μένουν για πάντα στη γραμμή του ιστορικού. Το πλήρες κείμενο κρατιέται έναν χρόνο, και δεν ξαναϋπολογίζεται εδώ: μια νέα εκτίμηση σήμερα θα έδινε άλλα νούμερα από αυτά που στάλθηκαν τότε.</div>
+	<div style="font-size:13.5px; margin-top:16px;"><a href="/api/valuation-log" style="color:${PINK};">Επιστροφή στο ιστορικό εκτιμήσεων</a></div>
+</div>
+</body></html>`;
+	return new Response(html, {
+		status: 404,
+		headers: { "Content-Type": "text/html; charset=utf-8", "X-Robots-Tag": "noindex" },
+	});
 }
 
 /* ΠΡΩΤΟ ΠΕΡΑΣΜΑ — ένα δείγμα, ή τρία και η διάμεσος στη γη.
@@ -255,7 +301,7 @@ async function withPdf(env, ref, result, wantsPdf) {
 		} catch (err) {
 			console.warn(`valuation: report PDF render failed for ${ref}: ${String(err)}`);
 		}
-		if (b64) await env.LISTINGS_KV.put(key, b64, { expirationTtl: VALUATION_TTL_SECONDS });
+		if (b64) await env.LISTINGS_KV.put(key, b64, { expirationTtl: VALUATION_PDF_TTL_SECONDS });
 	}
 	if (!b64) return result;
 	return {
@@ -340,7 +386,7 @@ function json(obj, status) {
 /* Μόνιμο ιστορικό εκτιμήσεων                                          */
 /* ------------------------------------------------------------------ */
 
-/* Το report στο KV λήγει σε 7 μέρες, και email υπάρχει μόνο αν πατήθηκε
+/* Το report στο KV λήγει σε έναν χρόνο, και email υπάρχει μόνο αν πατήθηκε
    «Αποστολή στο info@» — χωρίς αυτό εδώ, σε λίγους μήνες κανείς δεν
    ξέρει τι εκτιμήσαμε και πόσο. Μία συμπυκνωμένη γραμμή ανά εκτίμηση,
    σε ένα key ανά μήνα, χωρίς TTL: αρκεί για το «τι εκτιμήσαμε το Χ;»
@@ -362,6 +408,10 @@ async function logValuation(env, ref, prop, v, payload) {
 			ref,
 			by: String(payload.submitted_by || ""),
 			code: prop.listingCode || "",
+			// Το id της καρτέλας του CRM, για τον σύνδεσμο του ιστορικού. Ο
+			// κωδικός δεν αρκεί: η καρτέλα ανοίγει με id, και το feed (που
+			// τα αντιστοιχεί) κρατά μόνο τα ενεργά.
+			id: prop.listingId || "",
 			category: prop.category,
 			kind: prop.subcategory || "",
 			// Ποιο προφίλ και ποια μέθοδος: όταν μαζευτούν πραγματικές τιμές
@@ -419,6 +469,23 @@ export async function handleValuationLog(request, env, url) {
 	if (!months.includes(month)) months.push(month);
 	months.sort().reverse();
 
+	/* Το feed δίνει τους δύο συνδέσμους κάθε γραμμής. Το CRM id, γιατί οι
+	   γραμμές πριν τις 02/08/2026 κρατούσαν μόνο κωδικό και η καρτέλα
+	   ανοίγει με id. Και το «είναι ακόμα δικό μας»: το feed έχει μόνο τα
+	   ενεργά, άρα ό,τι βρίσκεται εκεί έχει σελίδα στο site. Ένα ακίνητο
+	   που πουλήθηκε ή αποσύρθηκε θα έδινε 404. Αποτυχία εδώ δεν ρίχνει τη
+	   σελίδα, απλώς μένουν λιγότεροι σύνδεσμοι. */
+	const byCode = new Map();
+	try {
+		const rawFeed = await env.LISTINGS_KV.get(FEED_KEY);
+		for (const l of (rawFeed ? JSON.parse(rawFeed).listings || [] : [])) {
+			if (l && l.code) byCode.set(String(l.code), l);
+		}
+	} catch (err) {
+		console.warn(`valuation-log: feed unavailable, links reduced: ${String(err)}`);
+	}
+	const crmBase = `https://${env.ESTATEPRIME_SUBDOMAIN || "fourwalls"}.estateprime.gr`;
+
 	const monthLabel = (m) => {
 		const [y, mo] = m.split("-");
 		const names = ["Ιανουάριος", "Φεβρουάριος", "Μάρτιος", "Απρίλιος", "Μάιος", "Ιούνιος",
@@ -431,23 +498,39 @@ export async function handleValuationLog(request, env, url) {
 	).join(" · ");
 
 	const rows = entries.map((e) => {
-		const when = e.ts ? new Date(e.ts).toLocaleDateString("el-GR", { timeZone: "Europe/Athens" }) : "";
+		// Και ώρα, όχι μόνο ημέρα: δύο εκτιμήσεις του ίδιου ακινήτου την
+		// ίδια μέρα (π.χ. πριν και μετά από διόρθωση στοιχείων) αλλιώς
+		// ξεχωρίζουν μόνο από τη σειρά τους. Ώρα Ελλάδας, το ts είναι UTC.
+		const at = e.ts ? new Date(e.ts) : null;
+		const when = at ? at.toLocaleDateString("el-GR", { timeZone: "Europe/Athens" }) : "";
+		const time = at
+			// hour12:false ρητά, γιατί το el-GR default βγάζει «09:45 μ.μ.».
+			? at.toLocaleTimeString("el-GR", { timeZone: "Europe/Athens", hour: "2-digit", minute: "2-digit", hour12: false })
+			: "";
 		// labelKind και εδώ: οι εγγραφές πριν τη διόρθωση κρατούν slug.
 		const what = [labelKind(e.kind, e.category) || labelCategory(e.category), e.code ? `κωδ. ${e.code}` : "", e.area, e.address]
 			.filter(Boolean).join(" · ");
+		const live = e.code ? byCode.get(String(e.code)) : null;
+		const crmId = e.id || (live ? live.id : "");
+		const link = (href, label) => `<a href="${esc(href)}" target="_blank" rel="noopener" style="color:${PINK}; text-decoration:none;">${label}</a>`;
+		const links = [
+			link(`/api/valuation?ref=${encodeURIComponent(e.ref)}&format=html&cached=1`, "report"),
+			crmId ? link(`${crmBase}/listings/view/${encodeURIComponent(crmId)}`, "CRM") : "",
+			live ? link(canonicalUrl(live), "σελίδα") : "",
+		].filter(Boolean).join(`<span style="color:#d5d9e0;"> · </span>`);
 		const sale = e.value_mid
 			? `<strong>${eur(e.value_mid)}</strong> <span style="color:#6b7280;">(${eur(e.value_low)} έως ${eur(e.value_high)})</span>`
 			: "";
 		return `<tr>
-			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; white-space:nowrap;">${esc(when)}</td>
+			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; white-space:nowrap;">${esc(when)}<div style="font-size:11px; color:#9aa3af;">${esc(time)}</div></td>
 			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; color:${NAVY};">${esc(what)}</td>
 			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right;">${e.sqm ? esc(String(e.sqm)) + " τ.μ." : ""}</td>
 			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; white-space:nowrap;">${sale}</td>
 			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right; color:#6b7280;">${e.eur_per_sqm ? eur(e.eur_per_sqm) + "/τ.μ." : ""}</td>
 			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; white-space:nowrap;">${e.rent_mid ? eur(e.rent_mid) + "/μήνα" : ""}</td>
-			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px;">${esc(e.confidence || "")}</td>
+			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px;">${e.confidence ? confChip(e.confidence) : ""}</td>
 			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; color:#6b7280;">${esc(e.by || "")}</td>
-			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px;"><a href="/api/valuation?ref=${esc(e.ref)}&format=html" style="color:${PINK};">report</a></td>
+			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; white-space:nowrap;">${links}</td>
 		</tr>`;
 	}).join("");
 
@@ -477,7 +560,7 @@ export async function handleValuationLog(request, env, url) {
 			</tr>
 			${rows}
 		</table></div>` : `<div style="background:#f4f7fb; border:1px solid #c9d4e4; border-radius:8px; padding:12px 16px; font-size:13px; color:${NAVY};">Καμία εκτίμηση αυτόν τον μήνα.</div>`}
-		<div style="font-size:11px; color:#9aa3af; margin-top:14px; line-height:1.6;">Ο σύνδεσμος «report» ανοίγει το πλήρες report όσο ζει στο cache (7 μέρες)· οι γραμμές του ιστορικού μένουν για πάντα. Πρόσβαση με JSON: <code>/api/valuation-log?month=${esc(month)}&amp;format=json</code>.</div>
+		<div style="font-size:11px; color:#9aa3af; margin-top:14px; line-height:1.6;">Το «report» ανοίγει το πλήρες κείμενο όπως στάλθηκε τότε (κρατιέται έναν χρόνο, δεν ξαναϋπολογίζεται)· οι γραμμές του ιστορικού μένουν για πάντα. Το «CRM» ανοίγει την καρτέλα του ακινήτου, η «σελίδα» τη δημόσια σελίδα του, μόνο για ακίνητα που είναι αυτή τη στιγμή στο στοκ μας. Πρόσβαση με JSON: <code>/api/valuation-log?month=${esc(month)}&amp;format=json</code>.</div>
 	</div>
 </div>
 </body></html>`;
@@ -1559,6 +1642,48 @@ function grUpper(s) {
 	return String(s == null ? "" : s).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
 }
 
+/* Η βεβαιότητα με ΧΡΩΜΑ, όχι μόνο με λέξη. Το report διαβάζεται στο
+   κινητό ανάμεσα σε δύο ραντεβού: μια «χαμηλή» γραμμένη με τα ίδια
+   μαύρα γράμματα όπως η «υψηλή» δεν διαβάζεται, και το νούμερο ταξιδεύει
+   σαν να ήταν σίγουρο. Τα ίδια τρία χρώματα σε email, PDF, φόρμα και
+   ιστορικό (ο δίδυμος πίνακας CONF_STYLE στο forms/ektimisi.html).
+   Άγνωστη λέξη → γκρι, ποτέ πράσινο: το αδιάγνωστο δεν είναι καλό νέο. */
+const CONFIDENCE_STYLE = {
+	"υψηλή": { fill: "#12855b", bg: "#f2f9f4", border: "#b7dfc5", steps: 3 },
+	"μέτρια": { fill: "#b26a00", bg: "#fff8e8", border: "#f0d3a0", steps: 2 },
+	"χαμηλή": { fill: "#c62828", bg: "#fff4f6", border: "#f2b8c6", steps: 1 },
+};
+const CONFIDENCE_UNKNOWN = { fill: "#6b7280", bg: "#f7f8fa", border: "#e3e6eb", steps: 0 };
+
+function confStyle(conf) {
+	return CONFIDENCE_STYLE[normConfidence(conf)] || CONFIDENCE_UNKNOWN;
+}
+
+/* Το χρώμα το βλέπει μόνο όποιος το βλέπει: σε ασπρόμαυρη εκτύπωση, και
+   σε ματιά που δεν ξεχωρίζει κόκκινο από πράσινο (~8% των αντρών), τρία
+   γεμάτα τετραγωνάκια έναντι ενός λένε την ίδια ιστορία χωρίς χρώμα.
+   Πίνακας και όχι div/span: είναι το μόνο που στοιχίζεται παντού σε
+   Outlook και Gmail. */
+function confPill(conf) {
+	const cs = confStyle(conf);
+	const word = grUpper(normConfidence(conf)) || "ΑΓΝΩΣΤΗ";
+	// Το χρώμα στο div και όχι στο td: το κελί τεντώνεται στο ύψος της
+	// γραμμής (όσο η πινακίδα) και θα έβγαζε τετράγωνα αντί για μπάρες.
+	const seg = (on) => `<td width="20" valign="middle" style="font-size:0; line-height:0;"><div style="height:5px; background:${on ? cs.fill : "#dfe3e8"}; border-radius:3px; font-size:0; line-height:0;">&nbsp;</div></td>`;
+	return `<table role="presentation" cellpadding="0" cellspacing="0"><tr>
+		<td style="background:${cs.fill}; border-radius:11px; padding:3px 11px; font-size:12px; font-weight:bold; letter-spacing:1px; color:#ffffff; white-space:nowrap;">${esc(word)}</td>
+		<td width="12"></td>
+		${[0, 1, 2].map((i) => seg(i < cs.steps)).join(`<td width="3"></td>`)}
+	</tr></table>`;
+}
+
+/* Η ίδια πινακίδα σε μία γραμμή, για τον πίνακα του ιστορικού. */
+function confChip(conf) {
+	const cs = confStyle(conf);
+	const word = grUpper(normConfidence(conf)) || "—";
+	return `<span style="display:inline-block; background:${cs.fill}; border-radius:10px; padding:2px 9px; font-size:11px; font-weight:bold; letter-spacing:.5px; color:#ffffff; white-space:nowrap;">${esc(word)}</span>`;
+}
+
 function eur(n) {
 	if (!Number.isFinite(Number(n))) return "";
 	return "€" + String(Math.round(Number(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -1734,9 +1859,14 @@ function renderReport(prop, comps, stats, priceRow, v, payload, offers) {
 		<div style="font-size:13px; color:#444; line-height:1.6;">${esc(v.market_comment)}</div>
 	</td></tr>` : ""}
 	<tr><td style="padding:18px 20px 0;">
-		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΒΕΒΑΙΟΤΗΤΑ: ${esc(grUpper(normConfidence(v.confidence)))}</div>
-		<div style="font-size:12.5px; color:#444; line-height:1.55;">${esc(v.confidence_reason || "")}</div>
-		${missing.length ? `<div style="font-size:12px; color:#6b7280; margin-top:6px;">Θα βοηθούσε να ξέρουμε: ${esc(missing.join(" · "))}</div>` : ""}
+		<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+			<td style="background:${confStyle(v.confidence).bg}; border:1px solid ${confStyle(v.confidence).border}; border-left:3px solid ${confStyle(v.confidence).fill}; border-radius:8px; padding:11px 14px;">
+				<div style="font-size:11px; font-weight:bold; letter-spacing:1px; color:#6b7280; margin-bottom:6px;">ΒΕΒΑΙΟΤΗΤΑ ΕΚΤΙΜΗΣΗΣ</div>
+				${confPill(v.confidence)}
+				<div style="font-size:12.5px; color:#444; line-height:1.55; margin-top:8px;">${esc(v.confidence_reason || "")}</div>
+				${missing.length ? `<div style="font-size:12px; color:#6b7280; margin-top:6px;">Θα βοηθούσε να ξέρουμε: ${esc(missing.join(" · "))}</div>` : ""}
+			</td>
+		</tr></table>
 	</td></tr>
 	${v.advice ? `<tr><td style="padding:14px 20px 0;">
 		<div style="background:#f2f9f4; border-left:3px solid #2e9e5b; border-radius:6px; padding:10px 14px; font-size:13px; line-height:1.55; color:${NAVY};"><strong>Για τη συζήτηση με τον ιδιοκτήτη:</strong> ${esc(v.advice)}</div>
@@ -1902,6 +2032,15 @@ td.num{text-align:right;white-space:nowrap;}
    νούμερο δεν επιτρέπεται να ταξιδέψει χωρίς αυτές. */
 .caveat{background:#fff4f6;border:1px solid #f2b8c6;border-left:3px solid #c62828;border-radius:8px;padding:10px 13px;margin:0 0 8px;font-size:12.5px;line-height:1.6;color:${DOC_NAVY};}
 .caveat .l{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#c62828;margin-bottom:2px;}
+/* Βεβαιότητα: χρώμα + τρία τετραγωνάκια. Τα χρώματα μπαίνουν inline ανά
+   επίπεδο (confStyle)· εδώ μένει ό,τι δεν αλλάζει. Τα τετραγωνάκια για
+   να διαβάζεται και τυπωμένο ασπρόμαυρο. */
+.conf{border:1px solid #e3e6eb;border-left:3px solid #6b7280;border-radius:8px;padding:10px 13px;margin:10px 0 8px;}
+.conf .l{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#6b7280;margin-bottom:5px;}
+.conf .pill{display:inline-block;color:#fff;font-size:11.5px;font-weight:800;letter-spacing:.08em;padding:3px 11px;border-radius:11px;}
+.conf .meter{display:inline-block;margin-left:10px;vertical-align:1px;}
+.conf .meter i{display:inline-block;width:20px;height:5px;border-radius:3px;background:#dfe3e8;margin-left:3px;}
+.conf p{margin:7px 0 0;}
 .renov{background:#f9f5ff;border:1px solid #cdb9ec;border-radius:10px;padding:12px 15px;margin:0 0 8px;}
 .renov .lbl{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#6b7280;}
 .renov .scope{font-size:12.5px;margin:2px 0 10px;line-height:1.5;}
@@ -1941,9 +2080,13 @@ td.num{text-align:right;white-space:nowrap;}
 	${compSections || (v.comps_comment ? "<h2>ΤΙ ΔΕΙΧΝΟΥΝ ΤΑ ΣΥΓΚΡΙΤΙΚΑ</h2>" : "")}
 	${v.comps_comment ? `<p class="mut" style="margin-top:6px;">${esc(v.comps_comment)}</p>` : ""}
 	${v.market_comment ? `<h2>Η ΑΓΟΡΑ</h2><p>${esc(v.market_comment)}</p>` : ""}
-	<h2>ΒΕΒΑΙΟΤΗΤΑ: ${esc(grUpper(normConfidence(v.confidence)))}</h2>
-	${v.confidence_reason ? `<p>${esc(v.confidence_reason)}</p>` : ""}
-	${missing.length ? `<p class="mut">Θα βοηθούσε να ξέρουμε: ${esc(missing.join(" · "))}</p>` : ""}
+	<div class="conf" style="background:${confStyle(v.confidence).bg}; border-color:${confStyle(v.confidence).border}; border-left-color:${confStyle(v.confidence).fill};">
+		<div class="l">ΒΕΒΑΙΟΤΗΤΑ ΕΚΤΙΜΗΣΗΣ</div>
+		<span class="pill" style="background:${confStyle(v.confidence).fill};">${esc(grUpper(normConfidence(v.confidence)) || "ΑΓΝΩΣΤΗ")}</span>
+		<span class="meter">${[0, 1, 2].map((i) => `<i${i < confStyle(v.confidence).steps ? ` style="background:${confStyle(v.confidence).fill};"` : ""}></i>`).join("")}</span>
+		${v.confidence_reason ? `<p>${esc(v.confidence_reason)}</p>` : ""}
+		${missing.length ? `<p class="mut">Θα βοηθούσε να ξέρουμε: ${esc(missing.join(" · "))}</p>` : ""}
+	</div>
 	${v.advice ? `<div class="note"><strong>Για τη συζήτηση με τον ιδιοκτήτη:</strong> ${esc(v.advice)}</div>` : ""}
 	${v.renovation ? `<h2>ΜΕ ΑΝΑΚΑΙΝΙΣΗ</h2>
 	<div class="renov">
