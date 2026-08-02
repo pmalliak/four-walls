@@ -44,7 +44,7 @@ import { handleLeadApi, serveLeadFile } from "./lib/leads.mjs";
 import { handleLeadReply } from "./lib/lead-reply.mjs";
 import { handlePropertyRequest } from "./lib/property-request.mjs";
 import { handlePropertyAssignment } from "./lib/property-assignment.mjs";
-import { handleValuation, handleValuationLog } from "./lib/valuation.mjs";
+import { handleValuation, handleValuationLog, handleValuationRequest } from "./lib/valuation.mjs";
 import { handleAreaPricesRefresh } from "./lib/area-prices-refresh.mjs";
 import { maybeRunDlqWatch, handleDlqReport } from "./lib/dlq-watch.mjs";
 import { handleOnce } from "./lib/sent-log.mjs";
@@ -82,8 +82,14 @@ export default {
 		// that URL is kept alive for the CRM webhook and bypasses Access
 		// entirely, which would leave the whole client database wide open.
 		// The host check is defence in depth; requireAccess() below is the
-		// real gate, for all three.
-		if (pathname.startsWith("/api/crm/") || pathname === "/api/forms/submit" || pathname === "/api/valuation-log") {
+		// real gate, for all four.
+		//
+		// /api/valuation-request hands the form back the fields a consultant
+		// typed into an earlier valuation (address, asking price, notes), so
+		// it belongs here and NOT next to /api/valuation below: that one
+		// answers without Access on purpose, because Make calls it.
+		if (pathname.startsWith("/api/crm/") || pathname === "/api/forms/submit"
+			|| pathname === "/api/valuation-log" || pathname === "/api/valuation-request") {
 			if (!(url.hostname.startsWith("forms.") || isLocalDev(url, env))) {
 				return new Response("Not Found", { status: 404 });
 			}
@@ -91,6 +97,7 @@ export default {
 			if (denied) return denied;
 			if (pathname === "/api/forms/submit") return handleFormSubmit(request, env, email);
 			if (pathname === "/api/valuation-log") return handleValuationLog(request, env, url);
+			if (pathname === "/api/valuation-request") return handleValuationRequest(request, env, url);
 			return handleCrm(request, env, pathname, url);
 		}
 

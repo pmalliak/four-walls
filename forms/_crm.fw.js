@@ -488,6 +488,22 @@
 		contact: function (id) {
 			return getJson("/api/crm/contacts/" + id);
 		},
+		/* Το ίδιο για ακίνητο: ΑΠΟ ΤΟΝ ΙΔΙΟ κατάλογο που τροφοδοτεί το
+		   sheet, ώστε να γυρίζει ακριβώς το record που θα είχε διαλέξει ο
+		   σύμβουλος. Το χρειάζεται η εκτίμηση όταν ξανανοίγει μια παλιά
+		   υποβολή: κρατά μόνο listing_id/code, όχι ολόκληρη την καρτέλα.
+		   Επιστρέφει null όταν το ακίνητο δεν είναι πια στον κατάλογο
+		   (πουλήθηκε, αποσύρθηκε, διαγράφηκε) — ο καλών αποφασίζει. */
+		listing: function (id, code) {
+			return loadListings().then(function (rows) {
+				var hit = rows.find(function (r) {
+					var l = r.raw;
+					return (id != null && id !== "" && String(l.id) === String(id))
+						|| (code && String(l.code) === String(code));
+				});
+				return hit ? hit.raw : null;
+			}).catch(function () { return null; });
+		},
 		money: money,
 	};
 

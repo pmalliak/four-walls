@@ -218,6 +218,11 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 .fu .fuq input:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 3px rgba(255,0,98,.12);}
 .fu .btn{width:100%;margin-top:16px;}
 .fu .btn:disabled{opacity:.55;cursor:default;}
+/* Άνοιγμα παλιάς εκτίμησης από το ιστορικό: πληροφορία, όχι προειδοποίηση,
+   γι' αυτό navy και όχι το ροζ του .warn. Λέει ΤΙ φορτώθηκε και τι θα γίνει
+   αν πατηθεί «Υπολογισμός» — μια νέα εκτίμηση, όχι σύγκριση με την παλιά. */
+.info{background:#f4f7fb;border:1px solid #c9d4e4;border-radius:12px;padding:11px 13px;margin:0 0 12px;font-size:13px;color:var(--navy);line-height:1.5;}
+.info b{font-weight:800;}
 /* the asking price gets the prosfora treatment: it is the one big number */
 .amt{position:relative;}
 .amt input{font-size:26px;font-weight:800;color:var(--navy);letter-spacing:.01em;padding:14px 46px 14px 14px;text-align:right;}
@@ -236,6 +241,7 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 <div id="form">
 	<div class="usenote">Η εκτίμηση βγαίνει αυτόματα με AI από τιμές αγγελιών και τα δικά μας συγκριτικά. Είναι βοήθημα για τη συζήτηση τιμής, όχι τελικό νούμερο· θέλει πάντα το μάτι του συμβούλου.<br><strong>Κόστος: κάτω από 0,15 € ανά εκτίμηση</strong> (δύο περάσματα AI). Η αποστολή στο γραφείο ή στον ιδιοκτήτη δεν χρεώνεται ξανά — μόνο το «Υπολογισμός εκτίμησης» κοστίζει.</div>
 	<div class="hintline" style="text-align:center; margin:-6px 0 14px;"><a href="/api/valuation-log">Ιστορικό εκτιμήσεων</a>: τι έχουμε εκτιμήσει, ανά μήνα.</div>
+	<div class="info" id="openbox" hidden></div>
 	<div class="warn" id="warnbox" hidden></div>
 	<div class="card">
 		<div class="sect">Ακίνητο</div>
@@ -1616,6 +1622,16 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 			+ " που αλλάζουν το νούμερο. Απάντησε ό,τι ξέρεις και η εκτίμηση ξαναβγαίνει με αυτά μέσα. "
 			+ "Το «Δεν γνωρίζω» είναι κι αυτό απάντηση: κρατάει το εύρος πλατύ αντί να υποθέσει το μοντέλο. "
 			+ "Κοστίζει άλλη μία εκτίμηση, κάτω από 0,15 €."));
+		/* Άνοιξε από το ιστορικό και κάποια πεδία δεν χώρεσαν πια στη φόρμα:
+		   ο ξαναϋπολογισμός τα στέλνει ΚΕΝΑ, οπότε το «πριν → τώρα» θα
+		   χρέωνε στην απάντηση μια αλλαγή που έφερε το χαμένο στοιχείο. */
+		if (missedFields.length) {
+			var w = el("div", "hintline");
+			w.style.color = "#8a0035";
+			w.textContent = "Προσοχή: από την παλιά εκτίμηση ΔΕΝ ξαναφορτώθηκαν «" + missedFields.join(", ")
+				+ "» (άλλαξαν οι επιλογές της φόρμας). Πάτα «Νέα εκτίμηση» και συμπλήρωσέ τα, αλλιώς το νέο νούμερο θα βγει χωρίς αυτά.";
+			box.appendChild(w);
+		}
 
 		qs.forEach(function(m, i){
 			var q = el("div", "fuq");
@@ -1704,8 +1720,14 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		if (rows.length !== qs.length) return;
 		if (navigator.onLine === false) { toast("Ο υπολογισμός θέλει σύνδεση στο internet.", "err"); return; }
 		/* Η αποστολή έχει ήδη γίνει: το γραφείο ή ο ιδιοκτήτης κρατά το
-		   παλιό νούμερο, και ένα νέο report δεν το προλαβαίνει. */
-		if (sent && !window.confirm("Η εκτίμηση έχει ήδη σταλεί. Το νέο νούμερο ΔΕΝ αντικαθιστά ό,τι έφυγε, θα χρειαστεί νέα αποστολή. Να συνεχίσω;")) return;
+		   παλιό νούμερο, και ένα νέο report δεν το προλαβαίνει. Όταν η
+		   εκτίμηση άνοιξε από το ιστορικό ξέρουμε ΠΟΥ και ΠΟΤΕ στάλθηκε,
+		   οπότε το λέμε με ονόματα αντί για «μπορεί». */
+		if (sent) {
+			var note = sentNote();
+			if (!window.confirm((note ? "Η εκτίμηση έχει σταλεί " + note + "." : "Η εκτίμηση έχει ήδη σταλεί.")
+				+ " Το νέο νούμερο ΔΕΝ αντικαθιστά ό,τι έφυγε, θα χρειαστεί νέα αποστολή. Να συνεχίσω;")) return;
+		}
 
 		var prev = result.j.v || {};
 		var go = $("fuGo");
@@ -1976,8 +1998,170 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		return d;
 	}
 
+	/* ------------------------------------------- άνοιγμα παλιάς εκτίμησης */
+
+	/* Μια εκτίμηση δεν είναι μόνο το report: είναι και τα τριάντα πεδία που
+	   συμπλήρωσε ο σύμβουλος. Το payload παρκάρει στο KV για έναν χρόνο
+	   (valuation:req:<ref>), οπότε το ιστορικό μπορεί να τα ξαναδώσει εδώ
+	   αντί να τα ξαναγράφει κανείς στο χέρι:
+
+	     ?ref=…       τα στοιχεία στη φόρμα, για ΝΕΑ εκτίμηση με τα σημερινά
+	                  δεδομένα της αγοράς. Καμία σύγκριση με την παλιά:
+	                  άλλος πίνακας τιμών, άλλο στοκ συγκριτικών.
+	     ?followup=…  τα ίδια, ΣΥΝ το κασαρισμένο report, ώστε ο σύμβουλος να
+	                  συνεχίσει κατευθείαν στις ερωτήσεις συμπλήρωσης. Το
+	                  ιστορικό το προσφέρει μόνο όσο η σύγκριση στέκει.
+
+	   Το ref φεύγει από τη γραμμή διευθύνσεων μόλις φορτώσει: ένα reload δεν
+	   επιτρέπεται να ρίξει ξανά παλιά στοιχεία πάνω σε δουλειά που άρχισε. */
+	var opened = null;        // ό,τι γύρισε το /api/valuation-request
+	var missedFields = [];    // τιμές που δεν χώρεσαν πια στη φόρμα (βλ. applySaved)
+
+	function queryRef(){
+		var q = new URLSearchParams(location.search);
+		var fu = String(q.get("followup") || "").trim();
+		var re = String(q.get("ref") || "").trim();
+		var v = fu || re;
+		return /^[0-9a-f-]{16,64}$/i.test(v) ? { ref: v, followup: !!fu } : null;
+	}
+
+	function applySaved(d){
+		missedFields = [];
+		FIELDS.forEach(function(f){
+			if (!f[1] || d[f[1]] == null) return;
+			var want = String(d[f[1]]);
+			fldSet(f[0], want);
+			/* Ένα <select> που δεν έχει πια αυτή την επιλογή (η λίστα άλλαξε
+			   από τότε που έγινε η εκτίμηση) μένει ΚΕΝΟ, και το χάσιμο περνά
+			   απαρατήρητο ενώ αλλάζει το νούμερο. Το λέμε στο μπάνερ. */
+			if (want && !fldVal(f[0])) missedFields.push(labelOf(f[0]));
+		});
+		// Η ζητούμενη ταξιδεύει ως καθαρός αριθμός· το πεδίο τη δείχνει με
+		// τελείες, όπως όταν την πληκτρολογεί ο σύμβουλος.
+		if (d.asking_price_num) { $("asking").value = d.asking_price_num; onAsking(); }
+		setKind(val("subcategory"));   // γεμίζει και τον τύπο, που δεν ταξιδεύει
+		renderPurpose();
+		applyProfile();
+		if (window.FWPlaces) FWPlaces.refresh();
+		updateBuildableHint();
+		// Ό,τι φορτώθηκε είναι η ΒΑΣΗ, όχι αλλαγή: αλλιώς το autosave γράφει
+		// αμέσως ένα πρόχειρο αντίγραφο κάθε φορά που ανοίγει κανείς μια
+		// παλιά εκτίμηση.
+		if (window.FWDrafts) FWDrafts.rebase();
+	}
+
+	/* Το ακίνητο του CRM ΔΕΝ αποθηκεύεται ολόκληρο στο payload, μόνο id,
+	   κωδικός και διεύθυνση. Το ξαναφέρνουμε από τον ίδιο κατάλογο που
+	   τροφοδοτεί τον picker, ώστε η κάρτα να δείχνει ό,τι θα έδειχνε αν το
+	   είχε μόλις διαλέξει ο σύμβουλος. Αν δεν υπάρχει πια εκεί (πουλήθηκε,
+	   αποσύρθηκε) ή αν το CRM δεν απαντά, τα τρία αποθηκευμένα πεδία
+	   αρκούν για να ξαναβγεί η εκτίμηση.
+
+	   ΧΩΡΙΣ prefill(): εκείνο γεμίζει τα πεδία από το ΣΗΜΕΡΙΝΟ feed και θα
+	   έσβηνε ό,τι είχε γράψει ο σύμβουλος με το χέρι. Το CRM δίνει την
+	   ταυτότητα, ο σύμβουλος έχει τον τελευταίο λόγο. */
+	async function restoreListing(d){
+		var id = d.listing_id || "", code = d.listing_code || "";
+		if (!id && !code) return;
+		var l = null;
+		try { l = window.FWCrm && FWCrm.listing ? await FWCrm.listing(id, code) : null; } catch (e) { l = null; }
+		listing = l || { id: id || null, code: code, address: d.listing_address || "", area: d.area_name || "" };
+		renderListing();
+	}
+
+	function shortDate(s){
+		var d = s ? new Date(s) : null;
+		return d && !isNaN(d) ? d.toLocaleDateString("el-GR") : "";
+	}
+
+	/* Πού έχει σταλεί ήδη αυτή η εκτίμηση, με ονόματα και ημερομηνίες. Η
+	   γραμμή του ιστορικού το ξέρει (markValuationSent), οπότε η
+	   προειδοποίηση της συμπλήρωσης δεν χρειάζεται να λέει «μπορεί». */
+	function sentNote(){
+		var s = opened && opened.sent;
+		if (!s) return "";
+		var bits = [];
+		if (s.office) bits.push("στο info@ στις " + shortDate(s.office));
+		if (s.client) bits.push("στον ιδιοκτήτη" + (s.client.to ? " (" + s.client.to + ")" : "") + " στις " + shortDate(s.client.at));
+		return bits.join(" και ");
+	}
+
+	function showOpenedBanner(why){
+		var b = $("openbox");
+		b.textContent = "";
+		var head = document.createElement("b");
+		head.textContent = "Στοιχεία από την εκτίμηση της " + (shortDate(opened.submitted_at) || "—")
+			+ (opened.value_mid ? " (είχε δώσει " + money(opened.value_mid) + ")" : "") + ". ";
+		b.appendChild(head);
+		b.appendChild(document.createTextNode(
+			(why ? why + " " : "")
+			+ "Έλεγξε ό,τι άλλαξε και πάτα «Υπολογισμός εκτίμησης»: βγαίνει ΝΕΑ εκτίμηση με τα σημερινά δεδομένα της αγοράς, όχι σύγκριση με την παλιά."
+			+ (sentNote() ? " Η παλιά είχε σταλεί " + sentNote() + "." : "")
+			+ (missedFields.length ? " ΔΕΝ ξαναφορτώθηκαν (άλλαξαν οι επιλογές της φόρμας): " + missedFields.join(", ") + "." : "")));
+		b.hidden = false;
+		window.scrollTo(0, 0);
+	}
+
+	/* Συμπλήρωση: το κασαρισμένο report ΧΩΡΙΣ νέο κόστος AI (&cached=1) και
+	   κατευθείαν στην οθόνη του αποτελέσματος, όπου η κάρτα των ερωτήσεων
+	   δουλεύει ακριβώς όπως μόλις έχει βγει μια εκτίμηση. */
+	async function openFollowup(ref){
+		try {
+			var res = await fetch("/api/valuation?ref=" + encodeURIComponent(ref) + "&cached=1");
+			if (!res.ok) throw new Error("HTTP " + res.status);
+			var j = await res.json();
+			result = { ref: ref, summary: opened.summary || "", j: j };
+			editing = null;
+			renderFollowup();
+			showView("office");
+			$("form").classList.add("hide");
+			$("bar").classList.add("hide");
+			$("result").classList.remove("hide");
+			resetSendButtons();
+			// Ανοιγμένη από το ιστορικό: ό,τι στάλθηκε το ξέρουμε από τη
+			// γραμμή, δεν το μαντεύουμε από τη συνεδρία.
+			sent = !!(opened.sent && (opened.sent.office || opened.sent.client));
+			syncEmailSources();
+			window.scrollTo(0, 0);
+			return true;
+		} catch (e) {
+			console.error(e);
+			return false;
+		}
+	}
+
+	async function bootFromRef(){
+		var q = queryRef();
+		if (!q) return;
+		history.replaceState(null, "", location.pathname);
+		$("send").disabled = true;
+		try {
+			var r = await fetch("/api/valuation-request?ref=" + encodeURIComponent(q.ref));
+			if (!r.ok) throw new Error("HTTP " + r.status);
+			opened = await r.json();
+		} catch (e) {
+			console.error(e);
+			toast("Δεν βρέθηκαν τα στοιχεία εκείνης της εκτίμησης — ίσως έληξαν (κρατιούνται έναν χρόνο).", "err");
+			return;
+		} finally { $("send").disabled = false; }
+
+		applySaved(opened.data || {});
+		await restoreListing(opened.data || {});
+
+		if (!q.followup) { showOpenedBanner(""); return; }
+		// Ένας γύρος: μια ήδη συμπληρωμένη εκτίμηση δεν ξανασυμπληρώνεται.
+		if (opened.has_followup) {
+			showOpenedBanner("Αυτή η εκτίμηση έχει ήδη συμπληρωθεί μία φορά.");
+			return;
+		}
+		if (await openFollowup(q.ref)) return;
+		showOpenedBanner("Το report εκείνης της εκτίμησης δεν είναι πια διαθέσιμο, οπότε δεν γίνεται συμπλήρωση.");
+	}
+
 	function reset(){
 		listing = null;
+		opened = null;
+		$("openbox").hidden = true;
 		FIELDS.forEach(function(f){ fldSet(f[0], ""); });
 		$("purpose").value = "both";
 		renderPurpose();
@@ -2068,6 +2252,12 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 					d.subcategory, d.size && d.size + " τ.μ."].filter(Boolean).join(" — ");
 			},
 		});
+
+		/* Τελευταίο, αφού στηθούν όλα: αν η σελίδα άνοιξε από το ιστορικό
+		   (?ref= ή ?followup=), τα πεδία γεμίζουν από την παλιά υποβολή. Τα
+		   πρόχειρα δεν συγκρούονται — δεν κάνουν ποτέ auto-restore, δείχνουν
+		   μπάνερ και περιμένουν άνθρωπο. */
+		bootFromRef();
 	}
 	document.addEventListener("DOMContentLoaded", init);
 })();

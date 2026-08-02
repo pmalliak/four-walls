@@ -18,7 +18,7 @@
 
 import { json } from "./access.mjs";
 import { renderDocPdf } from "./pdfrender.mjs";
-import { VALUATION_REQ_PREFIX, VALUATION_TTL_SECONDS } from "./valuation.mjs";
+import { VALUATION_REQ_PREFIX, VALUATION_TTL_SECONDS, markValuationSent } from "./valuation.mjs";
 import { logSent } from "./sent-log.mjs";
 
 /* The Make scenario routes on this exact string, so it is a contract
@@ -209,5 +209,9 @@ export async function handleFormSubmit(request, env, email) {
 	// Εφυγε. Μία γραμμή στο ημερολόγιο απεσταλμένων, ώστε ο φύλακας να
 	// μπορεί να δει το πρωί αν κάποιος πελάτης έλαβε το ίδιο δύο φορές.
 	await logSent(env, payload, hash);
+	// Και, στην εκτίμηση, σήμανση πάνω στη ΓΡΑΜΜΗ ΤΗΣ: το ημερολόγιο
+	// κρατά 40 μέρες και δεν ξέρει από ref, ενώ το «στάλθηκε, πότε και σε
+	// ποιον» πρέπει να ζει όσο και η ίδια η εκτίμηση.
+	if (form === "ektimisi") await markValuationSent(env, payload);
 	return json({ ok: true });
 }

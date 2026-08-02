@@ -194,10 +194,19 @@ export async function handleValuation(request, env, url, ctx) {
 		   κανένα από τα δύο. */
 		v.missing_info = missingList(v);
 		const result = renderReport(prop, comps, stats, priceRow, v, payload, offers);
+		/* ΠΟΤΕ υπολογίστηκε και ΜΕ ΠΟΙΟΝ πίνακα: από αυτά κρίνεται αν
+		   επιτρέπεται συμπλήρωση όταν κάποιος ξανανοίξει το report (βλ.
+		   canFollowUp). Δεν φαίνονται στο χαρτί, άρα δεν σηκώνουν
+		   REPORT_VERSION. */
+		result.computedAt = new Date().toISOString();
+		result.priceTable = AREA_PRICES_META.asOf;
 		await env.LISTINGS_KV.put(VALUATION_RES_PREFIX + ref, JSON.stringify(result), {
 			expirationTtl: VALUATION_TTL_SECONDS,
 		});
 		await logValuation(env, ref, prop, v, payload);
+		// Ένας γύρος: ο γονιός σημαδεύεται, ώστε ούτε η σελίδα του report
+		// ούτε το ιστορικό να προσφέρουν δεύτερη συμπλήρωση.
+		if (prop.parentRef) await markFollowedUp(env, prop.parentRef);
 		return result;
 	})();
 	if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work);
@@ -476,7 +485,7 @@ function fileSlug(parts, max = 44) {
 
 function respond(result, wantsHtml, url) {
 	if (wantsHtml) {
-		return new Response(browserReport(result.html, url), {
+		return new Response(browserReport(result, url), {
 			headers: { "Content-Type": "text/html; charset=utf-8", "X-Robots-Tag": "noindex" },
 		});
 	}
@@ -495,7 +504,8 @@ function respond(result, wantsHtml, url) {
    σε ΝΕΑ καρτέλα (target=_blank), οπότε στο κινητό δεν υπάρχει κουμπί
    «πίσω» — ο σύμβουλος έμενε κλειδωμένος στη σελίδα. Ο μήνας ταξιδεύει με
    το `back`, ώστε να γυρίζει στον μήνα που κοίταζε και όχι στον τρέχοντα. */
-function browserReport(html, url) {
+function browserReport(result, url) {
+	const html = result && result.html;
 	const head = `<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <style>
@@ -516,7 +526,16 @@ function browserReport(html, url) {
 	td[width="8"]{display:none !important;}
 	}
 </style>`;
-	const bar = `<div style="position:sticky; top:0; z-index:9; background:${NAVY}; border-bottom:2px solid ${PINK}; padding:11px 16px;"><a href="${esc(logHref(url))}" style="color:#ffffff; font-family:Arial,sans-serif; font-size:13.5px; font-weight:bold; text-decoration:none;">&larr;&nbsp;&nbsp;Ιστορικό εκτιμήσεων</a></div>`;
+	/* Δεύτερος σύνδεσμος στην μπάρα: συμπλήρωση, ΜΟΝΟ όσο η σύγκριση «πριν →
+	   τώρα» στέκει (canFollowUp). Ο σύμβουλος διαβάζει το report στο
+	   κινητό, βλέπει το «Θα βοηθούσε να ξέρουμε» και από εκεί πρέπει να
+	   μπορεί να απαντήσει με δύο tap, χωρίς να γυρίσει στο ιστορικό. */
+	const ref = String(url && url.searchParams ? url.searchParams.get("ref") || "" : "");
+	const formsHome = url && url.hostname && url.hostname.startsWith("forms.") ? "/" : "/forms/";
+	const fuLink = canFollowUp(result) && ref
+		? `<a href="${esc(`${formsHome}ektimisi.html?followup=${encodeURIComponent(ref)}`)}" style="float:right; color:#ffffff; font-family:Arial,sans-serif; font-size:13.5px; font-weight:bold; text-decoration:none; border:1px solid ${PINK}; border-radius:999px; padding:2px 11px;">Συμπλήρωσε&nbsp;&rarr;</a>`
+		: "";
+	const bar = `<div style="position:sticky; top:0; z-index:9; background:${NAVY}; border-bottom:2px solid ${PINK}; padding:11px 16px;">${fuLink}<a href="${esc(logHref(url))}" style="color:#ffffff; font-family:Arial,sans-serif; font-size:13.5px; font-weight:bold; text-decoration:none;">&larr;&nbsp;&nbsp;Ιστορικό εκτιμήσεων</a></div>`;
 	return String(html || "")
 		.replace("</head>", head + "</head>")
 		.replace(/<body[^>]*>/i, (m) => m + bar)
@@ -524,6 +543,21 @@ function browserReport(html, url) {
 		// επόμενη γραμμή. Άκυρο σύμβολο χωρίς το ποσό του: τα δένει σκληρό
 		// κενό, μόνο εδώ, ώστε το email να μείνει byte για byte το ίδιο.
 		.replace(/ €/g, " €");
+}
+
+/* Επιτρέπεται συμπλήρωση για ΑΥΤΟ το κασαρισμένο report; Ίδια λογική με το
+   followupGate του ιστορικού, αλλά από τα δεδομένα που κουβαλά το ίδιο το
+   result: ημερομηνία υπολογισμού, ποιος πίνακας τιμών ίσχυε, και αν έχει
+   ήδη συμπληρωθεί (το γράφει η ίδια η συμπλήρωση πάνω στον γονιό της).
+   Τα παλιά κασαρισμένα δεν έχουν computedAt, οπότε απλώς δεν δείχνουν
+   κουμπί — που είναι και το σωστό, αφού είναι εξ ορισμού παλιά. */
+function canFollowUp(result) {
+	if (!result || !result.computedAt || result.followedUp) return false;
+	if (result.priceTable && result.priceTable !== AREA_PRICES_META.asOf) return false;
+	const prop = result.prop || {};
+	if (Array.isArray(prop.followup) && prop.followup.length) return false;
+	const age = Date.now() - new Date(result.computedAt).getTime();
+	return age >= 0 && age <= FOLLOWUP_MAX_AGE_MS;
 }
 
 /* Ο μήνας του ιστορικού, όπως ήρθε από τον σύνδεσμο. Ό,τι δεν είναι
@@ -604,6 +638,203 @@ async function logValuation(env, ref, prop, v, payload) {
 	}
 }
 
+/* Η ΑΠΟΣΤΟΛΗ ΓΡΑΦΕΤΑΙ ΠΑΝΩ ΣΤΗ ΓΡΑΜΜΗ ΤΗΣ ΕΚΤΙΜΗΣΗΣ, όχι στο ημερολόγιο
+   απεσταλμένων (sent-log.mjs): εκείνο κρατά 40 μέρες, είναι ανά ημέρα και
+   δεν ξέρει από valuation_ref, ενώ η γραμμή του ιστορικού ζει για πάντα.
+   Χωρίς αυτό, το «την έστειλα του ιδιοκτήτη ή όχι;» δεν απαντιέται πουθενά,
+   και η συμπλήρωση δεν ξέρει αν το νούμερο που πάει να αλλάξει έχει ήδη
+   φύγει σε πελάτη.
+
+   Ο ΜΗΝΑΣ ΤΗΣ ΑΠΟΣΤΟΛΗΣ ΔΕΝ ΕΙΝΑΙ ΠΑΝΤΑ Ο ΜΗΝΑΣ ΤΟΥ ΥΠΟΛΟΓΙΣΜΟΥ: μια
+   εκτίμηση της 31/07 στέλνεται στις 02/08. Κοιτάμε τρέχοντα και προηγούμενο
+   μήνα, και σταματάμε στο πρώτο key που έχει τη γραμμή.
+
+   Fail-soft, όπως κάθε καταγραφή εδώ: email που έφυγε χωρίς σήμανση είναι
+   ανεκτό, αποστολή που δεν έγινε επειδή κόλλησε το KV δεν είναι. */
+export async function markValuationSent(env, payload) {
+	const ref = String((payload && payload.valuation_ref) || "");
+	if (!/^[0-9a-f-]{16,64}$/i.test(ref)) return;
+	const data = payload.data || {};
+	// Ο παραλήπτης ξεχωρίζει τα δύο κουμπιά χωρίς νέο πεδίο: μόνο η
+	// αποστολή στον ιδιοκτήτη κουβαλάει client_email (και PDF).
+	const to = String(data.client_email || "").trim().toLowerCase();
+	const at = payload.received_at || new Date().toISOString();
+	try {
+		const now = new Date();
+		const months = [
+			now.toISOString().slice(0, 7),
+			new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString().slice(0, 7),
+		];
+		for (const month of months) {
+			const key = VALUATION_LOG_PREFIX + month;
+			const raw = await env.LISTINGS_KV.get(key);
+			if (!raw) continue;
+			const entries = JSON.parse(raw);
+			const row = entries.find((e) => e && e.ref === ref);
+			if (!row) continue;
+			row.sent = row.sent || {};
+			if (to) {
+				/* Στον ιδιοκτήτη κρατάμε ΚΑΙ το ποσό που όντως έφυγε: ο
+				   σύμβουλος μπορεί να το έχει αλλάξει με το μολύβι, οπότε το
+				   ιστορικό γράφει σήμερα νούμερο που ο πελάτης δεν είδε ποτέ.
+				   Αυτό είναι και το νούμερο που μετράει όταν κάποτε
+				   βαθμονομήσουμε απέναντι σε πραγματικές τιμές. */
+				row.sent.client = { at, to, value: num(data.value_sent) || 0 };
+			} else {
+				row.sent.office = at;
+			}
+			await env.LISTINGS_KV.put(key, JSON.stringify(entries));
+			return;
+		}
+	} catch (err) {
+		console.warn(`valuation: sent-mark failed for ${ref}: ${String(err)}`);
+	}
+}
+
+/* GET /api/valuation-request?ref=… — τα στοιχεία που είχε συμπληρώσει ο
+   σύμβουλος, όπως παρκαρίστηκαν στο βήμα 1 (ζουν έναν χρόνο). Τα διαβάζει
+   η φόρμα για να ξανανοίξει μια παλιά εκτίμηση ή να τη συμπληρώσει, αντί
+   να ξαναγεμίσει κανείς τριάντα πεδία στο χέρι.
+
+   ΠΙΣΩ ΑΠΟ ACCESS, στο μπλοκ του /api/valuation-log (worker/index.mjs):
+   εδώ μέσα είναι διεύθυνση, τιμή και παρατηρήσεις πελάτη. Το ίδιο το
+   /api/valuation απαντά ΚΑΙ χωρίς Access, γιατί το καλεί το Make με ένα
+   ref που του δώσαμε εμείς· αυτό εδώ δεν επιτρέπεται να κρεμαστεί από
+   εκεί. */
+export async function handleValuationRequest(request, env, url) {
+	if (request.method !== "GET") return json({ error: "method_not_allowed" }, 405);
+	const ref = String(url.searchParams.get("ref") || "").trim();
+	if (!/^[0-9a-f-]{16,64}$/i.test(ref)) return json({ error: "bad_ref" }, 400);
+	const raw = await env.LISTINGS_KV.get(VALUATION_REQ_PREFIX + ref);
+	if (!raw) return json({ error: "unknown_ref" }, 404);
+	let payload;
+	try {
+		payload = JSON.parse(raw);
+	} catch (err) {
+		console.warn(`valuation: unreadable request for ${ref}: ${String(err)}`);
+		return json({ error: "unknown_ref" }, 404);
+	}
+	/* Και η γραμμή του ιστορικού, όταν βρεθεί: από εκεί έρχονται το νούμερο
+	   που είχε δοθεί τότε (για το μπάνερ της φόρμας) και το ΑΝ είχε σταλεί
+	   και σε ποιον, ώστε η συμπλήρωση να προειδοποιεί με ονόματα και
+	   ημερομηνίες αντί για «μπορεί να έχει σταλεί». Τον μήνα τον ξέρουμε
+	   από το submitted_at, οπότε είναι ένα get, όχι σάρωση. */
+	const row = await findLogRow(env, ref, payload.submitted_at);
+	return json({
+		ref,
+		submitted_at: payload.submitted_at || "",
+		summary: payload.summary || "",
+		// Το has_followup είναι η άμυνα της φόρμας: μια ΗΔΗ συμπληρωμένη
+		// εκτίμηση δεν ξανασυμπληρώνεται, ένας γύρος είναι ο κανόνας.
+		has_followup: Array.isArray(payload.followup) && payload.followup.length > 0,
+		value_mid: row ? row.value_mid || 0 : 0,
+		rent_mid: row ? row.rent_mid || 0 : 0,
+		sent: row ? row.sent || null : null,
+		data: payload.data || {},
+	}, 200);
+}
+
+/* «Αυτή η εκτίμηση συμπληρώθηκε». Γράφεται πάνω στο ΓΟΝΙΚΟ report τη
+   στιγμή που βγαίνει η συμπλήρωση, γιατί το report δεν έχει άλλον τρόπο να
+   ξέρει ότι απέκτησε παιδί (τα παιδιά δείχνουν προς τα πάνω, όχι ανάποδα).
+   Χωρίς αυτό, το κουμπί «Συμπλήρωσε» θα ξανάβγαινε πάνω στην παλιά εκτίμηση
+   και ο κανόνας «ένας γύρος» θα έσπαγε από την πίσω πόρτα.
+
+   Fail-soft: το χειρότερο που κάνει μια αποτυχία εδώ είναι ένα κουμπί που
+   δεν έπρεπε να φαίνεται. */
+async function markFollowedUp(env, parentRef) {
+	try {
+		const key = VALUATION_RES_PREFIX + parentRef;
+		const raw = await env.LISTINGS_KV.get(key);
+		if (!raw) return;
+		const prev = JSON.parse(raw);
+		if (prev.followedUp) return;
+		prev.followedUp = true;
+		await env.LISTINGS_KV.put(key, JSON.stringify(prev), { expirationTtl: VALUATION_TTL_SECONDS });
+	} catch (err) {
+		console.warn(`valuation: could not mark ${parentRef} as followed up: ${String(err)}`);
+	}
+}
+
+/* Η γραμμή του ιστορικού για ένα ref. Ο μήνας βγαίνει από την ημερομηνία
+   υποβολής· αν λείπει ή δεν ταιριάζει, δοκιμάζουμε και τον επόμενο (η
+   γραμμή γράφεται με την ώρα του ΥΠΟΛΟΓΙΣΜΟΥ, που σε υποβολή λίγο πριν τα
+   μεσάνυχτα πέφτει στον επόμενο μήνα). */
+async function findLogRow(env, ref, submittedAt) {
+	const when = submittedAt ? new Date(submittedAt) : new Date();
+	if (Number.isNaN(when.getTime())) return null;
+	const months = [
+		when.toISOString().slice(0, 7),
+		new Date(Date.UTC(when.getUTCFullYear(), when.getUTCMonth() + 1, 1)).toISOString().slice(0, 7),
+	];
+	for (const month of months) {
+		try {
+			const raw = await env.LISTINGS_KV.get(VALUATION_LOG_PREFIX + month);
+			if (!raw) continue;
+			const hit = JSON.parse(raw).find((e) => e && e.ref === ref);
+			if (hit) return hit;
+		} catch { /* μια χαλασμένη γραμμή δεν εμποδίζει το άνοιγμα της φόρμας */ }
+	}
+	return null;
+}
+
+/* ΠΟΤΕ ΕΠΙΤΡΕΠΕΤΑΙ ΣΥΜΠΛΗΡΩΣΗ ΑΠΟ ΤΟ ΙΣΤΟΡΙΚΟ.
+
+   Η συμπλήρωση ξαναϋπολογίζει και τυπώνει «πριν → τώρα». Αυτό στέκει μόνο
+   όσο η διαφορά μπορεί να αποδοθεί στην ΑΠΑΝΤΗΣΗ του συμβούλου. Σε μια
+   εκτίμηση δύο μηνών ο ξαναϋπολογισμός τρέχει με άλλον πίνακα τιμών, άλλο
+   στοκ συγκριτικών και συχνά αλλαγμένα prompts: η αλλαγή θα ήταν της
+   αγοράς και το report θα τη χρέωνε στον σύμβουλο. Γι' αυτό, όπου δεν
+   στέκει η σύγκριση, η σωστή κίνηση δεν είναι συμπλήρωση αλλά ΝΕΑ εκτίμηση
+   («άνοιγμα» στη φόρμα), που είναι πάντα διαθέσιμη.
+
+   Τέσσερα κριτήρια, όλα απαραίτητα. Ο έλεγχος του cache γίνεται ΜΟΝΟ για
+   όσες γραμμές πέρασαν τα τρία φθηνά κριτήρια: είναι KV get ανά γραμμή. */
+const FOLLOWUP_MAX_AGE_MS = 7 * 24 * 3600 * 1000;
+
+async function followupGate(env, entries, month) {
+	/* Ποιες εκτιμήσεις έχουν ΗΔΗ συμπληρωθεί: η γραμμή-παιδί δείχνει τη
+	   μάνα της με parent_ref. Διαβάζουμε και τον ΕΠΟΜΕΝΟ μήνα, γιατί μια
+	   εκτίμηση της 31/07 συμπληρώνεται άνετα την 01/08 και το παιδί της
+	   γράφεται σε άλλο key. */
+	const done = new Set();
+	const [y, mo] = month.split("-").map(Number);
+	const next = new Date(Date.UTC(y, mo, 1)).toISOString().slice(0, 7);
+	const buckets = [entries];
+	try {
+		const raw = await env.LISTINGS_KV.get(VALUATION_LOG_PREFIX + next);
+		if (raw) buckets.push(JSON.parse(raw));
+	} catch { /* χωρίς τον επόμενο μήνα, το χειρότερο είναι ένα κουμπί που δεν έπρεπε */ }
+	for (const bucket of buckets) {
+		for (const e of bucket) if (e && e.parent_ref) done.add(String(e.parent_ref));
+	}
+
+	const gate = new Map();
+	const candidates = [];
+	for (const e of entries) {
+		if (!e || !e.ref) continue;
+		if (done.has(String(e.ref))) { gate.set(e.ref, "έχει ήδη συμπληρωθεί"); continue; }
+		if (e.parent_ref) { gate.set(e.ref, "είναι ήδη συμπλήρωση"); continue; }
+		const age = e.ts ? Date.now() - new Date(e.ts).getTime() : Infinity;
+		if (!(age >= 0 && age <= FOLLOWUP_MAX_AGE_MS)) { gate.set(e.ref, "πάνω από 7 μέρες"); continue; }
+		// Ο πίνακας τιμών είναι το σκληρό κριτήριο: αλλάζει μηνιαία με
+		// έγκριση, και μαζί του αλλάζει η βάση κάθε εκτίμησης.
+		if (e.price_table && e.price_table !== AREA_PRICES_META.asOf) {
+			gate.set(e.ref, "άλλαξε ο πίνακας τιμών");
+			continue;
+		}
+		candidates.push(e);
+	}
+	/* ΤΡΕΧΟΥΣΑ έκδοση του cache, όχι readAnyVersion: αν το report
+	   κασαρίστηκε με παλιότερο REPORT_VERSION, ο ξαναϋπολογισμός θα τρέξει
+	   με άλλα prompts και η σύγκριση δεν θα είναι σύγκριση. */
+	const found = await Promise.all(candidates.map((e) =>
+		env.LISTINGS_KV.get(VALUATION_RES_PREFIX + e.ref, { type: "text", cacheTtl: 300 })
+			.then((v) => !!v).catch(() => false)));
+	candidates.forEach((e, i) => gate.set(e.ref, found[i] ? "" : "το report ξαναϋπολογίζεται με νέο κώδικα"));
+	return gate;
+}
+
 /* GET /api/valuation-log[?month=YYYY-MM][&format=json] — το ιστορικό σε
    πίνακα, ένας μήνας τη φορά. Δρομολογείται ΜΟΝΟ στο forms hostname
    πίσω από το Cloudflare Access (worker/index.mjs): κάθε γραμμή είναι
@@ -661,6 +892,13 @@ export async function handleValuationLog(request, env, url) {
 		: `<a href="/api/valuation-log?month=${esc(m)}" style="color:${PINK};">${esc(monthLabel(m))}</a>`
 	).join(" · ");
 
+	/* Πού ζει η φόρμα: στο forms.* η PWA ΕΙΝΑΙ η ρίζα (rewrite στο
+	   worker/index.mjs), ενώ στο localhost του `wrangler dev` κάθεται στο
+	   /forms/. Την ίδια διαδρομή θέλουν και το λογότυπο και τα δύο νέα
+	   κουμπιά κάθε γραμμής. */
+	const formsHome = url.hostname.startsWith("forms.") ? "/" : "/forms/";
+	const gate = await followupGate(env, entries, month);
+
 	const rows = entries.map((e) => {
 		// Και ώρα, όχι μόνο ημέρα: δύο εκτιμήσεις του ίδιου ακινήτου την
 		// ίδια μέρα (π.χ. πριν και μετά από διόρθωση στοιχείων) αλλιώς
@@ -677,13 +915,43 @@ export async function handleValuationLog(request, env, url) {
 		const live = e.code ? byCode.get(String(e.code)) : null;
 		const crmId = e.id || (live ? live.id : "");
 		const link = (href, label) => `<a href="${esc(href)}" target="_blank" rel="noopener" style="color:${PINK}; text-decoration:none;">${label}</a>`;
-		const links = [
+		const dot = `<span style="color:#d5d9e0;"> · </span>`;
+		/* Δύο σειρές: πρώτα ό,τι κάνει κάτι ΜΕ την εκτίμηση, μετά οι
+		   σύνδεσμοι προς το ακίνητο. Πέντε σύνδεσμοι σε μία γραμμή έσπρωχναν
+		   τον πίνακα εκτός οθόνης στο κινητό. */
+		const actions = [
 			// Το back δίνει στο report το κουμπί επιστροφής ΣΕ ΑΥΤΟΝ τον μήνα:
 			// ανοίγει σε νέα καρτέλα, οπότε το back του browser δεν υπάρχει.
 			link(`/api/valuation?ref=${encodeURIComponent(e.ref)}&format=html&cached=1&back=${encodeURIComponent(month)}`, "report"),
+			/* «Άνοιγμα»: τα ίδια στοιχεία ξανά στη φόρμα, για ΝΕΑ εκτίμηση με
+			   τα σημερινά δεδομένα. Δεν έχει όριο ηλικίας — όσο ζει το αίτημα
+			   στο KV (ένα έτος), αυτό είναι πάντα η σωστή κίνηση. */
+			link(`${formsHome}ektimisi.html?ref=${encodeURIComponent(e.ref)}`, "άνοιγμα"),
+			gate.get(e.ref) === "" ? link(`${formsHome}ektimisi.html?followup=${encodeURIComponent(e.ref)}`, "συμπλήρωση") : "",
+		].filter(Boolean).join(dot);
+		const places = [
 			crmId ? link(`${crmBase}/listings/view/${encodeURIComponent(crmId)}`, "CRM") : "",
 			live ? link(canonicalUrl(live), "σελίδα") : "",
-		].filter(Boolean).join(`<span style="color:#d5d9e0;"> · </span>`);
+		].filter(Boolean).join(dot);
+		const links = `<div style="white-space:nowrap;">${actions}</div>${places ? `<div style="white-space:nowrap; margin-top:2px;">${places}</div>` : ""}`;
+		/* Ο λόγος που ΔΕΝ υπάρχει «συμπλήρωση». Χωρίς αυτόν, το κουμπί που
+		   άλλοτε εμφανίζεται και άλλοτε όχι διαβάζεται ως σφάλμα. */
+		const gateNote = gate.get(e.ref) ? `<div style="font-size:10.5px; color:#9aa3af; margin-top:3px; max-width:150px; line-height:1.35;">συμπλήρωση: ${esc(gate.get(e.ref))}</div>` : "";
+		/* Στάλθηκε, πότε και σε ποιον. Γράφεται τη στιγμή που το Make δέχεται
+		   την αποστολή (markValuationSent), και είναι η μόνη απάντηση στο
+		   «την έστειλα του ιδιοκτήτη ή όχι;». */
+		const sentChip = (label, at, title, fill) => {
+			const d = at ? new Date(at) : null;
+			const when = d ? d.toLocaleDateString("el-GR", { timeZone: "Europe/Athens", day: "2-digit", month: "2-digit" }) : "";
+			return `<span title="${esc(title)}" style="display:inline-block; background:${fill.bg}; border:1px solid ${fill.border}; border-radius:9px; padding:0 6px; font-size:10.5px; color:${fill.text}; white-space:nowrap;">${label}${when ? ` ${esc(when)}` : ""}</span>`;
+		};
+		const sent = e.sent || {};
+		const sentCell = [
+			sent.office ? sentChip("γραφείο", sent.office, "Στάλθηκε στο info@", { bg: "#f4f7fb", border: "#c9d4e4", text: NAVY }) : "",
+			sent.client ? sentChip("ιδιοκτήτης", sent.client.at,
+				`${sent.client.to || ""}${sent.client.value ? ` · έφυγε ${eur(sent.client.value)}` : ""}`,
+				{ bg: "#f2f9f4", border: "#b7dfc5", text: "#12855b" }) : "",
+		].filter(Boolean).join("<br>");
 		const sale = e.value_mid
 			? `<strong>${eur(e.value_mid)}</strong> <span style="color:#6b7280;">(${eur(e.value_low)} έως ${eur(e.value_high)})</span>`
 			: "";
@@ -695,16 +963,11 @@ export async function handleValuationLog(request, env, url) {
 			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right; color:#6b7280;">${e.eur_per_sqm ? eur(e.eur_per_sqm) + "/τ.μ." : ""}</td>
 			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; white-space:nowrap;">${e.rent_mid ? eur(e.rent_mid) + "/μήνα" : ""}</td>
 			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px;">${e.confidence ? confChip(e.confidence) : ""}</td>
+			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px;">${sentCell}</td>
 			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; color:#6b7280;">${esc(e.by || "")}</td>
-			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; white-space:nowrap;">${links}</td>
+			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px;">${links}${gateNote}</td>
 		</tr>`;
 	}).join("");
-
-	/* Το λογότυπο γυρίζει στα Έντυπα: η σελίδα ανοίγει από τη φόρμα της
-	   εκτίμησης και ο μόνος δρόμος πίσω ήταν το back του browser. Στο
-	   forms.* η PWA ΕΙΝΑΙ η ρίζα (rewrite στο worker/index.mjs), ενώ στο
-	   localhost του `wrangler dev` κάθεται στο /forms/. */
-	const formsHome = url.hostname.startsWith("forms.") ? "/" : "/forms/";
 
 	const html = `<!doctype html><html lang="el"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -727,12 +990,13 @@ export async function handleValuationLog(request, env, url) {
 				<td style="padding:7px 10px; font-size:11px; font-weight:bold; color:#6b7280; text-align:right;">ΑΝΑ τ.μ.</td>
 				<td style="padding:7px 10px; font-size:11px; font-weight:bold; color:#6b7280;">ΜΙΣΘΩΜΑ</td>
 				<td style="padding:7px 10px; font-size:11px; font-weight:bold; color:#6b7280;">ΒΕΒΑΙΟΤΗΤΑ</td>
+				<td style="padding:7px 10px; font-size:11px; font-weight:bold; color:#6b7280;">ΣΤΑΛΘΗΚΕ</td>
 				<td style="padding:7px 10px; font-size:11px; font-weight:bold; color:#6b7280;">ΑΠΟ</td>
 				<td style="padding:7px 10px; font-size:11px; font-weight:bold; color:#6b7280;"></td>
 			</tr>
 			${rows}
 		</table></div>` : `<div style="background:#f4f7fb; border:1px solid #c9d4e4; border-radius:8px; padding:12px 16px; font-size:13px; color:${NAVY};">Καμία εκτίμηση αυτόν τον μήνα.</div>`}
-		<div style="font-size:11px; color:#9aa3af; margin-top:14px; line-height:1.6;">Το «report» ανοίγει το πλήρες κείμενο όπως στάλθηκε τότε (κρατιέται έναν χρόνο, δεν ξαναϋπολογίζεται)· οι γραμμές του ιστορικού μένουν για πάντα. Το «CRM» ανοίγει την καρτέλα του ακινήτου, η «σελίδα» τη δημόσια σελίδα του, μόνο για ακίνητα που είναι αυτή τη στιγμή στο στοκ μας. Η σήμανση «συμπλήρωση» δείχνει εκτίμηση που ξαναϋπολογίστηκε με στοιχεία που έδωσε ο σύμβουλος απαντώντας στις ερωτήσεις της πρώτης: αυτή ισχύει, η προηγούμενη γραμμή του ίδιου ακινήτου έχει αντικατασταθεί. Πρόσβαση με JSON: <code>/api/valuation-log?month=${esc(month)}&amp;format=json</code>.</div>
+		<div style="font-size:11px; color:#9aa3af; margin-top:14px; line-height:1.6;">Το «report» ανοίγει το πλήρες κείμενο όπως στάλθηκε τότε (κρατιέται έναν χρόνο, δεν ξαναϋπολογίζεται)· οι γραμμές του ιστορικού μένουν για πάντα. Το «CRM» ανοίγει την καρτέλα του ακινήτου, η «σελίδα» τη δημόσια σελίδα του, μόνο για ακίνητα που είναι αυτή τη στιγμή στο στοκ μας. Η σήμανση «συμπλήρωση» δείχνει εκτίμηση που ξαναϋπολογίστηκε με στοιχεία που έδωσε ο σύμβουλος απαντώντας στις ερωτήσεις της πρώτης: αυτή ισχύει, η προηγούμενη γραμμή του ίδιου ακινήτου έχει αντικατασταθεί. Το «άνοιγμα» ξαναφορτώνει τα στοιχεία στη φόρμα για <strong>νέα</strong> εκτίμηση με τα σημερινά δεδομένα της αγοράς, και δουλεύει πάντα. Ο σύνδεσμος «συμπλήρωση» βγαίνει μόνο όσο η σύγκριση «πριν → τώρα» στέκει (έως 7 μέρες, με τον ίδιο πίνακα τιμών)· αλλού γράφει τον λόγο και η σωστή κίνηση είναι το «άνοιγμα». Πρόσβαση με JSON: <code>/api/valuation-log?month=${esc(month)}&amp;format=json</code>.</div>
 	</div>
 </div>
 </body></html>`;
