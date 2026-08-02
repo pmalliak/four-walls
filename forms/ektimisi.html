@@ -132,13 +132,14 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
    αξία (.bigval), navy το μίσθωμα (.rentval). Ό,τι ανάβει εδώ έχει το ίδιο
    χρώμα και στο έγγραφο, οπότε φαίνεται με τη μία τι θα βγει. */
 .pseg{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.pseg button{font:inherit;font-size:16.5px;font-weight:800;min-height:62px;border-radius:12px;border:2px solid;background:#fff;padding:9px 8px;line-height:1.2;cursor:pointer;}
+.pseg button{font:inherit;font-size:16.5px;font-weight:800;min-height:62px;border-radius:12px;border:2px solid #cdd5e0;background:#fff;color:var(--muted);padding:9px 8px;line-height:1.2;cursor:pointer;}
 .pseg button:active{transform:scale(.99);}
 .pseg button .s{display:block;font-size:11px;font-weight:700;letter-spacing:.04em;opacity:.75;margin-top:3px;}
-.pseg .sale{border-color:#f6b8d3;color:var(--pink);}
-.pseg .sale.on{background:var(--pink);border-color:var(--pink);color:#fff;}
-.pseg .rent{border-color:#c9d4e4;color:var(--navy);}
-.pseg .rent.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+/* Σβηστό = γκρι, χωρίς ταυτότητα. Αναμμένο = ΤΟ ΚΟΥΤΙ ΤΗΣ ΑΝΑΦΟΡΑΣ: απαλό
+   φόντο, χρωματιστό περίγραμμα και γράμματα, όχι γεμάτο χρώμα — το μόνο
+   γεμάτο ροζ της οθόνης μένει το «Υπολογισμός εκτίμησης». */
+.pseg .sale.on{background:#fdf2f7;border-color:var(--pink);color:var(--pink);}
+.pseg .rent.on{background:#f4f7fb;border-color:var(--navy);color:var(--navy);}
 /* Τα πεδία που δεν αφορούν το είδος του ακινήτου φεύγουν με [hidden], δηλαδή
    display:none. Σε grid αυτό τα βγάζει ΤΕΛΕΙΩΣ από τη ροή και τα υπόλοιπα
    ξαναστοιχίζονται σε δύο κολόνες χωρίς τρύπες — γι' αυτό κάθε κάρτα έχει
