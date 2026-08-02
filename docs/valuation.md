@@ -51,7 +51,7 @@ Claude Opus 5, λιγότερο με Gemini. Οι αποστολές (γραφε
 mail clients και Windows shares. Ημερομηνία Ελλάδας, όχι UTC.
 
 ```
-ektimisi.html ──POST──► /api/forms/submit ─┬─► KV: valuation:req:<ref>  (TTL 2d)
+ektimisi.html ──POST──► /api/forms/submit ─┬─► KV: valuation:req:<ref>  (TTL 7d)
    (Access)      forms.mjs                 └─► Make hook (payload + valuation_ref)
                                                   │ route «εκτίμηση» (σενάριο 6600035)
                                                   ▼
@@ -64,8 +64,17 @@ ektimisi.html ──POST──► /api/forms/submit ─┬─► KV: valuation:r
 - **Γιατί ref και όχι απευθείας;** Κάθε κλήση του `/api/valuation` κοστίζει
   (δύο κλήσεις Anthropic). Το ref είναι τυχαίο UUID που ζει μόνο στο KV και στο
   Make, και το **αποτέλεσμα κασάρεται ανά ref** (KV, TTL 7d): τα retries του
-  Make και τα replays από το DLQ δεν ξαναχρεώνουν AI. Το αίτημα ζει 2 μέρες
-  (`valuation:req:<ref>`), αρκετά για replay από incomplete executions.
+  Make και τα replays από το DLQ δεν ξαναχρεώνουν AI. Το αίτημα
+  (`valuation:req:<ref>`) λήγει μαζί του, στις 7 μέρες.
+- **Το cache έχει έκδοση (`REPORT_VERSION`).** Η εκτίμηση υπολογίζεται στο
+  βήμα 1 και το «Αποστολή στο info@» στέλνει ό,τι κασαρίστηκε τότε, όσο
+  αργότερα κι αν πατηθεί: στις 02/08/2026 έφυγε έτσι εκτίμηση ενοικίασης της
+  31/07, με τα συγκριτικά πώλησης που είχαν ήδη διορθωθεί και PDF που έγραφε
+  31/7. Τα κλειδιά είναι πλέον `valuation:res3:` / `valuation:pdf3:`, και όποια
+  αλλαγή πιάνει το `renderReport`, το `renderPrintHtml` ή τα prompts **ανεβάζει
+  το νούμερο**: ό,τι ξανασταλεί μετά το deploy ξαναϋπολογίζεται με τον νέο
+  κώδικα. Κοστίζει δύο κλήσεις AI ανά τέτοιο resend, άρα δεν το ανεβάζουμε για
+  αλλαγές που δεν φαίνονται στο χαρτί.
 - **Γιατί το AI στον Worker και όχι σε Make module;** Ίδιο σκεπτικό με το
   lead-reply: θέλει το feed (συγκριτικά), τον πίνακα τιμών, συγχώνευση
   φόρμας+CRM και δύο περάσματα με JSON schema. Σε IML θα ήταν αδιάβαστο· εδώ
@@ -203,8 +212,12 @@ xe.gr στατιστικά) και την εικόνα του γραφείου·
 
 - Προεπισκόπηση ενός report στον browser: `GET /api/valuation?ref=<ref>&format=html`
   (το ref φαίνεται στο payload του Make, πεδίο `valuation_ref`).
-- Το ίδιο ref ξαναδίνει το κασαρισμένο report χωρίς κόστος.
-- `unknown_ref` (404): το αίτημα έληξε (TTL 2d) ή το ref είναι λάθος.
+- Το ίδιο ref ξαναδίνει το κασαρισμένο report χωρίς κόστος, εκτός αν έχει
+  ανέβει στο μεταξύ το `REPORT_VERSION`: τότε ξαναϋπολογίζεται μία φορά.
+- `unknown_ref` (404): το αίτημα έληξε (TTL 7d) ή το ref είναι λάθος.
+- **Το email δείχνει παλιό κείμενο ή PDF με παλιά ημερομηνία;** Η εκτίμηση
+  υπολογίστηκε πριν το deploy που το διόρθωσε. Ο μόνος τρόπος να δεις το νέο
+  είναι νέος υπολογισμός από τη φόρμα (νέο ref), όχι δεύτερη αποστολή.
 - Λογικά λάθη του μοντέλου: δες το `review_notes` στο τέλος του report· αν το
   δεύτερο πέρασμα διορθώνει συστηματικά το ίδιο πράγμα, φτιάξε το prompt στο
   [../worker/lib/valuation.mjs](../worker/lib/valuation.mjs).

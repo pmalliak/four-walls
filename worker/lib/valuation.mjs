@@ -15,7 +15,7 @@
 
    ΓΙΑΤΙ ref ΚΑΙ ΟΧΙ ΣΚΕΤΟ ENDPOINT: κάθε κλήση κοστίζει χρήματα (δύο
    κλήσεις Anthropic API). Το ref είναι τυχαίο UUID που ζει μόνο στο KV
-   και στο Make, με TTL 2 ημερών, και το αποτέλεσμα κασάρεται ανά ref:
+   και στο Make, με TTL 7 ημερών, και το αποτέλεσμα κασάρεται ανά ref:
    τα retries του Make (και τα replays από το DLQ) ΔΕΝ ξαναχρεώνουν AI.
 
    ΔΕΝ ΕΙΝΑΙ ΠΙΣΤΟΠΟΙΗΜΕΝΗ ΕΚΤΙΜΗΣΗ: το report το λέει ρητά. Είναι
@@ -38,15 +38,33 @@ import { subcategoryLabel } from "./seo.mjs";
 
 /* KV keys — το request γράφεται από forms.mjs, το result από εδώ. */
 export const VALUATION_REQ_PREFIX = "valuation:req:";
-const VALUATION_RES_PREFIX = "valuation:res:";
-/* Το «2» επίτηδες: τα πρώτα PDF είχαν κατά λάθος τη σχεδίαση του email
-   (Arial, στενή κολόνα) αντί για το χάρτινο design των εντύπων. Νέο
-   πρόθεμα ώστε τα παλιά κασαρισμένα να αγνοηθούν και να λήξουν μόνα τους. */
-const VALUATION_PDF_PREFIX = "valuation:pdf2:";
+
+/* Η ΕΚΔΟΣΗ ΤΗΣ ΑΝΑΦΟΡΑΣ, μέσα στα κλειδιά του cache. Το report και το PDF
+   κασάρονται ανά ref για μέρες, οπότε ένα deploy που αλλάζει τη ΜΟΡΦΗ τους
+   δεν αρκεί: η εκτίμηση υπολογίζεται στο βήμα 1 και το «Αποστολή στο info@»
+   στέλνει ό,τι είχε κασαριστεί τότε, όσο αργότερα κι αν πατηθεί. Στις
+   02/08/2026 έφυγε έτσι εκτίμηση ενοικίασης της 31/07 με τα συγκριτικά
+   πώλησης που είχαν ήδη διορθωθεί, και με PDF που έγραφε 31/7.
+
+   ΑΥΞΗΣΕ ΤΟ όποτε αλλάζει το renderReport, το renderPrintHtml ή τα prompts:
+   τα παλιά κλειδιά αγνοούνται και λήγουν μόνα τους, και ό,τι ξανασταλεί
+   ΞΑΝΑΥΠΟΛΟΓΙΖΕΤΑΙ με τον νέο κώδικα. Κοστίζει δύο κλήσεις AI ανά τέτοιο
+   resend, άρα όχι για αλλαγές που δεν φαίνονται στο χαρτί. Το «3» είναι το
+   επόμενο νούμερο μετά το valuation:pdf2:, που είχε μπει μόνο του για τον
+   ίδιο λόγο (τα πρώτα PDF έβγαιναν με τη σχεδίαση του email). */
+const REPORT_VERSION = 3;
+const VALUATION_RES_PREFIX = `valuation:res${REPORT_VERSION}:`;
+const VALUATION_PDF_PREFIX = `valuation:pdf${REPORT_VERSION}:`;
+
 /* Μόνιμο ιστορικό εκτιμήσεων: ένα KV key ανά μήνα, ΧΩΡΙΣ TTL — βλ.
    logValuation παρακάτω. */
 const VALUATION_LOG_PREFIX = "valuation:log:";
-export const VALUATION_TTL_SECONDS = 2 * 24 * 3600;
+
+/* Ένα TTL για το αίτημα ΚΑΙ για τα κασαρισμένα. Το αίτημα ζούσε 2 μέρες
+   και το report 7: μετά από αύξηση του REPORT_VERSION ένα resend μέσα σε
+   αυτό το κενό θα ξαναϋπολόγιζε, δεν θα έβρισκε το αίτημα και θα έσκαγε με
+   unknown_ref (404 → το bundle στο DLQ). Τώρα λήγουν μαζί. */
+export const VALUATION_TTL_SECONDS = 7 * 24 * 3600;
 
 const FEED_KEY = "listings.json"; // ίδιο με FEED_KEY στο worker/index.mjs
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
@@ -117,7 +135,7 @@ export async function handleValuation(request, env, url, ctx) {
 		);
 		const result = renderReport(prop, comps, stats, priceRow, v, payload, offers);
 		await env.LISTINGS_KV.put(VALUATION_RES_PREFIX + ref, JSON.stringify(result), {
-			expirationTtl: 7 * 24 * 3600,
+			expirationTtl: VALUATION_TTL_SECONDS,
 		});
 		await logValuation(env, ref, prop, v, payload);
 		return result;
@@ -154,7 +172,7 @@ async function withPdf(env, ref, result, wantsPdf) {
 		} catch (err) {
 			console.warn(`valuation: report PDF render failed for ${ref}: ${String(err)}`);
 		}
-		if (b64) await env.LISTINGS_KV.put(key, b64, { expirationTtl: 7 * 24 * 3600 });
+		if (b64) await env.LISTINGS_KV.put(key, b64, { expirationTtl: VALUATION_TTL_SECONDS });
 	}
 	if (!b64) return result;
 	return {
@@ -1151,11 +1169,11 @@ function labelCategory(c) {
 	return { residential: "Κατοικία", commercial: "Επαγγελματικό", land: "Οικόπεδο" }[c] || "Ακίνητο";
 }
 
-/* Το είδος ΠΑΝΤΑ σε ελληνική ετικέτα. Η φόρμα στέλνει ήδη ελληνικά
-   («Διαμέρισμα»), το feed και το CRM όμως δίνουν slug («apartment»), που
-   δεν έχει θέση σε ελληνικό report: ούτε στο θέμα του email, ούτε στα
-   συγκριτικά, ούτε στο prompt του μοντέλου. Ο ίδιος χάρτης με τις
-   σελίδες ακινήτων (seo.mjs)· ό,τι δεν είναι slug περνάει ως έχει. */
+/* Το είδος ΠΑΝΤΑ σε ελληνική ετικέτα. Φόρμα, feed και CRM δίνουν slug
+   («apartment»), που δεν έχει θέση σε ελληνικό report: ούτε στο θέμα του
+   email, ούτε στα συγκριτικά, ούτε στο prompt του μοντέλου. Ο ίδιος
+   χάρτης με τις σελίδες ακινήτων (seo.mjs)· ό,τι δεν είναι slug περνάει
+   ως έχει, οπότε παλιά πρόχειρα με ελληνικό είδος δεν χαλάνε. */
 function labelKind(subcategory, category) {
 	return subcategoryLabel({ subcategory: subcategory || "", category: category || "" });
 }
