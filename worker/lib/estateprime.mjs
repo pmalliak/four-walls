@@ -27,13 +27,43 @@ const MAX_PAGES = 200; // hard stop against pagination bugs
 /* Build the complete feed object that gets stored in KV / data/listings.json. */
 export async function buildFeed(env) {
 	const sample = env.SAMPLE_DATA === "1";
-	const listings = sample ? SAMPLE_LISTINGS : await fetchAllListings(env);
+	const raw = sample ? SAMPLE_LISTINGS : await fetchAllListings(env);
+	const listings = withListedRank(raw);
 	return {
 		generatedAt: new Date().toISOString(),
 		source: sample ? "sample" : "estateprime",
 		count: listings.length,
 		listings,
 	};
+}
+
+/* «Νεότερα»: η σειρά καταχώρισης, χωρίς να φύγει η ημερομηνία στο δίκτυο.
+
+   Το updatedAt κουνιέται σε κάθε άγγιγμα στο CRM, οπότε δεν λέει τίποτα για
+   το πότε μπήκε κάτι στην αγορά: ένα μαζικό πέρασμα στις 30/07/2026 άγγιξε
+   15 ακίνητα μέσα σε 8 λεπτά και η ταξινόμηση «Νεότερα» του site έγινε η
+   σειρά με την οποία τα άνοιξε κάποιος, με ακίνητα του 2023 στη 2η θέση και
+   το φρεσκότερο 21ο. Αυτό το λέει σωστά μόνο το listedAt (date_created).
+
+   Το listedAt όμως ΜΕΝΕΙ ΣΤΟ KV: δείχνει πόσο κάθεται ένα ακίνητο και ο
+   αγοραστής που το βλέπει χαμηλώνει την προσφορά του (FEED_PRIVATE_FIELDS
+   στο worker/index.mjs). Δημόσια φεύγει μόνο η θέση στη σειρά, 0 = το πιο
+   πρόσφατο: αρκεί για ταξινόμηση, δεν αποκαλύπτει ημερομηνία ούτε ηλικία. */
+function withListedRank(listings) {
+	const byNewest = listings
+		.map((l, i) => ({ i, key: sortableDate(l.listedAt) || sortableDate(l.updatedAt) }))
+		// Χωρίς ημερομηνία (κενό key) πάει τελευταίο, όχι πρώτο.
+		.sort((a, b) => (a.key < b.key ? 1 : a.key > b.key ? -1 : a.i - b.i));
+	const rank = new Map(byNewest.map((entry, position) => [entry.i, position]));
+	return listings.map((l, i) => ({ ...l, listedRank: rank.get(i) }));
+}
+
+/* «2026-04-24 14:10:46» (CRM) και «2026-07-01T09:00:00Z» (sample data) να
+   συγκρίνονται σαν strings χωρίς εκπλήξεις: το κενό ταξινομείται πριν από
+   κάθε ψηφίο, το «T» μετά. Οι δύο μορφές δεν συνυπάρχουν ποτέ στο ίδιο
+   feed, αλλά η κανονικοποίηση κοστίζει μία γραμμή. */
+function sortableDate(v) {
+	return v ? String(v).replace(" ", "T") : "";
 }
 
 export function apiConfig(env) {

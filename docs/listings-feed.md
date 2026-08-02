@@ -76,7 +76,8 @@ Design rules:
 		"images": ["…"], "features": ["…"], "description": "…", "description_en": "…",
 		"featured": true,
 		"updatedAt": "2026-07-01T09:00:00Z",
-		"listedAt": "2026-04-24 14:10:46"
+		"listedAt": "2026-04-24 14:10:46",
+		"listedRank": 3
 	}]
 }
 ```
@@ -97,6 +98,32 @@ a buyer who sees «449 days» knows the owner is tired and lowballs accordingly,
 which is our own client's money. The field stays in KV, where the valuation
 reads it directly; nothing that reaches the network carries it. Anything added
 to the feed for internal use later belongs in that same list.
+
+## «Νεότερα»: `listedRank`, never `updatedAt`
+
+`listedRank` is the listing's **position in listed-newest-first order**, `0`
+being the most recently listed. The feed builder computes it from `listedAt`
+(`withListedRank` in `worker/lib/estateprime.mjs`) and it is the only ordering
+signal the front-end gets.
+
+It exists because **`updatedAt` is not a proxy for «new»**. It moves on every
+touch in the CRM, and touches come in bulk: on 2026-07-30 a single pass edited
+15 of the 26 active listings within 8 minutes, so the site's «Νεότερα» sort
+became *the order someone happened to open them in*. Measured on the live feed
+that day, listings created in **January 2023 sat 2nd and 3rd**, while the
+newest listing of all (created 27/07/2026) was **21st of 26**.
+
+The rank is deliberately a bare integer rather than the date: sorting inevitably
+reveals *which* listing is older, but nothing has to reveal *how much*. That
+keeps the ordering honest while `listedAt` stays private, per the section above.
+
+Consumers:
+
+| Where | Uses |
+|-------|------|
+| `js/listings.fw.js` → `byNewest()` | `listedRank` (grid sort, «Νέες καταχωρήσεις», featured fallback), falling back to `updatedAt` only while KV still holds a pre-rank feed |
+| `worker/lib/lead-reply.mjs` | `listedAt` directly — it reads KV, not the served feed |
+| `worker/lib/seo.mjs` → `datePosted` | `updatedAt` **on purpose**: JSON-LD is printed into the page, so `listedAt` there would publish in plain text exactly what we withhold |
 
 The `*_en` fields (`title_en`, `description_en`, `location.area_en`,
 `location.neighbourhood_en`, `location.city_en`) are **optional and additive**:

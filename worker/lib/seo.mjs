@@ -323,6 +323,13 @@ export function listingJsonLd(l, canonical, title, desc, lang = "el") {
 		name: title,
 		description: desc,
 		inLanguage: lang,
+		// ΟΧΙ listedAt εδώ, όσο κι αν το «datePosted» το ζητάει σημασιολογικά:
+		// το JSON-LD τυπώνεται μέσα στη σελίδα, οπότε θα δημοσίευε καθαρά
+		// («2023-01-18») ακριβώς το πόσο κάθεται ένα ακίνητο, που κρατάμε
+		// εκτός δικτύου (FEED_PRIVATE_FIELDS στο worker/index.mjs). Το
+		// updatedAt δεν είναι εμπορικά ευαίσθητο και δίνει στη Google το
+		// σήμα φρεσκάδας που θέλει. Η ταξινόμηση «Νεότερα» του site δεν
+		// περνάει από εδώ: παίρνει το listedRank του feed.
 		datePosted: isoDate(l.updatedAt),
 		image: images.length ? images : undefined,
 		mainEntity: { "@id": l.price != null ? canonical + "#offer" : canonical + "#item" },

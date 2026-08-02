@@ -673,7 +673,7 @@
 					case "price-asc": return (a.price ?? Infinity) - (b.price ?? Infinity);
 					case "price-desc": return (b.price ?? -1) - (a.price ?? -1);
 					case "area-desc": return (b.area ?? 0) - (a.area ?? 0);
-					default: return (b.updatedAt || "").localeCompare(a.updatedAt || "");
+					default: return byNewest(a, b);
 				}
 			});
 
@@ -1116,11 +1116,24 @@
 		if (n) n.style.display = "";
 	}
 
-	/* ---------------- home page (index.html) ---------------- */
-
+	/* «Νεότερα» παντού (ταξινόμηση στο grid, «Νέες καταχωρήσεις» στην αρχική):
+	   σειρά ΚΑΤΑΧΩΡΙΣΗΣ, όχι τελευταίας επεξεργασίας. Το listedRank το
+	   υπολογίζει ο feed builder από το date_created του CRM (0 = το πιο
+	   πρόσφατο) — η ημερομηνία η ίδια δεν φεύγει ποτέ στο δίκτυο, βλ.
+	   withListedRank στο worker/lib/estateprime.mjs. Το updatedAt μένει μόνο
+	   ως δίχτυ όσο το KV κρατά feed χωρίς ranks (μέχρι το επόμενο refresh):
+	   κουνιέται σε κάθε άγγιγμα στο CRM, οπότε ένα μαζικό πέρασμα φέρνει
+	   ακίνητα του 2023 στην κορυφή. */
 	function byNewest(a, b) {
-		return (b.updatedAt || "").localeCompare(a.updatedAt || "");
+		var ra = typeof a.listedRank === "number" ? a.listedRank : null;
+		var rb = typeof b.listedRank === "number" ? b.listedRank : null;
+		if (ra !== null && rb !== null) return ra - rb;
+		if (ra !== null) return -1;
+		if (rb !== null) return 1;
+		return String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""));
 	}
+
+	/* ---------------- home page (index.html) ---------------- */
 
 	function initHome(feed) {
 		/* «Νέες καταχωρήσεις» — one row, the 3 newest listings */

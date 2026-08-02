@@ -401,8 +401,12 @@ export async function handleLeadReply(request, env, url) {
 		const t = url.searchParams.get("transaction");
 		const c = url.searchParams.get("category");
 		const pool = listings.filter((l) => (!t || l.transaction === t) && (!c || l.category === c));
-		similar = pool.slice().sort((a, b) =>
-			String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""))).slice(0, 3);
+		/* «Νεότερα» = πότε μπήκε στην αγορά (listedAt), όχι πότε το πείραξε
+		   κάποιος τελευταία φορά: το updatedAt κουνιέται σε κάθε άγγιγμα στο
+		   CRM και θα έστελνε στον πελάτη ακίνητα τριών ετών σαν φρέσκα.
+		   Διαβάζουμε το feed από το KV, όπου το listedAt υπάρχει ολόκληρο. */
+		const newest = (l) => String(l.listedAt || l.updatedAt || "");
+		similar = pool.slice().sort((a, b) => newest(b).localeCompare(newest(a))).slice(0, 3);
 	}
 
 	const S = STR[lang];

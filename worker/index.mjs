@@ -676,7 +676,10 @@ function contactJson(obj, status, extraHeaders) {
    Το listedAt λέει πόσο καιρό κάθεται ένα ακίνητο — ο υποψήφιος αγοραστής
    που το βλέπει ξέρει ότι ο ιδιοκτήτης έχει κουραστεί, και κατεβάζει την
    προσφορά του. Το χρειάζεται μόνο η εκτίμηση, που διαβάζει το KV
-   απευθείας (valuation.mjs), οπότε κανένας client δεν χάνει τίποτα. */
+   απευθείας (valuation.mjs), οπότε κανένας client δεν χάνει τίποτα.
+   Η ταξινόμηση «Νεότερα» του site δεν χρειάζεται καν αυτό: παίρνει το
+   listedRank, τη σκέτη θέση στη σειρά που παράγει ο feed builder από το
+   listedAt (withListedRank στο lib/estateprime.mjs). */
 const FEED_PRIVATE_FIELDS = ["listedAt"];
 
 async function serveFeed(env) {
