@@ -82,6 +82,10 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 .doc td.pos{color:#12855b;font-weight:700;white-space:nowrap;text-align:right;}
 .doc td.neg{color:#b3261e;font-weight:700;white-space:nowrap;text-align:right;}
 .doc .note{background:#f2f9f4;border-left:3px solid #12855b;border-radius:6px;padding:9px 12px;margin:10px 0;}
+/* Αιρέσεις: ό,τι κρέμεται πάνω από τη μεταβίβαση ή την ίδια την τιμή
+   (αυθαίρετο, μη οικοδομήσιμο γήπεδο, ψιλή κυριότητα). */
+.doc .caveat{background:#fff4f6;border:1px solid #f2b8c6;border-left:3px solid #c62828;border-radius:8px;padding:10px 13px;margin:0 0 8px;}
+.doc .caveat .l{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#c62828;margin-bottom:2px;}
 /* «Με ανακαίνιση»: η ιστορία σε τρία νούμερα — κόστος, αξία μετά, καθαρό
    όφελος. Stat-κουτιά αντί για παράγραφο· είναι το πωλησιακό σημείο. */
 .doc .renov{background:#f9f5ff;border:1px solid #cdb9ec;border-radius:10px;padding:12px 15px;margin:0 0 8px;}
@@ -100,7 +104,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
    γραμμή πίνακα δεν κόβεται στα δύο από αλλαγή σελίδας· ό,τι δεν χωράει
    πάει ολόκληρο στην επόμενη. Στην οθόνη ο κανόνας δεν κάνει τίποτα. */
 .doc h2{break-after:avoid;page-break-after:avoid;}
-.doc .bigval,.doc .rentval,.doc .note,.doc .renov,.doc .renov .st,.doc tr,.doc .disc{break-inside:avoid;page-break-inside:avoid;}
+.doc .bigval,.doc .rentval,.doc .note,.doc .caveat,.doc .renov,.doc .renov .st,.doc tr,.doc .disc{break-inside:avoid;page-break-inside:avoid;}
 .spin{display:inline-block;width:15px;height:15px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-right:8px;}
 @keyframes sp{to{transform:rotate(360deg)}}
 /* chosen record (property from CRM) */
@@ -117,6 +121,31 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 .fld select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;}
 @media(max-width:480px){.grid2.wide1{grid-template-columns:1fr;}}
+/* Τα πεδία που δεν αφορούν το είδος του ακινήτου φεύγουν με [hidden], δηλαδή
+   display:none. Σε grid αυτό τα βγάζει ΤΕΛΕΙΩΣ από τη ροή και τα υπόλοιπα
+   ξαναστοιχίζονται σε δύο κολόνες χωρίς τρύπες — γι' αυτό κάθε κάρτα έχει
+   ΕΝΑ grid2 με όλα της τα πεδία μέσα, αντί για πολλά grid2 των δύο. */
+.fld.wide{grid-column:1/-1;}
+/* Πολλαπλή επιλογή (δεσμεύσεις, δίκτυα): ένα select θα έλεγε ψέματα, ένα
+   ελεύθερο κείμενο δεν διαβάζεται. */
+.chips{display:flex;flex-wrap:wrap;gap:6px;}
+.chips label{position:relative;}
+.chips input{position:absolute;opacity:0;width:0;height:0;}
+.chips span{display:inline-block;font-size:13px;font-weight:600;color:var(--navy);background:#fff;border:1.5px solid #cdd5e0;border-radius:999px;padding:8px 13px;cursor:pointer;}
+.chips input:checked+span{background:var(--navy);color:#fff;border-color:var(--navy);}
+.chips input:focus-visible+span{box-shadow:0 0 0 3px rgba(255,0,98,.12);}
+/* Νομικά/πολεοδομικά: αλλάζουν την εκτίμηση περισσότερο από κάθε άλλο πεδίο,
+   αλλά ο σύμβουλος συχνά δεν τα ξέρει επιτόπου — κλειστά, ένα tap τα ανοίγει. */
+details.leg summary{list-style:none;cursor:pointer;margin-bottom:0;}
+details.leg summary::-webkit-details-marker{display:none;}
+details.leg[open] summary{margin-bottom:10px;}
+details.leg summary .chev{margin-left:auto;font-size:11px;color:var(--muted);font-weight:700;display:inline-block;transition:transform .15s;}
+details.leg[open] summary .chev{transform:rotate(180deg);}
+/* Τι λείπει από τα βαριά πεδία του είδους. Δεν μπλοκάρει — ο σύμβουλος στον
+   δρόμο συχνά δεν ξέρει τον ΣΔ, και μια εκτίμηση με πλατύ εύρος είναι πιο
+   χρήσιμη από καμία. Το λέει όμως, και το λέει και το report. */
+.warn{background:#fff4f6;border:1px solid var(--pink);border-radius:12px;padding:11px 13px;margin:0 0 12px;font-size:13px;color:#8a0035;line-height:1.5;}
+.warn b{color:#6d002a;}
 /* the asking price gets the prosfora treatment: it is the one big number */
 .amt{position:relative;}
 .amt input{font-size:26px;font-weight:800;color:var(--navy);letter-spacing:.01em;padding:14px 46px 14px 14px;text-align:right;}
@@ -135,98 +164,314 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 <div id="form">
 	<div class="usenote">Η εκτίμηση βγαίνει αυτόματα με AI από τιμές αγγελιών και τα δικά μας συγκριτικά. Είναι βοήθημα για τη συζήτηση τιμής, όχι τελικό νούμερο· θέλει πάντα το μάτι του συμβούλου.<br><strong>Κόστος: κάτω από 0,15 € ανά εκτίμηση</strong> (δύο περάσματα AI). Η αποστολή στο γραφείο ή στον ιδιοκτήτη δεν χρεώνεται ξανά — μόνο το «Υπολογισμός εκτίμησης» κοστίζει.</div>
 	<div class="hintline" style="text-align:center; margin:-6px 0 14px;"><a href="/api/valuation-log">Ιστορικό εκτιμήσεων</a>: τι έχουμε εκτιμήσει, ανά μήνα.</div>
+	<div class="warn" id="warnbox" hidden></div>
 	<div class="card">
 		<div class="sect">Ακίνητο</div>
 		<button class="btn s" id="pickListing" type="button" style="width:100%">Επιλογή ακινήτου από CRM</button>
 		<div id="listingBox"></div>
 		<div class="hintline">Αν διαλέξεις ακίνητο από το CRM, ό,τι δεν συμπληρώσεις παρακάτω θα έρθει αυτόματα από την καρτέλα του. Ό,τι γράψεις εδώ υπερισχύει.</div>
-		<div class="fld"><label for="purpose">Εκτίμηση για</label><select id="purpose">
-			<option value="both" selected>Πώληση και ενοικίαση</option>
-			<option value="sale">Μόνο πώληση</option>
-			<option value="rent">Μόνο ενοικίαση</option>
-		</select></div>
 		<div class="grid2">
-			<div class="fld"><label for="subcategory">Είδος</label><select id="subcategory">
+			<div class="fld wide"><label for="purpose">Εκτίμηση για</label><select id="purpose">
+				<option value="both" selected>Πώληση και ενοικίαση</option>
+				<option value="sale">Μόνο πώληση</option>
+				<option value="rent">Μόνο ενοικίαση</option>
+			</select></div>
+			<div class="fld"><label for="subcategory" class="imp">Είδος</label><select id="subcategory">
 				<option value=""></option>
 				<option>Διαμέρισμα</option><option>Studio / Γκαρσονιέρα</option>
 				<option>Μεζονέτα</option><option>Μονοκατοικία</option>
+				<option>Βίλα / Εξοχική κατοικία</option>
+				<option>Πολυκατοικία / Κτίριο</option>
 				<option>Γραφείο</option><option>Κατάστημα</option>
-				<option>Αποθήκη</option><option>Οικόπεδο</option><option>Αγροτεμάχιο</option>
+				<option>Αποθήκη</option><option>Βιοτεχνικός / Βιομηχανικός χώρος</option>
+				<option>Θέση στάθμευσης</option>
+				<option>Οικόπεδο</option><option>Αγροτεμάχιο</option>
 			</select></div>
-			<div class="fld"><label for="size" class="imp">Εμβαδόν (τ.μ.)</label><input id="size" type="text" inputmode="numeric" autocomplete="off"></div>
+			<div class="fld"><label for="size" class="imp" id="sizeLabel">Εμβαδόν (τ.μ.)</label><input id="size" type="text" inputmode="numeric" autocomplete="off"></div>
+			<div class="fld wide"><label for="areaName" class="imp">Περιοχή</label><input id="areaName" type="text" autocomplete="off" placeholder="π.χ. Καλαμαριά, Άνω Τούμπα…"></div>
+			<div class="fld wide"><label for="address">Διεύθυνση (προαιρετικό)</label><input id="address" type="text" autocomplete="off"></div>
 		</div>
-		<div class="fld"><label for="areaName" class="imp">Περιοχή</label><input id="areaName" type="text" autocomplete="off" placeholder="π.χ. Καλαμαριά, Άνω Τούμπα…"></div>
-		<div class="fld"><label for="address">Διεύθυνση (προαιρετικό)</label><input id="address" type="text" autocomplete="off"></div>
+	</div>
+
+	<!-- ΧΑΡΑΚΤΗΡΙΣΤΙΚΑ ΑΝΑ ΕΙΔΟΣ ------------------------------------------
+	     Το «data-p» κάθε πεδίου λέει σε ποια είδη ακινήτου εμφανίζεται. Δεν
+	     είναι καλλωπισμός: ένα οικόπεδο ΔΕΝ έχει όροφο, ασανσέρ ή ενεργειακή
+	     κλάση, και το να ταξιδεύουν άδεια αυτά τα πεδία μέχρι το prompt
+	     θόρυβο μόνο προσθέτει. Αντίστροφα, χωρίς ΣΔ και αρτιότητα η εκτίμηση
+	     ενός οικοπέδου είναι μαντεψιά. -->
+	<div class="card" id="cardSpecs">
+		<div class="sect">Χαρακτηριστικά</div>
+		<div class="hintline" id="specsHint" style="margin:-4px 2px 9px">Διάλεξε πρώτα «Είδος» — τα πεδία αλλάζουν ανάλογα με το ακίνητο.</div>
 		<div class="grid2">
-			<div class="fld"><label for="floor">Όροφος</label><select id="floor">
+			<div class="fld" data-p="apartment office retail parking"><label for="floor">Όροφος</label><select id="floor">
 				<option value=""></option>
 				<option>Υπόγειο</option><option>Ισόγειο</option><option>Ημιώροφος</option>
 				<option>1ος</option><option>2ος</option><option>3ος</option><option>4ος</option>
 				<option>5ος</option><option>6ος</option><option>7ος ή ψηλότερα</option><option>Ρετιρέ</option>
 			</select></div>
-			<div class="fld"><label for="yearBuilt" class="imp">Έτος κατασκευής</label><input id="yearBuilt" type="text" inputmode="numeric" autocomplete="off"></div>
-		</div>
-		<div class="grid2">
-			<div class="fld"><label for="bedrooms">Υπνοδωμάτια</label><select id="bedrooms">
+			<div class="fld" data-p="apartment house villa building office retail industrial parking"><label for="yearBuilt" class="imp">Έτος κατασκευής</label><input id="yearBuilt" type="text" inputmode="numeric" autocomplete="off"></div>
+			<div class="fld" data-p="apartment house villa"><label for="bedrooms">Υπνοδωμάτια</label><select id="bedrooms">
 				<option value=""></option><option>1</option><option>2</option><option>3</option>
 				<option>4</option><option>5</option><option>6</option>
 			</select></div>
-			<div class="fld"><label for="bathrooms">Μπάνια</label><select id="bathrooms">
+			<div class="fld" data-p="apartment house villa building office retail industrial"><label for="bathrooms">Μπάνια / WC</label><select id="bathrooms">
 				<option value=""></option><option>1</option><option>2</option><option>3</option><option>4</option>
 			</select></div>
-		</div>
-		<div class="grid2">
-			<div class="fld"><label for="yearRenovated" class="imp">Έτος ανακαίνισης</label><input id="yearRenovated" type="text" inputmode="numeric" autocomplete="off"></div>
-			<div class="fld"><label for="energyClass">Ενεργειακή κλάση</label><select id="energyClass">
+			<div class="fld" data-p="house villa building"><label for="levels">Επίπεδα / όροφοι κτίσματος</label><select id="levels">
+				<option value=""></option><option>1</option><option>2</option><option>3</option>
+				<option>4</option><option>5</option><option>6 ή περισσότεροι</option>
+			</select></div>
+			<div class="fld" data-p="building"><label for="units" class="imp">Αυτοτελείς μονάδες</label><input id="units" type="text" inputmode="numeric" autocomplete="off" placeholder="π.χ. 8 διαμερίσματα"></div>
+			<div class="fld" data-p="apartment house villa building office retail industrial parking"><label for="condition" class="imp">Κατάσταση</label><select id="condition">
+				<option value=""></option>
+				<option>Νεόδμητο</option><option>Ανακαινισμένο</option>
+				<option>Καλή κατάσταση</option><option>Χρήζει ανακαίνισης</option><option>Υπό κατασκευή</option>
+			</select></div>
+			<div class="fld" data-p="apartment house villa building office retail industrial"><label for="yearRenovated" class="imp">Έτος ανακαίνισης</label><input id="yearRenovated" type="text" inputmode="numeric" autocomplete="off"></div>
+			<div class="fld" data-p="apartment house villa building office retail"><label for="energyClass">Ενεργειακή κλάση</label><select id="energyClass">
 				<option value=""></option>
 				<option>Α+</option><option>Α</option><option>Β+</option><option>Β</option>
 				<option>Γ</option><option>Δ</option><option>Ε</option><option>Ζ</option><option>Η</option>
 				<option>Εκκρεμεί</option>
 			</select></div>
-		</div>
-		<div class="grid2">
-			<div class="fld"><label for="condition" class="imp">Κατάσταση</label><select id="condition">
-				<option value=""></option>
-				<option>Νεόδμητο</option><option>Ανακαινισμένο</option>
-				<option>Καλή κατάσταση</option><option>Χρήζει ανακαίνισης</option><option>Υπό κατασκευή</option>
-			</select></div>
-			<div class="fld"><label for="heating">Θέρμανση</label><select id="heating">
+			<div class="fld" data-p="apartment house villa building office retail"><label for="heating">Θέρμανση</label><select id="heating">
 				<option value=""></option>
 				<option>Ατομική</option><option>Αυτόνομη</option><option>Κεντρική</option>
 				<option>Αντλία θερμότητας</option><option>Κλιματιστικά</option><option>Χωρίς θέρμανση</option>
 			</select></div>
-		</div>
-		<div class="grid2">
-			<div class="fld"><label for="elevator">Ασανσέρ</label><select id="elevator">
+			<div class="fld" data-p="apartment building office retail"><label for="elevator">Ασανσέρ</label><select id="elevator">
 				<option value=""></option><option>Ναι</option><option>Όχι</option>
 			</select></div>
-			<div class="fld"><label for="parking">Πάρκινγκ</label><select id="parking">
+			<div class="fld" data-p="apartment house villa"><label for="parking">Πάρκινγκ</label><select id="parking">
 				<option value=""></option>
 				<option>Όχι</option><option>Ανοιχτό</option><option>Κλειστό</option><option>Πυλωτή</option>
 			</select></div>
-		</div>
-		<div class="grid2">
-			<div class="fld"><label for="storage">Αποθήκη</label><select id="storage">
+			<div class="fld" data-p="building office retail industrial"><label for="parkingSpots" class="imp">Θέσεις στάθμευσης</label><input id="parkingSpots" type="text" inputmode="numeric" autocomplete="off" placeholder="π.χ. 4"></div>
+			<div class="fld" data-p="apartment house villa"><label for="storage">Αποθήκη</label><select id="storage">
 				<option value=""></option><option>Ναι</option><option>Όχι</option>
 			</select></div>
-			<div class="fld"><label for="orientation">Προσανατολισμός</label><input id="orientation" type="text" autocomplete="off" placeholder="π.χ. ΝΑ, διαμπερές"></div>
-		</div>
-		<div class="fld"><label for="view">Θέα</label><input id="view" type="text" autocomplete="off" placeholder="π.χ. θάλασσα, ακάλυπτος…"></div>
-		<!-- Οι οδηγοί αξίας των εξοχικών: στη Χαλκιδική/Πιερία η απόσταση από
-		     τη θάλασσα, το οικόπεδο και η πισίνα κουνάνε την τιμή περισσότερο
-		     από όροφο και ασανσέρ. Χωρίς αυτά, η εκτίμηση αγκυρώνει στο
-		     «τυπικό διαμέρισμα» του πίνακα περιοχών και βγαίνει χαμηλή. -->
-		<div class="grid2">
-			<div class="fld"><label for="seaDist" class="imp">Απόσταση από θάλασσα (μ.)</label><input id="seaDist" type="text" inputmode="numeric" autocomplete="off" placeholder="π.χ. 150"></div>
-			<div class="fld"><label for="plot" class="imp">Οικόπεδο (τ.μ.)</label><input id="plot" type="text" inputmode="numeric" autocomplete="off" placeholder="για μονοκατοικίες/μεζονέτες"></div>
-		</div>
-		<div class="grid2">
-			<div class="fld"><label for="pool" class="imp">Πισίνα</label><select id="pool">
+			<div class="fld" data-p="apartment house villa"><label for="balconies">Μπαλκόνια/βεράντες (τ.μ.)</label><input id="balconies" type="text" inputmode="numeric" autocomplete="off" placeholder="π.χ. 25"></div>
+			<div class="fld" data-p="apartment house villa"><label for="orientation">Προσανατολισμός</label><input id="orientation" type="text" autocomplete="off" placeholder="π.χ. ΝΑ, διαμπερές"></div>
+			<div class="fld" data-p="apartment house villa building"><label for="view">Θέα</label><input id="view" type="text" autocomplete="off" placeholder="π.χ. θάλασσα, ακάλυπτος…"></div>
+			<div class="fld" data-p="house villa building retail industrial"><label for="basementSqm">Υπόγειο (τ.μ.)</label><input id="basementSqm" type="text" inputmode="numeric" autocomplete="off"></div>
+			<div class="fld" data-p="house villa"><label for="gardenSqm">Κήπος / αυλή (τ.μ.)</label><input id="gardenSqm" type="text" inputmode="numeric" autocomplete="off"></div>
+			<div class="fld" data-p="apartment house villa building"><label for="pool" class="imp">Πισίνα</label><select id="pool">
 				<option value=""></option><option>Όχι</option><option>Κοινόχρηστη</option><option>Ιδιωτική</option>
 			</select></div>
-			<div class="fld"><label for="balconies">Μπαλκόνια/βεράντες (τ.μ.)</label><input id="balconies" type="text" inputmode="numeric" autocomplete="off" placeholder="π.χ. 25"></div>
+			<!-- Οι οδηγοί αξίας των εξοχικών: στη Χαλκιδική/Πιερία η απόσταση από
+			     τη θάλασσα κουνάει την τιμή περισσότερο από όροφο και ασανσέρ. -->
+			<div class="fld" data-p="apartment house villa plot parcel"><label for="seaDist" class="imp">Απόσταση από θάλασσα (μ.)</label><input id="seaDist" type="text" inputmode="numeric" autocomplete="off" placeholder="π.χ. 150"></div>
+			<!-- Μετρό Θεσσαλονίκης: μετρημένος οδηγός αξίας, όχι εντύπωση. Έως
+			     ~150 μ. το premium είναι μέγιστο, πέρα από ~350 μ. σβήνει· στη
+			     λιανική η ζώνη επιρροής είναι στενότερη (~250 μ.). -->
+			<div class="fld" data-p="apartment house villa building office retail plot"><label for="metroDist" class="imp">Απόσταση από στάση μετρό (μ.)</label><input id="metroDist" type="text" inputmode="numeric" autocomplete="off" placeholder="π.χ. 200 — κενό αν δεν υπάρχει κοντά"></div>
+
+			<!-- ΚΑΤΑΣΤΗΜΑ: η βιτρίνα και η εμπορικότητα του δρόμου κάνουν τη
+			     διαφορά, όχι τα τετραγωνικά. Πατάρι και υπόγειο ΔΕΝ αθροίζονται
+			     με το ισόγειο — ανάγονται (χοντρικά 50% και 30-50%). -->
+			<div class="fld" data-p="retail"><label for="shopFrontM" class="imp">Μέτρα βιτρίνας / πρόσοψης</label><input id="shopFrontM" type="text" inputmode="decimal" autocomplete="off" placeholder="π.χ. 6"></div>
+			<div class="fld" data-p="retail"><label for="depthM">Βάθος καταστήματος (μ.)</label><input id="depthM" type="text" inputmode="decimal" autocomplete="off"></div>
+			<div class="fld" data-p="retail"><label for="patariSqm">Πατάρι (τ.μ.)</label><input id="patariSqm" type="text" inputmode="numeric" autocomplete="off"></div>
+			<div class="fld" data-p="retail industrial"><label for="ceilingHM">Ύψος χώρου (μ.)</label><input id="ceilingHM" type="text" inputmode="decimal" autocomplete="off"></div>
+			<div class="fld wide" data-p="retail"><label for="commerciality" class="imp">Εμπορικότητα δρόμου</label><select id="commerciality">
+				<option value=""></option>
+				<option>Κεντρικός εμπορικός δρόμος</option><option>Πεζόδρομος</option>
+				<option>Δευτερεύων εμπορικός</option><option>Γειτονιάς</option>
+				<option>Περιφερειακός / βιοτεχνικός</option>
+			</select></div>
+			<div class="fld wide" data-p="retail"><label for="foodUse">Κατάλληλο για υγειονομικού ενδιαφέροντος</label><select id="foodUse">
+				<option value=""></option>
+				<option>Ναι, με άδεια και καμινάδα</option><option>Πιθανό, θέλει εργασίες</option><option>Όχι</option>
+			</select></div>
+
+			<!-- ΓΡΑΦΕΙΟ -->
+			<div class="fld wide" data-p="office"><label for="buildingGrade" class="imp">Κατηγορία κτιρίου</label><select id="buildingGrade">
+				<option value=""></option>
+				<option>Α — νεόδμητο, υψηλών προδιαγραφών</option>
+				<option>Β — καλή κατάσταση, συντηρημένο</option>
+				<option>Γ — παλαιό, χωρίς αναβάθμιση</option>
+			</select></div>
+			<div class="fld wide" data-p="office"><label for="layout">Διαρρύθμιση</label><select id="layout">
+				<option value=""></option>
+				<option>Ενιαίος χώρος</option><option>Χωρισμένα γραφεία</option><option>Μικτή</option>
+			</select></div>
+
+			<!-- ΑΠΟΘΗΚΗ / ΒΙΟΤΕΧΝΙΚΟΣ ΧΩΡΟΣ -->
+			<div class="fld" data-p="industrial"><label for="clearHeightM" class="imp">Ελεύθερο ύψος (μ.)</label><input id="clearHeightM" type="text" inputmode="decimal" autocomplete="off" placeholder="π.χ. 8"></div>
+			<div class="fld" data-p="industrial"><label for="officeSqm">Γραφεία εντός (τ.μ.)</label><input id="officeSqm" type="text" inputmode="numeric" autocomplete="off"></div>
+			<div class="fld" data-p="industrial"><label for="loadingDock">Ράμπα φορτοεκφόρτωσης</label><select id="loadingDock">
+				<option value=""></option><option>Ναι</option><option>Όχι</option>
+			</select></div>
+			<div class="fld" data-p="industrial"><label for="truckAccess" class="imp">Πρόσβαση νταλίκας</label><select id="truckAccess">
+				<option value=""></option><option>Άνετη</option><option>Δύσκολη</option><option>Δεν γίνεται</option>
+			</select></div>
+			<div class="fld" data-p="industrial"><label for="threePhase">Τριφασικό ρεύμα</label><select id="threePhase">
+				<option value=""></option><option>Ναι</option><option>Όχι</option>
+			</select></div>
+			<div class="fld" data-p="industrial"><label for="crane">Γερανογέφυρα</label><select id="crane">
+				<option value=""></option><option>Ναι</option><option>Όχι</option>
+			</select></div>
+			<div class="fld" data-p="industrial"><label for="highwayKm" class="imp">Απόσταση από εθνική / κόμβο (χλμ.)</label><input id="highwayKm" type="text" inputmode="decimal" autocomplete="off"></div>
+
+			<!-- ΘΕΣΗ ΣΤΑΘΜΕΥΣΗΣ: τα τετραγωνικά είναι σχεδόν άσχετα, μετράει
+			     πού είναι η θέση και αν μανουβράρεις. -->
+			<div class="fld" data-p="parking"><label for="spotType" class="imp">Τύπος θέσης</label><select id="spotType">
+				<option value=""></option>
+				<option>Κλειστό γκαράζ</option><option>Υπόγειο parking</option>
+				<option>Πυλωτή</option><option>Ανοιχτή θέση</option>
+			</select></div>
+			<div class="fld" data-p="parking"><label for="accessEase">Ευκολία πρόσβασης</label><select id="accessEase">
+				<option value=""></option><option>Άνετη</option><option>Μέτρια</option><option>Δύσκολη μανούβρα</option>
+			</select></div>
+
+			<div class="fld" data-p="retail plot parcel house villa building industrial"><label for="corner">Γωνιακό</label><select id="corner">
+				<option value=""></option><option>Ναι</option><option>Όχι</option>
+			</select></div>
 		</div>
-		<div class="hintline">Τα πεδία με <span class="impdot">●</span> βαραίνουν περισσότερο στην εκτίμηση — μαζί με Περιοχή, τ.μ., Κατάσταση και Έτος/Ανακαίνιση.</div>
+		<div class="hintline">Τα πεδία με <span class="impdot">●</span> βαραίνουν περισσότερο στην εκτίμηση <em>αυτού</em> του είδους ακινήτου — μαζί με Περιοχή και τ.μ.</div>
+	</div>
+
+	<!-- ΟΙΚΟΠΕΔΟ & ΔΟΜΗΣΗ ---------------------------------------------------
+	     Για οικόπεδο και αγροτεμάχιο ΕΙΝΑΙ η εκτίμηση: η αξία βγαίνει σε
+	     €/τ.μ. ΔΟΜΗΣΗΣ (εμβαδόν × ΣΔ), όχι σε €/τ.μ. γης, και ένα μη άρτιο
+	     ή μη οικοδομήσιμο γήπεδο αξίζει κλάσμα του άρτιου. Για μονοκατοικία
+	     και μεζονέτα είναι το κατώφλι: δεν μπορούν να αξίζουν λιγότερο από
+	     το οικόπεδό τους. -->
+	<div class="card" id="cardLand" data-p="house villa building industrial plot parcel">
+		<div class="sect">Οικόπεδο &amp; δόμηση</div>
+		<div class="grid2">
+			<div class="fld" data-p="house villa building industrial"><label for="plot" class="imp">Οικόπεδο (τ.μ.)</label><input id="plot" type="text" inputmode="numeric" autocomplete="off"></div>
+			<div class="fld" data-p="house villa building industrial plot parcel"><label for="plotStatus" class="imp">Πολεοδομικό καθεστώς</label><select id="plotStatus">
+				<option value=""></option>
+				<option>Εντός σχεδίου πόλης</option>
+				<option>Εντός ορίων οικισμού</option>
+				<option>Εκτός σχεδίου</option>
+				<option>ΒΙΠΕ / ΒΙΠΑ / ΒΙΟΠΑ</option>
+			</select></div>
+			<div class="fld" data-p="plot parcel"><label for="buildable" class="imp">Άρτιο &amp; οικοδομήσιμο</label><select id="buildable">
+				<option value=""></option>
+				<option>Ναι</option><option>Όχι</option><option>Με παρέκκλιση</option><option>Άγνωστο</option>
+			</select></div>
+			<div class="fld" data-p="house villa building industrial plot parcel"><label for="buildFactor" class="imp">Συντελεστής δόμησης (ΣΔ)</label><input id="buildFactor" type="text" inputmode="decimal" autocomplete="off" placeholder="π.χ. 0,8"></div>
+			<div class="fld" data-p="building plot parcel"><label for="coveragePct">Κάλυψη (%)</label><input id="coveragePct" type="text" inputmode="numeric" autocomplete="off" placeholder="π.χ. 60"></div>
+			<div class="fld" data-p="house villa building plot"><label for="remainingBuild" class="imp">Υπόλοιπο δόμησης (τ.μ.)</label><input id="remainingBuild" type="text" inputmode="numeric" autocomplete="off" placeholder="πόσα χτίζονται ακόμα"></div>
+			<div class="fld" data-p="house villa industrial plot parcel"><label for="frontageM" class="imp">Πρόσωπο σε δρόμο (μ.)</label><input id="frontageM" type="text" inputmode="decimal" autocomplete="off"></div>
+			<!-- Στην εκτός σχεδίου δόμηση ο αγροτικός δρόμος ΔΕΝ είναι
+			     κοινόχρηστος: χωρίς κοινόχρηστο πρόσωπο δεν βγαίνει άδεια. -->
+			<div class="fld wide" data-p="industrial plot parcel"><label for="roadType" class="imp">Είδος δρόμου</label><select id="roadType">
+				<option value=""></option>
+				<option>Ασφαλτοστρωμένος κοινόχρηστος</option>
+				<option>Κοινόχρηστος χωματόδρομος</option>
+				<option>Αγροτικός (όχι κοινόχρηστος)</option>
+				<option>Χωρίς πρόσβαση σε δρόμο</option>
+			</select></div>
+			<div class="fld" data-p="plot parcel"><label for="shape">Σχήμα</label><select id="shape">
+				<option value=""></option><option>Ορθογώνιο / κανονικό</option><option>Ακανόνιστο</option>
+			</select></div>
+			<div class="fld" data-p="plot parcel"><label for="slope">Κλίση</label><select id="slope">
+				<option value=""></option><option>Επίπεδο</option><option>Ελαφρά κλίση</option><option>Απότομη κλίση</option>
+			</select></div>
+			<div class="fld wide" data-p="industrial plot parcel"><label for="landUse" class="imp">Χρήσεις γης</label><select id="landUse">
+				<option value=""></option>
+				<option>Κατοικία</option><option>Μικτή / γενική κατοικία</option>
+				<option>Εμπορική / κεντρικές λειτουργίες</option><option>Τουριστική</option>
+				<option>Βιομηχανία / βιοτεχνία</option><option>Αγροτική</option><option>Άγνωστο</option>
+			</select></div>
+			<div class="fld" data-p="plot parcel"><label for="existingBuildSqm">Υπάρχον κτίσμα (τ.μ.)</label><input id="existingBuildSqm" type="text" inputmode="numeric" autocomplete="off" placeholder="κενό αν είναι αδόμητο"></div>
+			<div class="fld" data-p="parcel"><label for="irrigation">Άρδευση</label><select id="irrigation">
+				<option value=""></option><option>Γεώτρηση</option><option>Δίκτυο άρδευσης</option><option>Όχι</option>
+			</select></div>
+			<div class="fld" data-p="parcel"><label for="crop">Καλλιέργεια</label><input id="crop" type="text" autocomplete="off" placeholder="π.χ. ελαιώνας, αμπέλι"></div>
+			<div class="fld wide" data-p="house villa"><label for="ownershipForm" class="imp">Μορφή ιδιοκτησίας</label><select id="ownershipForm">
+				<option value=""></option>
+				<option>Αυτοτελές οικόπεδο</option>
+				<option>Κάθετη ιδιοκτησία</option>
+				<option>Οριζόντια ιδιοκτησία σε συγκρότημα</option>
+			</select></div>
+			<div class="fld wide" data-p="house villa plot parcel">
+				<label>Δεσμεύσεις</label>
+				<div class="chips" id="constraints" data-chips>
+					<label><input type="checkbox" value="Δασικό / αναδασωτέα"><span>Δασικό</span></label>
+					<label><input type="checkbox" value="Αρχαιολογία"><span>Αρχαιολογία</span></label>
+					<label><input type="checkbox" value="Ρέμα"><span>Ρέμα</span></label>
+					<label><input type="checkbox" value="Απαλλοτρίωση"><span>Απαλλοτρίωση</span></label>
+					<label><input type="checkbox" value="Αιγιαλός / παραλία"><span>Αιγιαλός</span></label>
+					<label><input type="checkbox" value="Natura"><span>Natura</span></label>
+					<label><input type="checkbox" value="Διατηρητέο"><span>Διατηρητέο</span></label>
+				</div>
+			</div>
+			<div class="fld wide" data-p="plot parcel">
+				<label>Δίκτυα στο ακίνητο</label>
+				<div class="chips" id="utilities" data-chips>
+					<label><input type="checkbox" value="Ρεύμα"><span>Ρεύμα</span></label>
+					<label><input type="checkbox" value="Νερό"><span>Νερό</span></label>
+					<label><input type="checkbox" value="Αποχέτευση"><span>Αποχέτευση</span></label>
+				</div>
+			</div>
+		</div>
+		<div class="hintline" id="buildableHint" hidden></div>
+	</div>
+
+	<!-- ΝΟΜΙΚΑ & ΠΟΛΕΟΔΟΜΙΚΑ ------------------------------------------------
+	     Δεν είναι «προσαρμογή −5%». Αυθαίρετο χωρίς τακτοποίηση ΔΕΝ
+	     μεταβιβάζεται (προθεσμία 31/03/2028), ψιλή κυριότητα δεν είναι
+	     πλήρης κυριότητα, και μισθωμένο κάτω από την αγορά κουβαλάει τη
+	     μίσθωση στον αγοραστή. Το report τα βγάζει ως αιρέσεις. -->
+	<div class="card">
+		<details class="leg">
+			<summary class="sect">Νομικά &amp; πολεοδομικά<span class="chev">▾</span></summary>
+			<div class="hintline" style="margin:-2px 2px 9px">Άφησέ τα κενά αν δεν τα ξέρεις — η εκτίμηση θα το πει. Ό,τι συμπληρώσεις εδώ μετράει περισσότερο από κάθε άλλο πεδίο.</div>
+			<div class="grid2">
+				<div class="fld wide"><label for="legality" class="imp">Πολεοδομική νομιμότητα</label><select id="legality">
+					<option value=""></option>
+					<option>Νόμιμο, χωρίς αυθαίρετα</option>
+					<option>Τακτοποιημένο (ν. 4495 ή προγενέστερος)</option>
+					<option>Έχει αυθαίρετα, εκκρεμεί τακτοποίηση</option>
+					<option>Άγνωστο</option>
+				</select></div>
+				<div class="fld" data-p="apartment house villa building office retail industrial parking"><label for="buildingId">Ταυτότητα κτιρίου</label><select id="buildingId">
+					<option value=""></option><option>Ναι</option><option>Όχι</option><option>Άγνωστο</option>
+				</select></div>
+				<div class="fld"><label for="titles">Τίτλοι / Κτηματολόγιο</label><select id="titles">
+					<option value=""></option>
+					<option>Τακτοποιημένοι</option><option>Εκκρεμότητα ή ασυμφωνία</option><option>Άγνωστο</option>
+				</select></div>
+				<div class="fld wide"><label for="rights" class="imp">Δικαίωμα προς πώληση</label><select id="rights">
+					<option value=""></option>
+					<option>Πλήρης κυριότητα</option>
+					<option>Ψιλή κυριότητα (με επικαρπία τρίτου)</option>
+					<option>Επικαρπία</option>
+				</select></div>
+				<div class="fld" data-when="rights:Ψιλή κυριότητα (με επικαρπία τρίτου)|Επικαρπία"><label for="usufructAge">Ηλικία επικαρπωτή</label><input id="usufructAge" type="text" inputmode="numeric" autocomplete="off" placeholder="π.χ. 72"></div>
+				<div class="fld"><label for="burdens">Βάρη</label><select id="burdens">
+					<option value=""></option>
+					<option>Κανένα</option><option>Υποθήκη / προσημείωση</option>
+					<option>Κατάσχεση ή πλειστηριασμός</option><option>Άγνωστο</option>
+				</select></div>
+				<div class="fld wide"><label for="tenancy" class="imp">Κατοχή</label><select id="tenancy">
+					<option value=""></option>
+					<option>Ελεύθερο / κενό</option><option>Ιδιοκατοίκηση</option>
+					<option>Μισθωμένο</option><option>Κατειλημμένο χωρίς μίσθωση</option>
+				</select></div>
+				<div class="fld" data-when="tenancy:Μισθωμένο"><label for="currentRent">Τρέχον μίσθωμα (€/μήνα)</label><input id="currentRent" type="text" inputmode="numeric" autocomplete="off"></div>
+				<div class="fld" data-when="tenancy:Μισθωμένο"><label for="leaseEnd">Λήξη μίσθωσης</label><input id="leaseEnd" type="text" autocomplete="off" placeholder="π.χ. 2029 ή αορίστου"></div>
+				<div class="fld"><label for="owners">Ιδιοκτησία</label><select id="owners">
+					<option value=""></option>
+					<option>Ένας ιδιοκτήτης</option><option>Συγκυριότητα</option>
+					<option>Κληρονομιά σε εκκρεμότητα</option>
+				</select></div>
+				<!-- Από 01/07/2026 στην 1η Δημοτική Κοινότητα Θεσσαλονίκης η
+				     μεταβίβαση ΔΙΑΓΡΑΦΕΙ το ΑΜΑ και ο αγοραστής δεν μπορεί να
+				     το ξαναγράψει όσο ισχύει η αναστολή: το «έτοιμο Airbnb»
+				     δεν μεταβιβάζεται ως τέτοιο. -->
+				<div class="fld wide" data-p="apartment house villa building"><label for="strStatus">Βραχυχρόνια μίσθωση</label><select id="strStatus">
+					<option value=""></option>
+					<option>Δεν αφορά</option>
+					<option>Λειτουργεί με ΑΜΑ</option>
+					<option>Κατάλληλο, χωρίς ΑΜΑ</option>
+				</select></div>
+			</div>
+		</details>
 	</div>
 
 	<div class="card">
@@ -331,10 +576,15 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 
 	/* Το CRM δίνει slug (apartment, office…), το select μιλάει ελληνικά. */
 	var SLUG_GR = {
-		apartment: "Διαμέρισμα", studio: "Studio / Γκαρσονιέρα",
+		apartment: "Διαμέρισμα", studio: "Studio / Γκαρσονιέρα", loft: "Διαμέρισμα",
 		maisonette: "Μεζονέτα", detached: "Μονοκατοικία", house: "Μονοκατοικία",
+		villa: "Βίλα / Εξοχική κατοικία", farmhouse: "Μονοκατοικία",
+		residential_building: "Πολυκατοικία / Κτίριο", apartment_complex: "Πολυκατοικία / Κτίριο",
+		commercial_building: "Πολυκατοικία / Κτίριο",
 		office: "Γραφείο", store: "Κατάστημα", shop: "Κατάστημα",
-		warehouse: "Αποθήκη", land: "Οικόπεδο", plot: "Οικόπεδο", field: "Αγροτεμάχιο",
+		warehouse: "Αποθήκη", industrial_space: "Βιοτεχνικός / Βιομηχανικός χώρος",
+		craft_space: "Βιοτεχνικός / Βιομηχανικός χώρος", parking: "Θέση στάθμευσης",
+		land: "Οικόπεδο", plot: "Οικόπεδο", field: "Αγροτεμάχιο", parcel: "Αγροτεμάχιο",
 	};
 
 	function renderListing(){
@@ -391,6 +641,7 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		if (l.size) $("size").value = String(l.size);
 		if (!l.hiddenPrice && l.price) $("asking").value = String(Math.round(l.price)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 		if (l.subcategory && SLUG_GR[l.subcategory]) setSel("subcategory", SLUG_GR[l.subcategory]);
+		applyProfile();
 		try {
 			if (!feedCache) feedCache = (await (await fetch("/data/listings.json")).json()).listings || [];
 			var f = feedCache.find(function(x){ return String(x.id) === String(l.id) || (l.code && String(x.code) === String(l.code)); });
@@ -415,8 +666,10 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			// Με πισίνα δεν ξέρουμε κοινόχρηστη/ιδιωτική — το αφήνουμε στον
 			// σύμβουλο· χωρίς slug, είναι βέβαιο «Όχι».
 			if (!hasPool) setSel("pool", "Όχι");
+			if (f.parking > 0) $("parkingSpots").value = String(f.parking);
 			var views = (f.view || []).map(function(vv){ return VIEW_GR[vv] || vv; });
 			if (views.length) $("view").value = views.join(", ");
+			applyProfile();
 			toast("Συμπληρώθηκαν όλα τα στοιχεία από το CRM. Διόρθωσε ό,τι θες.", "ok");
 		} catch (e) { console.warn("prefill feed", e); }
 	}
@@ -427,10 +680,200 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		el.value = raw ? String(Number(raw)).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : "";
 	}
 
+	/* --- ΠΡΟΦΙΛ ΑΝΑ ΕΙΔΟΣ ΑΚΙΝΗΤΟΥ ----------------------------------------
+	   Ένα διαμέρισμα, ένα οικόπεδο και μια αποθήκη δεν εκτιμώνται ούτε με τα
+	   ίδια στοιχεία ούτε με την ίδια μέθοδο. Κάθε πεδίο δηλώνει με data-p σε
+	   ποια προφίλ ανήκει· εδώ λέμε ποιο είδος πέφτει σε ποιο προφίλ. Το ΙΔΙΟ
+	   λεξιλόγιο υπάρχει και στον Worker (PROFILE_OF στο
+	   worker/lib/valuation.mjs): αν αλλάξει το ένα, αλλάζει και το άλλο,
+	   αλλιώς το prompt παίρνει λάθος μέθοδο. */
+	var PROFILE = {
+		"Διαμέρισμα": "apartment", "Studio / Γκαρσονιέρα": "apartment",
+		"Μεζονέτα": "house", "Μονοκατοικία": "house",
+		"Βίλα / Εξοχική κατοικία": "villa",
+		"Πολυκατοικία / Κτίριο": "building",
+		"Γραφείο": "office", "Κατάστημα": "retail",
+		"Αποθήκη": "industrial", "Βιοτεχνικός / Βιομηχανικός χώρος": "industrial",
+		"Θέση στάθμευσης": "parking",
+		"Οικόπεδο": "plot", "Αγροτεμάχιο": "parcel",
+	};
+
+	/* Τι εννοεί το «Εμβαδόν». Σε κατάστημα είναι ΤΟΥ ΙΣΟΓΕΙΟΥ — το πατάρι
+	   και το υπόγειο μπαίνουν χωριστά γιατί δεν αξίζουν όσο το ισόγειο και
+	   ανάγονται· αθροισμένα σε ένα νούμερο φουσκώνουν την εκτίμηση. */
+	var SIZE_LABEL = {
+		plot: "Εμβαδόν οικοπέδου (τ.μ.)",
+		parcel: "Εμβαδόν αγροτεμαχίου (τ.μ.)",
+		retail: "Εμβαδόν ισογείου (τ.μ.)",
+		building: "Συνολικό εμβαδόν κτιρίου (τ.μ.)",
+		industrial: "Εμβαδόν κτίσματος (τ.μ.)",
+		parking: "Εμβαδόν θέσης (τ.μ.)",
+	};
+
+	/* Χωρίς αυτά η εκτίμηση του συγκεκριμένου είδους είναι μαντεψιά. ΔΕΝ
+	   μπλοκάρουν — ο σύμβουλος στον δρόμο συχνά δεν ξέρει τον ΣΔ, και μια
+	   εκτίμηση με πλατύ εύρος είναι πιο χρήσιμη από καμία. Προειδοποιούν
+	   μία φορά (βλ. send) και το report το γράφει στη βεβαιότητα. */
+	var CRITICAL = {
+		apartment: ["floor", "yearBuilt", "condition"],
+		house: ["plot", "plotStatus", "yearBuilt", "condition"],
+		villa: ["plot", "seaDist", "condition"],
+		building: ["plot", "units", "yearBuilt"],
+		office: ["floor", "buildingGrade", "condition"],
+		retail: ["shopFrontM", "commerciality", "floor"],
+		industrial: ["clearHeightM", "plot", "plotStatus"],
+		parking: ["spotType"],
+		plot: ["plotStatus", "buildFactor", "buildable", "frontageM"],
+		parcel: ["plotStatus", "buildable", "frontageM", "roadType"],
+	};
+
+	function profileOf(){ return PROFILE[val("subcategory")] || ""; }
+
 	function categoryFor(sub){
-		if (sub === "Γραφείο" || sub === "Κατάστημα" || sub === "Αποθήκη") return "commercial";
-		if (sub === "Οικόπεδο" || sub === "Αγροτεμάχιο") return "land";
+		var p = PROFILE[sub] || "";
+		if (p === "plot" || p === "parcel") return "land";
+		if (p === "office" || p === "retail" || p === "industrial" || p === "parking") return "commercial";
 		return "residential";
+	}
+
+	/* Δείχνει μόνο ό,τι αφορά το είδος. Τα κρυφά πεδία ΔΕΝ καθαρίζονται: αν
+	   ο σύμβουλος διάλεξε λάθος είδος και το διορθώσει, δεν θέλουμε να έχει
+	   χάσει ό,τι έγραψε. Στο payload όμως στέλνονται ΜΟΝΟ τα ορατά. */
+	function applyProfile(){
+		var p = profileOf();
+		var els = document.querySelectorAll("[data-p]");
+		for (var i = 0; i < els.length; i++) {
+			els[i].hidden = !p || els[i].getAttribute("data-p").split(" ").indexOf(p) < 0;
+		}
+		$("sizeLabel").textContent = SIZE_LABEL[p] || "Εμβαδόν (τ.μ.)";
+		$("specsHint").hidden = !!p;
+		applyConditionals();
+		updateBuildableHint();
+	}
+
+	/* Πεδία που κρέμονται από την τιμή άλλου πεδίου: ηλικία επικαρπωτή,
+	   τρέχον μίσθωμα, λήξη μίσθωσης. */
+	function applyConditionals(){
+		var els = document.querySelectorAll("[data-when]");
+		for (var i = 0; i < els.length; i++) {
+			var parts = els[i].getAttribute("data-when").split(":");
+			els[i].hidden = parts[1].split("|").indexOf(val(parts[0])) < 0;
+		}
+	}
+
+	/* Σε γη η αξία βγαίνει από τα ΔΟΜΗΣΙΜΑ τετραγωνικά, όχι από τα
+	   τετραγωνικά της γης. Το δείχνουμε τη στιγμή που γράφεται ο ΣΔ, ώστε
+	   ένα «8» αντί για «0,8» να πιάνεται επιτόπου και όχι στο report. */
+	function updateBuildableHint(){
+		var h = $("buildableHint");
+		if (!h) return;
+		var sd = Number(String(val("buildFactor")).replace(",", "."));
+		var sqm = Number(digits(val("size")));
+		var show = ["plot", "parcel", "house", "villa", "building", "industrial"].indexOf(profileOf()) >= 0;
+		if (!show || !(sd > 0) || !(sqm > 0)) { h.hidden = true; h.textContent = ""; return; }
+		var base = profileOf() === "plot" || profileOf() === "parcel" ? sqm : Number(digits(val("plot"))) || 0;
+		if (!base) { h.hidden = true; h.textContent = ""; return; }
+		h.hidden = false;
+		h.textContent = "Με ΣΔ " + String(sd).replace(".", ",") + " σε " + base
+			+ " τ.μ. γης χτίζονται περίπου " + Math.round(sd * base) + " τ.μ. — από εκεί βγαίνει η αξία.";
+	}
+
+	/* Πολλαπλή επιλογή (δεσμεύσεις, δίκτυα) σε ένα string, ώστε να ταξιδεύει
+	   σαν κάθε άλλο πεδίο σε payload, πρόχειρα και reset. */
+	function isChips(id){ var e = $(id); return !!(e && e.hasAttribute("data-chips")); }
+	function fldVal(id){
+		if (!isChips(id)) return val(id);
+		return [].slice.call($(id).querySelectorAll("input:checked"))
+			.map(function(i){ return i.value; }).join(", ");
+	}
+	function fldSet(id, v){
+		if (!isChips(id)) { $(id).value = v == null ? "" : v; return; }
+		var on = String(v || "").split(",").map(function(x){ return x.trim(); });
+		[].slice.call($(id).querySelectorAll("input")).forEach(function(i){
+			i.checked = on.indexOf(i.value) >= 0;
+		});
+	}
+	/* Κρυφό = δεν αφορά αυτό το είδος. Ένα «ασανσέρ: Ναι» που έμεινε από
+	   προηγούμενη επιλογή είδους δεν επιτρέπεται να ταξιδέψει ως στοιχείο
+	   του οικοπέδου. */
+	function fieldVisible(id){
+		var e = $(id);
+		return !!e && !e.closest("[hidden]");
+	}
+
+	/* ΜΙΑ πηγή αλήθειας για τα πεδία — [id, κλειδί payload, τύπος].
+	   Κλειδί null = δεν μπαίνει αυτόματα στο payload (η τιμή έχει δική της
+	   μεταχείριση). Τύπος "n" = μόνο ψηφία (τα δεκαδικά, π.χ. ο ΣΔ ή τα
+	   μέτρα βιτρίνας, πάνε αυτούσια: ο Worker διαβάζει και «0,8»).
+	   Πριν υπήρχαν τρεις χωριστές λίστες (payload, πρόχειρα, reset) και
+	   κάθε νέο πεδίο ξεχνιόταν από τουλάχιστον μία. */
+	var FIELDS = [
+		["purpose", "purpose"], ["subcategory", "subcategory"],
+		["size", "size", "n"], ["areaName", "area_name"], ["address", "address"],
+		["floor", "floor"], ["yearBuilt", "year_built", "n"], ["bedrooms", "bedrooms", "n"],
+		["bathrooms", "bathrooms", "n"], ["levels", "levels", "n"], ["units", "units", "n"],
+		["condition", "condition"], ["yearRenovated", "year_renovated", "n"],
+		["energyClass", "energy_class"], ["heating", "heating"], ["elevator", "elevator"],
+		["parking", "parking"], ["parkingSpots", "parking_spots", "n"], ["storage", "storage"],
+		["balconies", "balconies", "n"], ["orientation", "orientation"], ["view", "view"],
+		["basementSqm", "basement_sqm", "n"], ["gardenSqm", "garden_sqm", "n"], ["pool", "pool"],
+		["seaDist", "sea_distance_m", "n"], ["metroDist", "metro_distance_m", "n"],
+		["shopFrontM", "shop_front_m"], ["depthM", "depth_m"], ["patariSqm", "patari_sqm", "n"],
+		["ceilingHM", "ceiling_height_m"], ["commerciality", "commerciality"], ["foodUse", "food_use"],
+		["buildingGrade", "building_grade"], ["layout", "layout"],
+		["clearHeightM", "clear_height_m"], ["officeSqm", "office_sqm", "n"],
+		["loadingDock", "loading_dock"], ["truckAccess", "truck_access"],
+		["threePhase", "three_phase"], ["crane", "crane"], ["highwayKm", "highway_km"],
+		["spotType", "spot_type"], ["accessEase", "access_ease"], ["corner", "corner"],
+		["plot", "plot_sqm", "n"], ["plotStatus", "plot_status"], ["buildable", "buildable"],
+		["buildFactor", "build_factor"], ["coveragePct", "coverage_pct", "n"],
+		["remainingBuild", "remaining_build_sqm", "n"], ["frontageM", "frontage_m"],
+		["roadType", "road_type"], ["shape", "shape"], ["slope", "slope"],
+		["landUse", "land_use"], ["existingBuildSqm", "existing_build_sqm", "n"],
+		["irrigation", "irrigation"], ["crop", "crop"], ["ownershipForm", "ownership_form"],
+		["constraints", "constraints"], ["utilities", "utilities"],
+		["legality", "legality"], ["buildingId", "building_id"], ["titles", "titles"],
+		["rights", "rights"], ["usufructAge", "usufruct_age", "n"], ["burdens", "burdens"],
+		["tenancy", "tenancy"], ["currentRent", "current_rent", "n"], ["leaseEnd", "lease_end"],
+		["owners", "owners"], ["strStatus", "str_status"],
+		["asking", null], ["notes", "notes"],
+	];
+
+	/* --- Τα κρίσιμα που λείπουν ------------------------------------------
+	   Πρώτο πάτημα: λέει τι λείπει και τι θα κοστίσει σε ακρίβεια. Δεύτερο:
+	   προχωράει. Ο έλεγχος κοιτάει μόνο ΟΡΑΤΑ πεδία, δηλαδή μόνο ό,τι
+	   αφορά πραγματικά το είδος. */
+	var pendingSkip = false;
+
+	function criticalMissing(){
+		return (CRITICAL[profileOf()] || []).filter(function(id){
+			return fieldVisible(id) && !fldVal(id);
+		});
+	}
+
+	function labelOf(id){
+		var l = document.querySelector('label[for="' + id + '"]');
+		return l ? l.textContent.replace(/\s*\(.*$/, "").trim() : id;
+	}
+
+	function showWarn(ids){
+		var w = $("warnbox");
+		w.textContent = "";
+		var b = document.createElement("b");
+		b.textContent = "Λείπουν στοιχεία που βαραίνουν σε αυτό το είδος: ";
+		w.appendChild(b);
+		w.appendChild(document.createTextNode(ids.map(labelOf).join(" · ")
+			+ ". Χωρίς αυτά η εκτίμηση βγαίνει με πλατύ εύρος και χαμηλή βεβαιότητα. Πάτησε ξανά για να συνεχίσεις έτσι."));
+		w.hidden = false;
+		$("send").textContent = "Συνέχεια χωρίς αυτά";
+		w.scrollIntoView({ behavior: "smooth", block: "center" });
+	}
+
+	function clearWarnIfFixed(){
+		if (!pendingSkip || criticalMissing().length) return;
+		pendingSkip = false;
+		$("warnbox").hidden = true;
+		$("send").textContent = "Υπολογισμός εκτίμησης";
 	}
 
 	var computing = false;
@@ -460,6 +903,11 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		if (!listing && !val("areaName")) { toast("Γράψε την περιοχή ή διάλεξε ακίνητο από το CRM.", "err"); return; }
 		if (!listing && !digits(val("size"))) { toast("Συμπλήρωσε τα τετραγωνικά.", "err"); return; }
 		if (navigator.onLine === false) { toast("Ο υπολογισμός θέλει σύνδεση στο internet.", "err"); return; }
+		/* Τα βαριά πεδία του είδους: πρώτο πάτημα προειδοποιεί, δεύτερο
+		   προχωράει. Δεν μπλοκάρει — αλλιώς η φόρμα δεν βγαίνει στον δρόμο. */
+		var miss = criticalMissing();
+		if (miss.length && !pendingSkip) { pendingSkip = true; showWarn(miss); return; }
+		$("warnbox").hidden = true;
 
 		var asking = Number(digits(val("asking")));
 		var summary = [val("subcategory") || "Ακίνητο",
@@ -467,42 +915,32 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			val("areaName") || (listing && listing.area) || "",
 			listing && listing.code ? "κωδ. " + listing.code : ""].filter(Boolean).join(" · ");
 
+		/* Στέλνονται ΜΟΝΟ τα ορατά πεδία, δηλαδή μόνο όσα αφορούν το είδος:
+		   ένα «ασανσέρ» ή μια «ενεργειακή κλάση» που έμειναν από προηγούμενη
+		   επιλογή θα έφταναν στο prompt ως στοιχεία του οικοπέδου. */
+		var data = {
+			listing_id: listing && listing.id != null ? String(listing.id) : "",
+			listing_code: listing ? (listing.code || "") : "",
+			listing_address: listing ? (listing.address || "") : "",
+			category: val("subcategory") ? categoryFor(val("subcategory")) : "",
+			profile: profileOf(),
+			missing_critical: miss.map(labelOf).join(", "),
+			asking_price: asking > 0 ? money(asking) : "",
+			asking_price_num: asking > 0 ? String(asking) : "",
+		};
+		FIELDS.forEach(function(f){
+			if (!f[1] || !fieldVisible(f[0])) return;
+			var v = fldVal(f[0]);
+			data[f[1]] = f[2] === "n" ? digits(v) : v;
+		});
+		if (!data.purpose) data.purpose = "both";
+
 		var payload = {
 			form: "ektimisi",
 			title: "Εκτίμηση ακινήτου",
 			submitted_at: new Date().toISOString(),
 			summary: summary,
-			data: {
-				listing_id: listing && listing.id != null ? String(listing.id) : "",
-				listing_code: listing ? (listing.code || "") : "",
-				listing_address: listing ? (listing.address || "") : "",
-				purpose: val("purpose") || "both",
-				subcategory: val("subcategory"),
-				category: val("subcategory") ? categoryFor(val("subcategory")) : "",
-				area_name: val("areaName"),
-				address: val("address"),
-				size: digits(val("size")),
-				floor: val("floor"),
-				bedrooms: digits(val("bedrooms")),
-				bathrooms: digits(val("bathrooms")),
-				year_built: digits(val("yearBuilt")),
-				year_renovated: digits(val("yearRenovated")),
-				energy_class: val("energyClass"),
-				condition: val("condition"),
-				heating: val("heating"),
-				elevator: val("elevator"),
-				parking: val("parking"),
-				storage: val("storage"),
-				view: val("view"),
-				orientation: val("orientation"),
-				sea_distance_m: digits(val("seaDist")),
-				plot_sqm: digits(val("plot")),
-				pool: val("pool"),
-				balconies: digits(val("balconies")),
-				asking_price: asking > 0 ? money(asking) : "",
-				asking_price_num: asking > 0 ? String(asking) : "",
-				notes: val("notes"),
-			},
+			data: data,
 		};
 
 		try {
@@ -906,6 +1344,14 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 	function buildOfficeDoc(j){
 		var v = j.v || {}, p = j.prop || {}, comps = j.comps || [];
 		var d = el("div", "doc");
+		/* Σε γη το σκέτο «€/τ.μ.» είναι διφορούμενο ακριβώς εκεί που κρίνεται
+		   η εκτίμηση: άλλο ανά τ.μ. γης, άλλο ανά δομήσιμο τ.μ. */
+		var isLand = p.profile === "plot" || p.profile === "parcel";
+		var perSqm = isLand ? "/τ.μ. γης" : "/τ.μ.";
+		var buildable = isLand && Number(v.eur_per_buildable_sqm)
+			? " · " + money(v.eur_per_buildable_sqm) + "/τ.μ. δόμησης"
+				+ (Number(v.buildable_sqm) ? " (" + Math.round(v.buildable_sqm) + " τ.μ. δομήσιμα)" : "")
+			: "";
 
 		var hd = el("div", "hd");
 		var wm = el("div", "wm");
@@ -924,8 +1370,18 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 			var b = el("div", "bigval");
 			b.appendChild(el("div", "l", "ΕΚΤΙΜΩΜΕΝΗ ΑΞΙΑ ΠΩΛΗΣΗΣ"));
 			b.appendChild(el("div", "v", money(v.value_mid)));
-			b.appendChild(el("div", "r", "εύρος " + money(v.value_low) + " έως " + money(v.value_high) + " · " + money(v.eur_per_sqm) + "/τ.μ."));
+			b.appendChild(el("div", "r", "εύρος " + money(v.value_low) + " έως " + money(v.value_high) + " · " + money(v.eur_per_sqm) + perSqm + buildable));
 			d.appendChild(b);
+		}
+		/* Οι αιρέσεις μπαίνουν αμέσως κάτω από το νούμερο, όχι στο τέλος: το
+		   νούμερο δεν επιτρέπεται να ταξιδέψει χωρίς αυτές. Στο έγγραφο του
+		   ιδιοκτήτη ΔΕΝ τυπώνονται — τη συζήτηση την ανοίγει ο σύμβουλος. */
+		var caveats = (Array.isArray(v.caveats) ? v.caveats : []).filter(Boolean);
+		if (caveats.length) {
+			var cv = el("div", "caveat");
+			cv.appendChild(el("div", "l", "ΥΠΟ ΑΙΡΕΣΗ"));
+			caveats.forEach(function(c){ cv.appendChild(el("div", null, "• " + c)); });
+			d.appendChild(cv);
 		}
 		/* Σε εκτίμηση ΜΟΝΟ ενοικίασης η αξία πώλησης δεν τυπώνεται, οπότε η
 		   απόδοση «στην εκτιμώμενη αξία» κρεμόταν από νούμερο που δεν φαίνεται
@@ -946,7 +1402,9 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 
 		var adj = Array.isArray(v.adjustments) ? v.adjustments : [];
 		if (adj.length) {
-			d.appendChild(el("h2", null, "ΠΩΣ ΒΓΗΚΕ ΤΟ ΝΟΥΜΕΡΟ · ΑΦΕΤΗΡΙΑ " + money(v.base_eur_per_sqm) + "/τ.μ." + (saleShown ? "" : " ΑΞΙΑΣ")));
+			d.appendChild(el("h2", null, "ΠΩΣ ΒΓΗΚΕ ΤΟ ΝΟΥΜΕΡΟ"
+				+ (v.method ? " · " + grUpper(v.method) : "")
+				+ " · ΑΦΕΤΗΡΙΑ " + money(v.base_eur_per_sqm) + perSqm + (saleShown ? "" : " ΑΞΙΑΣ")));
 			var t = el("table");
 			adj.forEach(function(a){
 				var tr = el("tr");
@@ -1041,10 +1499,12 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 
 	function reset(){
 		listing = null;
-		["purpose"].forEach(function(id){ $(id).value = "both"; });
-		["subcategory","size","areaName","address","floor","yearBuilt","bedrooms","bathrooms",
-		 "yearRenovated","energyClass","condition","heating","elevator","parking","storage",
-		 "orientation","view","seaDist","plot","pool","balconies","asking","notes"].forEach(function(id){ $(id).value = ""; });
+		FIELDS.forEach(function(f){ fldSet(f[0], ""); });
+		$("purpose").value = "both";
+		pendingSkip = false;
+		$("warnbox").hidden = true;
+		$("send").textContent = "Υπολογισμός εκτίμησης";
+		applyProfile();
 		renderListing();
 		result = null;
 		editing = null;
@@ -1067,6 +1527,20 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		};
 		$("asking").oninput = onAsking;
 		$("send").onclick = send;
+		/* Το είδος ορίζει ποια πεδία υπάρχουν καν· τα υπόλοιπα δύο ξαναχτίζουν
+		   μόνο τα εξαρτημένα (επικαρπία, μίσθωμα). Ένας ακροατής στη φόρμα
+		   κρατάει τη βοήθεια των δομήσιμων τ.μ. και την προειδοποίηση φρέσκα. */
+		$("subcategory").onchange = function(){
+			pendingSkip = false;
+			$("warnbox").hidden = true;
+			$("send").textContent = "Υπολογισμός εκτίμησης";
+			applyProfile();
+		};
+		$("rights").onchange = applyConditionals;
+		$("tenancy").onchange = applyConditionals;
+		$("form").addEventListener("input", function(){ updateBuildableHint(); clearWarnIfFixed(); });
+		$("form").addEventListener("change", function(){ updateBuildableHint(); clearWarnIfFixed(); });
+		applyProfile();
 		$("sendEmail").onclick = sendEmail;
 		$("sendClient").onclick = sendClient;
 		$("tabOffice").onclick = function(){ showView("office"); };
@@ -1078,20 +1552,19 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		/* Πρόχειρα (_drafts.fw.js): κρατούν και το επιλεγμένο ακίνητο από
 		   το CRM (raw record) — οι τιμές των πεδίων όπως τις άφησες, μαζί
 		   με ό,τι είχε φέρει το prefill. */
-		var FLD = ["purpose","subcategory","size","areaName","address","floor","yearBuilt",
-			"bedrooms","bathrooms","yearRenovated","energyClass","condition","heating",
-			"elevator","parking","storage","orientation","view","seaDist","plot","pool","balconies","asking","notes","clientEmail"];
+		var FLD = FIELDS.map(function(f){ return f[0]; }).concat(["clientEmail"]);
 		if (window.FWDrafts) FWDrafts.register({
 			form: "ektimisi", mount: "#form",
 			collect: function(){
 				var o = { listing: listing };
-				FLD.forEach(function(id){ o[id] = $(id).value; });
+				FLD.forEach(function(id){ o[id] = fldVal(id); });
 				return o;
 			},
 			apply: function(d){
 				listing = d.listing || null;
-				FLD.forEach(function(id){ $(id).value = d[id] == null ? "" : d[id]; });
+				FLD.forEach(function(id){ fldSet(id, d[id]); });
 				if (!d.purpose) $("purpose").value = "both";
+				applyProfile();
 				renderListing(); /* χωρίς prefill(): οι τιμές είναι ήδη στο πρόχειρο */
 			},
 			label: function(d){
