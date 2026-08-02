@@ -7,7 +7,7 @@ client, and the fields fill in from EstatePrime. Same for properties on the
 ```
 forms.four-walls.gr ──▶ Cloudflare Access ──▶ Worker (worker/index.mjs)
    (iPad, PWA)          login, 1-month session      │
-                                                    ├─▶ /api/crm/contacts      2 API calls, KV-cached
+                                                    ├─▶ /api/crm/contacts      1 call/page, KV-cached
                                                     ├─▶ /api/crm/contacts/{id} 1 API call, on tap
                                                     └─▶ /api/crm/listings      3 API calls, KV-cached
                                                               │
@@ -34,11 +34,12 @@ raw listing record and the full contact detail respectively. That is how
   **bypasses Access entirely**.
 - **A light index, then one detail call.** The list endpoint does not return
   `custom_fields` (see [Known limits](#known-limits)), so fetching every
-  contact's full record would be 58 requests. Instead the index carries only
-  what the search box matches on (name/phone/email) and the tapped contact
+  contact's full record would be one request per contact (221 of them on
+  2026-08-02). Instead the index costs one call per page of 50 and carries
+  only what the search box matches on (name/phone/email); the tapped contact
   costs one call. The tablet downloads the index once and filters locally —
   instant, and it survives a bad signal at a viewing.
-- **KV, not a database.** ~58 contacts and ~23 active listings, searched
+- **KV, not a database.** ~221 contacts and ~23 active listings, searched
   client-side: there is nothing to query server-side, and `date_updated` is
   broken upstream so incremental sync is impossible anyway — any mirror must
   be a full refresh, which is what KV does well. A D1 mirror would add schema,
@@ -57,6 +58,20 @@ raw listing record and the full contact detail respectively. That is how
 - **Read-only.** EstatePrime exposes no contact update endpoint, so
   corrections the consultant makes in the form stay in the form. See
   [Known limits](#known-limits).
+- **Sign leads are hidden from the pickers (2026-08-02).** Street-sign leads
+  land in the CRM as contacts surnamed **«ΠΙΝΑΚΙΔΑ»** with the address where
+  the given name goes ([pinakides.md](pinakides.md)) — nobody hands you a name
+  on a cold call. They carry no ΑΦΜ/ΑΔΤ and sign nothing, so they have no
+  business in the ανάθεση/απόδειξη pickers, and they outnumber the real
+  clients in the list. The filter sits at the `/api/crm/contacts` **route**,
+  not in `contactsIndex()`: `phone-lookup.mjs` reads the same index to answer
+  "do we already know this number?", and cutting them there would make every
+  sign reappear as a fresh lead on the next walk. **Renaming a lead to a real
+  name puts it back in the picker on its own** — the rename is the promotion,
+  which is why `is_lead` can wait. Matching folds accents and case, because
+  JS `toUpperCase` keeps the τόνος («Πινακίδα» → «ΠΙΝΑΚΊΔΑ»); the KV key
+  carries a `-v2` suffix so entries cached without the flag retire instead of
+  being served for their whole freshness window.
 - **Real addresses.** The property picker publishes `address_el`, not the fake
   address the public feed uses for `display_address: "fake"` listings (14 of
   15 active ones). A σύμβαση υπόδειξης naming an approximate address would be
@@ -144,7 +159,7 @@ curl -s -o /dev/null -w "%{http_code}\n" https://four-walls.<sub>.workers.dev/ap
 curl -sI https://forms.four-walls.gr/api/crm/contacts | head -1
 
 # 3. in a browser, logged in: the index returns
-#    {"generatedAt":…,"count":58,"contacts":[…]}
+#    {"generatedAt":…,"count":<N>,"contacts":[…]}  (sign leads already filtered out)
 
 # 4. open a form -> «Από το CRM» -> search -> tap -> fields fill
 ```
@@ -235,6 +250,10 @@ All reported to EstatePrime (tech@estateprime.gr) on 2026-07-17.
   («Κατοικία») duplicating it.
 - **The list endpoint omits `custom_fields`, `tags` and `users`.** Only
   `GET /contacts/{id}` returns them.
+- **`GET /contacts` ignores every query param except `?search=`** (probed live
+  2026-08-02: `?is_lead=1` returns exactly the same 221 rows as
+  `?bogus_param=1`). There is no server-side filtering to lean on, which is
+  why the sign-lead filter above runs on our side.
 - **An unknown id does not 404.** `GET /contacts/999999` answers `200` with
   `data: []` — and `[]` is truthy, so a naive check maps every field to
   `undefined` and silently blanks the form. `contactDetail()` guards against

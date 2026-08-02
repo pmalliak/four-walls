@@ -172,7 +172,8 @@ documented `notes` is not returned.
 - **`DELETE /contacts/{id}` can answer `200` without deleting** — contact 72
   survived a `200` DELETE intact. Always re-GET to confirm a delete happened.
 - `tags` are integer ids from `GET /contacts/tags` (live: 1=ilist, 4=make,
-  9=spitogatos, 10=ΖΗΤΗΣΗ, 11=ΑΝΑΘΕΣΗ, 12=ai, 16=ΥΠΟΔΕΙΞΗ, 17=website);
+  9=spitogatos, 10=ΖΗΤΗΣΗ, 11=ΑΝΑΘΕΣΗ, 12=ai, 16=ΥΠΟΔΕΙΞΗ, 17=website,
+  19=ΠΙΝΑΚΙΔΑ — the last one new 2026-08-02);
   there is no tag-creation endpoint — new tags are made in the CRM UI.
   Tag 12 was named `claude` until 2026-07-31 (renamed to `ai`, same id);
   17=website is new the same day. For AI-created Spitogatos leads, send
@@ -186,7 +187,14 @@ documented `notes` is not returned.
   accents («Christos Papadopoulos» → Χρήστος Παπαδόπουλος); the original
   Latin spelling stays in the notes. Foreign names stay in Latin script.
 - Contact sources (`GET /contacts/sources`) are separate from listing sources:
-  3=Spitogatos.gr.
+  3=Spitogatos.gr, 4=Ενοικιαστήριο/Πωλητήριο (the one street-sign leads use).
+- **Street-sign leads are a contact convention, not a contact type.** They are
+  created surnamed **«ΠΙΝΑΚΙΔΑ»** with the address as the given name, owned by
+  user 1, tags `[12, 4, 19]`, source 4 — see
+  [pinakides.md](pinakides.md) for the body and the five brakes, and
+  [forms-crm.md](forms-crm.md) for why they are filtered out of the Έντυπα
+  pickers. `is_lead: true` is set but is **not** what hides them: the API
+  ignores it as a filter (see below), so the surname is the marker.
 
 Traps that cost real debugging time, all verified 2026-07-17:
 
@@ -196,6 +204,9 @@ Traps that cost real debugging time, all verified 2026-07-17:
   are omitted entirely.
 - **The list endpoint omits `custom_fields`, `tags` and `users`**; only the
   single-contact endpoint returns them.
+- **`GET /contacts` ignores every query param except `?search=`** (probed live
+  2026-08-02: `?is_lead=1` returns exactly the same 221 rows as
+  `?bogus_param=1`). Any filtering happens on our side, after the fetch.
 - **`date_updated` never changes** on edits, native or custom.
 - **No update endpoint in the public API**: only `GET`, `POST` (create) and
   `DELETE`. Edits go through the CRM's own page endpoint, see below.
@@ -279,8 +290,9 @@ Field map, custom-field ids, and the Cloudflare Access setup:
 
 - Channels: `1=Κλήση, 2=Email, 3=SMS, 4=Δια ζώσης, 5=Άλλο`. `store_id` is 1.
 - **Communications have their own tag namespace** (`GET /communication/tags`):
-  live ids `5=make, 8=spitogatos, 15=ai (πρώην claude), 18=website` —
-  different ids from contact tags.
+  live ids `5=make, 8=spitogatos, 15=ai (πρώην claude), 18=website,
+  20=ΠΙΝΑΚΙΔΑ` — different ids from contact tags, and ΠΙΝΑΚΙΔΑ is the clearest
+  example: **19** as a contact tag, **20** as a communication tag.
 - **Tag order is not preserved** — the API stores/returns tag ids sorted
   ascending regardless of submission order (sent `[15,8]`, got `[8,15]`).
   Same applies to contact tags. Display order in the UI follows tag id.
