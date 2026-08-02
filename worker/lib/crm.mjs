@@ -8,14 +8,18 @@
    Every route is gated by requireAccess() (access.mjs), applied by the
    caller in index.mjs, and MUST stay that way.
 
-   SHAPE OF THE CALLS (why it is only 3 requests, not 58)
+   SHAPE OF THE CALLS (why it is a handful of requests, not one per contact)
      The list endpoint does NOT return custom_fields/tags/users — only
      GET /contacts/{id} does (reported to EstatePrime 2026-07-17). So
      rather than N+1 fetching every contact's custom fields up front:
-       - index()  -> 2 list calls, just enough to search on (name/phone/
-                     email). Cached in KV, small payload, searched
-                     client-side on the tablet.
+       - index()  -> one list call per page (50/page: 5 calls at 221
+                     contacts, 2026-08-02), just enough to search on
+                     (name/phone/email). Cached in KV, small payload,
+                     searched client-side on the tablet.
        - detail() -> 1 call, only for the contact the user actually taps.
+     There is NO server-side filtering to lean on: probed live 2026-08-02,
+     GET /contacts ignores every query param except `?search=` — `?is_lead=1`
+     returns exactly the same 221 rows as `?bogus_param=1`.
 
    CONTACT FIELD MAP (verified live against the fourwalls account,
    2026-07-17 — see docs/estateprime-api.md):
@@ -46,7 +50,11 @@ const CF_KATOIKIA = "8";
 const CF_ADT_DATE = "10";
 const CF_ADT_AUTHORITY = "11";
 
-const CONTACTS_KEY = "crm:contacts-index";
+// -v2: το entry κουβαλάει πλέον `sign` (lead από πινακίδα). Το cache μένει
+// χωρίς TTL επίτηδες (βλ. cachedIndex), οπότε ένα παλιό v1 entry θα σερβιριζόταν
+// χωρίς το flag — και οι επαφές-πινακίδες θα έμπαιναν στους pickers. Το bump
+// το αποσύρει αντί να το περιμένουμε να λήξει.
+const CONTACTS_KEY = "crm:contacts-index-v2";
 // -v2: the entry now carries subcategory + ownerId. The cache is kept
 // without a TTL on purpose (see cachedIndex), so a stale v1 entry would be
 // served to the picker for its whole freshness window with those fields
@@ -107,8 +115,10 @@ async function cachedIndex(env, key, build, force) {
 /* ------------------------------------------------------------ contacts */
 
 /* Search index: every contact, trimmed to what the searchbox matches on.
-   58 contacts today -> a few KB, so the tablet downloads it once and
-   filters locally (instant, and survives a bad 4G signal at a viewing). */
+   221 contacts today -> a few KB, so the tablet downloads it once and
+   filters locally (instant, and survives a bad 4G signal at a viewing).
+   Everything is kept here, leads included; who gets *served* what is the
+   route's call (worker/index.mjs). */
 export async function contactsIndex(env, force) {
 	return cachedIndex(env, CONTACTS_KEY, async () => {
 		const rows = await fetchAllPages(env, "/contacts");
@@ -140,6 +150,22 @@ async function fetchAllPages(env, path) {
 	return rows;
 }
 
+/* Επαφές-πινακίδες: τα leads της γρήγορης καταχώρισης (docs/quick-leads.md)
+   μπαίνουν στο CRM με σταθερό επώνυμο «ΠΙΝΑΚΙΔΑ» και τη διεύθυνση στη θέση
+   του ονόματος — σε cold call κανείς δεν δίνει όνομα, οπότε η διεύθυνση είναι
+   το μόνο σταθερό αναγνωριστικό που θα υπάρξει ποτέ.
+
+   Η σύγκριση αγνοεί τόνους και πεζά/κεφαλαία: μια επαφή φτιαγμένη με το χέρι
+   στο UI μπορεί να γραφτεί «Πινακίδα», και το `toUpperCase()` του JS κρατάει
+   τον τόνο («Πινακίδα» -> «ΠΙΝΑΚΊΔΑ»), οπότε σκέτη σύγκριση κεφαλαίων αστοχεί. */
+const SIGN_LAST_NAME = "ΠΙΝΑΚΙΔΑ";
+
+export function isSignLead(lastName) {
+	return String(lastName || "")
+		.normalize("NFD").replace(/\p{M}/gu, "")
+		.toUpperCase().trim() === SIGN_LAST_NAME;
+}
+
 function indexEntry(raw) {
 	return {
 		id: raw.id,
@@ -152,6 +178,11 @@ function indexEntry(raw) {
 		phones: (raw.phones || []).map((p) => p.number).filter(Boolean),
 		email: raw.emails?.[0]?.email ?? null,
 		isLead: !!raw.is_lead,
+		/* Lead από πινακίδα. Μένει ΜΕΣΑ στο index — ο έλεγχος «αυτό το
+		   τηλέφωνο το ξέρουμε ήδη;» του phone-lookup.mjs πρέπει να τα βλέπει
+		   όλα, αλλιώς η ίδια πινακίδα ξαναβγαίνει ως φρέσκο lead στην επόμενη
+		   βόλτα. Κόβεται μόνο εκεί που σερβίρεται ο picker (worker/index.mjs). */
+		sign: isSignLead(raw.last_name),
 	};
 }
 

@@ -415,7 +415,15 @@ async function handleCrm(request, env, pathname, url) {
 
 	try {
 		if (pathname === "/api/crm/contacts") {
-			return json(await contactsIndex(env, force));
+			/* Τα leads από πινακίδα (επώνυμο «ΠΙΝΑΚΙΔΑ») δεν σερβίρονται στους
+			   pickers των εντύπων: δεν έχουν ΑΦΜ/ΑΔΤ, δεν υπογράφουν τίποτα, και
+			   είναι πολλαπλάσια των πραγματικών πελατών μέσα στη λίστα. Το φίλτρο
+			   είναι ΕΔΩ και όχι στο contactsIndex(): το ίδιο αντικείμενο διαβάζει
+			   και το phone-lookup.mjs, που πρέπει να τα βλέπει όλα.
+			   Μόλις κάποιος πάρει πραγματικό όνομα, ξαναεμφανίζεται μόνος του. */
+			const index = await contactsIndex(env, force);
+			const contacts = (index.contacts || []).filter((c) => !c.sign);
+			return json({ ...index, count: contacts.length, contacts });
 		}
 		const m = pathname.match(/^\/api\/crm\/contacts\/(\d+)$/);
 		if (m) {
