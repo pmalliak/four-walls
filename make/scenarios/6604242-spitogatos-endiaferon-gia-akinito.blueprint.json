@@ -1158,7 +1158,7 @@
 							},
 							"mapper": {
 								"qs": [],
-								"url": "https://four-walls.gr/api/lead-reply?code={{encodeURL(3.adCode)}}&lang=el&transaction={{switch(2.dealType; \"Πώληση\"; \"sale\"; \"Ενοικίαση\"; \"rent\"; \"\")}}",
+								"url": "https://four-walls.gr/api/lead-reply?code={{encodeURL(3.adCode)}}&lang=el&to={{encodeURL(3.clientEmail)}}&transaction={{switch(2.dealType; \"Πώληση\"; \"sale\"; \"Ενοικίαση\"; \"rent\"; \"\")}}",
 								"gzip": true,
 								"method": "get",
 								"headers": [],

@@ -117,8 +117,9 @@ So the Worker refuses to forward the same έντυπο twice. It hashes the payl
 (SHA-256) minus everything that changes without the document changing:
 `submitted_at`, the PDF (html2pdf stamps a CreationDate, so the bytes differ
 on every render), katachorisi's clock-based `ref`, and the server-side stamps.
-The hash lives in KV as `forms:sent:<hash>` for **6 hours**; a second POST
-carrying it gets `{ok:true, duplicate:true}` and Make never hears about it.
+The hash lives in KV as `forms:sent:<hash>` for **48 hours**; a second POST
+carrying it gets `{ok:true, duplicate:true, sent_at:<iso>}` and Make never
+hears about it.
 
 - **Content, not a client id.** An id minted by the browser would be fresh on
   a second tap and sail through, and the second tap is one of the two ways
@@ -132,9 +133,20 @@ carrying it gets `{ok:true, duplicate:true}` and Make never hears about it.
   client is waiting for that email the two are different facts.
 - **Fail-open.** If KV errors, the έντυπο is forwarded anyway: a duplicate
   beats a lost contract.
-- Six hours covers the retries (seconds, or as long as a locked tablet stays
-  locked) while a deliberate re-send tomorrow still works. Inside the window,
-  a genuinely new έντυπο differs anyway, if only in its signatures.
+- **48 hours, and the window asks rather than blocks.** It started at six,
+  which covered the retries, but on 2026-08-02 an εκτίμηση left a second time
+  two days later from a screen that had stayed open since Friday: a send the
+  consultant no longer remembers is not a deliberate re-send. Inside the
+  window `FWOutbox.submit` shows **when** the first one went out («Το ίδιο
+  έντυπο είχε ήδη σταλεί χθες στις 15:49. Να σταλεί ΞΑΝΑ;») and only a yes
+  re-posts it with `force_resend: true`, which skips the check and refreshes
+  the key. The flag is in `DEDUPE_SKIP`, so it cannot masquerade as a new
+  document. Inside the window a genuinely new έντυπο differs anyway, if only
+  in its signatures.
+- **The queue never asks.** `flush()` drains unattended, often against a
+  locked screen, so a duplicate there is just counted and reported.
+- The question lives in `_outbox.fw.js` alone, which is why none of the six
+  form pages needed changing.
 
 The two εκτίμηση sends stay separate because their payloads differ: the office
 one carries only the ref, the owner one adds `client_email` and the PDF.

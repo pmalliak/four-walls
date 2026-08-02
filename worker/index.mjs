@@ -47,6 +47,7 @@ import { handlePropertyAssignment } from "./lib/property-assignment.mjs";
 import { handleValuation, handleValuationLog } from "./lib/valuation.mjs";
 import { handleAreaPricesRefresh } from "./lib/area-prices-refresh.mjs";
 import { maybeRunDlqWatch, handleDlqReport } from "./lib/dlq-watch.mjs";
+import { handleOnce } from "./lib/sent-log.mjs";
 
 const FEED_KEY = "listings.json";
 const DEFAULT_WEBHOOK_PATH = "/listings"; // overridden by WEBHOOK_PATH var
@@ -246,6 +247,13 @@ export default {
 		// fetches it and sends it — see docs/spitogatos-leads.md.
 		if (pathname === "/api/lead-reply") {
 			return handleLeadReply(request, env, url);
+		}
+		// «Μία φορά»: το πρώτο κάλεσμα με ένα κλειδί παίρνει first:true, τα
+		// επόμενα false. Το χρησιμοποιούν τα σενάρια που στέλνουν σε πελάτη
+		// χωρίς να περνούν από εδώ (Spitogatos, mailhook), ώστε ένα μήνυμα
+		// που ξαναφτάνει να μη στείλει δεύτερο email. Βλ. worker/lib/sent-log.mjs.
+		if (pathname === "/api/once") {
+			return handleOnce(request, env, url);
 		}
 		// Εκτίμηση αξίας ακινήτου: το Make τραβάει το έτοιμο report για
 		// ένα ektimisi submit (το ref μπήκε στο payload από forms.mjs).

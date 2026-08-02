@@ -26,6 +26,8 @@
    Χωρίς token ή webhook ο φύλακας μένει σιωπηλός (δεν σκάει ο cron).
    ===================================================================== */
 
+import { findDuplicateSends } from "./sent-log.mjs";
+
 const KV_LAST_RUN = "dlq-watch:last-run";
 const MAX_DETAIL = 12; // πόσα bundles ανοίγουμε για ανθρώπινα στοιχεία
 
@@ -73,6 +75,7 @@ const FORM_LABELS = {
 	katachorisi: "Φόρμα Καταχώρισης",
 	prosfora: "Προσφορά",
 	ektimisi: "Εκτίμηση Ακινήτου",
+	"lead-reply": "Αυτόματη απάντηση σε ενδιαφερόμενο",
 };
 
 /* Ο cron του Worker χτυπάει κάθε 15 λεπτά για το feed. Ο φύλακας θέλει να
@@ -152,7 +155,16 @@ async function buildDlqReport(env) {
 			stuck.push({ scenarioId: s.id, scenarioName: s.name, ...d });
 		}
 	}
-	if (!stuck.length) return { count: 0 };
+	// Ανεξάρτητος έλεγχος, δικό του KV: μια αποτυχία εδώ δεν πρέπει να
+	// καταπιεί την αναφορά των εκκρεμοτήτων.
+	let dupes = [];
+	try {
+		dupes = await findDuplicateSends(env);
+	} catch (err) {
+		console.warn("dlq-watch: ο έλεγχος για διπλά απέτυχε", String(err));
+	}
+
+	if (!stuck.length) return finish(stuck, dupes);
 
 	stuck.sort((a, b) => (a.created < b.created ? -1 : 1)); // παλαιότερο πρώτο
 
@@ -166,11 +178,24 @@ async function buildDlqReport(env) {
 		}
 	}
 
-	return {
-		count: stuck.length,
-		subject: `ΔΕΝ ΣΤΑΛΘΗΚΕ · ${stuck.length} ${stuck.length === 1 ? "εκκρεμότητα" : "εκκρεμότητες"}`,
-		html: buildHtml(stuck),
-	};
+	return finish(stuck, dupes);
+}
+
+/* Το ίδιο έντυπο, δύο φορές στον ίδιο πελάτη. Ο φύλακας το βρίσκει επειδή
+   κανείς άλλος δεν κοιτάζει: το `forms:sent:` κόβει μόνο το πανομοιότυπο,
+   και ό,τι ξαναμπαίνει στο Make απευθείας (resolve, replay) δεν περνάει
+   καν από τον Worker. Ενημερώνει, δεν εμποδίζει: το email έχει ήδη φύγει,
+   και η επόμενη κίνηση είναι ένα τηλέφωνο, όχι ένα rollback. */
+function finish(stuck, dupes) {
+	const total = stuck.length + dupes.length;
+	if (!total) return { count: 0 };
+	const parts = [];
+	if (stuck.length) parts.push(`${stuck.length} ${stuck.length === 1 ? "εκκρεμότητα" : "εκκρεμότητες"}`);
+	if (dupes.length) parts.push(`${dupes.length} ${dupes.length === 1 ? "διπλό" : "διπλά"}`);
+	const subject = stuck.length
+		? `ΔΕΝ ΣΤΑΛΘΗΚΕ · ${parts.join(", ")}`
+		: `ΕΦΥΓΕ ΔΙΠΛΟ · ${parts.join(", ")}`;
+	return { count: total, subject, html: buildHtml(stuck, dupes) };
 }
 
 /* Το payload του webhook είναι το module 1 του σεναρίου. Για τα έντυπα
@@ -214,7 +239,32 @@ function describeBundle(response) {
 	return out;
 }
 
-function buildHtml(items) {
+/* Μια γραμμή ανά ζεύγος: τι, σε ποιον, πότε έφυγαν τα δύο. Το «επίτηδες»
+   δεν είναι σφάλμα, αλλά μπαίνει κι αυτό: όποιος διαβάζει το email πρέπει
+   να ξέρει ότι ο πελάτης έλαβε δύο, όχι να μαντεύει γιατί. */
+function buildDupeRows(dupes) {
+	return dupes
+		.map((d) => {
+			const what = [FORM_LABELS[d.form] || d.form, d.label].filter(Boolean).join(" · ");
+			const same = d.sameDocument ? "ακριβώς το ίδιο έγγραφο" : "με μικρές διαφορές";
+			const gap = d.gapHours < 1
+				? `${Math.max(1, Math.round(d.gapHours * 60))} λεπτά διαφορά`
+				: `${String(d.gapHours).replace(".", ",")} ώρες διαφορά`;
+			const why = d.forced
+				? "Ο σύμβουλος επιβεβαίωσε ότι το ξαναστέλνει. Δεν είναι σφάλμα, αλλά ο πελάτης έλαβε δύο."
+				: "Δεν ζητήθηκε επαναποστολή: κάποιο βήμα το ξανάστειλε μόνο του.";
+			return `<tr><td style="padding:14px 0;border-bottom:1px solid #e6e9ef;">
+				<div style="font-size:15px;font-weight:bold;color:#16233A;">${esc(what)}</div>
+				<div style="font-size:14px;color:#16233A;padding-top:2px;">Προς ${esc(d.to)}</div>
+				<div style="font-size:13.5px;color:#777777;padding-top:2px;">${esc(greekDate(d.first))} και ${esc(greekDate(d.second))} · ${esc(gap)} · ${esc(same)}</div>
+				<div style="font-size:14px;color:#8a6d00;padding-top:2px;">${esc(why)}</div>
+				<div style="font-size:14px;color:#16233A;padding-top:6px;"><strong>Τι κάνουμε:</strong> Δες αν χρειάζεται να ειδοποιηθεί ο πελάτης ότι ισχύει ένα έγγραφο. Στο CRM αρχειοθετούμε μία φορά.</div>
+			</td></tr>`;
+		})
+		.join("");
+}
+
+function buildHtml(items, dupes = []) {
 	const rows = items
 		.map((it) => {
 			const meta = SCENARIOS[it.scenarioId] || {
@@ -244,7 +294,18 @@ function buildHtml(items) {
 		})
 		.join("");
 
-	return `<!DOCTYPE html><html lang='el'><head><meta charset='utf-8'></head><body style='margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background:#f4f5f7;padding:18px 0;'><tr><td align='center'><table role='presentation' width='560' cellpadding='0' cellspacing='0' style='max-width:560px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;'><tr><td style='background:#16233A;padding:16px 24px 6px 24px;'><span style='font-weight:bold;font-size:15px;letter-spacing:3px;color:#ffffff;'>FOUR WALLS</span><span style='font-weight:bold;font-size:10px;letter-spacing:2px;color:#FF1462;padding-left:8px;'>REAL ESTATE</span></td></tr><tr><td style='background:#16233A;padding:0 24px 14px 24px;color:#ffffff;font-size:16px;font-weight:bold;letter-spacing:1px;'>ΚΑΤΙ ΔΕΝ ΣΤΑΛΘΗΚΕ</td></tr><tr><td style='height:3px;background:#FF1462;'></td></tr><tr><td style='padding:22px 24px 4px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 4px 0;'>Τα παρακάτω ξεκίνησαν αλλά <strong>δεν ολοκληρώθηκαν</strong>. Δεν χάθηκαν, είναι φυλαγμένα και ξαναστέλνονται, χρειάζονται όμως μια ανθρώπινη κίνηση.</p></td></tr><tr><td style='padding:4px 24px 6px 24px;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='border-top:1px solid #e6e9ef;'>${rows}</table></td></tr><tr><td style='padding:14px 24px 20px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0;color:#777777;font-size:13.5px;'>Το email αυτό έρχεται μόνο όταν υπάρχει εκκρεμότητα, και <strong>θα ξαναέρθει αύριο</strong> μέχρι να τακτοποιηθεί. Οταν όλα είναι εντάξει, δεν λαμβάνεις τίποτα.</p></td></tr><tr><td style='background:#16233A;padding:16px 24px;'><p style='margin:0;font-size:12px;line-height:1.6;color:#cdd3de;'><strong style='color:#ffffff;'>Four Walls Real Estate</strong> · αυτόματος ημερήσιος έλεγχος</p></td></tr></table></td></tr></table></body></html>`;
+	const heading = items.length ? "ΚΑΤΙ ΔΕΝ ΣΤΑΛΘΗΚΕ" : "ΕΦΥΓΕ ΔΙΠΛΟ";
+	const stuckBlock = items.length
+		? `<tr><td style='padding:22px 24px 4px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 4px 0;'>Τα παρακάτω ξεκίνησαν αλλά <strong>δεν ολοκληρώθηκαν</strong>. Δεν χάθηκαν, είναι φυλαγμένα και ξαναστέλνονται, χρειάζονται όμως μια ανθρώπινη κίνηση.</p></td></tr><tr><td style='padding:4px 24px 6px 24px;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='border-top:1px solid #e6e9ef;'>${rows}</table></td></tr>`
+		: "";
+	const dupeBlock = dupes.length
+		? `<tr><td style='padding:22px 24px 4px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0 0 4px 0;'><strong>Το ίδιο έντυπο έφυγε δύο φορές στον ίδιο παραλήπτη.</strong> Εδώ δεν λείπει τίποτα, το αντίθετο: κάποιος έλαβε δύο email για ένα έγγραφο.</p></td></tr><tr><td style='padding:4px 24px 6px 24px;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='border-top:1px solid #e6e9ef;'>${buildDupeRows(dupes)}</table></td></tr>`
+		: "";
+	const footer = items.length
+		? "Το email αυτό έρχεται μόνο όταν υπάρχει κάτι να δεις. Οι εκκρεμότητες <strong>ξαναέρχονται αύριο</strong> μέχρι να τακτοποιηθούν, τα διπλά αναφέρονται για τρεις ημέρες και μετά σταματούν μόνα τους."
+		: "Το email αυτό έρχεται μόνο όταν υπάρχει κάτι να δεις. Τα διπλά αναφέρονται για τρεις ημέρες και μετά σταματούν μόνα τους. Οταν όλα είναι εντάξει, δεν λαμβάνεις τίποτα.";
+
+	return `<!DOCTYPE html><html lang='el'><head><meta charset='utf-8'></head><body style='margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background:#f4f5f7;padding:18px 0;'><tr><td align='center'><table role='presentation' width='560' cellpadding='0' cellspacing='0' style='max-width:560px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;'><tr><td style='background:#16233A;padding:16px 24px 6px 24px;'><span style='font-weight:bold;font-size:15px;letter-spacing:3px;color:#ffffff;'>FOUR WALLS</span><span style='font-weight:bold;font-size:10px;letter-spacing:2px;color:#FF1462;padding-left:8px;'>REAL ESTATE</span></td></tr><tr><td style='background:#16233A;padding:0 24px 14px 24px;color:#ffffff;font-size:16px;font-weight:bold;letter-spacing:1px;'>${heading}</td></tr><tr><td style='height:3px;background:#FF1462;'></td></tr>${stuckBlock}${dupeBlock}<tr><td style='padding:14px 24px 20px 24px;font-size:14.5px;line-height:1.65;color:#16233A;'><p style='margin:0;color:#777777;font-size:13.5px;'>${footer}</p></td></tr><tr><td style='background:#16233A;padding:16px 24px;'><p style='margin:0;font-size:12px;line-height:1.6;color:#cdd3de;'><strong style='color:#ffffff;'>Four Walls Real Estate</strong> · αυτόματος ημερήσιος έλεγχος</p></td></tr></table></td></tr></table></body></html>`;
 }
 
 function esc(s) {

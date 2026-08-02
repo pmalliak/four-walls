@@ -1086,6 +1086,80 @@
 							}
 						},
 						{
+							"id": 70,
+							"mapper": {
+								"qs": [],
+								"url": "https://four-walls.gr/api/once?key=spitogatos-anathesi:{{encodeURL(lower(3.clientEmail))}}&hours=48",
+								"gzip": true,
+								"method": "get",
+								"headers": [],
+								"timeout": "",
+								"useMtls": false,
+								"authPass": "",
+								"authUser": "",
+								"bodyType": "raw",
+								"serializeUrl": false,
+								"shareCookies": false,
+								"parseResponse": true,
+								"followRedirect": true,
+								"useQuerystring": false,
+								"followAllRedirects": false,
+								"rejectUnauthorized": true
+							},
+							"module": "http:ActionSendData",
+							"onerror": [
+								{
+									"id": 71,
+									"mapper": {},
+									"module": "builtin:Resume",
+									"version": 1,
+									"metadata": {
+										"designer": {
+											"x": 1050,
+											"y": 2850
+										}
+									},
+									"parameters": {}
+								}
+							],
+							"version": 3,
+							"metadata": {
+								"restore": {
+									"expect": {
+										"qs": {
+											"mode": "chose"
+										},
+										"method": {
+											"mode": "chose",
+											"label": "GET"
+										},
+										"headers": {
+											"mode": "chose"
+										},
+										"bodyType": {
+											"label": "Raw"
+										}
+									}
+								},
+								"designer": {
+									"x": 1050,
+									"y": 2550,
+									"name": "Site: μία απάντηση ανά ιδιοκτήτη"
+								},
+								"parameters": [
+									{
+										"name": "handleErrors",
+										"type": "boolean",
+										"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"handleErrors": false
+							}
+						},
+						{
 							"id": 35,
 							"mapper": null,
 							"module": "builtin:BasicIfElse",
@@ -1632,6 +1706,18 @@
 									"x": 1200,
 									"y": 2400
 								}
+							},
+							"filter": {
+								"name": "Μόνο την πρώτη φορά",
+								"conditions": [
+									[
+										{
+											"a": "{{70.data.first}}",
+											"b": "false",
+											"o": "text:notequal"
+										}
+									]
+								]
 							}
 						}
 					]

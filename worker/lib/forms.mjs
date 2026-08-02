@@ -19,6 +19,7 @@
 import { json } from "./access.mjs";
 import { renderDocPdf } from "./pdfrender.mjs";
 import { VALUATION_REQ_PREFIX, VALUATION_TTL_SECONDS } from "./valuation.mjs";
+import { logSent } from "./sent-log.mjs";
 
 /* The Make scenario routes on this exact string, so it is a contract
    between each form's CONFIG.id and the scenario's filters — not free
@@ -49,14 +50,17 @@ const MAX_BODY_BYTES = 10 * 1024 * 1024;
    tap, το PDF (το html2pdf γράφει CreationDate, άρα άλλα bytes σε κάθε
    δημιουργία) και το `ref` της καταχώρισης, που είναι κι αυτό ρολόι.
 
-   Παράθυρο 6 ωρών: τα retries έρχονται σε δευτερόλεπτα ή λεπτά (και στην
-   κλειδωμένη συσκευή, όσο κρατήσει το κλείδωμα), ενώ μια αυριανή σκόπιμη
-   επαναποστολή του ίδιου εντύπου πρέπει να δουλεύει. Μέσα στο παράθυρο η
-   φόρμα το μαθαίνει και το λέει, δεν σωπαίνει. */
+   Παράθυρο 48 ωρών. Ξεκίνησε στις 6, όσο χρειάζονταν τα retries, αλλά η
+   εκτίμηση της 31/07 έφυγε δεύτερη φορά δύο μέρες μετά, από οθόνη που
+   είχε μείνει ανοιχτή: μια αποστολή που ο σύμβουλος δεν θυμάται πια δεν
+   είναι σκόπιμη επαναποστολή. Το παράθυρο δεν κλειδώνει τίποτα, ρωτάει:
+   η φόρμα μαθαίνει ΠΟΤΕ είχε σταλεί και, αν όντως το θέλει, ξαναστέλνει
+   με force_resend. Το ίδιο το flag μένει έξω από το hash, ώστε να μην
+   είναι ένα «καινούργιο» έντυπο που θα περνούσε ούτως ή άλλως. */
 const DEDUPE_PREFIX = "forms:sent:";
-const DEDUPE_SECONDS = 6 * 60 * 60;
+const DEDUPE_SECONDS = 48 * 60 * 60;
 const DEDUPE_SKIP = new Set([
-	"submitted_at", "submitted_by", "received_at", "ref",
+	"submitted_at", "submitted_by", "received_at", "ref", "force_resend",
 	"pdf_base64", "pdf_filename", "pdf_mime", "pdf_rendered", "doc_html",
 ]);
 
@@ -156,15 +160,23 @@ export async function handleFormSubmit(request, env, email) {
 
 	// Το ίδιο έντυπο δεύτερη φορά μέσα στο παράθυρο: απαντάμε «εντάξει»
 	// χωρίς να ειδοποιήσουμε το Make, και το δηλώνουμε ώστε η φόρμα να μη
-	// γράψει «στάλθηκε» για email που δεν έφυγε. Fail-open: αν το KV
-	// γκρινιάξει, προτιμότερο διπλό έντυπο από χαμένο.
+	// γράψει «στάλθηκε» για email που δεν έφυγε. Μαζί γυρίζει και ΠΟΤΕ
+	// είχε σταλεί: με παράθυρο 48 ωρών το «είχε ήδη σταλεί» χωρίς ώρα δεν
+	// λέει τίποτα στον σύμβουλο, και είναι αυτό ακριβώς που κρίνει αν θα
+	// ζητήσει επαναποστολή. Fail-open: αν το KV γκρινιάξει, προτιμότερο
+	// διπλό έντυπο από χαμένο.
+	const forced = payload.force_resend === true;
 	let dedupeKey = null;
+	let hash = null;
 	try {
-		dedupeKey = DEDUPE_PREFIX + (await submissionHash(payload));
-		if (await env.LISTINGS_KV.get(dedupeKey)) {
-			console.log(`forms: duplicate ${form} suppressed`);
-			return json({ ok: true, duplicate: true });
+		hash = await submissionHash(payload);
+		dedupeKey = DEDUPE_PREFIX + hash;
+		const prevSentAt = await env.LISTINGS_KV.get(dedupeKey);
+		if (prevSentAt && !forced) {
+			console.log(`forms: duplicate ${form} suppressed (first sent ${prevSentAt})`);
+			return json({ ok: true, duplicate: true, sent_at: prevSentAt });
 		}
+		if (prevSentAt) console.log(`forms: ${form} re-sent on purpose (first sent ${prevSentAt})`);
 		// Γράφεται ΠΡΙΝ την προώθηση: δύο σχεδόν ταυτόχρονες προσπάθειες
 		// (tap και flush μαζί) δεν πρέπει να φύγουν και οι δύο.
 		await env.LISTINGS_KV.put(dedupeKey, payload.received_at, { expirationTtl: DEDUPE_SECONDS });
@@ -194,5 +206,8 @@ export async function handleFormSubmit(request, env, email) {
 		console.error(`forms: Make forward failed for ${form} (HTTP ${fwd.status})`);
 		return json({ error: "forward_failed" }, 502);
 	}
+	// Εφυγε. Μία γραμμή στο ημερολόγιο απεσταλμένων, ώστε ο φύλακας να
+	// μπορεί να δει το πρωί αν κάποιος πελάτης έλαβε το ίδιο δύο φορές.
+	await logSent(env, payload, hash);
 	return json({ ok: true });
 }

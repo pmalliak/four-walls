@@ -32,6 +32,7 @@
 
 import { SITE } from "./pages-meta.mjs";
 import { fmtNumber, subcategoryLabel, locField, canonicalUrl, listingTitle } from "./seo.mjs";
+import { claimOnce, logSent } from "./sent-log.mjs";
 
 /* KV key of the feed — keep in sync with FEED_KEY in worker/index.mjs. */
 const FEED_KEY = "listings.json";
@@ -347,6 +348,29 @@ export async function handleLeadReply(request, env, url) {
 	const code = String(url.searchParams.get("code") || "").trim().slice(0, 24);
 	const wantsHtml = url.searchParams.get("format") === "html";
 
+	/* ΜΙΑ απάντηση ανά πελάτη και ακίνητο. Τα σενάρια Spitogatos ξεκινούν
+	   από mailhook: αν το ίδιο μήνυμα ξαναφτάσει (re-delivery, προώθηση,
+	   ξαναρύθμιση του hook), ο πελάτης παίρνει δεύτερη φορά το ίδιο
+	   αυτόματο email. Δεν υπάρχει εδώ ο έλεγχος του /api/forms/submit,
+	   γιατί τίποτα δεν περνάει από εκεί.
+
+	   Ο έλεγχος ζει στο endpoint και όχι σε φίλτρο του Make επίτηδες: το
+	   module που στέλνει έχει ΗΔΗ φίλτρο «Μόνο αν γύρισε HTML», οπότε ένα
+	   κενό html αρκεί για να μη φύγει τίποτα. Καμία αλλαγή στη δομή του
+	   σεναρίου, μόνο ένα `&to=` παραπάνω στο URL.
+
+	   Το format=html είναι ανθρώπινη προεπισκόπηση: δεν δεσμεύει τίποτα. */
+	const to = String(url.searchParams.get("to") || "").trim().toLowerCase().slice(0, 120);
+	if (to && !wantsHtml) {
+		const claim = await claimOnce(env, `lead-reply:${to}:${code || "nocode"}:${lang}`);
+		if (!claim.first) {
+			console.log(`lead-reply: already answered ${to} for ${code || "nocode"} at ${claim.at}`);
+			return new Response(JSON.stringify({
+				duplicate: true, sent_at: claim.at, subject: "", html: "", text: "",
+			}), { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
+		}
+	}
+
 	let feed = null;
 	try {
 		const raw = await env.LISTINGS_KV.get(FEED_KEY);
@@ -393,6 +417,11 @@ export async function handleLeadReply(request, env, url) {
 			headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Robots-Tag": "noindex" },
 		});
 	}
+	// Ο,τι φεύγει σε πελάτη μπαίνει στο ίδιο ημερολόγιο με τα έντυπα, ώστε
+	// ο φύλακας να το ελέγχει με τον ίδιο κανόνα. Το `to` υπάρχει μόνο
+	// όταν καλεί το Make για να στείλει, όχι στις προεπισκοπήσεις.
+	if (to) await logSent(env, { form: "lead-reply", to, summary: code ? `κωδ. ${code}` : "χωρίς κωδικό" }, code);
+
 	return new Response(JSON.stringify({
 		found: available,
 		available,
