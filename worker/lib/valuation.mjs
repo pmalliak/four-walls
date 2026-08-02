@@ -563,13 +563,19 @@ export async function handleValuationLog(request, env, url) {
 		</tr>`;
 	}).join("");
 
+	/* Το λογότυπο γυρίζει στα Έντυπα: η σελίδα ανοίγει από τη φόρμα της
+	   εκτίμησης και ο μόνος δρόμος πίσω ήταν το back του browser. Στο
+	   forms.* η PWA ΕΙΝΑΙ η ρίζα (rewrite στο worker/index.mjs), ενώ στο
+	   localhost του `wrangler dev` κάθεται στο /forms/. */
+	const formsHome = url.hostname.startsWith("forms.") ? "/" : "/forms/";
+
 	const html = `<!doctype html><html lang="el"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Ιστορικό εκτιμήσεων · ${esc(month)}</title></head>
 <body style="margin:0; padding:24px 12px; background:#f4f5f7; font-family:Arial,sans-serif;">
 <div style="max-width:1000px; margin:0 auto; background:#ffffff; border-radius:8px; overflow:hidden;">
-	<div style="background:${NAVY}; padding:15px 20px;"><span style="color:#ffffff; font-size:18px; font-weight:bold; letter-spacing:1.5px;">FOUR WALLS</span><span style="color:${PINK}; font-size:10px; font-weight:bold; letter-spacing:2px;">&nbsp;&nbsp;REAL ESTATE</span></div>
+	<div style="background:${NAVY}; padding:15px 20px;"><a href="${formsHome}" title="Έντυπα Four Walls" style="text-decoration:none;"><span style="color:#ffffff; font-size:18px; font-weight:bold; letter-spacing:1.5px;">FOUR WALLS</span><span style="color:${PINK}; font-size:10px; font-weight:bold; letter-spacing:2px;">&nbsp;&nbsp;REAL ESTATE</span></a></div>
 	<div style="height:3px; background:${PINK};"></div>
 	<div style="padding:20px;">
 		<div style="font-size:11px; font-weight:bold; letter-spacing:1.5px; color:${PINK};">ΙΣΤΟΡΙΚΟ ΕΚΤΙΜΗΣΕΩΝ</div>
