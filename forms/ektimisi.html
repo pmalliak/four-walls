@@ -86,6 +86,14 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
    (αυθαίρετο, μη οικοδομήσιμο γήπεδο, ψιλή κυριότητα). */
 .doc .caveat{background:#fff4f6;border:1px solid #f2b8c6;border-left:3px solid #c62828;border-radius:8px;padding:10px 13px;margin:0 0 8px;}
 .doc .caveat .l{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#c62828;margin-bottom:2px;}
+/* Συμπλήρωση: τι απάντησε ο σύμβουλος και τι άλλαξε στο νούμερο. Κάτω από
+   τα ποσά, γιατί τα εξηγεί — σε έναν μήνα κανείς δεν θυμάται γιατί η ίδια
+   εκτίμηση έγραφε 610.000 και μετά 655.000. */
+.doc .fup{background:#f7f8fa;border:1px solid #e3e6eb;border-left:3px solid var(--navy);border-radius:8px;padding:10px 13px;margin:0 0 8px;}
+.doc .fup .l{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:var(--muted);}
+.doc .fup .d{font-size:12.5px;color:var(--navy);margin-top:2px;}
+.doc .fup .q{font-size:12px;color:var(--muted);line-height:1.45;margin-top:7px;}
+.doc .fup .a{font-size:12.5px;font-weight:700;color:var(--navy);}
 /* Βεβαιότητα: πράσινο/πορτοκαλί/κόκκινο, ίδια χρώματα με το email και το
    PDF του Worker (CONFIDENCE_STYLE στο worker/lib/valuation.mjs). Τα
    χρώματα μπαίνουν inline ανά επίπεδο· εδώ μένει ό,τι δεν αλλάζει. Τα
@@ -176,6 +184,24 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
    χρήσιμη από καμία. Το λέει όμως, και το λέει και το report. */
 .warn{background:#fff4f6;border:1px solid var(--pink);border-radius:12px;padding:11px 13px;margin:0 0 12px;font-size:13px;color:#8a0035;line-height:1.5;}
 .warn b{color:#6d002a;}
+/* Ερωτήσεις συμπλήρωσης. Το μοντέλο λέει τι του λείπει και ο σύμβουλος, που
+   στέκεται μέσα στο ακίνητο, συχνά το ξέρει — μέχρι τώρα δεν είχε τρόπο να
+   του το πει. Κάθεται ΕΞΩ από το έγγραφο, πάνω του: είναι εργαλείο, όχι χαρτί. */
+.fu{border:1.5px solid var(--navy);max-width:720px;margin:0 auto 12px;}
+.fu .fut{font-size:11px;font-weight:800;letter-spacing:.09em;color:var(--navy);}
+.fu .fuq{margin-top:14px;}
+.fu .fuq .q{font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.4;}
+.fu .fuq .w{font-size:11.5px;color:var(--muted);margin:2px 0 7px;}
+.fu .opts{display:flex;flex-wrap:wrap;gap:6px;}
+.fu .opts button{font:inherit;font-size:13.5px;font-weight:600;color:var(--ink);background:#fff;border:1.5px solid #cdd5e0;border-radius:999px;padding:8px 13px;min-height:40px;cursor:pointer;}
+.fu .opts button.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700;}
+/* «Δεν γνωρίζω» αναμμένο = γκρι, όχι navy: είναι απάντηση (ρωτήθηκε και δεν
+   ξέρεται, άρα το εύρος μένει πλατύ), αλλά δεν είναι στοιχείο. */
+.fu .opts button.dk.on{background:var(--muted);border-color:var(--muted);}
+.fu .fuq input{width:100%;font:inherit;font-size:16px;color:var(--ink);background:#fff;border:1.5px solid #cdd5e0;border-radius:10px;padding:11px 12px;margin-bottom:7px;}
+.fu .fuq input:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 3px rgba(255,0,98,.12);}
+.fu .btn{width:100%;margin-top:16px;}
+.fu .btn:disabled{opacity:.55;cursor:default;}
 /* the asking price gets the prosfora treatment: it is the one big number */
 .amt{position:relative;}
 .amt input{font-size:26px;font-weight:800;color:var(--navy);letter-spacing:.01em;padding:14px 46px 14px 14px;text-align:right;}
@@ -518,6 +544,7 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		<button class="vt on" id="tabOffice" type="button">Αναφορά γραφείου</button>
 		<button class="vt" id="tabClient" type="button">Έγγραφο ιδιοκτήτη</button>
 	</div>
+	<div class="card fu hide" id="followup"></div>
 	<div id="docbox"></div>
 	<div class="card" style="margin-top:14px">
 		<div class="hintline" id="viewhint" style="margin:0 0 10px"></div>
@@ -1029,16 +1056,12 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 	var result = null;  // {ref, summary, j, edit?} μετά από επιτυχή υπολογισμό
 	var editing = null; // 'value' | 'rent' όσο γράφει ο σύμβουλος
 
-	async function send(){
-		if (!listing && !val("areaName")) { toast("Γράψε την περιοχή ή διάλεξε ακίνητο από το CRM.", "err"); return; }
-		if (!listing && !digits(val("size"))) { toast("Συμπλήρωσε τα τετραγωνικά.", "err"); return; }
-		if (navigator.onLine === false) { toast("Ο υπολογισμός θέλει σύνδεση στο internet.", "err"); return; }
-		/* Τα βαριά πεδία του είδους: πρώτο πάτημα προειδοποιεί, δεύτερο
-		   προχωράει. Δεν μπλοκάρει — αλλιώς η φόρμα δεν βγαίνει στον δρόμο. */
+	/* Το payload της εκτίμησης, ένα σημείο. Το χτίζουν και ο «Υπολογισμός»
+	   και η «Συμπλήρωση»: η δεύτερη ΔΕΝ είναι άλλη διαδρομή στον Worker,
+	   είναι το ΙΔΙΟ βήμα 1 με τις απαντήσεις κολλημένες και νέο ref. Η
+	   φόρμα είναι κρυμμένη τότε, αλλά τα πεδία της κρατούν τις τιμές. */
+	function buildPayload(){
 		var miss = criticalMissing();
-		if (miss.length && !pendingSkip) { pendingSkip = true; showWarn(miss); return; }
-		$("warnbox").hidden = true;
-
 		var asking = Number(digits(val("asking")));
 		var summary = [val("subcategory") || "Ακίνητο",
 			digits(val("size")) ? digits(val("size")) + " τ.μ." : (listing && listing.size ? listing.size + " τ.μ." : ""),
@@ -1065,13 +1088,42 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		});
 		if (!data.purpose) data.purpose = "both";
 
-		var payload = {
-			form: "ektimisi",
-			title: "Εκτίμηση ακινήτου",
-			submitted_at: new Date().toISOString(),
+		return {
 			summary: summary,
-			data: data,
+			payload: {
+				form: "ektimisi",
+				title: "Εκτίμηση ακινήτου",
+				submitted_at: new Date().toISOString(),
+				summary: summary,
+				data: data,
+			},
 		};
+	}
+
+	/* Μια νέα εκτίμηση ξεκλειδώνει και τα δύο κουμπιά αποστολής: αλλιώς η
+	   δεύτερη εκτίμηση της ίδιας συνεδρίας (ή μια συμπλήρωση) τα βρίσκει
+	   «Στάλθηκε ✓» και το νέο νούμερο δεν φεύγει πουθενά. */
+	function resetSendButtons(){
+		var se = $("sendEmail");
+		se.disabled = false;
+		se.textContent = "Αποστολή στο info@";
+		var sc = $("sendClient");
+		sc.disabled = false;
+		sc.textContent = "Αποστολή εκτίμησης στον ιδιοκτήτη (PDF)";
+		sent = false;
+	}
+
+	async function send(){
+		if (!listing && !val("areaName")) { toast("Γράψε την περιοχή ή διάλεξε ακίνητο από το CRM.", "err"); return; }
+		if (!listing && !digits(val("size"))) { toast("Συμπλήρωσε τα τετραγωνικά.", "err"); return; }
+		if (navigator.onLine === false) { toast("Ο υπολογισμός θέλει σύνδεση στο internet.", "err"); return; }
+		/* Τα βαριά πεδία του είδους: πρώτο πάτημα προειδοποιεί, δεύτερο
+		   προχωράει. Δεν μπλοκάρει — αλλιώς η φόρμα δεν βγαίνει στον δρόμο. */
+		var miss = criticalMissing();
+		if (miss.length && !pendingSkip) { pendingSkip = true; showWarn(miss); return; }
+		$("warnbox").hidden = true;
+
+		var built = buildPayload();
 
 		try {
 			busy(true);
@@ -1080,7 +1132,7 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 			var r = await fetch("/api/forms/submit", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(payload),
+				body: JSON.stringify(built.payload),
 			});
 			if (!r.ok) throw new Error("submit HTTP " + r.status);
 			var ref = (await r.json()).valuation_ref;
@@ -1089,21 +1141,15 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 			// έτοιμο report βρίσκεται μετά χωρίς νέο κόστος AI.
 			try { sessionStorage.setItem("fwLastRef", ref); } catch (e) {}
 			var j = await fetchReport(ref);
-			result = { ref: ref, summary: summary, j: j };
+			result = { ref: ref, summary: built.summary, j: j };
 			/* η εκτίμηση βγήκε — τα στοιχεία της φόρμας έκαναν τη δουλειά τους */
 			if (window.FWDrafts) FWDrafts.discard();
+			renderFollowup();
 			showView("office");
 			$("form").classList.add("hide");
 			$("bar").classList.add("hide");
 			$("result").classList.remove("hide");
-			// Και τα δύο κουμπιά αποστολής ξαναγίνονται ενεργά: μια δεύτερη
-			// εκτίμηση στην ίδια συνεδρία τα βρίσκει αλλιώς «Στάλθηκε ✓».
-			var se = $("sendEmail");
-			se.disabled = false;
-			se.textContent = "Αποστολή στο info@";
-			var sc = $("sendClient");
-			sc.disabled = false;
-			sc.textContent = "Αποστολή εκτίμησης στον ιδιοκτήτη (PDF)";
+			resetSendButtons();
 			syncEmailSources();
 			window.scrollTo(0, 0);
 		} catch (e) {
@@ -1140,8 +1186,12 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		throw lastErr || new Error("valuation failed");
 	}
 
+	/* Ποιο κουμπί γράφει την πορεία: το «Υπολογισμός» ή, στη συμπλήρωση,
+	   το κουμπί της κάρτας — το πρώτο είναι κρυμμένο τότε, και το μήνυμα
+	   του retry δεν θα το έβλεπε κανείς. */
+	var statusTarget = "send";
 	function setStatus(msg){
-		var b = $("send");
+		var b = $(statusTarget);
 		if (b) b.textContent = msg;
 	}
 
@@ -1195,6 +1245,9 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		}
 		toast(res.duplicate ? "Είχε ήδη σταλεί. Δεν ξαναστάλθηκε." : "Στάλθηκε στο info@.", "ok");
 		btn.textContent = "Στάλθηκε ✓";
+		// Από εδώ και πέρα μια συμπλήρωση θέλει επιβεβαίωση: το νούμερο που
+		// κρατά το γραφείο δεν αλλάζει επειδή ξαναϋπολογίσαμε εδώ.
+		sent = true;
 	}
 
 	/* Πελατικό έγγραφο: μόνο τιμή+εύρος, μίσθωμα, ένα σχόλιο αγοράς και
@@ -1422,6 +1475,7 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 			}
 			toast(res.duplicate ? "Είχε ήδη σταλεί. Δεν ξαναστάλθηκε." : "Στάλθηκε στον ιδιοκτήτη.", "ok");
 			btn.textContent = "Στάλθηκε στον ιδιοκτήτη ✓";
+			sent = true;
 		} catch (e) {
 			console.error(e);
 			btn.disabled = false;
@@ -1476,6 +1530,207 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		return CONF_STYLE[normConfidence(c)] || { fill: "#6b7280", bg: "#f7f8fa", border: "#e3e6eb", steps: 0 };
 	}
 
+	/* ------------------------------------------------ συμπλήρωση */
+
+	/* Το «Θα βοηθούσε να ξέρουμε» ήταν νεκρό κείμενο: το μοντέλο έλεγε τι
+	   του λείπει, ο σύμβουλος συχνά το ΗΞΕΡΕ (στέκεται μέσα στο ακίνητο)
+	   και δεν υπήρχε τρόπος να του το πει χωρίς να ξαναγεμίσει τη φόρμα.
+	   Τώρα κάθε ερώτηση γίνεται κουμπιά και οι απαντήσεις γυρίζουν ως ΝΕΑ
+	   εκτίμηση (νέο ref, δύο περάσματα) αντί για μπάλωμα πάνω στην παλιά:
+	   η νέα πληροφορία δεν είναι διόρθωση, είναι δεδομένο εισόδου.
+
+	   ΕΝΑΣ γύρος. Το δεύτερο ερώτημα κοστίζει άλλες δύο κλήσεις AI για
+	   ολοένα μικρότερη διόρθωση, και το μοντέλο, αν το αφήσεις, βρίσκει
+	   πάντα κάτι ακόμα να ρωτήσει. */
+	var fuAns = [];    // παράλληλα με τις ερωτήσεις: {picked:[], text:"", dk:false}
+	var fuNodes = [];  // τα κουμπιά κάθε ερώτησης, για το βάψιμο
+	var sent = false;  // πατήθηκε «Αποστολή» (info@ ή ιδιοκτήτης)
+
+	function fuQuestions(){
+		if (!result) return [];
+		var v = result.j.v || {}, p = result.j.prop || {};
+		// Η εκτίμηση είναι ΗΔΗ συμπληρωμένη: ό,τι έμεινε άγνωστο τυπώνεται
+		// ως κείμενο στη βεβαιότητα και δεν ξαναρωτιέται.
+		if (p.followup && p.followup.length) return [];
+		return (Array.isArray(v.missing_info) ? v.missing_info : [])
+			.filter(function(m){ return m && typeof m === "object" && m.q; }).slice(0, 4);
+	}
+
+	function fuAnswer(i, m){
+		var a = fuAns[i];
+		if (!a) return "";
+		if (a.dk) return "Δεν γνωρίζω";
+		if (m.type === "number") return a.text ? a.text + (m.unit ? " " + m.unit : "") : "";
+		if (m.type === "text") return a.text;
+		return a.picked.join(", ");
+	}
+
+	function fuPaint(){
+		var qs = fuQuestions();
+		fuNodes.forEach(function(nodes, i){
+			nodes.forEach(function(n){
+				var on = n.dk ? fuAns[i].dk : (!fuAns[i].dk && fuAns[i].picked.indexOf(n.label) !== -1);
+				n.el.classList.toggle("on", on);
+			});
+		});
+		var ok = qs.every(function(m, i){ return !!fuAnswer(i, m); });
+		var go = $("fuGo");
+		if (!go) return;
+		go.disabled = !ok;
+		go.textContent = ok
+			? "Ξαναϋπολόγισε με αυτά τα στοιχεία"
+			: (qs.length === 1 ? "Απάντησε την ερώτηση" : "Απάντησε και στις " + qs.length + " ερωτήσεις");
+	}
+
+	function renderFollowup(){
+		var box = $("followup");
+		box.textContent = "";
+		fuAns = [];
+		fuNodes = [];
+		var qs = fuQuestions();
+		if (!qs.length) { box.classList.add("hide"); return; }
+		fuAns = qs.map(function(){ return { picked: [], text: "", dk: false }; });
+
+		box.appendChild(el("div", "fut", "ΣΥΜΠΛΗΡΩΣΕ ΤΗΝ ΕΚΤΙΜΗΣΗ"));
+		box.appendChild(el("div", "hintline",
+			(qs.length === 1 ? "Ένα στοιχείο λείπει" : "Λείπουν " + qs.length + " στοιχεία")
+			+ " που αλλάζουν το νούμερο. Απάντησε ό,τι ξέρεις και η εκτίμηση ξαναβγαίνει με αυτά μέσα. "
+			+ "Το «Δεν γνωρίζω» είναι κι αυτό απάντηση: κρατάει το εύρος πλατύ αντί να υποθέσει το μοντέλο. "
+			+ "Κοστίζει άλλη μία εκτίμηση, κάτω από 0,15 €."));
+
+		qs.forEach(function(m, i){
+			var q = el("div", "fuq");
+			q.appendChild(el("div", "q", m.q));
+			if (m.why) q.appendChild(el("div", "w", m.why));
+			fuNodes[i] = [];
+
+			if (m.type === "number" || m.type === "text") {
+				var inp = document.createElement("input");
+				inp.type = "text";
+				if (m.type === "number") inp.inputMode = "decimal";
+				inp.placeholder = m.type === "number"
+					? ("αριθμός" + (m.unit ? " σε " + m.unit : ""))
+					: "γράψε την απάντηση";
+				inp.oninput = function(){
+					fuAns[i].text = inp.value.trim();
+					if (inp.value.trim()) fuAns[i].dk = false;
+					fuPaint();
+				};
+				q.appendChild(inp);
+			}
+
+			var opts = el("div", "opts");
+			var labels = m.type === "yesno" ? ["Ναι", "Όχι"]
+				: (m.type === "choice" ? (m.options || []) : []);
+			labels.forEach(function(lab){
+				var b = document.createElement("button");
+				b.type = "button";
+				b.textContent = lab;
+				b.onclick = function(){
+					var a = fuAns[i];
+					a.dk = false;
+					if (m.multi) {
+						var at = a.picked.indexOf(lab);
+						if (at === -1) a.picked.push(lab); else a.picked.splice(at, 1);
+					} else {
+						a.picked = a.picked.length === 1 && a.picked[0] === lab ? [] : [lab];
+					}
+					fuPaint();
+				};
+				opts.appendChild(b);
+				fuNodes[i].push({ el: b, label: lab, dk: false });
+			});
+
+			// Παντού, και τελευταίο: ο σύμβουλος στον δρόμο πρέπει να μπορεί
+			// να προσπεράσει με ένα tap χωρίς να αφήσει το κενό σιωπηλό.
+			var dk = document.createElement("button");
+			dk.type = "button";
+			dk.className = "dk";
+			dk.textContent = "Δεν γνωρίζω";
+			dk.onclick = function(){
+				var a = fuAns[i];
+				a.dk = !a.dk;
+				if (a.dk) {
+					a.picked = [];
+					a.text = "";
+					var field = q.querySelector("input");
+					if (field) field.value = "";
+				}
+				fuPaint();
+			};
+			opts.appendChild(dk);
+			fuNodes[i].push({ el: dk, label: "", dk: true });
+
+			q.appendChild(opts);
+			box.appendChild(q);
+		});
+
+		var go = document.createElement("button");
+		go.type = "button";
+		go.className = "btn p";
+		go.id = "fuGo";
+		go.onclick = recompute;
+		box.appendChild(go);
+		fuPaint();
+	}
+
+	/* Ο ξαναϋπολογισμός: ίδιο βήμα 1, με τις απαντήσεις και δείκτη στο
+	   προηγούμενο ref. Το «πριν → τώρα» το τυπώνει η αναφορά — αν η
+	   απάντηση δεν κουνάει ποτέ το νούμερο, οι ερωτήσεις είναι λάθος. */
+	async function recompute(){
+		if (!result || computing) return;
+		var qs = fuQuestions();
+		var rows = qs.map(function(m, i){ return { q: m.q, a: fuAnswer(i, m) }; })
+			.filter(function(r){ return r.a; });
+		if (rows.length !== qs.length) return;
+		if (navigator.onLine === false) { toast("Ο υπολογισμός θέλει σύνδεση στο internet.", "err"); return; }
+		/* Η αποστολή έχει ήδη γίνει: το γραφείο ή ο ιδιοκτήτης κρατά το
+		   παλιό νούμερο, και ένα νέο report δεν το προλαβαίνει. */
+		if (sent && !window.confirm("Η εκτίμηση έχει ήδη σταλεί. Το νέο νούμερο ΔΕΝ αντικαθιστά ό,τι έφυγε, θα χρειαστεί νέα αποστολή. Να συνεχίσω;")) return;
+
+		var prev = result.j.v || {};
+		var go = $("fuGo");
+		go.disabled = true;
+		go.innerHTML = '<span class="spin"></span>Ξαναϋπολογίζεται… (μισό λεπτό)';
+		statusTarget = "fuGo";
+		computing = true;
+		try {
+			await keepAwake(true);
+			var built = buildPayload();
+			built.payload.followup = rows;
+			built.payload.parent_ref = result.ref;
+			built.payload.prev_value_mid = String(prev.value_mid || "");
+			built.payload.prev_rent_mid = String(prev.rent_mid || "");
+			var r = await fetch("/api/forms/submit", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(built.payload),
+			});
+			if (!r.ok) throw new Error("submit HTTP " + r.status);
+			var ref = (await r.json()).valuation_ref;
+			if (!ref) throw new Error("no valuation_ref");
+			try { sessionStorage.setItem("fwLastRef", ref); } catch (e) {}
+			var j = await fetchReport(ref);
+			// Νέο αποτέλεσμα σημαίνει και νέο ποσό: ό,τι είχε αλλάξει με το
+			// μολύβι πάνω στο παλιό νούμερο δεν ισχύει πια.
+			result = { ref: ref, summary: built.summary, j: j };
+			editing = null;
+			renderFollowup();
+			resetSendButtons();
+			showView("office");
+			window.scrollTo(0, 0);
+			toast("Η εκτίμηση ξαναϋπολογίστηκε με τα νέα στοιχεία.", "ok");
+		} catch (e) {
+			console.error(e);
+			toast("Ο ξαναϋπολογισμός απέτυχε. Η προηγούμενη εκτίμηση ισχύει ακόμα.", "err");
+			fuPaint();
+		} finally {
+			computing = false;
+			statusTarget = "send";
+			keepAwake(false);
+		}
+	}
+
 	/* Οι δύο καρτέλες πάνω από το έγγραφο. Η όψη «ιδιοκτήτη» δεν είναι
 	   περίληψη του PDF: είναι ο ΙΔΙΟΣ κόμβος που στέλνεται (buildClientDoc),
 	   ώστε ό,τι βλέπει ο σύμβουλος να είναι ό,τι λαμβάνει ο πελάτης. */
@@ -1490,6 +1745,9 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 			: cv.edited
 				? "ΠΡΟΣΑΡΜΟΣΜΕΝΟ ΠΟΣΟ. Το μοντέλο είχε δώσει " + money(result.j.v.value_mid) + " — φεύγει ό,τι βλέπεις εδώ. Το γραφείο ενημερώνεται στο submit."
 				: "Αυτό ακριβώς φεύγει ως PDF στον ιδιοκτήτη — πάτα το ✏️ για να αλλάξεις το ποσό. Δεν έχει σταλεί τίποτα ακόμα.";
+		// Οι ερωτήσεις συμπλήρωσης είναι εσωτερικές, όπως οι αιρέσεις και η
+		// ανακαίνιση: στην καρτέλα του ιδιοκτήτη δεν έχουν καμία θέση.
+		$("followup").classList.toggle("hide", client || !fuAns.length);
 		var box = $("docbox");
 		box.textContent = "";
 		box.appendChild(client ? buildClientDoc(false) : buildOfficeDoc(result.j));
@@ -1550,6 +1808,27 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 			if (v.gross_yield_pct) rb.appendChild(el("div", "y", "Μικτή απόδοση ~" + String(v.gross_yield_pct).replace(".", ",") + "% "
 				+ (saleShown ? "στην εκτιμώμενη αξία" : "σε εκτιμώμενη αξία " + money(v.value_mid))));
 			d.appendChild(rb);
+		}
+		/* Συμπληρωμένη εκτίμηση: τι ρωτήθηκε, τι απαντήθηκε, τι άλλαξε. Το
+		   «πριν → τώρα» είναι και ο μόνος τρόπος να φανεί αν οι ερωτήσεις
+		   αξίζουν: αν η απάντηση δεν κουνάει ποτέ το νούμερο, ρωτάμε λάθος. */
+		var fup = Array.isArray(p.followup) ? p.followup : [];
+		if (fup.length) {
+			var fb = el("div", "fup");
+			fb.appendChild(el("div", "l", "ΣΥΜΠΛΗΡΩΜΕΝΗ ΕΚΤΙΜΗΣΗ"));
+			var prev = Number(saleShown ? p.prevValueMid : p.prevRentMid) || 0;
+			var now = Number(saleShown ? v.value_mid : v.rent_mid) || 0;
+			if (prev && now) {
+				var pc = Math.round(((now - prev) / prev) * 100);
+				var suf = saleShown ? "" : "/μήνα";
+				fb.appendChild(el("div", "d", "Πριν από τα στοιχεία " + money(prev) + suf + ", τώρα "
+					+ money(now) + suf + (pc ? " (" + (pc > 0 ? "+" : "") + pc + "%)" : " (χωρίς αλλαγή)")));
+			}
+			fup.forEach(function(f){
+				fb.appendChild(el("div", "q", f.q));
+				fb.appendChild(el("div", "a", f.a));
+			});
+			d.appendChild(fb);
 		}
 		if (p.askingPrice && v.asking_comment) {
 			d.appendChild(el("h2", null, "ΣΕ ΣΧΕΣΗ ΜΕ ΤΗ ΖΗΤΟΥΜΕΝΗ (" + money(p.askingPrice) + (saleShown ? "" : "/μήνα") + ")"));
@@ -1629,7 +1908,13 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		}
 		cbox.appendChild(meter);
 		if (v.confidence_reason) cbox.appendChild(el("p", null, v.confidence_reason));
-		var missing = (Array.isArray(v.missing_info) ? v.missing_info : []).filter(Boolean);
+		/* Οι ερωτήσεις του μοντέλου: όσο η κάρτα από πάνω τις δείχνει ως
+		   κουμπιά, εδώ παραλείπονται — είναι το ΙΔΙΟ κείμενο τρεις πόντους
+		   πιο κάτω, και διαβάζεται σαν να υπάρχουν διπλάσια ανοιχτά θέματα.
+		   Στο email και στο PDF (Worker) τυπώνονται κανονικά: εκεί δεν
+		   υπάρχει κάρτα, και η γραμμή είναι το μόνο ίχνος τους. */
+		var missing = fuAns.length ? [] : (Array.isArray(v.missing_info) ? v.missing_info : [])
+			.map(function(m){ return m && typeof m === "object" ? m.q : m; }).filter(Boolean);
 		if (missing.length) cbox.appendChild(el("p", "mut", "Θα βοηθούσε να ξέρουμε: " + missing.join(" · ")));
 		d.appendChild(cbox);
 
@@ -1685,12 +1970,14 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		renderListing();
 		result = null;
 		editing = null;
+		sent = false;
 		$("tabOffice").classList.add("on");
 		$("tabClient").classList.remove("on");
 		$("clientEmail").value = "";
 		$("emailOwner").hidden = true;
 		$("result").classList.add("hide");
 		$("docbox").textContent = "";
+		renderFollowup();
 		$("form").classList.remove("hide");
 		$("bar").classList.remove("hide");
 		/* η άδεια φόρμα είναι η νέα βάση — αλλιώς το autosave θα έσωζε το άδειασμα ως πρόχειρο */

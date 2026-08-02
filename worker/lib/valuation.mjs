@@ -55,8 +55,10 @@ export const VALUATION_REQ_PREFIX = "valuation:req:";
    resend, άρα όχι για αλλαγές που δεν φαίνονται στο χαρτί. Το «3» ήταν το
    επόμενο νούμερο μετά το valuation:pdf2:, που είχε μπει μόνο του για τον
    ίδιο λόγο (τα πρώτα PDF έβγαιναν με τη σχεδίαση του email)· το «4» είναι
-   η χρωματισμένη βεβαιότητα (02/08/2026), που φαίνεται στο χαρτί. */
-const REPORT_VERSION = 4;
+   η χρωματισμένη βεβαιότητα (02/08/2026), και το «5» οι ερωτήσεις
+   συμπλήρωσης (03/08/2026): το missing_info άλλαξε σχήμα και το report
+   τυπώνει τις απαντήσεις. */
+const REPORT_VERSION = 5;
 const VALUATION_RES_PREFIX = `valuation:res${REPORT_VERSION}:`;
 const VALUATION_PDF_PREFIX = `valuation:pdf${REPORT_VERSION}:`;
 
@@ -119,7 +121,7 @@ export async function handleValuation(request, env, url, ctx) {
 
 	// Idempotent: το ίδιο ref δίνει πάντα το ίδιο report, χωρίς νέο κόστος.
 	const cached = await env.LISTINGS_KV.get(VALUATION_RES_PREFIX + ref);
-	if (cached) return respond(await withPdf(env, ref, JSON.parse(cached), wantsPdf), wantsHtml);
+	if (cached) return respond(await withPdf(env, ref, JSON.parse(cached), wantsPdf), wantsHtml, url);
 
 	/* ΜΟΝΟ ό,τι υπάρχει έτοιμο (ο σύνδεσμος του ιστορικού). Ένα ref μηνών
 	   πίσω δεν επιτρέπεται να ξαναπεράσει από το AI: θα χρέωνε δύο κλήσεις
@@ -128,7 +130,7 @@ export async function handleValuation(request, env, url, ctx) {
 	   νούμερα εκείνης της ημέρας τα κρατά η γραμμή του ιστορικού. */
 	if (cacheOnly) {
 		const old = await readAnyVersion(env, ref);
-		return old ? respond(old, wantsHtml) : expiredReport(ref, wantsHtml);
+		return old ? respond(old, wantsHtml, url) : expiredReport(ref, wantsHtml, url);
 	}
 
 	if (!env.ANTHROPIC_API_KEY && !env.GEMINI_API_KEY) {
@@ -149,6 +151,14 @@ export async function handleValuation(request, env, url, ctx) {
 	}
 
 	const prop = mergeProperty(feed, payload.data || {});
+	/* ΣΥΜΠΛΗΡΩΣΗ: οι απαντήσεις του συμβούλου στις ερωτήσεις της πρώτης
+	   εκτίμησης. Δεν είναι πεδία της φόρμας (η ερώτηση τη φτιάχνει το
+	   μοντέλο κάθε φορά), οπότε ταξιδεύουν στο payload και κρέμονται από
+	   το prop: από εκεί τα διαβάζουν και το prompt και το report. */
+	prop.followup = normalizeFollowup(payload.followup);
+	prop.prevValueMid = num(payload.prev_value_mid) || 0;
+	prop.prevRentMid = num(payload.prev_rent_mid) || 0;
+	prop.parentRef = /^[0-9a-f-]{16,64}$/i.test(String(payload.parent_ref || "")) ? String(payload.parent_ref) : "";
 	const comps = pickComps(feed, prop);
 	const stats = areaStats(feed, prop);
 	const priceRow = findAreaPrices(prop.areaName);
@@ -178,6 +188,11 @@ export async function handleValuation(request, env, url, ctx) {
 		// Το φρένο τρέχει ΜΕΤΑ τον ελεγκτή: είναι το τελευταίο δίχτυ, και
 		// είναι σε κώδικα επίτηδες — τα prompts ξεχνιούνται, ο κώδικας όχι.
 		landSanityCheck(prop, v);
+		/* Οι ερωτήσεις κανονικοποιούνται ΜΙΑ φορά, εδώ: από αυτό το JSON
+		   τρέφονται και το χαρτί και τα κουμπιά της φόρμας, οπότε ένα
+		   "type" της φαντασίας του μοντέλου δεν πρέπει να φτάσει σε
+		   κανένα από τα δύο. */
+		v.missing_info = missingList(v);
 		const result = renderReport(prop, comps, stats, priceRow, v, payload, offers);
 		await env.LISTINGS_KV.put(VALUATION_RES_PREFIX + ref, JSON.stringify(result), {
 			expirationTtl: VALUATION_TTL_SECONDS,
@@ -194,7 +209,7 @@ export async function handleValuation(request, env, url, ctx) {
 		console.error(`valuation: AI failed for ref ${ref}: ${String(err)}`);
 		return json({ error: "valuation_failed", detail: String(err).slice(0, 200) }, 502);
 	}
-	return respond(await withPdf(env, ref, result, wantsPdf), wantsHtml);
+	return respond(await withPdf(env, ref, result, wantsPdf), wantsHtml, url);
 }
 
 /* Το ιστορικό διαβάζει ΚΑΙ τις παλιότερες εκδόσεις του κλειδιού. Το
@@ -227,7 +242,7 @@ async function readAnyVersion(env, ref) {
    εκτίμηση (πάνω από έναν χρόνο) ή εκτίμηση που υπολογίστηκε με παλιότερο
    REPORT_VERSION. Σελίδα, όχι σκέτο 404, γιατί την ανοίγει άνθρωπος από το
    ιστορικό, και λέει πού είναι τα νούμερα. */
-function expiredReport(ref, wantsHtml) {
+function expiredReport(ref, wantsHtml, url) {
 	if (!wantsHtml) return json({ error: "expired_report", ref }, 404);
 	const html = `<!doctype html><html lang="el"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -238,7 +253,7 @@ function expiredReport(ref, wantsHtml) {
 	<div style="font-size:11px; font-weight:bold; letter-spacing:1.5px; color:${PINK};">ΕΚΤΙΜΗΣΗ</div>
 	<div style="font-size:17px; font-weight:bold; color:${NAVY}; margin:4px 0 10px;">Το πλήρες report δεν είναι πια διαθέσιμο</div>
 	<div style="font-size:13.5px; color:#374151; line-height:1.7;">Τα νούμερα της εκτίμησης (εύρος αξίας, €/τ.μ., μίσθωμα, βεβαιότητα) μένουν για πάντα στη γραμμή του ιστορικού. Το πλήρες κείμενο κρατιέται έναν χρόνο, και δεν ξαναϋπολογίζεται εδώ: μια νέα εκτίμηση σήμερα θα έδινε άλλα νούμερα από αυτά που στάλθηκαν τότε.</div>
-	<div style="font-size:13.5px; margin-top:16px;"><a href="/api/valuation-log" style="color:${PINK};">Επιστροφή στο ιστορικό εκτιμήσεων</a></div>
+	<div style="font-size:13.5px; margin-top:16px;"><a href="${esc(logHref(url))}" style="color:${PINK};">Επιστροφή στο ιστορικό εκτιμήσεων</a></div>
 </div>
 </body></html>`;
 	return new Response(html, {
@@ -247,13 +262,77 @@ function expiredReport(ref, wantsHtml) {
 	});
 }
 
+/* ------------------------------------------------------------------ */
+/* Συμπλήρωση: οι ερωτήσεις του μοντέλου, οι απαντήσεις του συμβούλου   */
+/* ------------------------------------------------------------------ */
+
+/* Το «Θα βοηθούσε να ξέρουμε» ήταν νεκρό κείμενο: το μοντέλο έλεγε τι του
+   λείπει, ο σύμβουλος συχνά το ΗΞΕΡΕ (στέκεται μέσα στο ακίνητο) και δεν
+   υπήρχε τρόπος να του το πει χωρίς να ξαναγεμίσει τη φόρμα. Πλέον το
+   missing_info είναι ΕΡΩΤΗΣΕΙΣ με σχήμα, η φόρμα τις κάνει κουμπιά, και οι
+   απαντήσεις γυρίζουν ως ΝΕΑ εκτίμηση (νέο ref, δύο περάσματα) αντί για
+   μπάλωμα πάνω στην παλιά: η νέα πληροφορία δεν είναι διόρθωση, είναι
+   δεδομένο εισόδου, και ανήκει στο ίδιο σημείο με τα υπόλοιπα. */
+const txt = (v) => String(v == null ? "" : v).trim();
+
+/* Ό,τι έρχεται από μοντέλο μπορεί να έρθει και ως σκέτο string (έτσι ήταν
+   το σχήμα μέχρι τις 03/08/2026), άρα κανονικοποιείται πάντα. */
+function missingList(v) {
+	const raw = Array.isArray(v && v.missing_info) ? v.missing_info : [];
+	return raw.map((m) => {
+		if (typeof m === "string") {
+			return m.trim() ? { q: m.trim().slice(0, 220), type: "text", options: [], multi: false, unit: "", why: "" } : null;
+		}
+		if (!m || typeof m !== "object") return null;
+		const q = txt(m.q).slice(0, 220);
+		if (!q) return null;
+		const options = (Array.isArray(m.options) ? m.options : [])
+			.map((o) => txt(o).slice(0, 60)).filter(Boolean).slice(0, 8);
+		let type = ["yesno", "choice", "number", "text"].includes(m.type) ? m.type : (options.length ? "choice" : "text");
+		if (type === "choice" && !options.length) type = "text";
+		return { q, type, options, multi: type === "choice" && m.multi === true, unit: txt(m.unit).slice(0, 14), why: txt(m.why).slice(0, 140) };
+	}).filter(Boolean).slice(0, 4);
+}
+
+/* Η γραμμή «Θα βοηθούσε να ξέρουμε» στο χαρτί: μόνο οι ερωτήσεις. */
+function missingText(v) {
+	return missingList(v).map((m) => m.q);
+}
+
+/* «Πριν → τώρα»: το μόνο νούμερο που δείχνει αν οι ερωτήσεις αξίζουν. Αν
+   η απάντηση δεν κουνάει ποτέ την εκτίμηση, οι ερωτήσεις είναι λάθος και
+   φαίνεται εδώ. Σε εκτίμηση μόνο ενοικίασης η αξία δεν τυπώνεται καν,
+   οπότε η σύγκριση γίνεται στο μίσθωμα. */
+function followupDelta(prop, v) {
+	const sale = prop.purpose !== "rent";
+	const prev = Number(sale ? prop.prevValueMid : prop.prevRentMid) || 0;
+	const now = Number(sale ? v.value_mid : v.rent_mid) || 0;
+	if (!prev || !now) return null;
+	return { prev, now, pct: Math.round(((now - prev) / prev) * 100), suffix: sale ? "" : "/μήνα" };
+}
+
+/* Οι απαντήσεις όπως τις στέλνει η φόρμα: [{q, a}]. Το «Δεν γνωρίζω»
+   ταξιδεύει ΡΗΤΑ ως απάντηση, δεν παραλείπεται — διαφέρει από το
+   αναπάντητο: σημαίνει «ρωτήθηκε και δεν ξέρεται», άρα το εύρος μένει
+   πλατύ τεκμηριωμένα αντί για σιωπηλά. */
+function normalizeFollowup(raw) {
+	if (!Array.isArray(raw)) return [];
+	return raw.map((f) => {
+		if (!f || typeof f !== "object") return null;
+		const q = txt(f.q).slice(0, 220);
+		const a = txt(f.a).slice(0, 300);
+		return q && a ? { q, a } : null;
+	}).filter(Boolean).slice(0, 6);
+}
+
 /* ΠΡΩΤΟ ΠΕΡΑΣΜΑ — ένα δείγμα, ή τρία και η διάμεσος στη γη.
    Η διασπορά ΔΕΝ πετιέται: μπαίνει στο δεύτερο πέρασμα ως δεδομένο. Αν
    τρία ανεξάρτητα δείγματα με τα ΙΔΙΑ στοιχεία απέχουν 20%, αυτό είναι
    μέτρηση της αβεβαιότητας του ίδιου του μοντέλου, και ο ελεγκτής πρέπει
    να την περάσει στο εύρος και στη βεβαιότητα αντί να την αγνοήσει. */
 async function firstPass(env, prop, dataBlock) {
-	const ask = () => askJson(env, PASS1_SYSTEM, dataBlock + "\n\n" + PASS1_ASK, { search: true });
+	const final = prop.followup && prop.followup.length ? FOLLOWUP_FINAL : "";
+	const ask = () => askJson(env, PASS1_SYSTEM, dataBlock + "\n\n" + PASS1_ASK + final, { search: true });
 	if (!SAMPLED_PROFILES.has(prop.profile)) return { draft: await ask(), spread: "" };
 
 	// Παράλληλα: ο σύμβουλος περιμένει τον ίδιο χρόνο με ένα δείγμα.
@@ -395,13 +474,49 @@ function fileSlug(parts, max = 44) {
 		.replace(/^_+|_+$/g, "");
 }
 
-function respond(result, wantsHtml) {
+function respond(result, wantsHtml, url) {
 	if (wantsHtml) {
-		return new Response(result.html, {
+		return new Response(browserReport(result.html, url), {
 			headers: { "Content-Type": "text/html; charset=utf-8", "X-Robots-Tag": "noindex" },
 		});
 	}
 	return json(result, 200);
+}
+
+/* Το ΙΔΙΟ HTML πάει και σε email και σε browser, και το email το θέλει
+   πίνακα σταθερών 600px. Χωρίς `viewport`, το κινητό υποθέτει οθόνη 980px
+   και σμικρύνει όλη τη σελίδα: γράμματα μισά και γκρίζα κενά δεξιά-αριστερά,
+   ενώ το ιστορικό δίπλα ανοίγει κανονικά. Η διόρθωση μπαίνει ΕΔΩ, στη
+   διαδρομή του browser, όχι μέσα στο renderReport: έτσι πιάνει και τα
+   report που κάθονται ήδη στο KV (τα περισσότερα), χωρίς αύξηση του
+   REPORT_VERSION που θα τα σκότωνε όλα, και στο email δεν φτάνει τίποτα.
+
+   Η μπάρα επιστροφής δεν είναι καλλωπισμός: το ιστορικό ανοίγει το report
+   σε ΝΕΑ καρτέλα (target=_blank), οπότε στο κινητό δεν υπάρχει κουμπί
+   «πίσω» — ο σύμβουλος έμενε κλειδωμένος στη σελίδα. Ο μήνας ταξιδεύει με
+   το `back`, ώστε να γυρίζει στον μήνα που κοίταζε και όχι στον τρέχοντα. */
+function browserReport(html, url) {
+	const head = `<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<style>
+@media (max-width:640px){
+	/* Τα τρία κουτάκια της ανακαίνισης (33% το καθένα, με νούμερα που δεν
+	   σπάνε) δεν χωρούν πλάι-πλάι σε οθόνη κινητού: το ένα κάτω από το άλλο. */
+	td[width="33%"]{display:block !important; width:auto !important; margin-bottom:6px;}
+	td[width="8"]{display:none !important;}
+	}
+</style>`;
+	const bar = `<div style="position:sticky; top:0; z-index:9; background:${NAVY}; border-bottom:2px solid ${PINK}; padding:11px 16px;"><a href="${esc(logHref(url))}" style="color:#ffffff; font-family:Arial,sans-serif; font-size:13.5px; font-weight:bold; text-decoration:none;">&larr;&nbsp;&nbsp;Ιστορικό εκτιμήσεων</a></div>`;
+	return String(html || "")
+		.replace("</head>", head + "</head>")
+		.replace(/<body[^>]*>/i, (m) => m + bar);
+}
+
+/* Ο μήνας του ιστορικού, όπως ήρθε από τον σύνδεσμο. Ό,τι δεν είναι
+   YYYY-MM αγνοείται (ο τρέχων μήνας είναι το default του ιστορικού). */
+function logHref(url) {
+	const back = String(url && url.searchParams ? url.searchParams.get("back") || "" : "");
+	return /^\d{4}-\d{2}$/.test(back) ? `/api/valuation-log?month=${back}` : "/api/valuation-log";
 }
 
 function json(obj, status) {
@@ -448,6 +563,12 @@ async function logValuation(env, ref, prop, v, payload) {
 			// συνολικό σφάλμα πάνω σε διαμερίσματα και οικόπεδα μαζί δεν λέει τίποτα.
 			profile: prop.profile || "",
 			method: v.method || "",
+			/* ΣΥΜΠΛΗΡΩΣΗ: δεύτερη γραμμή για το ΙΔΙΟ ακίνητο, με τις
+			   απαντήσεις του συμβούλου. Χωρίς τον δείκτη, η βαθμονόμηση ανά
+			   είδος θα μετρούσε το ίδιο ακίνητο δύο φορές — και η
+			   ΑΝΤΙΚΑΤΑΣΤΑΘΕΙΣΑ εκδοχή θα βάραινε όσο η τελική. */
+			parent_ref: prop.parentRef || "",
+			followup: (prop.followup || []).length || 0,
 			area: prop.areaName || "",
 			address: prop.address || "",
 			sqm: prop.size,
@@ -543,7 +664,9 @@ export async function handleValuationLog(request, env, url) {
 		const crmId = e.id || (live ? live.id : "");
 		const link = (href, label) => `<a href="${esc(href)}" target="_blank" rel="noopener" style="color:${PINK}; text-decoration:none;">${label}</a>`;
 		const links = [
-			link(`/api/valuation?ref=${encodeURIComponent(e.ref)}&format=html&cached=1`, "report"),
+			// Το back δίνει στο report το κουμπί επιστροφής ΣΕ ΑΥΤΟΝ τον μήνα:
+			// ανοίγει σε νέα καρτέλα, οπότε το back του browser δεν υπάρχει.
+			link(`/api/valuation?ref=${encodeURIComponent(e.ref)}&format=html&cached=1&back=${encodeURIComponent(month)}`, "report"),
 			crmId ? link(`${crmBase}/listings/view/${encodeURIComponent(crmId)}`, "CRM") : "",
 			live ? link(canonicalUrl(live), "σελίδα") : "",
 		].filter(Boolean).join(`<span style="color:#d5d9e0;"> · </span>`);
@@ -552,7 +675,7 @@ export async function handleValuationLog(request, env, url) {
 			: "";
 		return `<tr>
 			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; white-space:nowrap;">${esc(when)}<div style="font-size:11px; color:#9aa3af;">${esc(time)}</div></td>
-			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; color:${NAVY};">${esc(what)}</td>
+			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; color:${NAVY};">${esc(what)}${e.parent_ref ? ` <span style="display:inline-block; background:#f4f7fb; border:1px solid #c9d4e4; border-radius:9px; padding:0 6px; font-size:10.5px; color:${NAVY}; white-space:nowrap;">συμπλήρωση</span>` : ""}</td>
 			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right;">${e.sqm ? esc(String(e.sqm)) + " τ.μ." : ""}</td>
 			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; white-space:nowrap;">${sale}</td>
 			<td style="padding:7px 10px; border-bottom:1px solid #eceef2; font-size:12px; text-align:right; color:#6b7280;">${e.eur_per_sqm ? eur(e.eur_per_sqm) + "/τ.μ." : ""}</td>
@@ -595,7 +718,7 @@ export async function handleValuationLog(request, env, url) {
 			</tr>
 			${rows}
 		</table></div>` : `<div style="background:#f4f7fb; border:1px solid #c9d4e4; border-radius:8px; padding:12px 16px; font-size:13px; color:${NAVY};">Καμία εκτίμηση αυτόν τον μήνα.</div>`}
-		<div style="font-size:11px; color:#9aa3af; margin-top:14px; line-height:1.6;">Το «report» ανοίγει το πλήρες κείμενο όπως στάλθηκε τότε (κρατιέται έναν χρόνο, δεν ξαναϋπολογίζεται)· οι γραμμές του ιστορικού μένουν για πάντα. Το «CRM» ανοίγει την καρτέλα του ακινήτου, η «σελίδα» τη δημόσια σελίδα του, μόνο για ακίνητα που είναι αυτή τη στιγμή στο στοκ μας. Πρόσβαση με JSON: <code>/api/valuation-log?month=${esc(month)}&amp;format=json</code>.</div>
+		<div style="font-size:11px; color:#9aa3af; margin-top:14px; line-height:1.6;">Το «report» ανοίγει το πλήρες κείμενο όπως στάλθηκε τότε (κρατιέται έναν χρόνο, δεν ξαναϋπολογίζεται)· οι γραμμές του ιστορικού μένουν για πάντα. Το «CRM» ανοίγει την καρτέλα του ακινήτου, η «σελίδα» τη δημόσια σελίδα του, μόνο για ακίνητα που είναι αυτή τη στιγμή στο στοκ μας. Η σήμανση «συμπλήρωση» δείχνει εκτίμηση που ξαναϋπολογίστηκε με στοιχεία που έδωσε ο σύμβουλος απαντώντας στις ερωτήσεις της πρώτης: αυτή ισχύει, η προηγούμενη γραμμή του ίδιου ακινήτου έχει αντικατασταθεί. Πρόσβαση με JSON: <code>/api/valuation-log?month=${esc(month)}&amp;format=json</code>.</div>
 	</div>
 </div>
 </body></html>`;
@@ -1154,7 +1277,7 @@ const PASS1_ASK = `Δώσε την εκτίμηση ως JSON ακριβώς μ�
  "asking_comment": "αν δόθηκε ζητούμενη/επιθυμητή τιμή, 1-2 προτάσεις σύγκρισης με την εκτίμηση, αλλιώς κενό",
  "confidence": "υψηλή | μέτρια | χαμηλή",
  "confidence_reason": "γιατί",
- "missing_info": [ "τι στοιχείο θα έσφιγγε την εκτίμηση" ],
+ "missing_info": [ { "q": "η ερώτηση προς τον σύμβουλο, μία πρόταση", "type": "yesno | choice | number | text", "options": ["μόνο σε type=choice, 2-6 έτοιμες επιλογές"], "multi": false, "unit": "μόνο σε type=number, π.χ. «μ.» ή «τ.μ.»", "why": "τι κρίνεται από την απάντηση, 3-8 λέξεις" } ],
  "caveats": [ "αίρεση ή κόκκινη σημαία που κρέμεται πάνω από την εκτίμηση, π.χ. «η τιμή ισχύει εφόσον τακτοποιηθούν τα αυθαίρετα»" ],
  "advice": "2-3 προτάσεις προς τον σύμβουλο για τη συζήτηση τιμολόγησης με τον ιδιοκτήτη",
  "renovation": {
@@ -1170,6 +1293,12 @@ const PASS1_ASK = `Δώσε την εκτίμηση ως JSON ακριβώς μ�
 Το "method" λέει στον αναγνώστη ΠΩΣ βγήκε το νούμερο — γράψε τη μέθοδο που όντως ακολούθησες για ΑΥΤΟ το είδος ακινήτου, όχι «συγκριτικά» ως αυτόματη απάντηση.
 Για ΓΗ (οικόπεδο, αγροτεμάχιο): συμπλήρωσε "buildable_sqm" (εμβαδόν γης × συντελεστή δόμησης) και "eur_per_buildable_sqm" (η αξία ανά ΔΟΜΗΣΙΜΟ τ.μ., που είναι και η πραγματική σου βάση). Το "eur_per_sqm" μένει η αξία ανά τ.μ. ΓΗΣ, ώστε να διαβάζεται μαζί με τα συγκριτικά. Χωρίς γνωστό συντελεστή δόμησης βάλε 0 και στα δύο και εξήγησέ το. Για κάθε άλλο είδος βάλε 0 και στα δύο.
 Τα "caveats" είναι ΑΙΡΕΣΕΙΣ, όχι επιφυλάξεις γενικής χρήσης: μπαίνουν μόνο όταν κάτι συγκεκριμένο κρέμεται πάνω από τη μεταβίβαση ή την ίδια την εκτίμηση (αυθαίρετο χωρίς τακτοποίηση, μη οικοδομήσιμο ή αμφίβολης αρτιότητας γήπεδο, ψιλή κυριότητα, κατειλημμένο ακίνητο, κατάσχεση, δασικός χαρακτήρας, εκκρεμείς τίτλοι). Άδειος πίνακας όταν δεν υπάρχει τίποτα τέτοιο — μη γεμίζεις με «οι τιμές είναι ενδεικτικές», αυτό το λέει ήδη το έντυπο.
+Το "missing_info" ΔΕΝ είναι λίστα ευχών: είναι ΕΡΩΤΗΣΕΙΣ που τίθενται αμέσως στον σύμβουλο μέσα στη φόρμα, με κουμπιά, και η απάντησή τους ξαναϋπολογίζει την εκτίμηση. Κανόνες, δεσμευτικοί:
+- ΤΟ ΠΟΛΥ 4, και μόνο όσες θα μετακινούσαν την εκτίμηση πάνω από ~5% ή θα άλλαζαν τη βεβαιότητα. Αν δεν υπάρχει καμία τέτοια, ΑΔΕΙΟΣ ΠΙΝΑΚΑΣ: μια ερώτηση που δεν αλλάζει το νούμερο κοστίζει χρόνο στον δρόμο.
+- ΜΟΝΟ ό,τι απαντιέται ΕΠΙΤΟΠΟΥ, με το μάτι ή με ένα τηλέφωνο στον ιδιοκτήτη. Όχι έρευνα σε πολεοδομία, υποθηκοφυλακείο, μηχανικό ή συμβολαιογράφο: αυτά πάνε στα caveats και στο advice, όχι εδώ.
+- ΠΟΤΕ ό,τι σου δόθηκε ήδη. Διάβασε τα ΣΤΟΙΧΕΙΑ ΤΟΥ ΑΚΙΝΗΤΟΥ πριν ρωτήσεις: ερώτηση για πεδίο που είναι ήδη συμπληρωμένο είναι σφάλμα.
+- Προτίμησε "yesno" και "choice" με έτοιμες επιλογές· "number" μόνο για μέγεθος, απόσταση ή πλήθος· "text" μόνο ως τελευταία λύση. Οι επιλογές του "choice" καλύπτουν το εύρος των πιθανών απαντήσεων και είναι αμοιβαία αποκλειόμενες, εκτός αν βάλεις "multi": true (π.χ. τι περιλαμβάνει μια ανακαίνιση).
+- Η ερώτηση σε καθαρά ελληνικά, όπως θα τη διάβαζε ο σύμβουλος μπροστά στον ιδιοκτήτη. Μην προσθέτεις «δεν γνωρίζω» στις επιλογές: μπαίνει μόνο του παντού.
 Σε ΓΗ (οικόπεδο, αγροτεμάχιο) και σε θέση στάθμευσης, όταν ΔΕΝ ζητήθηκε εκτίμηση ενοικίασης, βάλε rent_low, rent_mid, rent_high και gross_yield_pct **στο 0**. Μην κατασκευάσεις μίσθωμα για να «γεμίσει» το σχήμα: ένα αδόμητο οικόπεδο δεν έχει αγορά μίσθωσης, και μια «απόδοση 1,5%» δεν σημαίνει τίποτα — ταξιδεύει όμως στο ιστορικό εκτιμήσεων ως θόρυβος.
 Το "confidence" παίρνει ΑΚΡΙΒΩΣ μία από τις τρεις λέξεις: "υψηλή", "μέτρια", "χαμηλή". Όχι συνώνυμα.
 Για το "renovation": σε ΓΗ (οικόπεδο, αγροτεμάχιο) και σε θέση στάθμευσης βάλε πάντα null — δεν ανακαινίζεται τίποτα.
@@ -1178,6 +1307,8 @@ const PASS1_ASK = `Δώσε την εκτίμηση ως JSON ακριβώς μ�
 const PASS2_SYSTEM = `Είσαι ο αυστηρός ελεγκτής εκτιμήσεων ενός μεσιτικού γραφείου που δραστηριοποιείται σε όλη την Κεντρική Μακεδονία. Παίρνεις τα δεδομένα ενός ακινήτου και μια έτοιμη εκτίμηση σε JSON, και την ελέγχεις: (1) αριθμητική συνέπεια (base × προσαρμογές ≈ €/τ.μ., €/τ.μ. × εμβαδόν ≈ value_mid, απόδοση σωστά υπολογισμένη), (2) συμφωνία με τα συγκριτικά και το εύρος της περιοχής (αποκλίσεις άνω του 15% από τη διάμεσο θέλουν ρητή αιτιολόγηση ή διόρθωση), (3) υπερβολές, αοριστίες και εσωτερικά ονόματα πεδίων στα κείμενα (perSqm, fixed κ.λπ. είναι ονόματα του πίνακα κόστους, όχι λέξεις για τον αναγνώστη· τα κείμενα σε φυσικά ελληνικά), (4) τη ΒΑΣΗ ΤΙΜΩΝ παρακάτω, (5) αν υπάρχει renovation: κόστος = perSqm × εμβαδόν + fixed ανά τεμάχιο (μπάνιο × αριθμό μπάνιων, κουζίνα) σύμφωνα με τον πίνακα ανακαίνισης, value_after όχι πάνω από νεόδμητο της περιοχής, net_gain = value_after_mid − value_mid − μέσο κόστος. ${PRICE_BASIS} Αν η εκτίμηση που ελέγχεις κάθεται πολύ χαμηλότερα από τις ζητούμενες τιμές της περιοχής χωρίς χαρακτηριστικό του ακινήτου να το δικαιολογεί, ή αν κάπου επικαλείται συμβόλαια/αντικειμενικές αξίες, ανέβασέ τη στη σωστή βάση και γράψε το στο review_notes. (6) ΟΤΙ ΕΦΑΡΜΟΣΤΗΚΕ Η ΣΩΣΤΗ ΜΕΘΟΔΟΣ ΓΙΑ ΤΟ ΕΙΔΟΣ — αυτό είναι το πιο συχνό σοβαρό λάθος. Διάβασε τη «ΜΕΘΟΔΟΣ» στα δεδομένα και έλεγξε ότι ακολουθήθηκε: γη αποτιμάται ανά ΔΟΜΗΣΙΜΟ τετραγωνικό (εμβαδόν × ΣΔ) και όχι με €/τ.μ. κατοικίας· μη άρτιο ή αμφίβολης αρτιότητας γήπεδο δεν τιμολογείται σαν άρτιο· μονοκατοικία δεν βγαίνει κάτω από την αξία του οικοπέδου της· κατάστημα δεν αθροίζει ισόγειο με πατάρι και υπόγειο· επαγγελματικό ακίνητο θέλει και έλεγχο με κεφαλαιοποίηση μισθώματος· αποθήκη δεν τιμολογείται σε €/τ.μ. κατοικίας. Αν χρησιμοποιήθηκε λάθος μέθοδος, ΞΑΝΑΚΑΝΕ τον υπολογισμό με τη σωστή και γράψε το στο review_notes.
 (7) ΤΑ ΝΟΜΙΚΑ ως αιρέσεις και όχι ως ποσοστά, σύμφωνα με τους κανόνες των δεδομένων: αν υπάρχει αυθαίρετο χωρίς τακτοποίηση, ψιλή κυριότητα, κατειλημμένο, κατάσχεση, δασικός χαρακτήρας ή εκκρεμείς τίτλοι και ΔΕΝ υπάρχει αντίστοιχο caveat, πρόσθεσέ το.
 (8) ΟΤΙ ΤΑ ΚΕΙΜΕΝΑ ΔΕΝ ΜΙΛΟΥΝ ΓΙΑ ΠΕΔΙΑ ΠΟΥ ΔΕΝ ΥΠΑΡΧΟΥΝ σε αυτό το είδος (όροφος ή ασανσέρ σε οικόπεδο, ενεργειακή κλάση σε αγροτεμάχιο): σβήσ' τα.
+(9) ΤΑ ΣΥΜΠΛΗΡΩΜΑΤΙΚΑ ΣΤΟΙΧΕΙΑ, αν υπάρχουν στα δεδομένα: είναι απαντήσεις του συμβούλου που στέκεται μέσα στο ακίνητο και υπερισχύουν κάθε υπόθεσης. Έλεγξε ότι η εκτίμηση τα ΕΝΣΩΜΑΤΩΣΕ (φαίνονται στη βάση, στις προσαρμογές ή στη βεβαιότητα) και ότι κανένα κείμενο δεν τα αντιφάσκει· αλλιώς διόρθωσε. Σε αυτή την περίπτωση το "missing_info" μένει ΑΔΕΙΟ, εκτός από ό,τι δεν απαντιέται επιτόπου.
+(10) ΤΟ "missing_info" ΕΙΝΑΙ ΕΡΩΤΗΣΕΙΣ ΠΡΟΣ ΤΟΝ ΣΥΜΒΟΥΛΟ, με το σχήμα {q, type, options, multi, unit, why} — μην το γυρίσεις σε λίστα από strings και μη χαλάσεις τα type/options. Σβήσε όποια ερώτηση ζητά κάτι που ΗΔΗ δόθηκε στα στοιχεία, όποια θέλει έρευνα σε πολεοδομία ή υποθηκοφυλακείο (αυτά είναι caveats ή advice), και όποια δεν θα άλλαζε την εκτίμηση πάνω από ~5%. Το πολύ 4.
 Διορθώνεις ό,τι δεν στέκει και επιστρέφεις το ΤΕΛΙΚΟ JSON στο ΙΔΙΟ σχήμα, με ένα επιπλέον πεδίο "review_notes": τι άλλαξες και γιατί (κενό αν τίποτα). Απαντάς ΜΟΝΟ με έγκυρο JSON.`;
 
 const PASS2_ASK = `Έλεγξε, διόρθωσε όπου χρειάζεται, και επίστρεψε το τελικό JSON (ίδιο σχήμα, συν "review_notes").`;
@@ -1292,6 +1423,26 @@ const STR_RULE = `ΒΡΑΧΥΧΡΟΝΙΑ ΜΙΣΘΩΣΗ — ΠΡΟΣΟΧΗ, ΑΝ
    βεβαιότητα πάνω σε μαντεψιά. */
 const MISSING_RULE = `ΟΤΑΝ ΛΕΙΠΟΥΝ ΤΑ ΚΡΙΣΙΜΑ ΣΤΟΙΧΕΙΑ ΤΟΥ ΕΙΔΟΥΣ: μην τα υποθέσεις σιωπηλά. Πλάτυνε το εύρος low-high, ρίξε τη βεβαιότητα, γράψε στο confidence_reason ΤΙ λείπει, και βάλε στα missing_info το συγκεκριμένο στοιχείο που θα έσφιγγε το νούμερο. Μια ειλικρινής εκτίμηση με πλατύ εύρος είναι χρήσιμη· ένα στενό εύρος πάνω σε μαντεψιά είναι επικίνδυνο.`;
 
+/* ΤΕΛΕΥΤΑΙΟΣ ΓΥΡΟΣ. Χωρίς αυτό το μοντέλο βρίσκει πάντα κάτι ακόμα να
+   ρωτήσει, και ο σύμβουλος μπαίνει σε ατέρμονο διάλογο αντί να πάρει
+   νούμερο. Ένα followup αρκεί: το δεύτερο ερώτημα κοστίζει άλλες δύο
+   κλήσεις AI για ολοένα μικρότερη διόρθωση. */
+const FOLLOWUP_FINAL = `
+
+ΑΥΤΟΣ ΕΙΝΑΙ Ο ΔΕΥΤΕΡΟΣ ΚΑΙ ΤΕΛΕΥΤΑΙΟΣ ΓΥΡΟΣ: ο σύμβουλος έχει ΗΔΗ απαντήσει στις ερωτήσεις σου (βλ. ΣΥΜΠΛΗΡΩΜΑΤΙΚΑ ΣΤΟΙΧΕΙΑ στα δεδομένα). ΜΗΝ ξαναρωτήσεις: άφησε το "missing_info" ΑΔΕΙΟ, εκτός αν μένει κάτι που δεν απαντιέται επιτόπου — τότε γράψ' το με το ίδιο σχήμα, θα τυπωθεί μόνο ως κείμενο και δεν θα ξανατεθεί ως ερώτηση.`;
+
+/* Οι απαντήσεις είναι δεδομένα ΠΡΩΤΟΥ ΧΕΡΙΟΥ: τις δίνει ο άνθρωπος που
+   στέκεται μέσα στο ακίνητο. Βαραίνουν πάνω από το feed και πάνω από το
+   τυπικό σενάριο της περιοχής. Το «Δεν γνωρίζω» είναι ΑΠΑΝΤΗΣΗ, όχι κενό. */
+function followupBlock(rows) {
+	return [
+		"ΣΥΜΠΛΗΡΩΜΑΤΙΚΑ ΣΤΟΙΧΕΙΑ ΑΠΟ ΤΟΝ ΣΥΜΒΟΥΛΟ (απάντησε ο ίδιος στις ερωτήσεις της πρώτης εκτίμησης):",
+		JSON.stringify(rows.map((f) => ({ ερώτηση: f.q, απάντηση: f.a }))),
+		"ΠΩΣ ΔΙΑΒΑΖΟΝΤΑΙ: είναι δεδομένα ΠΡΩΤΟΥ ΧΕΡΙΟΥ — τα δίνει ο άνθρωπος που στέκεται μέσα στο ακίνητο. Βαραίνουν ΠΑΝΩ από το τυπικό σενάριο της περιοχής και πάνω από ό,τι υπέθεσες στην πρώτη εκτίμηση. Ενσωμάτωσέ τα στη βάση και στις προσαρμογές, και ανέβασε ανάλογα τη βεβαιότητα: το κενό που δικαιολογούσε το πλατύ εύρος έκλεισε.",
+		"«Δεν γνωρίζω» είναι ΑΠΑΝΤΗΣΗ, όχι κενό: σημαίνει ότι ρωτήθηκε και δεν ξέρεται ούτε από τον ιδιοκτήτη. Κράτησε το εύρος πλατύ σε ό,τι κρίνεται από αυτό, πες το στο confidence_reason, και ΜΗΝ υποθέσεις το ευνοϊκό σενάριο επειδή δεν διαψεύστηκε.",
+	].join("\n");
+}
+
 /* Το ΤΙ σημαίνει «εμβαδόν» και ΠΟΙΑ πεδία υπάρχουν καν αλλάζουν ανά
    είδος — γι' αυτό το αντικείμενο χτίζεται από το προφίλ και όχι με
    σταθερή λίστα. Κενά πεδία δεν στέλνονται καθόλου: το «ασανσέρ: null»
@@ -1388,6 +1539,10 @@ function buildDataBlock(prop, comps, stats, priceRow, offers) {
 	lines.push("");
 	lines.push("ΤΟ ΑΚΙΝΗΤΟ ΠΡΟΣ ΕΚΤΙΜΗΣΗ:");
 	lines.push(JSON.stringify(propertyForPrompt(prop)));
+	if (prop.followup && prop.followup.length) {
+		lines.push("");
+		lines.push(followupBlock(prop.followup));
+	}
 	lines.push("");
 	lines.push(LEGAL_RULES);
 	if (prop.missingCritical) {
@@ -1813,7 +1968,7 @@ function renderReport(prop, comps, stats, priceRow, v, payload, offers) {
 		</tr>`;
 	}).join("");
 
-	const missing = (Array.isArray(v.missing_info) ? v.missing_info : []).filter(Boolean);
+	const missing = missingText(v);
 	/* Ο πίνακας των στοιχείων ακολουθεί το ΠΡΟΦΙΛ, όπως και η φόρμα: κάτω
 	   από ένα οικόπεδο δεν τυπώνεται «Ασανσέρ», και κάτω από ένα κατάστημα
 	   τυπώνονται τα μέτρα της βιτρίνας. Ίδια πηγή (PROFILE_FIELDS +
@@ -1824,6 +1979,14 @@ function renderReport(prop, comps, stats, priceRow, v, payload, offers) {
 
 	const wantsSale = prop.purpose !== "rent";
 	const wantsRent = prop.purpose !== "sale";
+
+	/* ΣΥΜΠΛΗΡΩΣΗ: μπαίνει ψηλά, κάτω από τα νούμερα, γιατί ΕΞΗΓΕΙ το
+	   νούμερο. Σε έναν μήνα κανείς δεν θυμάται γιατί η ίδια εκτίμηση
+	   έγραφε 610.000 και μετά 655.000 — και το «πριν → τώρα» είναι το
+	   μόνο που δείχνει αν οι ερωτήσεις αξίζουν καν. Αναφορά γραφείου
+	   μόνο, όπως οι αιρέσεις και η ανακαίνιση. */
+	const followup = Array.isArray(prop.followup) ? prop.followup : [];
+	const delta = followupDelta(prop, v);
 
 	const html = `<!doctype html><html lang="el"><head><meta charset="utf-8"><title>${esc(subject)}</title></head>
 <body style="margin:0; padding:0; background:#f4f5f7; font-family:Arial,sans-serif;">
@@ -1860,6 +2023,18 @@ function renderReport(prop, comps, stats, priceRow, v, payload, offers) {
 				<div style="font-size:11px; font-weight:bold; letter-spacing:1px; color:#6b7280;">ΕΚΤΙΜΩΜΕΝΟ ΜΙΣΘΩΜΑ</div>
 				<div style="font-size:19px; font-weight:bold; color:${NAVY}; margin-top:2px;">${eur(v.rent_mid)}/μήνα <span style="font-weight:normal; font-size:13px; color:#6b7280;">(εύρος ${eur(v.rent_low)} έως ${eur(v.rent_high)})</span></div>
 				${Number(v.gross_yield_pct) ? `<div style="font-size:12.5px; color:#6b7280; margin-top:2px;">Μικτή απόδοση ~${esc(String(v.gross_yield_pct).replace(".", ","))}% ${wantsSale ? "στην εκτιμώμενη αξία" : `σε εκτιμώμενη αξία ${eur(v.value_mid)}`}</div>` : ""}
+			</td>
+		</tr></table>
+	</td></tr>` : ""}
+	${followup.length ? `<tr><td style="padding:12px 20px 0;">
+		<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+			<td style="background:#f7f8fa; border:1px solid #e3e6eb; border-left:3px solid ${NAVY}; border-radius:8px; padding:11px 14px;">
+				<div style="font-size:11px; font-weight:bold; letter-spacing:1px; color:#6b7280;">ΣΥΜΠΛΗΡΩΜΕΝΗ ΕΚΤΙΜΗΣΗ</div>
+				${delta ? `<div style="font-size:12.5px; color:${NAVY}; margin-top:3px;">Πριν από τα στοιχεία ${eur(delta.prev)}${delta.suffix}, τώρα <strong>${eur(delta.now)}${delta.suffix}</strong>${delta.pct ? ` (${delta.pct > 0 ? "+" : ""}${delta.pct}%)` : " (χωρίς αλλαγή)"}</div>` : ""}
+				${followup.map((f) => `<div style="margin-top:7px;">
+					<div style="font-size:12px; color:#6b7280; line-height:1.45;">${esc(f.q)}</div>
+					<div style="font-size:12.5px; font-weight:bold; color:${NAVY};">${esc(f.a)}</div>
+				</div>`).join("")}
 			</td>
 		</tr></table>
 	</td></tr>` : ""}
@@ -2022,8 +2197,10 @@ function renderPrintHtml(result) {
 	const facts = factRows(p).filter(([, val]) => val).map(([k, val]) =>
 		`<tr><td class="mut" style="white-space:nowrap;">${esc(k)}</td><td>${esc(val)}</td></tr>`).join("");
 
-	const missing = (Array.isArray(v.missing_info) ? v.missing_info : []).filter(Boolean);
+	const missing = missingText(v);
 	const caveats = (Array.isArray(v.caveats) ? v.caveats : []).filter(Boolean);
+	const followup = Array.isArray(p.followup) ? p.followup : [];
+	const delta = followupDelta(p, v);
 	const isLand = p.profile === "plot" || p.profile === "parcel";
 	const perSqmLabel = isLand ? "/τ.μ. γης" : "/τ.μ.";
 	const buildableNote = isLand && Number(v.eur_per_buildable_sqm)
@@ -2087,6 +2264,14 @@ td.num{text-align:right;white-space:nowrap;}
 .renov .st.gainneg .v{color:#b3261e;}
 .renov .aftrent{font-size:12px;color:${DOC_NAVY};margin-top:8px;}
 .renov .cm{font-size:12px;color:#6b7280;margin-top:6px;line-height:1.5;}
+/* Συμπλήρωση: κάτω από τα νούμερα, γιατί εξηγεί το νούμερο. Ο σύμβουλος
+   που ξαναδιαβάζει την αναφορά σε έναν μήνα πρέπει να βλέπει τι απαντήθηκε
+   και τι άλλαξε, όχι μόνο το τελικό ποσό. */
+.fup{background:#f7f8fa;border:1px solid #e3e6eb;border-left:3px solid ${DOC_NAVY};border-radius:8px;padding:10px 13px;margin:0 0 8px;}
+.fup .l{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#6b7280;}
+.fup .d{font-size:12.5px;color:${DOC_NAVY};margin-top:2px;}
+.fup .q{font-size:12px;color:#6b7280;line-height:1.45;margin-top:7px;}
+.fup .a{font-size:12.5px;font-weight:700;color:${DOC_NAVY};}
 .disc{border-top:1px solid #eceef2;margin-top:14px;padding-top:9px;font-size:10.5px;color:#9aa3af;line-height:1.6;}
 </style></head><body><div class="doc">
 	<div class="hd">
@@ -2109,6 +2294,11 @@ td.num{text-align:right;white-space:nowrap;}
 		<div class="l">ΕΚΤΙΜΩΜΕΝΟ ΜΙΣΘΩΜΑ</div>
 		<div class="r">${eur(v.rent_mid)}/μήνα (εύρος ${eur(v.rent_low)} έως ${eur(v.rent_high)})</div>
 		${Number(v.gross_yield_pct) ? `<div class="y">Μικτή απόδοση ~${esc(String(v.gross_yield_pct).replace(".", ","))}% ${wantsSale ? "στην εκτιμώμενη αξία" : `σε εκτιμώμενη αξία ${eur(v.value_mid)}`}</div>` : ""}
+	</div>` : ""}
+	${followup.length ? `<div class="fup">
+		<div class="l">ΣΥΜΠΛΗΡΩΜΕΝΗ ΕΚΤΙΜΗΣΗ</div>
+		${delta ? `<div class="d">Πριν από τα στοιχεία ${eur(delta.prev)}${delta.suffix}, τώρα <strong>${eur(delta.now)}${delta.suffix}</strong>${delta.pct ? ` (${delta.pct > 0 ? "+" : ""}${delta.pct}%)` : " (χωρίς αλλαγή)"}</div>` : ""}
+		${followup.map((f) => `<div class="q">${esc(f.q)}</div><div class="a">${esc(f.a)}</div>`).join("")}
 	</div>` : ""}
 	${p.askingPrice && v.asking_comment ? `<h2>ΣΕ ΣΧΕΣΗ ΜΕ ΤΗ ΖΗΤΟΥΜΕΝΗ (${eur(p.askingPrice)}${wantsSale ? "" : "/μήνα"})</h2><p>${esc(v.asking_comment)}</p>` : ""}
 	${adj ? `<h2>ΠΩΣ ΒΓΗΚΕ ΤΟ ΝΟΥΜΕΡΟ${v.method ? ` · ${esc(grUpper(v.method))}` : ""} · ΑΦΕΤΗΡΙΑ ${eur(v.base_eur_per_sqm)}${perSqmLabel}${wantsSale ? "" : " ΑΞΙΑΣ"}</h2><table>${adj}</table>` : ""}
