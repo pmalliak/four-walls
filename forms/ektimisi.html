@@ -178,11 +178,12 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		<div id="listingBox"></div>
 		<div class="hintline">Αν διαλέξεις ακίνητο από το CRM, ό,τι δεν συμπληρώσεις παρακάτω θα έρθει αυτόματα από την καρτέλα του. Ό,τι γράψεις εδώ υπερισχύει.</div>
 		<div class="grid2">
-			<div class="fld wide"><label for="purpose">Εκτίμηση για</label><select id="purpose">
-				<option value="both" selected>Πώληση και ενοικίαση</option>
-				<option value="sale">Μόνο πώληση</option>
-				<option value="rent">Μόνο ενοικίαση</option>
-			</select></div>
+			<!-- Πώληση και ενοικίαση, και τα δύο πατημένα από την αρχή: αυτό
+			     θέλει ο σύμβουλος τις περισσότερες φορές. Σβήνει το ένα όποιος
+			     θέλει μόνο το άλλο· και τα δύο σβηστά δεν γίνεται (θα ζητούσε
+			     εκτίμηση για το τίποτα), οπότε το τελευταίο δεν ξεπατώνεται. -->
+			<div class="fld wide"><label for="purposeSeg">Εκτίμηση για</label><div class="seg" id="purposeSeg"></div></div>
+			<input type="hidden" id="purpose" value="both">
 			<!-- Τύπος → Είδος, τα δύο επίπεδα του CRM και του site. Ο τύπος
 			     κόβει τα δεκατρία είδη σε λίγα, ώστε να διαλέγεις με το μάτι
 			     αντί να ψάχνεις σε λίστα. Το «Είδος» κρατά τις ίδιες ακριβώς
@@ -760,6 +761,24 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 			b.textContent = o[1];
 			b.onclick = function(){ onPick(o[0]); };
 			box.appendChild(b);
+		});
+	}
+
+	/* «Εκτίμηση για»: δύο διακόπτες αντί για τρεις επιλογές λίστας. Η τιμή
+	   που ταξιδεύει μένει ίδια (both | sale | rent) — τη διαβάζουν και το
+	   prompt και το τι τυπώνεται. Το τελευταίο αναμμένο δεν σβήνει. */
+	function renderPurpose(){
+		var p = val("purpose") || "both";
+		var on = { sale: p !== "rent", rent: p !== "sale" };
+		fillSeg($("purposeSeg"), [["sale", "Πώληση"], ["rent", "Ενοικίαση"]], null, function(v){
+			var next = { sale: on.sale, rent: on.rent };
+			next[v] = !next[v];
+			if (!next.sale && !next.rent) return;
+			$("purpose").value = next.sale && next.rent ? "both" : (next.sale ? "sale" : "rent");
+			renderPurpose();
+		});
+		[].slice.call($("purposeSeg").children).forEach(function(b, i){
+			b.className = (i === 0 ? on.sale : on.rent) ? "on" : "";
 		});
 	}
 
@@ -1589,6 +1608,7 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		listing = null;
 		FIELDS.forEach(function(f){ fldSet(f[0], ""); });
 		$("purpose").value = "both";
+		renderPurpose();
 		pendingSkip = false;
 		$("warnbox").hidden = true;
 		$("send").textContent = "Υπολογισμός εκτίμησης";
@@ -1620,6 +1640,7 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		   πεδία υπάρχουν καν)· τα υπόλοιπα δύο ξαναχτίζουν μόνο τα εξαρτημένα
 		   (επικαρπία, μίσθωμα). Ένας ακροατής στη φόρμα κρατάει τη βοήθεια των
 		   δομήσιμων τ.μ. και την προειδοποίηση φρέσκα. */
+		renderPurpose();
 		renderKind();
 		$("rights").onchange = applyConditionals;
 		$("tenancy").onchange = applyConditionals;
@@ -1650,6 +1671,7 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 				FLD.forEach(function(id){ fldSet(id, d[id]); });
 				if (!d.purpose) $("purpose").value = "both";
 				if (!d.kindCat) setKind(d.subcategory); /* πρόχειρα πριν τα κουμπιά */
+				renderPurpose();
 				renderKind();
 				applyProfile();
 				renderListing(); /* χωρίς prefill(): οι τιμές είναι ήδη στο πρόχειρο */
