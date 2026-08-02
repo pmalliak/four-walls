@@ -25,7 +25,10 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { AREA_PRICES, AREA_PRICES_META } from "../worker/lib/area-prices.mjs";
+import {
+	AREA_PRICES, AREA_PRICES_META,
+	ASSET_PRICES_META, LAND_SHARE, COMMERCIAL_RENTS, YIELDS, AGRI_PRICES,
+} from "../worker/lib/area-prices.mjs";
 
 const file = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "worker", "lib", "area-prices-history.json");
 
@@ -35,15 +38,28 @@ if (!Array.isArray(db.entries)) {
 	process.exit(1);
 }
 
+/* Το ιστορικό κρατά ΟΛΟΥΣ τους πίνακες που οδηγούν εκτιμήσεις, όχι μόνο
+   τις κατοικίες: η γη και τα επαγγελματικά παράγονται μεν από αλγόριθμο,
+   αλλά το μερίδιο γης και οι αποδόσεις είναι νούμερα κρίσης — αν αύριο
+   μια εκτίμηση φανεί λάθος, πρέπει να ξέρουμε με ποια ίσχυε. */
 const snapshot = {
 	asOf: AREA_PRICES_META.asOf,
 	trend: AREA_PRICES_META.trend || null,
 	rows: AREA_PRICES,
+	assets: {
+		asOf: ASSET_PRICES_META.asOf,
+		verified: !!ASSET_PRICES_META.verified,
+		landShare: LAND_SHARE,
+		commercialRents: COMMERCIAL_RENTS,
+		yields: YIELDS,
+		agri: AGRI_PRICES,
+	},
 };
 
 const last = db.entries[db.entries.length - 1];
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-if (last && last.asOf === snapshot.asOf && same(last.trend || null, snapshot.trend) && same(last.rows, snapshot.rows)) {
+if (last && last.asOf === snapshot.asOf && same(last.trend || null, snapshot.trend)
+	&& same(last.rows, snapshot.rows) && same(last.assets || null, snapshot.assets)) {
 	console.log("area-prices-log: καμία αλλαγή από την τελευταία εγγραφή, το ιστορικό μένει ως έχει.");
 	process.exit(0);
 }

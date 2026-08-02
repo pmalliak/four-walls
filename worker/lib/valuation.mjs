@@ -30,7 +30,10 @@
    Αν υπάρχουν και τα δύο, προτιμάται το Claude.
    ===================================================================== */
 
-import { AREA_PRICES, AREA_PRICES_META, findAreaPrices } from "./area-prices.mjs";
+import {
+	AREA_PRICES, AREA_PRICES_META, findAreaPrices,
+	ASSET_PRICES_META, landPricePerBuildableSqm, commercialPrices, agriPrices, zoneOf, zoneLabel, YIELDS,
+} from "./area-prices.mjs";
 import { RENOVATION_COSTS, RENOVATION_COSTS_META } from "./renovation-costs.mjs";
 import { renderDocPdf } from "./pdfrender.mjs";
 import { apiConfig } from "./estateprime.mjs";
@@ -1099,6 +1102,66 @@ function propertyForPrompt(prop) {
 	return out;
 }
 
+/* Η ΑΓΚΥΡΑ ΤΟΥ ΕΙΔΟΥΣ — ό,τι αντιστοιχεί στον πίνακα περιοχών, αλλά για
+   γη και επαγγελματικά. Και τα δύο είναι ΠΑΡΑΓΩΓΑ (βλ. area-prices.mjs):
+   η γη από την τιμή κατοικίας επί το μερίδιο γης, η τιμή επαγγελματικού
+   από το μίσθωμα και την απόδοση. Επιστρέφει "" όταν δεν αναγνωρίζεται
+   η περιοχή — τότε το μοντέλο ξέρει ότι δεν έχει άγκυρα, που είναι
+   ειλικρινέστερο από ένα νούμερο χωρίς προέλευση. */
+function assetAnchor(prop) {
+	const unverified = ASSET_PRICES_META.verified
+		? ""
+		: ` ΠΡΟΣΟΧΗ: ο πίνακας αυτός είναι στην ΠΡΩΤΗ του έκδοση (${ASSET_PRICES_META.asOf}) και ΔΕΝ έχει ακόμη επαληθευτεί με τον μηνιαίο έλεγχο. Χρησιμοποίησέ τον ως αφετηρία, δώσε ΠΛΑΤΥΤΕΡΟ εύρος από ό,τι θα έδινες σε κατοικία, και ρίξε ανάλογα τη βεβαιότητα.`;
+
+	if (prop.profile === "plot" || prop.profile === "parcel") {
+		const land = landPricePerBuildableSqm(prop.areaName);
+		const agri = agriPrices(prop.areaName);
+		const out = [];
+		if (land) {
+			out.push(`ΑΞΙΑ ΓΗΣ ΣΤΗΝ ΠΕΡΙΟΧΗ — Η ΒΑΣΗ ΣΟΥ: ${land.low}-${land.high} € ΑΝΑ ΔΟΜΗΣΙΜΟ τ.μ. (ζώνη «${zoneLabel(land.zone)}»).`);
+			out.push(`Πώς βγήκε: ${land.basis} ${land.sharePct}. Είναι η υπολειμματική μέθοδος ανάποδα — η γη αξίζει γνωστό κλάσμα της τιμής του τελειωμένου κτίσματος, οπότε το νούμερο κουμπώνει εξ ορισμού με τις τιμές κατοικίας της ίδιας περιοχής.`);
+			out.push(`ΧΡΗΣΗ: αξία = εμβαδόν γης × συντελεστή δόμησης × αυτό το €/τ.μ. δόμησης. Διάλεξε μέσα στο εύρος με βάση πρόσωπο, σχήμα, γωνιακό, χρήσεις γης και κλίση. Χωρίς γνωστό συντελεστή δόμησης δεν μπορείς να το εφαρμόσεις — πες το ρητά και δώσε πολύ πλατύ εύρος.`);
+		} else {
+			out.push("ΑΞΙΑ ΓΗΣ ΣΤΗΝ ΠΕΡΙΟΧΗ: δεν αναγνωρίστηκε η περιοχή στον πίνακα, οπότε ΔΕΝ έχεις άγκυρα. Στηρίξου στην αναζήτηση και στα συγκριτικά, και ρίξε τη βεβαιότητα.");
+		}
+		if (agri) {
+			out.push(`ΑΓΡΟΤΙΚΗ ΓΗ, νομός ${agri.prefecture} (ΜΟΝΟ αν το γήπεδο ΔΕΝ είναι οικοδομήσιμο): ξερικό ${agri.dryLow}-${agri.dryHigh} €/στρέμμα, ποτιστικό ${agri.irrigatedLow}-${agri.irrigatedHigh} €/στρέμμα. Εκεί μετράνε άρδευση, καλλιέργεια, κλίση και πρόσβαση — όχι ο συντελεστής δόμησης. Παραθαλάσσια γη με θέα είναι ΑΛΛΗ αγορά και δεν καλύπτεται από αυτά τα εύρη: κρίνε τη με την απόσταση από τη θάλασσα.`);
+		}
+		return [...out, unverified.trim()].filter(Boolean).join("\n");
+	}
+
+	if (prop.profile === "retail" || prop.profile === "office" || prop.profile === "industrial") {
+		const c = commercialPrices(prop.areaName, prop.profile);
+		if (!c) return "";
+		const kindLabel = { retail: "καταστημάτων", office: "γραφείων", industrial: "αποθηκών / βιοτεχνικών χώρων" }[prop.profile];
+		return [
+			`ΑΓΟΡΑ ${grUpper(kindLabel)} ΣΤΗ ΖΩΝΗ «${zoneLabel(c.zone)}» — Η ΒΑΣΗ ΣΟΥ:`,
+			`- Μίσθωμα τυπικού ακινήτου: ${String(c.rentLow).replace(".", ",")}-${String(c.rentHigh).replace(".", ",")} €/τ.μ./μήνα.`,
+			`- Μικτή απόδοση αγοράς: ${String(c.yieldLow).replace(".", ",")}-${String(c.yieldHigh).replace(".", ",")}%.`,
+			`- Τιμή πώλησης που προκύπτει: ${c.saleLow}-${c.saleHigh} €/τ.μ. (ετήσιο μίσθωμα / απόδοση).`,
+			`ΧΡΗΣΗ: ξεκίνα από το ΜΙΣΘΩΜΑ — αυτό παρατηρείται στην αγορά, η τιμή πώλησης επαγγελματικού είναι σπάνιο και θορυβώδες γεγονός. Προσάρμοσε το μίσθωμα με τα χαρακτηριστικά του ακινήτου, μετά κεφαλαιοποίησε με απόδοση μέσα στο παραπάνω εύρος (χειρότερο ακίνητο = ΥΨΗΛΟΤΕΡΗ απόδοση = χαμηλότερη τιμή). Το «τυπικό» της ζώνης ΔΕΝ είναι πρώτη γραμμή κεντρικού εμπορικού δρόμου: εκεί τα μισθώματα είναι πολλαπλάσια και το δείχνεις με προσαρμογή, όχι αγνοώντας τον πίνακα.`,
+			unverified.trim(),
+		].filter(Boolean).join("\n");
+	}
+
+	if (prop.profile === "building") {
+		const c = commercialPrices(prop.areaName, "office");
+		const zone = zoneOf(prop.areaName);
+		const land = landPricePerBuildableSqm(prop.areaName);
+		const out = [`ΑΠΟΔΟΣΕΙΣ ΓΙΑ ΤΗΝ ΚΕΦΑΛΑΙΟΠΟΙΗΣΗ (ζώνη «${zoneLabel(zone)}»): κατοικία ${yieldText(zone, "residential")}, επαγγελματικοί χώροι ${c ? `${String(c.yieldLow).replace(".", ",")}-${String(c.yieldHigh).replace(".", ",")}%` : "—"}. Χρησιμοποίησε το εύρος ανάλογα με την πληρότητα και την ποιότητα των μισθώσεων.`];
+		if (land) out.push(`ΑΞΙΑ ΓΗΣ ΓΙΑ ΤΟΝ ΕΛΕΓΧΟ ΑΝΑΠΤΥΞΗΣ: ${land.low}-${land.high} € ανά δομήσιμο τ.μ. Σε κεντρικό οικόπεδο, παλιό κτίριο μπορεί να αξίζει ως ΓΗ περισσότερο από ό,τι ως εισόδημα — έλεγξέ το.`);
+		return [...out, unverified.trim()].filter(Boolean).join("\n");
+	}
+
+	return "";
+}
+
+/* Η απόδοση της ζώνης για ένα είδος, ως κείμενο με ελληνικό δεκαδικό. */
+function yieldText(zone, kind) {
+	const y = (YIELDS[kind] || {})[zone];
+	return y ? `${String(y.low).replace(".", ",")}-${String(y.high).replace(".", ",")}%` : "—";
+}
+
 function buildDataBlock(prop, comps, stats, priceRow, offers) {
 	const lines = [];
 	lines.push(PURPOSE_BRIEF[prop.purpose] || PURPOSE_BRIEF.both);
@@ -1131,7 +1194,12 @@ function buildDataBlock(prop, comps, stats, priceRow, offers) {
 	   οικόπεδο, κατάστημα ή αποθήκη — δηλαδή έβγαζε αξία γης σε τιμές
 	   έτοιμου διαμερίσματος. */
 	if (prop.profile !== "apartment" && prop.profile !== "house" && prop.profile !== "villa" && prop.profile !== "building") {
-		lines.push("ΠΡΟΣΟΧΗ ΣΤΗ ΧΡΗΣΗ ΤΟΥ ΠΙΝΑΚΑ: τα εύρη αφορούν ΚΑΤΟΙΚΙΕΣ (τυπικό διαμέρισμα της περιοχής). Το ακίνητο που εκτιμάς ΔΕΝ είναι κατοικία, οπότε ο πίνακας ΔΕΝ είναι η βάση σου — είναι μόνο δείκτης του γενικού επιπέδου τιμών της περιοχής. Η βάση σου βγαίνει από τη μέθοδο του είδους (παραπάνω), τα συγκριτικά του ίδιου είδους και την αναζήτηση. Αν χρησιμοποιήσεις τον πίνακα έστω και ως αφετηρία, δήλωσε ρητά με ποια αναγωγή.");
+		lines.push("ΠΡΟΣΟΧΗ ΣΤΗ ΧΡΗΣΗ ΤΟΥ ΠΙΝΑΚΑ: τα εύρη αφορούν ΚΑΤΟΙΚΙΕΣ (τυπικό διαμέρισμα της περιοχής). Το ακίνητο που εκτιμάς ΔΕΝ είναι κατοικία, οπότε ο πίνακας ΔΕΝ είναι η βάση σου — είναι μόνο δείκτης του γενικού επιπέδου τιμών της περιοχής. Η βάση σου είναι ο πίνακας του είδους σου παρακάτω.");
+	}
+	const anchor = assetAnchor(prop);
+	if (anchor) {
+		lines.push("");
+		lines.push(anchor);
 	}
 	if (AREA_PRICES_META.trend) {
 		lines.push(`ΤΑΣΗ ΑΓΟΡΑΣ (δημοσιευμένοι δείκτες): ${AREA_PRICES_META.trend}`);
@@ -1204,8 +1272,28 @@ function buildDataBlock(prop, comps, stats, priceRow, offers) {
    το πρώτο πέρασμα, για να δει τις τρέχουσες αγγελίες της συγκεκριμένης
    περιοχής — αντισταθμίζει το μικρό μας στοκ εκεί που δεν έχουμε
    συγκριτικά. Ο ελεγκτής (πέρασμα 2) δουλεύει πάνω σε ό,τι βρέθηκε. */
+/* ΠΟΙΟΣ PROVIDER — ΡΗΤΑ, ΟΧΙ ΣΙΩΠΗΡΑ
+   Ήταν «αν υπάρχει κλειδί Anthropic, Claude». Δηλαδή τη μέρα που θα
+   έμπαινε κλειδί Anthropic στον Worker για οποιονδήποτε ΑΛΛΟ λόγο, η
+   εκτίμηση θα γυρνούσε μόνη της σε Claude και το κόστος ανά report θα
+   τριπλασιαζόταν — χωρίς να το ζητήσει και χωρίς να το δει κανείς,
+   γιατί τίποτα δεν θα έσπαγε. Τώρα: `VALUATION_PROVIDER` (gemini |
+   claude) το αποφασίζει· χωρίς αυτό προτιμάται το Gemini όταν υπάρχει
+   κλειδί του, που είναι ό,τι τρέχει σήμερα. Η μετάβαση σε Claude είναι
+   απόφαση, όχι παρενέργεια. */
 function askAI(env, system, user, opts) {
-	return env.ANTHROPIC_API_KEY ? askClaude(env, system, user, opts) : askGemini(env, system, user, opts);
+	const wanted = String(env.VALUATION_PROVIDER || "").trim().toLowerCase();
+	if (wanted === "claude") {
+		if (env.ANTHROPIC_API_KEY) return askClaude(env, system, user, opts);
+		console.warn("valuation: VALUATION_PROVIDER=claude but no ANTHROPIC_API_KEY, falling back to Gemini");
+		return askGemini(env, system, user, opts);
+	}
+	if (wanted === "gemini") {
+		if (env.GEMINI_API_KEY) return askGemini(env, system, user, opts);
+		console.warn("valuation: VALUATION_PROVIDER=gemini but no GEMINI_API_KEY, falling back to Claude");
+		return askClaude(env, system, user, opts);
+	}
+	return env.GEMINI_API_KEY ? askGemini(env, system, user, opts) : askClaude(env, system, user, opts);
 }
 
 /* Κλήση + parsing με ΕΝΑ retry. Τα μοντέλα αποτυγχάνουν σποραδικά
