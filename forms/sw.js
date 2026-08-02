@@ -24,10 +24,14 @@
    ===================================================================== */
 'use strict';
 
-var VERSION = 'fw-entypa-v35';
+var VERSION = 'fw-entypa-v36';
 var SHELL = [
 	'./', 'index.html', 'anathesi.html', 'ypodeixi.html', 'apodeixi.html', 'katachorisi.html', 'enhance.html', 'prosfora.html', 'ektimisi.html', 'lead.html',
 	'_crm.fw.js', '_outbox.fw.js', '_drafts.fw.js', '_errors.fw.js', '_exif.fw.js', 'bugsnag.min.js', 'html2pdf.bundle.min.js',
+	/* Ο κατάλογος δρόμων μπαίνει στο shell επίτηδες: το autocomplete της
+	   διεύθυνσης πρέπει να δουλεύει μέσα στο ακίνητο, εκεί που δεν υπάρχει
+	   σήμα, ακριβώς η περίπτωση που φτιάχτηκε το offline PWA. */
+	'_streets.fw.js', '_places.fw.js',
 	'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'favicon.png',
 ];
 

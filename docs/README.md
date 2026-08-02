@@ -32,7 +32,7 @@ deeper, one topic per file:
 | [forms-submit.md](forms-submit.md) | Έντυπα submit: PWA → Worker → Make router → client email + PDF; the PDF-capture trap |
 | [forms-drafts.md](forms-drafts.md) | Έντυπα πρόχειρα: autosave σε πολλαπλά drafts (`_drafts.fw.js`), μπάνερ «Συνέχεια/Διαγραφή», λίστα στην αρχική· γιατί οι υπογραφές δεν σώζονται |
 | [forms-prosfora.md](forms-prosfora.md) | Προσφορά πελάτη: η μόνη φόρμα χωρίς έντυπο/PDF, CRM pickers μέσω `FWCrm`, email «ΝΕΑ ΠΡΟΣΦΟΡΑ» στο info@ |
-| [valuation.md](valuation.md) | Εκτίμηση αξίας ακινήτου: φόρμα → Worker (AI ×2, συγκριτικά, τιμές περιοχών) → report στο info@ και απλοποιημένο PDF στον ιδιοκτήτη· το `ANTHROPIC_API_KEY` |
+| [valuation.md](valuation.md) | Εκτίμηση αξίας ακινήτου: φόρμα → Worker (AI ×2, συγκριτικά, τιμές περιοχών) → report στο info@ και απλοποιημένο PDF στον ιδιοκτήτη· το `ANTHROPIC_API_KEY`· το autocomplete περιοχής/διεύθυνσης (`tools/build-streets.mjs`) |
 | [forms-katachorisi-crm.md](forms-katachorisi-crm.md) | Καταχώριση ακινήτου: CRM-aligned schema (πεδία/slugs 1:1 με το EstatePrime), το `crm` payload, area ids, ο δρόμος για το auto-create |
 | [site-request-form.md](site-request-form.md) | Ζήτηση + ανάθεση από το site (`/request`, `/list-property`): φόρμες → Worker (αυτόματη επαφή+επικοινωνία στο CRM) → Make → email στη γραμματεία, tags, εκκρεμείς αποφάσεις |
 | [request-closed.md](request-closed.md) | «Ολοκλήρωσα την αναζήτηση»: matchings email → `/request-closed` → Worker → Make → email to info@ |
