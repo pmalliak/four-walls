@@ -1,4 +1,4 @@
-# Γρήγορο lead από πινακίδα (forms/lead.html)
+# Πινακίδα: lead από φωτογραφία πινακίδας (forms/pinakida.html)
 
 Ο σύμβουλος περπατάει, βλέπει ένα **ΠΩΛΕΙΤΑΙ** ή **ΕΝΟΙΚΙΑΖΕΤΑΙ**, το
 φωτογραφίζει και συνεχίζει τη δουλειά του. Ένα vision μοντέλο διαβάζει την
@@ -6,7 +6,7 @@
 πάει στο `info@four-walls.gr`.
 
 ```
-forms.four-walls.gr/lead.html   (πίσω από Cloudflare Access — μόνο προσωπικό)
+forms.four-walls.gr/pinakida.html   (πίσω από Cloudflare Access — μόνο προσωπικό)
   φωτό τώρα (κάμερα + στίγμα)  ή  παλιές φωτό (EXIF)  ή  διεύθυνση με το χέρι
         │  POST /api/leads/init             → batch id
         │  PUT  /api/leads/upload/<b>/<n>   → R2  leads/<b>/orig/
@@ -18,7 +18,7 @@ Cloudflare Worker  (worker/lib/leads.mjs)
         │  μία φορά:       χτίζει subject + html + text
         │  MAKE_LEADS_WEBHOOK  { batch_id, leads[], subject, html, text }
         ▼
-Make «Leads — γρήγορη καταχώριση»  →  ένα email στο info@ (cc ο αποστολέας)
+Make «Πινακίδες»  →  ένα email στο info@ (cc ο αποστολέας)
 ```
 
 Ίδιο μοτίβο browser→Worker→Make-secret με το
@@ -211,13 +211,13 @@ Nominatim (OSM), `zoom=18`, `accept-language=el`, με τον `User-Agent` πο�
 
 | Κομμάτι | Αρχείο | Ρόλος |
 |---|---|---|
-| Φόρμα | [forms/lead.html](../forms/lead.html) | κάμερα/συλλογή, σκάλα τοποθεσίας, κλείδωμα αποστολής, 3-step upload |
+| Φόρμα | [forms/pinakida.html](../forms/pinakida.html) | κάμερα/συλλογή, σκάλα τοποθεσίας, κλείδωμα αποστολής, 3-step upload |
 | EXIF | [forms/_exif.fw.js](../forms/_exif.fw.js) | GPS + ημερομηνία + συσκευή από JPEG/HEIC/PNG/WebP |
 | Ingest + AI | [worker/lib/leads.mjs](../worker/lib/leads.mjs) | init/upload/finalize, Gemini, geocoding, HTML email, HMAC URLs |
 | Έλεγχος τηλεφώνου | [worker/lib/phone-lookup.mjs](../worker/lib/phone-lookup.mjs) | CRM match + grounded web search, `reconcile()` πινακίδας/web |
 | Routes | [worker/index.mjs](../worker/index.mjs) | staff API πίσω από Access στο `forms.*`· `/api/leads/file/` δημόσιο στο apex με υπογραφή |
 | Config | [wrangler.toml](../wrangler.toml) | `PHOTO_BUCKET` + `MAKE_LEADS_WEBHOOK` / `PHOTO_SIGN_KEY` / `GEMINI_API_KEY` |
-| Αποστολή | Make «Leads — γρήγορη καταχώριση» | webhook → email |
+| Αποστολή | Make «Πινακίδες» | webhook → email |
 
 ## Setup
 
@@ -232,7 +232,7 @@ Nominatim (OSM), `zoom=18`, `accept-language=el`, με τον `User-Agent` πο�
 όσο η τελευταία version δεν είναι deployed — και ένα push σε branch φτιάχνει
 ακριβώς τέτοια version. Πρώτα merge στο `main`, μετά το secret.
 
-**Make** (ομάδα Four Walls): έτοιμο — σενάριο **«Leads — γρήγορη καταχώριση»**
+**Make** (ομάδα Four Walls): έτοιμο — σενάριο **«Πινακίδες»**
 `6786126`, hook `3482735`, ενεργό από 2026-08-01. Δύο modules: webhook → Zoho
 email (To `info@four-walls.gr`, Cc ο αποστολέας, Subject `{{1.subject}}`, HTML
 `{{1.html}}`). Το blueprint είναι στο

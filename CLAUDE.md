@@ -15,10 +15,10 @@ front-ends** (no backend, no build step, no `package.json`):
    real-estate paperwork (αναθέσεις, αποδείξεις, καταχωρίσεις, υποδείξεις) with
    signature pads and client-side PDF export. Brand accent: **navy `#1C3457`**.
    `forms/_autofill.dev.js` is a dev-only test helper (see its header).
-   `forms/lead.html` is the one entry that is not paperwork: photograph a
-   ΠΩΛΕΙΤΑΙ/ΕΝΟΙΚΙΑΖΕΤΑΙ sign on the street and AI reads the phone off it —
+   `forms/pinakida.html` («Πινακίδα») is the one entry that is not paperwork:
+   photograph a ΠΩΛΕΙΤΑΙ/ΕΝΟΙΚΙΑΖΕΤΑΙ sign on the street and AI reads the phone off it —
    the location is locked on the spot, never from EXIF alone (see
-   [docs/quick-leads.md](docs/quick-leads.md)).
+   [docs/pinakides.md](docs/pinakides.md)).
    Works offline: `forms/sw.js` caches the app shell and `forms/_outbox.fw.js`
    queues failed submits in IndexedDB, auto-resending on reconnect/unlock
    (see [docs/forms-submit.md](docs/forms-submit.md)). `forms/_drafts.fw.js`

@@ -108,7 +108,7 @@ export default {
 			return handlePhotoApi(request, env, url, email);
 		}
 
-		// Γρήγορη καταχώριση lead από πινακίδα — ίδια πύλη με το photos API
+		// «Πινακίδα»: καταχώριση lead από φωτογραφία — ίδια πύλη με το photos API
 		// από πάνω (forms host + Access JWT): μόνο συνδεδεμένος σύμβουλος
 		// ανεβάζει φωτογραφίες και ξοδεύει Gemini credits. Το δημόσιο μισό
 		// (/api/leads/file/) μένει έξω — το ανοίγει το email, όχι ο browser.
@@ -139,6 +139,14 @@ export default {
 			// Το Access μπροστά σε αυτό το hostname είναι ήδη η πύλη.
 			if (url.pathname === "/api/valuation") {
 				return handleValuation(request, env, url, ctx);
+			}
+			// Το «Γρήγορο lead» λέγεται «Πινακίδα» από 02/08/2026 και η
+			// σελίδα του μετονομάστηκε — κρατάμε το παλιό path ζωντανό για
+			// όποιον το έχει bookmark ή shortcut στην αρχική οθόνη.
+			if (url.pathname === "/lead" || url.pathname === "/lead.html") {
+				const to = new URL(url);
+				to.pathname = "/pinakida";
+				return Response.redirect(to, 301);
 			}
 			const assetUrl = new URL(request.url);
 			assetUrl.pathname = "/forms" + url.pathname;

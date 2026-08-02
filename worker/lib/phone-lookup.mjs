@@ -24,7 +24,7 @@
 
    Το grounding μοτίβο (google_search tool, JSON κομμένο από το κείμενο
    επειδή responseMimeType και tools δεν συνδυάζονται) είναι το ίδιο με το
-   area-prices-refresh.mjs. Βλ. docs/quick-leads.md.
+   area-prices-refresh.mjs. Βλ. docs/pinakides.md.
    ===================================================================== */
 
 import { contactsIndex } from "./crm.mjs";

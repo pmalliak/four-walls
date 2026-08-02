@@ -14,7 +14,7 @@
 | `6722234` | CRM - Νέα ακίνητα σε ζητήσεις | ναι | άμεσα (webhook/mailhook) | 2 | [6722234-crm-nea-akinita-se-zitiseis.blueprint.json](scenarios/6722234-crm-nea-akinita-se-zitiseis.blueprint.json) |
 | `6762737` | Εκτίμηση — φρεσκάρισμα τιμών περιοχών | ναι | monthly 09:00 1 | 2 | [6762737-ektimisi-freskarisma-timon-periochon.blueprint.json](scenarios/6762737-ektimisi-freskarisma-timon-periochon.blueprint.json) |
 | `6775485` | Φύλακας — ό,τι δεν στάλθηκε | ναι | άμεσα (webhook/mailhook) | 2 | [6775485-fylakas-o-ti-den-stalthike.blueprint.json](scenarios/6775485-fylakas-o-ti-den-stalthike.blueprint.json) |
-| `6786126` | Leads — γρήγορη καταχώριση | ναι | άμεσα (webhook/mailhook) | 2 | [6786126-leads-grigori-katachorisi.blueprint.json](scenarios/6786126-leads-grigori-katachorisi.blueprint.json) |
+| `6786126` | Πινακίδες | ναι | άμεσα (webhook/mailhook) | 2 | [6786126-pinakides.blueprint.json](scenarios/6786126-pinakides.blueprint.json) |
 
 ## Spitogatos - Αίτηση ανάθεσης `6405443`
 
@@ -223,13 +223,13 @@
 2   email:ActionSendEmail · Email στη γραμματεία · [φίλτρο: Μόνο αν υπάρχει κάτι]
 ```
 
-## Leads — γρήγορη καταχώριση `6786126`
+## Πινακίδες `6786126`
 
 - Ενεργό: ναι · χρονισμός: άμεσα (webhook/mailhook)
-- Hook: `3482735` (Leads — γρήγορη καταχώριση)
+- Hook: `3482735` (Πινακίδες)
 - DLQ: ναι · maxErrors: 3 · sequential: όχι
 
 ```
-1   gateway:CustomWebHook · Γρήγορο lead (lead.html)
+1   gateway:CustomWebHook · Πινακίδα (pinakida.html)
 2   zoho-mail:sendMail · Email στο info@ (cc αποστολέας)
 ```

@@ -12,14 +12,14 @@
 							"data": {
 								"editable": "true"
 							},
-							"label": "Leads — γρήγορη καταχώριση"
+							"label": "Πινακίδες"
 						}
 					}
 				},
 				"designer": {
 					"x": 0,
 					"y": 0,
-					"name": "Γρήγορο lead (lead.html)"
+					"name": "Πινακίδα (pinakida.html)"
 				},
 				"parameters": [
 					{
@@ -112,7 +112,7 @@
 			}
 		}
 	],
-	"name": "Leads — γρήγορη καταχώριση",
+	"name": "Πινακίδες",
 	"metadata": {
 		"instant": true,
 		"version": 1,
