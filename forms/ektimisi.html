@@ -415,6 +415,14 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 	<div class="card" id="cardLand" data-p="house villa building industrial plot parcel">
 		<div class="sect">Οικόπεδο &amp; δόμηση</div>
 		<div class="grid2">
+			<!-- Μπαίνει ΠΡΩΤΗ γιατί ορίζει τι από τα υπόλοιπα ισχύει: σε
+			     οριζόντια ιδιοκτησία δεν υπάρχει δικό μας οικόπεδο. -->
+			<div class="fld wide" data-p="house villa"><label for="ownershipForm" class="imp">Μορφή ιδιοκτησίας</label><select id="ownershipForm">
+				<option value=""></option>
+				<option>Αυτοτελές οικόπεδο</option>
+				<option>Κάθετη ιδιοκτησία</option>
+				<option>Οριζόντια ιδιοκτησία σε συγκρότημα</option>
+			</select></div>
 			<div class="fld" data-p="house villa building industrial"><label for="plot" class="imp">Οικόπεδο (τ.μ.)</label><input id="plot" type="text" inputmode="numeric" autocomplete="off"></div>
 			<div class="fld" data-p="house villa building industrial plot parcel"><label for="plotStatus" class="imp">Πολεοδομικό καθεστώς</label><select id="plotStatus">
 				<option value=""></option>
@@ -457,12 +465,6 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 				<option value=""></option><option>Γεώτρηση</option><option>Δίκτυο άρδευσης</option><option>Όχι</option>
 			</select></div>
 			<div class="fld" data-p="parcel"><label for="crop">Καλλιέργεια</label><input id="crop" type="text" autocomplete="off" placeholder="π.χ. ελαιώνας, αμπέλι"></div>
-			<div class="fld wide" data-p="house villa"><label for="ownershipForm" class="imp">Μορφή ιδιοκτησίας</label><select id="ownershipForm">
-				<option value=""></option>
-				<option>Αυτοτελές οικόπεδο</option>
-				<option>Κάθετη ιδιοκτησία</option>
-				<option>Οριζόντια ιδιοκτησία σε συγκρότημα</option>
-			</select></div>
 			<div class="fld wide" data-p="house villa plot parcel">
 				<label>Δεσμεύσεις</label>
 				<div class="chips" id="constraints" data-chips>
@@ -484,6 +486,7 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 				</div>
 			</div>
 		</div>
+		<div class="hintline" id="landHint" hidden>Σε οριζόντια ιδιοκτησία το οικόπεδο δεν είναι δικό του: δεν ζητάμε οικόπεδο, ΣΔ ή υπόλοιπο δόμησης, και η εκτίμηση βγαίνει καθαρά από συγκριτικά κατοικιών.</div>
 		<div class="hintline" id="buildableHint" hidden></div>
 	</div>
 
@@ -927,7 +930,33 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		$("sizeLabel").textContent = SIZE_LABEL[p] || "Εμβαδόν (τ.μ.)";
 		$("specsHint").hidden = !!p;
 		applyConditionals();
+		applyOwnership();
 		updateBuildableHint();
+	}
+
+	/* --- ΟΡΙΖΟΝΤΙΑ ΙΔΙΟΚΤΗΣΙΑ ---------------------------------------------
+	   Μεζονέτα ή βίλα σε συγκρότημα ΔΕΝ έχει δικό της οικόπεδο: ο ιδιοκτήτης
+	   δεν ελέγχει ούτε τη γη ούτε το υπόλοιπο δόμησης, οπότε το κατώφλι
+	   «δεν αξίζει λιγότερο από το οικόπεδό της» δεν ισχύει και τα πεδία της
+	   γης είναι θόρυβος — και στη φόρμα (κρίσιμα που «λείπουν» χωρίς λόγο)
+	   και στο prompt. Κρύβονται, άρα ΔΕΝ ταξιδεύουν (βλ. fieldVisible), και
+	   ο Worker αλλάζει μέθοδο με το ίδιο κριτήριο (METHOD_HORIZONTAL στο
+	   worker/lib/valuation.mjs): αν αλλάξει το ένα, αλλάζει και το άλλο. */
+	var HORIZONTAL = "Οριζόντια ιδιοκτησία σε συγκρότημα";
+	var LAND_OWNED_FIELDS = ["plot", "plotStatus", "buildFactor", "remainingBuild", "frontageM"];
+
+	function applyOwnership(){
+		var p = profileOf();
+		var isOwnLand = p === "house" || p === "villa";
+		var hide = isOwnLand && val("ownershipForm") === HORIZONTAL;
+		if (isOwnLand) {
+			for (var i = 0; i < LAND_OWNED_FIELDS.length; i++) {
+				var e = $(LAND_OWNED_FIELDS[i]);
+				var f = e && e.closest(".fld");
+				if (f) f.hidden = hide;
+			}
+		}
+		$("landHint").hidden = !hide;
 	}
 
 	/* Πεδία που κρέμονται από την τιμή άλλου πεδίου: ηλικία επικαρπωτή,
@@ -948,7 +977,8 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		if (!h) return;
 		var sd = Number(String(val("buildFactor")).replace(",", "."));
 		var sqm = Number(digits(val("size")));
-		var show = ["plot", "parcel", "house", "villa", "building", "industrial"].indexOf(profileOf()) >= 0;
+		var show = ["plot", "parcel", "house", "villa", "building", "industrial"].indexOf(profileOf()) >= 0
+			&& fieldVisible("buildFactor");
 		if (!show || !(sd > 0) || !(sqm > 0)) { h.hidden = true; h.textContent = ""; return; }
 		var base = profileOf() === "plot" || profileOf() === "parcel" ? sqm : Number(digits(val("plot"))) || 0;
 		if (!base) { h.hidden = true; h.textContent = ""; return; }
@@ -2203,6 +2233,9 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		renderKind();
 		$("rights").onchange = applyConditionals;
 		$("tenancy").onchange = applyConditionals;
+		/* Η μορφή ιδιοκτησίας δεν είναι απλό πεδίο: ορίζει αν υπάρχει καν
+		   οικόπεδο να ρωτηθεί (applyOwnership). */
+		$("ownershipForm").onchange = function(){ applyOwnership(); updateBuildableHint(); };
 		$("form").addEventListener("input", function(){ updateBuildableHint(); clearWarnIfFixed(); });
 		$("form").addEventListener("change", function(){ updateBuildableHint(); clearWarnIfFixed(); });
 		applyProfile();
