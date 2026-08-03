@@ -381,11 +381,13 @@ textarea:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 3px rgba(2
 			var res = await fin.json();
 			setProg(100, "Έτοιμο");
 			show("progress", false); show("ok", true);
+			var signs = res.signs || res.count;
 			$("okmsg").textContent = res.count + (res.count === 1 ? " φωτογραφία στάλθηκε" : " φωτογραφίες στάλθηκαν")
+				+ (signs !== res.count ? " — " + signs + (signs === 1 ? " πινακίδα" : " πινακίδες") : "")
 				+ " — " + res.with_phone + " με τηλέφωνο"
 				+ (res.agencies ? ", " + res.agencies + " από μεσιτικό γραφείο" : "")
 				+ (res.known_contacts ? ", " + res.known_contacts + " ήδη στο CRM" : "")
-				+ (res.with_phone < res.count ? ". Οι υπόλοιπες σημειωμένες ως «χωρίς τηλέφωνο»." : ".");
+				+ (res.with_phone < signs ? ". Οι υπόλοιπες σημειωμένες ως «χωρίς τηλέφωνο»." : ".");
 		}catch(err){
 			show("progress", false); show("form", true); show("bar", true);
 			toast("Κάτι πήγε στραβά ("+err.message+"). Δοκίμασε ξανά.", "err");

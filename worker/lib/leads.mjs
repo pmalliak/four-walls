@@ -67,45 +67,69 @@ const GEOCODE_MAX = 20;                     // πάνω από αυτό, μόν�
 
 /* --------------------------------------------------------- AI prompt
 
-   Ό,τι ζητάμε από το μοντέλο ζει εδώ, όχι σε IML μέσα στο Make. Δύο
+   Ό,τι ζητάμε από το μοντέλο ζει εδώ, όχι σε IML μέσα στο Make. Τρία
    πεδία αξίζουν όσο όλα τα υπόλοιπα μαζί:
 
    - `advertiser`: οι μισές πινακίδες στη Θεσσαλονίκη είναι συναδέλφων.
      Χωρίς αυτό το γραφείο παίρνει τηλέφωνο τον ανταγωνισμό.
    - `is_sign`: φρένο για τη λάθος φωτογραφία (σκέτη πρόσοψη, στραβή
-     λήψη). Χωρίς αυτό το μοντέλο «βρίσκει» τηλέφωνα που δεν υπάρχουν. */
+     λήψη). Χωρίς αυτό το μοντέλο «βρίσκει» τηλέφωνα που δεν υπάρχουν.
+   - `signs[]`: ΜΙΑ φωτογραφία δεν σημαίνει ένα ακίνητο. Δύο χαρτιά στο
+     ίδιο μάρμαρο είναι δύο ακίνητα, δύο ιδιοκτήτες, δύο τηλέφωνα — και
+     πρέπει να γίνουν δύο επαφές. Όσο το μοντέλο επέστρεφε ένα επίπεδο
+     αντικείμενο, τα δύο νούμερα κατέληγαν στην ΙΔΙΑ επαφή και τα τ.μ.
+     γίνονταν «24, 25» (πραγματικό, 03/08/2026: 5ος όροφος 24 τ.μ. και
+     7ος όροφος 25 τ.μ. «Μαρία», μία επαφή για δύο γραφεία). */
 const EXTRACT_PROMPT = [
-	"You are reading ONE photograph taken in a Greek street by a real-estate consultant. It normally shows a FOR SALE / FOR RENT sign or banner on a building («ΠΩΛΕΙΤΑΙ», «ΕΝΟΙΚΙΑΖΕΤΑΙ», «ΠΩΛΕΙΤΑΙ ΔΙΑΜΕΡΙΣΜΑ», «ΕΝΟΙΚΙΑΖΕΤΑΙ ΚΑΤΑΣΤΗΜΑ»), often handwritten or printed on paper stuck to a window or balcony.",
+	"You are reading ONE photograph taken in a Greek street by a real-estate consultant. It normally shows one or more FOR SALE / FOR RENT notices on a building («ΠΩΛΕΙΤΑΙ», «ΕΝΟΙΚΙΑΖΕΤΑΙ», «ΠΩΛΕΙΤΑΙ ΔΙΑΜΕΡΙΣΜΑ», «ΕΝΟΙΚΙΑΖΕΤΑΙ ΚΑΤΑΣΤΗΜΑ»), often handwritten or printed on paper stuck to a window, a wall or a balcony.",
 	"Report ONLY what is actually legible in the photograph. Never guess a digit, never complete a partly hidden phone number, and never infer anything from the look of the building. If a field is not readable, leave it empty — an empty field costs nothing, a wrong phone number costs a phone call to a stranger.",
-	"is_sign: true only if the photo really does show a for-sale/for-rent notice. A plain façade, a shop sign, a company van or an unrelated poster is false.",
-	"listing_type: sale for ΠΩΛΕΙΤΑΙ/ΠΩΛΟΥΝΤΑΙ, rent for ΕΝΟΙΚΙΑΖΕΤΑΙ/ΕΝΟΙΚΙΑΖΟΝΤΑΙ. If the notice offers both, or you cannot tell, use unknown.",
-	"phones: every phone number printed on the sign, EXACTLY as printed (keep the spacing and any prefix). Greek numbers have 10 digits and start with 2 (landline) or 69 (mobile). Include all of them if several are shown.",
-	"advertiser: agency if the sign carries a real-estate agency's name, logo, licence number (ΑΜΑ / Α.Μ.Α.), or wording like ΜΕΣΙΤΙΚΟ ΓΡΑΦΕΙΟ / REAL ESTATE / ΚΤΗΜΑΤΟΜΕΣΙΤΙΚΗ. private when it reads as an owner's own notice (usually handwritten, just a phone, often «ΑΠΟ ΙΔΙΩΤΗ» or «ΧΩΡΙΣ ΜΕΣΙΤΗ»). unknown if you cannot tell. Put the agency's name in agency_name when you can read it.",
-	"property_type: what is offered, in Greek and in the words of the sign — διαμέρισμα, γκαρσονιέρα, μονοκατοικία, μεζονέτα, κατάστημα, γραφείο, επαγγελματικός χώρος, αποθήκη, οικόπεδο, γκαράζ/θέση στάθμευσης. Empty if the sign does not say.",
-	"size_sqm: the area in square metres as a plain number, if printed (τ.μ., τμ, m2). floor: the floor as printed (ισόγειο, 1ος, ημιώροφος…). price: the price as printed, with its currency and any «/μήνα».",
-	"street_hint: a street name or building number visible ANYWHERE in the photo — a street plate, a door number, a nearby shop's address. This is the only clue to the address when the photo carries no location data, so read it if it is there.",
-	"sign_text: everything legible on the notice, transcribed as one line, in Greek, so a human can check your reading. rooms/extras: anything else useful the sign says (bedrooms, «ΑΝΑΚΑΙΝΙΣΜΕΝΟ», «ΓΩΝΙΑΚΟ», «ΜΕ ΑΣΑΝΣΕΡ», calling hours).",
-	"confidence: high if the sign is sharp and fully legible, medium if you had to work at it, low if you are unsure of any digit or the photo is blurred, dark or far away.",
+	"is_sign: true if the photo really does show at least one for-sale/for-rent notice. A plain façade, a shop sign, a company van or an unrelated poster is false, and then signs must be an empty array.",
+	"ONE PHOTO OFTEN CARRIES SEVERAL SEPARATE NOTICES — two sheets one under the other on the same wall, a row of papers on a shop window, three banners on one balcony. Each separate notice is a DIFFERENT property, with a different owner and a different phone. Return ONE entry in `signs` per separate notice and NEVER merge two of them: «ΕΝΟΙΚΙΑΖΕΤΑΙ … 24 τ.μ. … 6941551511» above «ΕΝΟΙΚΙΑΖΕΤΑΙ … 25 τ.μ. … 6972470928» is two entries, not one entry of «24, 25» with two phones.",
+	"Merge into a SINGLE entry only when one notice describes one property, even across levels or with two contact numbers of its own — «17 τ.μ. ισόγειο - 25 τ.μ. υπόγειο» printed on one sheet is one shop on two levels, and a sheet showing both a mobile and a landline is one property with two numbers.",
+	"A sheet that carries NO information of its own — a bare «ΕΝΟΙΚΙΑΖΕΤΑΙ» or «ΠΩΛΕΙΤΑΙ» with no phone, no size and no price — sitting next to or above a complete one on the same window or door, is the SAME property announced twice. Do not return it as a second entry. A second entry needs something of its own: its own phone, or its own size, floor or price.",
+	"IGNORE ANYTHING THAT IS A REFLECTION IN THE GLASS. Shop windows mirror the street opposite: notices that read backwards, appear behind the glass among cars, people or other buildings, or belong to a different shop in the distance are not on this property. Read only what is stuck on the surface you are looking at.",
+	"Order the entries the way they appear: top to bottom, then left to right.",
+	"Per entry — listing_type: sale for ΠΩΛΕΙΤΑΙ/ΠΩΛΟΥΝΤΑΙ, rent for ΕΝΟΙΚΙΑΖΕΤΑΙ/ΕΝΟΙΚΙΑΖΟΝΤΑΙ. If that notice offers both, or you cannot tell, use unknown.",
+	"phones: every phone number printed on THAT notice, EXACTLY as printed (keep the spacing and any prefix). Greek numbers have 10 digits and start with 2 (landline) or 69 (mobile). Never carry a number over from a neighbouring notice.",
+	"advertiser: agency if the notice carries a real-estate agency's name, logo, licence number (ΑΜΑ / Α.Μ.Α.), or wording like ΜΕΣΙΤΙΚΟ ΓΡΑΦΕΙΟ / REAL ESTATE / ΚΤΗΜΑΤΟΜΕΣΙΤΙΚΗ. private when it reads as an owner's own notice (usually handwritten, just a phone, often «ΑΠΟ ΙΔΙΩΤΗ» or «ΧΩΡΙΣ ΜΕΣΙΤΗ»). unknown if you cannot tell. Put the agency's name in agency_name when you can read it.",
+	"contact_name: a person's name printed next to the phone («Μαρία», «κ. Παπαδόπουλος», «ΓΙΩΡΓΟΣ»), if there is one. This is who answers the call — leave it empty rather than inventing it.",
+	"property_type: what that notice offers, in Greek and in its own words — διαμέρισμα, γκαρσονιέρα, μονοκατοικία, μεζονέτα, κατάστημα, γραφείο, επαγγελματικός χώρος, αποθήκη, οικόπεδο, γκαράζ/θέση στάθμευσης. Empty if it does not say.",
+	"size_sqm: that notice's area in square metres as a plain number, if printed (τ.μ., τμ, m2). floor: the floor as printed (ισόγειο, 1ος, 5ο όροφο, ημιώροφος…). price: the price as printed, with its currency and any «/μήνα».",
+	"sign_text: everything legible on THAT notice, transcribed as one line, in Greek, so a human can check your reading. extras: anything else useful it says (bedrooms, «ΑΝΑΚΑΙΝΙΣΜΕΝΟ», «ΓΩΝΙΑΚΟ», «ΜΕ ΑΣΑΝΣΕΡ», «AIR CONDITION», calling hours).",
+	"confidence: high if that notice is sharp and fully legible, medium if you had to work at it, low if you are unsure of any digit or it is blurred, dark or far away. Judge each notice on its own — a sharp one next to a blurred one keeps its high.",
+	"street_hint belongs to the PHOTO, not to a notice: a street name or building number visible ANYWHERE in it — a street plate, a door number, a nearby shop's address. This is the only clue to the address when the photo carries no location data, so read it if it is there.",
 ].join("\n");
+
+/* Ένα «χαρτί» στον τοίχο. Ό,τι είναι δικό του και μόνο δικό του. */
+const SIGN_SCHEMA = {
+	type: "OBJECT",
+	properties: {
+		listing_type: { type: "STRING", enum: ["sale", "rent", "unknown"] },
+		phones: { type: "ARRAY", items: { type: "STRING" } },
+		advertiser: { type: "STRING", enum: ["private", "agency", "unknown"] },
+		agency_name: { type: "STRING" },
+		contact_name: { type: "STRING" },
+		property_type: { type: "STRING" },
+		size_sqm: { type: "STRING" },
+		floor: { type: "STRING" },
+		price: { type: "STRING" },
+		sign_text: { type: "STRING" },
+		extras: { type: "STRING" },
+		confidence: { type: "STRING", enum: ["high", "medium", "low"] },
+	},
+	required: ["listing_type", "phones", "advertiser", "confidence"],
+};
 
 const EXTRACT_SCHEMA = {
 	type: "OBJECT",
 	properties: {
 		is_sign: { type: "BOOLEAN" },
-		listing_type: { type: "STRING", enum: ["sale", "rent", "unknown"] },
-		phones: { type: "ARRAY", items: { type: "STRING" } },
-		advertiser: { type: "STRING", enum: ["private", "agency", "unknown"] },
-		agency_name: { type: "STRING" },
-		property_type: { type: "STRING" },
-		size_sqm: { type: "STRING" },
-		floor: { type: "STRING" },
-		price: { type: "STRING" },
+		/* Της φωτογραφίας, όχι της κάθε αγγελίας: η πινακίδα του δρόμου
+		   είναι μία όσες αγγελίες κι αν κρέμονται από κάτω. */
 		street_hint: { type: "STRING" },
-		sign_text: { type: "STRING" },
-		extras: { type: "STRING" },
-		confidence: { type: "STRING", enum: ["high", "medium", "low"] },
+		signs: { type: "ARRAY", items: SIGN_SCHEMA },
 	},
-	required: ["is_sign", "listing_type", "phones", "advertiser", "confidence"],
+	required: ["is_sign", "signs"],
 };
 
 /* ------------------------------------------------------ signed URLs */
@@ -340,6 +364,7 @@ function leadCard(l, i) {
 			+ (p.duplicate ? `<span style="color:${MUTED}; font-size:12px;"> (ίδιο με προηγούμενο)</span>` : "")
 			+ phoneCheck(p)).join("<br>"));
 	}
+	if (l.contact_name) row("Ζητήστε", `<strong>${esc(l.contact_name)}</strong>`);
 	row("Είδος", esc(TYPE_LABEL[l.listing_type] || "—")
 		+ (l.property_type ? " · " + esc(l.property_type) : ""));
 	const who = ADVERTISER_LABEL[l.advertiser] || "Άγνωστο";
@@ -356,7 +381,9 @@ function leadCard(l, i) {
 
 	return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${flagged ? "#f0c9a8" : LINE}; border-left:3px solid ${flagged ? "#c2410c" : PINK}; border-radius:6px; margin:0 0 14px 0;">
 	<tr><td style="padding:12px 14px;">
-		<div style="font-size:15px; font-weight:bold; color:${NAVY}; margin-bottom:8px;">${i + 1}. ${esc(l.address || TYPE_LABEL[l.listing_type] || "Lead")}</div>
+		<div style="font-size:15px; font-weight:bold; color:${NAVY}; margin-bottom:8px;">${i + 1}. ${esc(l.address || TYPE_LABEL[l.listing_type] || "Lead")}${l.sign_count > 1
+			? `<span style="font-size:11px; font-weight:bold; color:#ffffff; background:${PINK}; border-radius:9px; padding:2px 8px; margin-left:7px; white-space:nowrap;">ΠΙΝΑΚΙΔΑ ${l.sign_index + 1}/${l.sign_count}</span>`
+			: ""}</div>
 		${flagged ? `<div style="background:#fdeee7; border-radius:5px; padding:8px 10px; margin-bottom:9px; font-size:13px; color:#8a2c06;"><strong>ΧΩΡΙΣ ΤΗΛΕΦΩΝΟ</strong> — δες τη φωτογραφία${l.error ? " (η ανάγνωση απέτυχε)" : ""}.</div>` : ""}
 		${l.conflict ? `<div style="background:#fdeee7; border-radius:5px; padding:8px 10px; margin-bottom:9px; font-size:13px; color:#8a2c06;"><strong>ΠΡΟΣΟΧΗ</strong> — η πινακίδα δεν γράφει γραφείο, αλλά το τηλέφωνο βγαίνει μεσιτικό.</div>` : ""}
 		<table role="presentation" cellpadding="0" cellspacing="0" width="100%">${rows.join("\n\t\t")}</table>
@@ -367,15 +394,25 @@ function leadCard(l, i) {
 
 function buildEmail(payload) {
 	const { leads, note, submitted_by, count } = payload;
+	const signs = leads.length;
 	const withPhone = leads.filter((l) => (l.phones || []).length).length;
 	const agencies = leads.filter((l) => l.advertiser === "agency").length;
 
-	const subject = `Νέα leads από πινακίδες — ${count} ${count === 1 ? "φωτογραφία" : "φωτογραφίες"}`
-		+ (withPhone < count ? ` (${withPhone} με τηλέφωνο)` : "");
+	const photoWord = count === 1 ? "φωτογραφία" : "φωτογραφίες";
+	const signWord = signs === 1 ? "πινακίδα" : "πινακίδες";
+	/* Όταν μια βόλτα έχει φωτογραφία με δύο χαρτιά, τα δύο νούμερα
+	   διαφέρουν — και το θέμα του email πρέπει να το λέει, αλλιώς η
+	   γραμματεία μετράει τρεις κάρτες εκεί που περίμενε δύο. */
+	const headline = signs === count
+		? `${count} ${photoWord}`
+		: `${signs} ${signWord} σε ${count} ${photoWord}`;
+
+	const subject = `Νέα leads από πινακίδες — ${headline}`
+		+ (withPhone < signs ? ` (${withPhone} με τηλέφωνο)` : "");
 
 	const known = leads.filter((l) => l.known_contact).length;
 	const summary = [
-		`${count} ${count === 1 ? "φωτογραφία" : "φωτογραφίες"}`,
+		headline,
 		`${withPhone} με τηλέφωνο`,
 		agencies ? `${agencies} από μεσιτικό γραφείο` : "",
 		known ? `${known} ήδη στο CRM` : "",
@@ -409,7 +446,9 @@ function buildEmail(payload) {
 		note ? `Σημείωση: ${note}` : "",
 		"",
 		...leads.map((l, i) => [
-			`${i + 1}. ${l.address || (l.lat != null ? `${l.lat.toFixed(5)}, ${l.lng.toFixed(5)}` : "χωρίς τοποθεσία")}`,
+			`${i + 1}. ${l.address || (l.lat != null ? `${l.lat.toFixed(5)}, ${l.lng.toFixed(5)}` : "χωρίς τοποθεσία")}`
+				+ (l.sign_count > 1 ? ` [πινακίδα ${l.sign_index + 1} από ${l.sign_count} στη φωτογραφία]` : ""),
+			l.contact_name ? `   Ζητήστε: ${l.contact_name}` : "",
 			`   Τηλ: ${(l.phones || []).map((p) => p.display
 				+ (p.crm ? ` [ήδη στο CRM: ${p.crm.name}]` : "")
 				+ (p.web?.kind === "agency" ? ` [μεσιτικό${p.web.name ? ": " + p.web.name : ""}]`
@@ -480,6 +519,42 @@ function crmGivenName(l) {
 	return "χωρίς διεύθυνση";
 }
 
+/* Τα πέντε φρένα. Ξεχωριστά από το `crmFor()` γιατί τρέχουν ΠΡΙΝ δοθούν
+   τα ονόματα: η διάκριση παρακάτω αφορά μόνο όσα θα γραφτούν όντως. */
+function crmEligible(l) {
+	return l.is_sign !== false          // δεν είναι καν πινακίδα
+		&& l.confidence === "high"       // κάθε ψηφίο διαβάστηκε καθαρά
+		&& l.advertiser !== "agency"     // συνάδελφος, όχι lead
+		&& !l.error
+		&& (l.phones || []).some((p) => !p.duplicate);
+}
+
+/* Δύο χαρτιά στον ίδιο τοίχο δίνουν δύο leads με ΤΗΝ ΙΔΙΑ διεύθυνση —
+   άρα δύο επαφές «Φραγκίνη 5, Λουλουδάδικα ΠΙΝΑΚΙΔΑ» που δεν ξεχωρίζουν
+   με τίποτα στη λίστα του CRM. Όποτε συμβαίνει αυτό, το όνομα παίρνει το
+   πιο ανθρώπινο διακριτικό που έχει η πινακίδα: πρώτα το όνομα που
+   γράφει («Μαρία»), αλλιώς τι είναι και πόσο («γραφείο 25 τ.μ. 7ος»),
+   αλλιώς σκέτη αρίθμηση. Οι μονές πινακίδες δεν αλλάζουν καθόλου. */
+function assignCrmNames(leads) {
+	const groups = new Map();
+	for (const l of leads) {
+		if (!crmEligible(l)) continue;
+		l.crm_given = crmGivenName(l);
+		if (!groups.has(l.crm_given)) groups.set(l.crm_given, []);
+		groups.get(l.crm_given).push(l);
+	}
+	for (const [name, group] of groups) {
+		if (group.length < 2) continue;
+		group.forEach((l, i) => {
+			const tag = l.contact_name
+				|| [l.property_type, l.size_sqm ? l.size_sqm + " τ.μ." : "", l.floor]
+					.filter(Boolean).join(" ")
+				|| `πινακίδα ${i + 1}`;
+			l.crm_given = makeSafe(`${name} (${tag})`, 90);
+		});
+	}
+}
+
 /* «YYYY-MM-DD HH:mm:ss» σε ώρα Ελλάδας, όπως τη θέλει το
    `communication_date`. Το sv-SE δίνει ακριβώς αυτή τη μορφή. */
 function athensStamp(d = new Date()) {
@@ -490,19 +565,13 @@ function athensStamp(d = new Date()) {
 }
 
 function crmFor(l, meta) {
+	if (!crmEligible(l)) return null;
 	/* Διπλό τηλέφωνο μέσα στην ίδια βόλτα = μία επαφή. Χωρίς αυτό η δεύτερη
 	   δημιουργία σκάει σε 400 «Phone number is already in use» — σωστά, αλλά
 	   γεμίζει το σενάριο με κόκκινα που δεν σημαίνουν τίποτα. */
 	const phones = (l.phones || []).filter((p) => !p.duplicate);
 
-	const eligible = l.is_sign !== false          // δεν είναι καν πινακίδα
-		&& l.confidence === "high"                 // κάθε ψηφίο διαβάστηκε καθαρά
-		&& l.advertiser !== "agency"               // συνάδελφος, όχι lead
-		&& !l.error
-		&& phones.length > 0;
-	if (!eligible) return null;
-
-	const given = crmGivenName(l);
+	const given = l.crm_given || crmGivenName(l);
 	const what = [TYPE_LABEL[l.listing_type], l.property_type].filter((x) => x && x !== "—").join(" ");
 	const specs = [l.size_sqm ? l.size_sqm + " τ.μ." : "", l.floor, l.price].filter(Boolean).join(", ");
 	const note = makeSafe(`Πινακίδα ${what || ""} · ${given} · ${athensStamp().slice(0, 10)}`, 190);
@@ -535,10 +604,15 @@ function crmFor(l, meta) {
 	const comments = makeSafe([
 		`Πινακίδα ${what || "—"}${specs ? " (" + specs + ")" : ""}`,
 		given,
+		l.contact_name ? `Ζητήστε: ${l.contact_name}` : "",
 		phones.map((p) => p.display).join(" / "),
 		l.sign_text ? `Κείμενο πινακίδας: ${l.sign_text}` : "",
+		l.extras ? `Άλλα: ${l.extras}` : "",
 		web?.kind === "private" ? "Έλεγχος web: δεν βρέθηκε σε επιχείρηση, μάλλον ιδιώτης"
 			: web?.kind === "business" ? `Έλεγχος web: επιχείρηση${web.name ? " " + web.name : ""}` : "",
+		/* Ποια από τις πινακίδες της φωτογραφίας είναι — αλλιώς ο επόμενος
+		   που ανοίγει τη φωτό βλέπει δύο χαρτιά και δεν ξέρει ποιο. */
+		l.sign_count > 1 ? `Πινακίδα ${l.sign_index + 1} από ${l.sign_count} σε αυτή τη φωτογραφία` : "",
 		l.taken_at ? `Λήψη: ${l.taken_at}` : "",
 		meta.submitted_by ? `Καταγραφή: ${meta.submitted_by}` : "",
 		`Φωτογραφία (ισχύει 30 ημέρες): ${l.url}`,
@@ -700,7 +774,7 @@ async function finalizeBatch(request, env, url, batchId) {
 	/* Διαβάζουμε + περνάμε από το μοντέλο τέσσερις-τέσσερις: αρκετά
 	   παράλληλα ώστε μια βόλτα 12 φωτογραφιών να τελειώνει σε ~15 δευτ.,
 	   αρκετά λίγα ώστε να μη χτυπάμε rate limit. */
-	const leads = new Array(objects.length);
+	const perPhotoLeads = new Array(objects.length);
 	const CONC = 4;
 	let next = 0;
 	await Promise.all(Array.from({ length: Math.min(CONC, objects.length) }, async () => {
@@ -720,32 +794,49 @@ async function finalizeBatch(request, env, url, batchId) {
 				console.warn(`leads: could not read ${o.key}: ${String(err)}`);
 			}
 
-			const phones = [...new Set((Array.isArray(ai.phones) ? ai.phones : [])
-				.map(normPhone).filter(Boolean))]
-				.map((d) => ({ digits: d, display: fmtPhone(d) }));
-
-			leads[idx] = {
+			/* Ό,τι ανήκει στη ΦΩΤΟΓΡΑΦΙΑ και το μοιράζονται όλες οι πινακίδες
+			   της: αρχείο, τοποθεσία, ώρα λήψης, πινακίδα δρόμου. */
+			const base = {
 				name,
 				url: await signedFileUrl(env, origin, batchId, name),
 				content_type: contentType,
 				...m,
-				phones,
-				is_sign: ai.is_sign !== false,
-				listing_type: ["sale", "rent"].includes(ai.listing_type) ? ai.listing_type : "unknown",
-				advertiser: ["private", "agency"].includes(ai.advertiser) ? ai.advertiser : "unknown",
-				agency_name: clip(ai.agency_name, 120) || null,
-				property_type: clip(ai.property_type, 60) || null,
-				size_sqm: clip(ai.size_sqm, 20) || null,
-				floor: clip(ai.floor, 40) || null,
-				price: clip(ai.price, 40) || null,
 				street_hint: clip(ai.street_hint, 120) || null,
-				sign_text: clip(ai.sign_text, 400) || null,
-				extras: clip(ai.extras, 200) || null,
-				confidence: ["high", "medium", "low"].includes(ai.confidence) ? ai.confidence : "low",
+				is_sign: ai.is_sign !== false,
 				error: ai.error || null,
 			};
+
+			/* Χωρίς πινακίδα (ή με σφάλμα ανάγνωσης) μένει ΕΝΑ κενό lead: η
+			   φωτογραφία πρέπει να φτάσει στο email έτσι κι αλλιώς, με τη
+			   σήμανση «ΧΩΡΙΣ ΤΗΛΕΦΩΝΟ» — σιωπηλή απόρριψη σημαίνει χαμένο
+			   lead που κανείς δεν ξέρει ότι χάθηκε. */
+			const signs = Array.isArray(ai.signs) && ai.signs.length ? ai.signs : [{}];
+			perPhotoLeads[idx] = signs.map((s, si) => ({
+				...base,
+				sign_index: si,
+				sign_count: signs.length,
+				phones: [...new Set((Array.isArray(s.phones) ? s.phones : [])
+					.map(normPhone).filter(Boolean))]
+					.map((d) => ({ digits: d, display: fmtPhone(d) })),
+				listing_type: ["sale", "rent"].includes(s.listing_type) ? s.listing_type : "unknown",
+				advertiser: ["private", "agency"].includes(s.advertiser) ? s.advertiser : "unknown",
+				agency_name: clip(s.agency_name, 120) || null,
+				contact_name: clip(s.contact_name, 60) || null,
+				property_type: clip(s.property_type, 60) || null,
+				size_sqm: clip(s.size_sqm, 20) || null,
+				floor: clip(s.floor, 40) || null,
+				price: clip(s.price, 40) || null,
+				sign_text: clip(s.sign_text, 400) || null,
+				extras: clip(s.extras, 200) || null,
+				confidence: ["high", "medium", "low"].includes(s.confidence) ? s.confidence : "low",
+			}));
 		}
 	}));
+	/* Από εδώ και κάτω η μονάδα είναι η ΠΙΝΑΚΙΔΑ, όχι η φωτογραφία: το
+	   dedupe των τηλεφώνων, ο έλεγχος «ποιος το έχει», το reverse geocode
+	   και η εγγραφή στο CRM δουλεύουν όλα ανά πινακίδα. */
+	const leads = perPhotoLeads.flat();
+	const photoCount = objects.length;
 
 	/* Το ίδιο τηλέφωνο σε δύο φωτογραφίες είναι ΕΝΑ lead — συνήθως δύο
 	   λήψεις της ίδιας πινακίδας. Σημαίνεται αντί να αφαιρεθεί: η δεύτερη
@@ -804,6 +895,7 @@ async function finalizeBatch(request, env, url, batchId) {
 	/* Τελευταίο, γιατί χρειάζεται τη διεύθυνση: το όνομα της επαφής ΕΙΝΑΙ η
 	   διεύθυνση. Όσα δεν περνάνε το φίλτρο παίρνουν `crm: null` και μένουν
 	   μόνο στο email — εκεί αποφασίζει άνθρωπος. */
+	assignCrmNames(leads);
 	for (const l of leads) l.crm = crmFor(l, meta);
 	const crmReady = leads.filter((l) => l.crm);
 
@@ -811,7 +903,10 @@ async function finalizeBatch(request, env, url, batchId) {
 		batch_id: batchId,
 		submitted_by: meta.submitted_by,
 		submitted_at: new Date().toISOString(),
-		count: leads.length,
+		/* `count` = φωτογραφίες, `signs` = πινακίδες. Δεν είναι πια το ίδιο
+		   νούμερο: ένα χαρτί δίπλα στο άλλο δίνει δύο leads από μία λήψη. */
+		count: photoCount,
+		signs: leads.length,
 		note: note || null,
 		/* Το σενάριο δουλεύει ΑΥΤΗ τη λίστα, όχι το `leads` — έτσι δεν
 		   χρειάζεται filter module μέσα στο Make, και ό,τι δεν πέρασε τον
@@ -835,7 +930,8 @@ async function finalizeBatch(request, env, url, batchId) {
 		return json({ error: "forward_failed" }, 502);
 	}
 	console.log(JSON.stringify({
-		event: "lead_batch", batch_id: batchId, count: leads.length,
+		event: "lead_batch", batch_id: batchId, count: photoCount, signs: leads.length,
+		multi_sign: perPhotoLeads.filter((g) => g.length > 1).length,
 		with_phone: leads.filter((l) => l.phones.length).length,
 		agencies: leads.filter((l) => l.advertiser === "agency").length,
 		known_contacts: leads.filter((l) => l.known_contact).length,
@@ -845,7 +941,8 @@ async function finalizeBatch(request, env, url, batchId) {
 	}));
 	return json({
 		ok: true,
-		count: leads.length,
+		count: photoCount,
+		signs: leads.length,
 		with_phone: leads.filter((l) => l.phones.length).length,
 		agencies: leads.filter((l) => l.advertiser === "agency").length,
 		known_contacts: leads.filter((l) => l.known_contact).length,

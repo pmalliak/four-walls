@@ -98,8 +98,11 @@ Gotchas learned 2026-07-30:
   «Αποστολή με Email» from listings 500s on contacts without one (send button stays disabled).
   prep.mjs/site-requests.mjs now put `star:{email,phone}` on created-contact worklist entries and
   `crm-post.mjs` POSTs `star_email`/`star_phone` to `/contacts/view/{id}` (the UI star-click call).
-  Backfill for older/Make-created contacts: `headless/fix-contact-defaults.mjs` (has `--dry`);
-  details in [docs/estateprime-api.md](../../../docs/estateprime-api.md).
+  Backfill for older/Make-created contacts: `headless/fix-contact-defaults.mjs`
+  (`--dry`, `--ids 257,258`, `--last N` for just the newest); details in
+  [docs/estateprime-api.md](../../../docs/estateprime-api.md). Make can never do it
+  itself — `/contacts/view/` is behind Cloudflare bot protection and 403s any
+  non-browser client (2026-08-04).
 
 ## Anti-scraping rule
 Enumerate leads from **emails** (Spark, `info@four-walls.gr`, folder `Inbox/Spitogatos`, pushed by

@@ -271,6 +271,14 @@ Setting it: the star's own endpoint, same-origin session POST (no CSRF):
 the public API**, and no default control inside the `edit_contact=phones/emails`
 modal — though re-saving those sections also happens to star the first row.
 
+**A Make scenario can never do this** (probed 2026-08-04). The `/contacts/view/`
+path sits behind Cloudflare bot protection: a POST from node answers
+`403 «Just a moment…»` both with Basic auth and without, so it is not a matter
+of finding the right credentials. Only a real logged-in browser gets through,
+which is why the fix stays a local CDP script and why every Make-created contact
+keeps arriving default-less. `fix-contact-defaults.mjs` takes `--ids` / `--last N`
+for a quick pass over just the newest contacts after a lead batch.
+
 All 211 existing contacts were audited + fixed on 2026-07-30 (134 needed it).
 New skill-created contacts are starred by `crm-post.mjs` (the worklist carries
 `star:{email,phone}` for created contacts); **Make-created contacts keep arriving

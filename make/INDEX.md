@@ -14,7 +14,7 @@
 | `6722234` | CRM - Νέα ακίνητα σε ζητήσεις | ναι | άμεσα (webhook/mailhook) | 2 | [6722234-crm-nea-akinita-se-zitiseis.blueprint.json](scenarios/6722234-crm-nea-akinita-se-zitiseis.blueprint.json) |
 | `6762737` | Εκτίμηση — φρεσκάρισμα τιμών περιοχών | ναι | monthly 09:00 1 | 2 | [6762737-ektimisi-freskarisma-timon-periochon.blueprint.json](scenarios/6762737-ektimisi-freskarisma-timon-periochon.blueprint.json) |
 | `6775485` | Φύλακας — ό,τι δεν στάλθηκε | ναι | άμεσα (webhook/mailhook) | 2 | [6775485-fylakas-o-ti-den-stalthike.blueprint.json](scenarios/6775485-fylakas-o-ti-den-stalthike.blueprint.json) |
-| `6786126` | Πινακίδες | ναι | άμεσα (webhook/mailhook) | 2 | [6786126-pinakides.blueprint.json](scenarios/6786126-pinakides.blueprint.json) |
+| `6786126` | Πινακίδες | ναι | άμεσα (webhook/mailhook) | 13 | [6786126-pinakides.blueprint.json](scenarios/6786126-pinakides.blueprint.json) |
 
 ## Spitogatos - Αίτηση ανάθεσης `6405443`
 
@@ -231,5 +231,18 @@
 
 ```
 1   gateway:CustomWebHook · Πινακίδα (pinakida.html)
-2   zoho-mail:sendMail · Email στο info@ (cc αποστολέας)
+10  builtin:BasicRouter
+  ├─ route 1
+    2   zoho-mail:sendMail · Email στο info@ (cc αποστολέας) · [φίλτρο: Όχι σε δοκιμή]
+  ├─ route 2
+    11  builtin:BasicFeeder · Κάθε πινακίδα (crm[])
+    12  http:ActionSendDataBasicAuth · EstatePrime: Αναζήτηση επαφής · [onerror: builtin:Ignore]
+    13  builtin:BasicIfElse
+      ├─ condition «Νέα επαφή»
+        14  http:ActionSendDataBasicAuth · EstatePrime: Δημιουργία επαφής · [onerror: builtin:Ignore]
+        15  http:ActionSendDataBasicAuth · EstatePrime: Επικοινωνία (νέα επαφή) · [onerror: builtin:Ignore]
+      ├─ condition «Υπάρχουσα επαφή»
+        16  http:ActionSendDataBasicAuth · EstatePrime: Επικοινωνία (υπάρχουσα) · [onerror: builtin:Ignore]
+      ├─ else
+        17  placeholder:Placeholder
 ```

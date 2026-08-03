@@ -13,13 +13,27 @@
 // `star_email=<address>` / `star_phone=<number>` to /contacts/view/{id}, on the first row.
 // Idempotent: contacts with a filled star are never touched.
 //
+// The star endpoint is NOT reachable from Make or the Worker: /contacts/view/{id}
+// sits behind Cloudflare bot protection and answers 403 «Just a moment…» to any
+// non-browser client, with or without Basic auth (probed 2026-08-04). A real
+// logged-in browser is the only way, which is why this stays a local script.
+//
 // Needs: logged-in CRM session in the CDP browser (crm-login.mjs or manual login),
 // and ESTATEPRIME_API_* in .dev.vars (for enumeration only).
-// Usage: node fix-contact-defaults.mjs [--dry]
+// Usage: node fix-contact-defaults.mjs [--dry] [--ids 257,258] [--last N]
+//   --ids   only these contacts
+//   --last  only the N newest (highest id) — the usual run after a walk of
+//           «Πινακίδες» or a batch of leads, instead of sweeping all 250
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { Tab, sleep } from './cdp.mjs';
 
 const DRY = process.argv.includes('--dry');
+const argOf = (name) => {
+	const i = process.argv.indexOf(name);
+	return i > -1 ? process.argv[i + 1] : null;
+};
+const ONLY_IDS = (argOf('--ids') || '').split(',').map(Number).filter(Boolean);
+const LAST = Number(argOf('--last')) || 0;
 
 const vars = {};
 for (const p of ['.dev.vars', '../../../../.dev.vars', '../../../../../.dev.vars']) {
@@ -46,7 +60,12 @@ for (let page = 1; page < 100; page++) {
 	if (!rows.length) break;
 	for (const c of rows) contacts.push({ id: c.id, name: `${c.first_name || ''} ${c.last_name || ''}`.trim(), nEmails: (c.emails || []).length, nPhones: (c.phones || []).length });
 }
-console.log(`contacts: ${contacts.length}${DRY ? ' (DRY RUN)' : ''}`);
+// 1b. Narrow it down when asked. A walk of «Πινακίδες» adds a handful of
+// contacts; sweeping all of them again costs one page load each.
+let scope = contacts;
+if (ONLY_IDS.length) scope = contacts.filter((c) => ONLY_IDS.includes(c.id));
+else if (LAST) scope = [...contacts].sort((a, b) => b.id - a.id).slice(0, LAST);
+console.log(`contacts: ${contacts.length}${scope.length !== contacts.length ? ` → checking ${scope.length}` : ''}${DRY ? ' (DRY RUN)' : ''}`);
 
 const tab = await Tab.find('https://fourwalls.estateprime.gr');
 if (!tab) { console.log('no CRM tab — run crm-login.mjs first'); process.exit(1); }
@@ -55,7 +74,7 @@ await tab.send('Page.bringToFront').catch(() => {});
 const results = { fixed: [], ok: [], skippedEmpty: [], errors: [] };
 
 // One eval per contact, paced from node (in-page loops hang in throttled tabs).
-for (const c of contacts) {
+for (const c of scope) {
 	if (!c.nEmails && !c.nPhones) { results.skippedEmpty.push(c.id); continue; }
 	const out = await tab.eval(`(async () => {
 		const H = { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest' };

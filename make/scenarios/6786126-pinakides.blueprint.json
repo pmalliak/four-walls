@@ -41,74 +41,555 @@
 			}
 		},
 		{
-			"id": 2,
-			"mapper": {
-				"content": "{{1.html}}",
-				"subject": "{{1.subject}}",
-				"encoding": "UTF-8",
-				"accountId": "5796850000000008002",
-				"ccAddress": [
-					"{{ifempty(1.submitted_by; \"info@four-walls.gr\")}}"
-				],
-				"toAddress": [
-					"info@four-walls.gr"
-				],
-				"bccAddress": [],
-				"mailFormat": "html",
-				"fromAddress": "info@four-walls.gr"
-			},
-			"module": "zoho-mail:sendMail",
+			"id": 10,
+			"mapper": null,
+			"module": "builtin:BasicRouter",
+			"routes": [
+				{
+					"flow": [
+						{
+							"id": 2,
+							"filter": {
+								"name": "Όχι σε δοκιμή",
+								"conditions": [
+									[
+										{
+											"a": "{{1.dry_run}}",
+											"b": "true",
+											"o": "text:notequal"
+										}
+									]
+								]
+							},
+							"mapper": {
+								"content": "{{1.html}}",
+								"subject": "{{1.subject}}",
+								"encoding": "UTF-8",
+								"accountId": "5796850000000008002",
+								"ccAddress": [
+									"{{ifempty(1.submitted_by; \"info@four-walls.gr\")}}"
+								],
+								"toAddress": [
+									"info@four-walls.gr"
+								],
+								"bccAddress": [],
+								"mailFormat": "html",
+								"fromAddress": "info@four-walls.gr"
+							},
+							"module": "zoho-mail:sendMail",
+							"version": 1,
+							"metadata": {
+								"restore": {
+									"expect": {
+										"encoding": {
+											"label": "UTF-8"
+										},
+										"accountId": {
+											"mode": "chose",
+											"label": "info@four-walls.gr"
+										},
+										"ccAddress": {
+											"items": [
+												null
+											]
+										},
+										"toAddress": {
+											"items": [
+												null
+											]
+										},
+										"mailFormat": {
+											"label": "HTML"
+										}
+									},
+									"parameters": {
+										"__IMTCONN__": {
+											"data": {
+												"scoped": "true",
+												"connection": "zoho-mail"
+											},
+											"label": "My Zoho Mail connection"
+										}
+									}
+								},
+								"designer": {
+									"x": 300,
+									"y": -150,
+									"name": "Email στο info@ (cc αποστολέας)"
+								},
+								"parameters": [
+									{
+										"name": "__IMTCONN__",
+										"type": "account:zoho-mail",
+										"label": "Connection",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"__IMTCONN__": 8711103
+							}
+						}
+					]
+				},
+				{
+					"flow": [
+						{
+							"id": 11,
+							"mapper": {
+								"array": "{{1.crm}}"
+							},
+							"module": "builtin:BasicFeeder",
+							"version": 1,
+							"metadata": {
+								"designer": {
+									"x": 600,
+									"y": 150,
+									"name": "Κάθε πινακίδα (crm[])"
+								}
+							},
+							"parameters": {}
+						},
+						{
+							"id": 12,
+							"mapper": {
+								"qs": [],
+								"url": "https://fourwalls.estateprime.gr/api/contacts?search={{encodeURL(11.search)}}",
+								"gzip": true,
+								"method": "get",
+								"headers": [
+									{
+										"name": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"timeout": "",
+								"useMtls": false,
+								"authPass": "",
+								"authUser": "",
+								"serializeUrl": false,
+								"shareCookies": false,
+								"parseResponse": true,
+								"followRedirect": true,
+								"useQuerystring": false,
+								"followAllRedirects": false,
+								"rejectUnauthorized": true
+							},
+							"module": "http:ActionSendDataBasicAuth",
+							"onerror": [
+								{
+									"id": 18,
+									"mapper": {},
+									"module": "builtin:Ignore",
+									"version": 1,
+									"metadata": {
+										"designer": {
+											"x": 900,
+											"y": 450
+										}
+									},
+									"parameters": {}
+								}
+							],
+							"version": 3,
+							"metadata": {
+								"restore": {
+									"expect": {
+										"qs": {
+											"mode": "chose"
+										},
+										"method": {
+											"mode": "chose",
+											"label": "GET"
+										},
+										"headers": {
+											"mode": "chose",
+											"items": [
+												null
+											]
+										}
+									},
+									"parameters": {
+										"key": {
+											"label": "Estate Prime Auth"
+										}
+									}
+								},
+								"designer": {
+									"x": 900,
+									"y": 150,
+									"name": "EstatePrime: Αναζήτηση επαφής"
+								},
+								"parameters": [
+									{
+										"name": "key",
+										"type": "keychain:basicauth",
+										"label": "Key",
+										"required": true
+									},
+									{
+										"name": "handleErrors",
+										"type": "boolean",
+										"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"key": 199013,
+								"handleErrors": false
+							}
+						},
+						{
+							"id": 13,
+							"mapper": null,
+							"module": "builtin:BasicIfElse",
+							"version": 1,
+							"branches": [
+								{
+									"flow": [
+										{
+											"id": 14,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/contacts",
+												"data": "{{11.contact_json}}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 19,
+													"mapper": {},
+													"module": "builtin:Ignore",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 1800,
+															"y": 450
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 1500,
+													"y": 0,
+													"name": "EstatePrime: Δημιουργία επαφής"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
+										},
+										{
+											"id": 15,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/communication",
+												"data": "{\"contact_id\": {{14.data.data.id}}, \"channel\": {{11.channel}}, \"type\": \"incoming\", \"user_id\": {{11.user_id}}, \"store_id\": {{11.store_id}}, \"communication_date\": \"{{11.communication_date}}\", \"tags\": {{11.tags_json}}, \"comments\": \"{{11.comments}}\"}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 20,
+													"mapper": {},
+													"module": "builtin:Ignore",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 2100,
+															"y": 300
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 1800,
+													"y": 0,
+													"name": "EstatePrime: Επικοινωνία (νέα επαφή)"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
+										}
+									],
+									"type": "condition",
+									"label": "Νέα επαφή",
+									"merge": false,
+									"conditions": [
+										[
+											{
+												"a": "{{12.data.total_results}}",
+												"b": "0",
+												"o": "number:equal"
+											}
+										]
+									]
+								},
+								{
+									"flow": [
+										{
+											"id": 16,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/communication",
+												"data": "{\"contact_id\": {{12.data.data[1].id}}, \"channel\": {{11.channel}}, \"type\": \"incoming\", \"user_id\": {{11.user_id}}, \"store_id\": {{11.store_id}}, \"communication_date\": \"{{11.communication_date}}\", \"tags\": {{11.tags_json}}, \"comments\": \"{{11.comments}}\"}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 21,
+													"mapper": {},
+													"module": "builtin:Ignore",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 1800,
+															"y": 600
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 1500,
+													"y": 300,
+													"name": "EstatePrime: Επικοινωνία (υπάρχουσα)"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
+										}
+									],
+									"type": "condition",
+									"label": "Υπάρχουσα επαφή",
+									"merge": false,
+									"conditions": [
+										[
+											{
+												"a": "{{12.data.total_results}}",
+												"b": "0",
+												"o": "number:greater"
+											}
+										]
+									]
+								},
+								{
+									"flow": [
+										{
+											"id": 17,
+											"filter": null,
+											"mapper": null,
+											"module": "placeholder:Placeholder",
+											"version": 1,
+											"metadata": {
+												"designer": {
+													"x": 1500,
+													"y": 600
+												}
+											},
+											"parameters": {}
+										}
+									],
+									"type": "else",
+									"label": "",
+									"merge": false,
+									"disabled": false
+								}
+							],
+							"metadata": {
+								"designer": {
+									"x": 1200,
+									"y": 150
+								}
+							}
+						}
+					]
+				}
+			],
 			"version": 1,
 			"metadata": {
-				"restore": {
-					"expect": {
-						"encoding": {
-							"label": "UTF-8"
-						},
-						"accountId": {
-							"mode": "chose",
-							"label": "info@four-walls.gr"
-						},
-						"ccAddress": {
-							"items": [
-								null
-							]
-						},
-						"toAddress": {
-							"items": [
-								null
-							]
-						},
-						"mailFormat": {
-							"label": "HTML"
-						}
-					},
-					"parameters": {
-						"__IMTCONN__": {
-							"data": {
-								"scoped": "true",
-								"connection": "zoho-mail"
-							},
-							"label": "My Zoho Mail connection"
-						}
-					}
-				},
 				"designer": {
 					"x": 300,
-					"y": 0,
-					"name": "Email στο info@ (cc αποστολέας)"
-				},
-				"parameters": [
-					{
-						"name": "__IMTCONN__",
-						"type": "account:zoho-mail",
-						"label": "Connection",
-						"required": true
-					}
-				]
-			},
-			"parameters": {
-				"__IMTCONN__": 8711103
+					"y": 0
+				}
 			}
 		}
 	],
