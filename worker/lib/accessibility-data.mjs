@@ -95,7 +95,11 @@ export const ACCESSIBILITY = {
 			"transit": {
 				"band": "excellent",
 				"type": "metro",
-				"m": 161
+				"m": 161,
+				"also": {
+					"type": "bus",
+					"m": 55
+				}
 			},
 			"dining": {
 				"band": "excellent",
@@ -203,7 +207,11 @@ export const ACCESSIBILITY = {
 			"transit": {
 				"band": "verygood",
 				"type": "metro",
-				"m": 314
+				"m": 314,
+				"also": {
+					"type": "bus",
+					"m": 20
+				}
 			},
 			"errands": {
 				"band": "excellent",
@@ -252,7 +260,11 @@ export const ACCESSIBILITY = {
 			"transit": {
 				"band": "good",
 				"type": "metro",
-				"m": 685
+				"m": 685,
+				"also": {
+					"type": "bus",
+					"m": 143
+				}
 			},
 			"errands": {
 				"band": "excellent",
@@ -306,7 +318,11 @@ export const ACCESSIBILITY = {
 			"transit": {
 				"band": "good",
 				"type": "metro",
-				"m": 861
+				"m": 861,
+				"also": {
+					"type": "bus",
+					"m": 76
+				}
 			},
 			"errands": {
 				"band": "excellent",
@@ -331,9 +347,13 @@ export const ACCESSIBILITY = {
 		"profile": "home",
 		"scores": {
 			"transit": {
-				"band": "moderate",
-				"type": "metro",
-				"m": 1200
+				"band": "good",
+				"type": "bus",
+				"m": 127,
+				"also": {
+					"type": "metro",
+					"m": 1200
+				}
 			},
 			"errands": {
 				"band": "excellent",
@@ -387,7 +407,11 @@ export const ACCESSIBILITY = {
 			"transit": {
 				"band": "verygood",
 				"type": "metro",
-				"m": 347
+				"m": 347,
+				"also": {
+					"type": "bus",
+					"m": 63
+				}
 			},
 			"errands": {
 				"band": "excellent",
@@ -412,9 +436,13 @@ export const ACCESSIBILITY = {
 		"profile": "logistics",
 		"scores": {
 			"transit": {
-				"band": "moderate",
-				"type": "metro",
-				"m": 1304
+				"band": "good",
+				"type": "bus",
+				"m": 193,
+				"also": {
+					"type": "metro",
+					"m": 1304
+				}
 			},
 			"roads": {
 				"band": "excellent",
@@ -436,7 +464,11 @@ export const ACCESSIBILITY = {
 			"transit": {
 				"band": "good",
 				"type": "metro",
-				"m": 618
+				"m": 618,
+				"also": {
+					"type": "bus",
+					"m": 36
+				}
 			},
 			"errands": {
 				"band": "excellent",
@@ -483,9 +515,13 @@ export const ACCESSIBILITY = {
 		"profile": "home",
 		"scores": {
 			"transit": {
-				"band": "moderate",
-				"type": "metro",
-				"m": 1108
+				"band": "good",
+				"type": "bus",
+				"m": 28,
+				"also": {
+					"type": "metro",
+					"m": 1108
+				}
 			},
 			"errands": {
 				"band": "excellent",
@@ -504,33 +540,6 @@ export const ACCESSIBILITY = {
 			}
 		}
 	},
-	"116": {
-		"lat": 40.6398527,
-		"lng": 22.9609829,
-		"profile": "home",
-		"scores": {
-			"transit": {
-				"band": "moderate",
-				"type": "metro",
-				"m": 1145
-			},
-			"errands": {
-				"band": "excellent",
-				"type": "convenience",
-				"m": 52
-			},
-			"education": {
-				"band": "excellent",
-				"type": "school",
-				"m": 159
-			},
-			"leisure": {
-				"band": "excellent",
-				"type": "dining",
-				"m": 84
-			}
-		}
-	},
 	"117": {
 		"lat": 40.6216094,
 		"lng": 22.9700508,
@@ -539,7 +548,11 @@ export const ACCESSIBILITY = {
 			"transit": {
 				"band": "good",
 				"type": "metro",
-				"m": 629
+				"m": 629,
+				"also": {
+					"type": "bus",
+					"m": 76
+				}
 			},
 			"errands": {
 				"band": "excellent",
@@ -674,7 +687,11 @@ export const ACCESSIBILITY = {
 			"transit": {
 				"band": "excellent",
 				"type": "metro",
-				"m": 294
+				"m": 294,
+				"also": {
+					"type": "bus",
+					"m": 193
+				}
 			},
 			"errands": {
 				"band": "excellent",
@@ -701,7 +718,11 @@ export const ACCESSIBILITY = {
 			"transit": {
 				"band": "excellent",
 				"type": "metro",
-				"m": 82
+				"m": 82,
+				"also": {
+					"type": "bus",
+					"m": 54
+				}
 			},
 			"errands": {
 				"band": "excellent",
@@ -717,6 +738,37 @@ export const ACCESSIBILITY = {
 				"band": "excellent",
 				"type": "park",
 				"m": 144
+			}
+		}
+	},
+	"131": {
+		"lat": 40.6477614,
+		"lng": 22.9528712,
+		"profile": "home",
+		"scores": {
+			"transit": {
+				"band": "good",
+				"type": "bus",
+				"m": 167,
+				"also": {
+					"type": "metro",
+					"m": 1456
+				}
+			},
+			"errands": {
+				"band": "excellent",
+				"type": "pharmacy",
+				"m": 179
+			},
+			"education": {
+				"band": "excellent",
+				"type": "school",
+				"m": 100
+			},
+			"leisure": {
+				"band": "excellent",
+				"type": "playground",
+				"m": 138
 			}
 		}
 	}

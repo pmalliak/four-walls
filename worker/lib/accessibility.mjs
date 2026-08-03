@@ -17,7 +17,9 @@
    Ratings are qualitative bands (excellent…limited) — NOT invented 0–100
    numbers — and AREA-LEVEL / approximate (published coords are fuzzed for
    privacy). The result per category is { band, type, m } where `type` is a
-   POI slug the site localises and `m` is the straight-line metres.
+   POI slug the site localises and `m` is the straight-line metres, plus an
+   optional `also: { type, m }` runner-up (transit reports the rail stop and
+   the bus stop, since both are how you get out of the neighbourhood).
 
    USAGE — precompute OFFLINE, read in the Worker.
      Overpass is NOT reachable from the Cloudflare Worker (its outbound
@@ -63,11 +65,13 @@ function bandCeil(band, cap) {
 /* Each category grades by walking distance to the nearest relevant POI, and
    carries the OSM selectors that find those POIs so the query only ever asks
    for what the listing's profile actually uses (see PROFILES). A category may
-   define `tiers` tried in priority order: the first tier with any match wins
-   (so rail beats bus — buses are everywhere and would other-
-   wise always be the nearest "transit", hiding metro proximity). `match`
-   returns a `type` slug the site localises; `cap` ceilings a tier's band.
-   `bands` overrides the walking bands for a category measured by car. */
+   define `tiers`, each rated on its own so one never hides another: the best
+   band takes the card and the runner-up is reported next to it as `also`
+   (transit names both the rail stop and the bus stop). Equal bands keep the
+   order declared here, so rail wins a tie. `match` returns a `type` slug the
+   site localises; `cap` ceilings a tier's band, which is how a bus-only area
+   stays off "excellent" however close the stop is. `bands` overrides the
+   walking bands for a category measured by car. */
 const CATEGORIES = {
 	transit: {
 		radius: 1600,
@@ -228,7 +232,13 @@ function scoreFromElements(lat, lng, elements, keys) {
 	const out = {};
 	for (const key of keys) {
 		const cat = CATEGORIES[key];
-		let result = { band: "limited", type: null, m: null };
+		/* Rate EVERY tier, not just the first one that matches: a metro stop
+		   at the far edge of the radius must not hide the bus stop round the
+		   corner, because the bus is public transport too. The best band wins the
+		   card (ties go to the higher tier, so rail still beats bus when they
+		   are level) and the runner-up rides along in `also`, so the page can
+		   name both. */
+		const hits = [];
 		for (const tier of cat.tiers) {
 			let best = null;
 			for (const el of elements) {
@@ -240,12 +250,14 @@ function scoreFromElements(lat, lng, elements, keys) {
 				if (m > cat.radius) continue;
 				if (!best || m < best.m) best = { type, m: Math.round(m) };
 			}
-			if (best) {
-				const raw = bandFor(best.m, cat.bands);
-				result = { band: tier.cap ? bandCeil(raw, tier.cap) : raw, type: best.type, m: best.m };
-				break; // first (highest-priority) tier with a match wins
-			}
+			if (!best) continue;
+			const raw = bandFor(best.m, cat.bands);
+			hits.push({ band: tier.cap ? bandCeil(raw, tier.cap) : raw, type: best.type, m: best.m });
 		}
+		// Stable sort, so an equal band keeps the tier order declared above.
+		hits.sort((a, b) => BAND_ORDER.indexOf(b.band) - BAND_ORDER.indexOf(a.band));
+		const result = hits[0] || { band: "limited", type: null, m: null };
+		if (hits[1]) result.also = { type: hits[1].type, m: hits[1].m };
 		out[key] = result;
 	}
 	return out;

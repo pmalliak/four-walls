@@ -46,6 +46,12 @@ An unknown subcategory falls back to its category, then to `home`, so a slug the
 still gets sensible cards. `roads` is measured **by car** (its own wider bands), everything else
 on foot.
 
+`transit` names **two** means of transport, not one: a category can declare `tiers` (rail and bus)
+and each is rated separately, so a metro stop at the edge of the radius no longer hides the bus
+stop round the corner. The better band takes the card and the other is reported next to it as
+`also` («στάση λεωφορείου 170μ · μετρό 1,5χλμ»). Equal bands go to the higher tier, so rail wins a
+tie, and the bus tier is capped at «Καλή» so a bus-only area never reads «Άριστη».
+
 To change what a type is rated on, edit `PROFILES` or `PROFILE_BY_SUBCATEGORY`, then run with
 `--all` so existing listings pick up the new set. New categories also need labels in **both**
 languages in `STR.access.cat` / `.types` in [js/listings.fw.js](../../../js/listings.fw.js),

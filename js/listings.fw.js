@@ -405,6 +405,13 @@
 		return (m / 1000).toFixed(1).replace(".", LANG === "en" ? "." : ",") + STR.distKm;
 	}
 
+	/* One "μετρό 450μ" piece of the evidence line. Unknown slugs (a category
+	   added to accessibility.mjs before its labels land here) fall back to the
+	   slug itself rather than disappearing. */
+	function poiDist(type, m) {
+		return (STR.access.types[type] || type) + (m != null ? " " + fmtDist(m) : "");
+	}
+
 	/* EstatePrime sends floor as a number: -1 basement, 0 ground, 0.5
 	   mezzanine, 1..n storeys. Turn it into a human label; null when absent. */
 	function floorLabel(v) {
@@ -1055,9 +1062,13 @@
 				var block = el("div", "block mb-25");
 				block.appendChild(el("h6", "mb-1", STR.access.cat[catKey]));
 				block.appendChild(el("span", "fw-band fw-band-" + c.band, STR.access.band[c.band] || c.band));
+				/* Evidence line: the nearest POI that earned the band, and
+				   where a category has a runner-up worth naming (transit: the
+				   rail stop next to the bus stop) that one too. */
 				if (c.type) {
-					block.appendChild(el("span", "fs-16 fw-score-ev",
-						(STR.access.types[c.type] || c.type) + (c.m != null ? " " + fmtDist(c.m) : "")));
+					var ev = poiDist(c.type, c.m);
+					if (c.also && c.also.type) ev += " · " + poiDist(c.also.type, c.also.m);
+					block.appendChild(el("span", "fs-16 fw-score-ev", ev));
 				}
 				col.appendChild(block);
 				scoreRow.appendChild(col);
