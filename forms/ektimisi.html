@@ -221,6 +221,12 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
    αν πατηθεί «Υπολογισμός» — μια νέα εκτίμηση, όχι σύγκριση με την παλιά. */
 .info{background:#f4f7fb;border:1px solid #c9d4e4;border-radius:12px;padding:11px 13px;margin:0 0 12px;font-size:13px;color:var(--navy);line-height:1.5;}
 .info b{font-weight:800;}
+/* Απαντήσεις που είχε δώσει ο σύμβουλος σε παλιότερη συμπλήρωση και
+   ταξιδεύουν ξανά. Ορατές και πειράξιμες μέσα στη φόρμα, όχι κρυφό
+   φορτίο: ένα «ανακαινισμένο 2021» ισχύει ακόμα, ένα «μισθωμένο ως τον
+   Ιούνιο» μπορεί και όχι, και μόνο ο άνθρωπος το ξέρει. */
+.carr .crow{display:flex;gap:8px;align-items:center;}
+.carr .crow input{flex:1;min-width:0;}
 /* the asking price gets the prosfora treatment: it is the one big number */
 .amt{position:relative;}
 .amt input{font-size:26px;font-weight:800;color:var(--navy);letter-spacing:.01em;padding:14px 46px 14px 14px;text-align:right;}
@@ -241,6 +247,10 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 	<div class="hintline" style="text-align:center; margin:-6px 0 14px;"><a href="/api/valuation-log">Ιστορικό εκτιμήσεων</a>: τι έχουμε εκτιμήσει, ανά μήνα.</div>
 	<div class="info" id="openbox" hidden></div>
 	<div class="warn" id="warnbox" hidden></div>
+	<!-- Ό,τι είχε απαντηθεί σε παλιότερη συμπλήρωση της ίδιας εκτίμησης:
+	     γεμίζει από το ιστορικό (renderCarried) και ξαναφεύγει με το
+	     payload, αφού πρώτα το δει και το διορθώσει ο σύμβουλος. -->
+	<div class="card hide" id="carriedbox"></div>
 	<div class="card">
 		<div class="sect">Ακίνητο</div>
 		<button class="btn s" id="pickListing" type="button" style="width:100%">Επιλογή ακινήτου από CRM</button>
@@ -1142,16 +1152,21 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		});
 		if (!data.purpose) data.purpose = "both";
 
-		return {
+		var payload = {
+			form: "ektimisi",
+			title: "Εκτίμηση ακινήτου",
+			submitted_at: new Date().toISOString(),
 			summary: summary,
-			payload: {
-				form: "ektimisi",
-				title: "Εκτίμηση ακινήτου",
-				submitted_at: new Date().toISOString(),
-				summary: summary,
-				data: data,
-			},
+			data: data,
 		};
+		/* Οι απαντήσεις που κουβαλήθηκαν από παλιότερη συμπλήρωση ταξιδεύουν
+		   με το ΙΔΙΟ κλειδί: για τον Worker είναι δεδομένα πρώτου χεριού,
+		   είτε δόθηκαν πριν από ένα λεπτό είτε πριν από έναν μήνα. Το
+		   parent_ref (μόνο η συμπλήρωση το βάζει) ξεχωρίζει τα δύο. */
+		var rows = carriedRows();
+		if (rows.length) payload.followup = rows;
+
+		return { summary: summary, payload: payload };
 	}
 
 	/* Μια νέα εκτίμηση ξεκλειδώνει και τα δύο κουμπιά αποστολής: αλλιώς η
@@ -1604,9 +1619,12 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 	function fuQuestions(){
 		if (!result) return [];
 		var v = result.j.v || {}, p = result.j.prop || {};
-		// Η εκτίμηση είναι ΗΔΗ συμπληρωμένη: ό,τι έμεινε άγνωστο τυπώνεται
-		// ως κείμενο στη βεβαιότητα και δεν ξαναρωτιέται.
-		if (p.followup && p.followup.length) return [];
+		/* Η εκτίμηση είναι ΗΔΗ συμπλήρωση: ό,τι έμεινε άγνωστο τυπώνεται ως
+		   κείμενο στη βεβαιότητα και δεν ξαναρωτιέται. Κριτήριο το
+		   parentRef και όχι το followup — απαντήσεις κουβαλάει και μια
+		   εκτίμηση που άνοιξε από το ιστορικό, κι εκείνη είναι πρώτος
+		   γύρος με σημερινή αγορά. */
+		if (p.parentRef) return [];
 		return (Array.isArray(v.missing_info) ? v.missing_info : [])
 			.filter(function(m){ return m && typeof m === "object" && m.q; }).slice(0, 4);
 	}
@@ -1768,7 +1786,10 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		try {
 			await keepAwake(true);
 			var built = buildPayload();
-			built.payload.followup = rows;
+			// Οι νέες απαντήσεις ΜΑΖΙ με ό,τι είχε κουβαληθεί: το
+			// buildPayload έβαλε ήδη τις παλιές, τις νέες τις κολλάμε από
+			// πίσω. Δύο γύροι σε ένα ακίνητο δεν ακυρώνουν ο ένας τον άλλο.
+			built.payload.followup = carriedRows().concat(rows);
 			built.payload.parent_ref = result.ref;
 			built.payload.prev_value_mid = String(prev.value_mid || "");
 			built.payload.prev_rent_mid = String(prev.rent_mid || "");
@@ -1886,7 +1907,10 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		var fup = Array.isArray(p.followup) ? p.followup : [];
 		if (fup.length) {
 			var fb = el("div", "fup");
-			fb.appendChild(el("div", "l", "ΣΥΜΠΛΗΡΩΜΕΝΗ ΕΚΤΙΜΗΣΗ"));
+			// Ίδιος τίτλος με το email και το PDF: «συμπληρωμένη» μόνο όταν
+			// υπάρχει parentRef, αλλιώς είναι στοιχεία που κουβαλήθηκαν και
+			// δεν υπάρχει «πριν» να συγκριθεί.
+			fb.appendChild(el("div", "l", p.parentRef ? "ΣΥΜΠΛΗΡΩΜΕΝΗ ΕΚΤΙΜΗΣΗ" : "ΣΤΟΙΧΕΙΑ ΑΠΟ ΤΟΝ ΣΥΜΒΟΥΛΟ"));
 			var prev = Number(saleShown ? p.prevValueMid : p.prevRentMid) || 0;
 			var now = Number(saleShown ? v.value_mid : v.rent_mid) || 0;
 			if (prev && now) {
@@ -2046,6 +2070,7 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 	   επιτρέπεται να ρίξει ξανά παλιά στοιχεία πάνω σε δουλειά που άρχισε. */
 	var opened = null;        // ό,τι γύρισε το /api/valuation-request
 	var missedFields = [];    // τιμές που δεν χώρεσαν πια στη φόρμα (βλ. applySaved)
+	var carried = [];         // [{q,a}] απαντήσεις παλιότερης συμπλήρωσης (βλ. renderCarried)
 
 	function queryRef(){
 		var q = new URLSearchParams(location.search);
@@ -2078,6 +2103,56 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		// αμέσως ένα πρόχειρο αντίγραφο κάθε φορά που ανοίγει κανείς μια
 		// παλιά εκτίμηση.
 		if (window.FWDrafts) FWDrafts.rebase();
+	}
+
+	/* Οι απαντήσεις μιας παλιότερης συμπλήρωσης δεν είναι ιστορικό εκείνης
+	   της αναφοράς, είναι ΣΤΟΙΧΕΙΑ ΤΟΥ ΑΚΙΝΗΤΟΥ: «τα κουφώματα άλλαξαν το
+	   2021» ισχύει και σήμερα. Χωρίς αυτό η επόμενη εκτίμηση του ίδιου
+	   ακινήτου ξεκινούσε τυφλή, με το κενό που είχε ήδη κλείσει — και το
+	   νούμερο έπεφτε πάλι στο πλατύ εύρος, χωρίς κανείς να καταλάβει γιατί.
+
+	   Μέσα στη φόρμα και ΠΕΙΡΑΞΙΜΕΣ, όχι κρυφό φορτίο: μια απάντηση μηνών
+	   μπορεί να μην ισχύει πια (μίσθωση που έληξε), και το ξέρει μόνο ο
+	   άνθρωπος. Άδεια απάντηση = σβησμένη, δεν ταξιδεύει. */
+	function renderCarried(){
+		var box = $("carriedbox");
+		box.textContent = "";
+		if (!carried.length) { box.classList.add("hide"); return; }
+		box.classList.remove("hide");
+		box.appendChild(el("div", "sect", "ΣΤΟΙΧΕΙΑ ΠΟΥ ΕΙΧΕΣ ΔΩΣΕΙ"));
+		box.appendChild(el("div", "hintline",
+			(carried.length === 1 ? "Μία απάντηση που είχε δοθεί" : carried.length + " απαντήσεις που είχαν δοθεί")
+			+ " στη συμπλήρωση εκείνης της εκτίμησης. Φεύγουν ξανά μαζί με τα υπόλοιπα στοιχεία, "
+			+ "ώστε η νέα εκτίμηση να μην ξαναρωτήσει τα ίδια. Διόρθωσε ό,τι άλλαξε στο μεταξύ και σβήσε ό,τι δεν ισχύει."));
+		carried.forEach(function(row, i){
+			var fld = el("div", "fld carr");
+			fld.appendChild(el("label", null, row.q));
+			var crow = el("div", "crow");
+			var inp = document.createElement("input");
+			inp.type = "text";
+			inp.value = row.a;
+			inp.oninput = function(){ row.a = inp.value; };
+			crow.appendChild(inp);
+			var del = document.createElement("button");
+			del.type = "button";
+			del.className = "mini";
+			del.textContent = "Σβήσιμο";
+			del.onclick = function(){
+				carried.splice(i, 1);
+				renderCarried();
+			};
+			crow.appendChild(del);
+			fld.appendChild(crow);
+			box.appendChild(fld);
+		});
+	}
+
+	/* Ό,τι έχει απάντηση, καθαρισμένο. Τρέχει τη στιγμή της υποβολής, όχι
+	   στο oninput: όσο γράφει ο σύμβουλος, ένα άδειο πεδίο δεν σημαίνει
+	   «σβήσ' το», σημαίνει «το σβήνω για να γράψω». */
+	function carriedRows(){
+		return carried.map(function(r){ return { q: String(r.q || "").trim(), a: String(r.a || "").trim() }; })
+			.filter(function(r){ return r.q && r.a; });
 	}
 
 	/* Το ακίνητο του CRM ΔΕΝ αποθηκεύεται ολόκληρο στο payload, μόνο id,
@@ -2126,6 +2201,8 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		b.appendChild(document.createTextNode(
 			(why ? why + " " : "")
 			+ "Έλεγξε ό,τι άλλαξε και πάτα «Υπολογισμός εκτίμησης»: βγαίνει ΝΕΑ εκτίμηση με τα σημερινά δεδομένα της αγοράς, όχι σύγκριση με την παλιά."
+			+ (carried.length ? " Ήρθαν μαζί και " + (carried.length === 1 ? "μία απάντηση" : carried.length + " απαντήσεις")
+				+ " της συμπλήρωσης, πιο κάτω — φεύγουν ξανά, όπως τις αφήσεις." : "")
 			+ (sentNote() ? " Η παλιά είχε σταλεί " + sentNote() + "." : "")
 			+ (missedFields.length ? " ΔΕΝ ξαναφορτώθηκαν (άλλαξαν οι επιλογές της φόρμας): " + missedFields.join(", ") + "." : "")));
 		b.hidden = false;
@@ -2175,13 +2252,21 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 			return;
 		} finally { $("send").disabled = false; }
 
+		/* ΠΡΙΝ το applySaved: εκείνο κλείνει με FWDrafts.rebase(), που
+		   φωτογραφίζει ό,τι φορτώθηκε ως βάση. Αν οι απαντήσεις έμπαιναν
+		   μετά, θα μετρούσαν ως αλλαγή και το πρώτο πάτημα πλήκτρου θα
+		   έσωζε πρόχειρο μιας εκτίμησης που μόλις άνοιξε. */
+		carried = (Array.isArray(opened.followup) ? opened.followup : [])
+			.map(function(f){ return { q: String(f && f.q || ""), a: String(f && f.a || "") }; })
+			.filter(function(f){ return f.q && f.a; });
+		renderCarried();
 		applySaved(opened.data || {});
 		await restoreListing(opened.data || {});
 
 		if (!q.followup) { showOpenedBanner(""); return; }
-		// Ένας γύρος: μια ήδη συμπληρωμένη εκτίμηση δεν ξανασυμπληρώνεται.
-		if (opened.has_followup) {
-			showOpenedBanner("Αυτή η εκτίμηση έχει ήδη συμπληρωθεί μία φορά.");
+		// Ένας γύρος: μια εκτίμηση που ΕΙΝΑΙ ήδη συμπλήρωση δεν ξανασυμπληρώνεται.
+		if (opened.is_followup) {
+			showOpenedBanner("Αυτή η εκτίμηση είναι ήδη συμπλήρωση, και ο γύρος είναι ένας.");
 			return;
 		}
 		if (await openFollowup(q.ref)) return;
@@ -2191,6 +2276,8 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 	function reset(){
 		listing = null;
 		opened = null;
+		carried = [];
+		renderCarried();
 		$("openbox").hidden = true;
 		FIELDS.forEach(function(f){ fldSet(f[0], ""); });
 		$("purpose").value = "";
@@ -2265,12 +2352,17 @@ details.leg[open] summary .chev{transform:rotate(180deg);}
 		if (window.FWDrafts) FWDrafts.register({
 			form: "ektimisi", mount: "#form",
 			collect: function(){
-				var o = { listing: listing };
+				// Και οι κουβαλημένες απαντήσεις: δεν είναι πεδία της
+				// φόρμας, αλλά είναι στοιχεία του ακινήτου — ένα πρόχειρο
+				// χωρίς αυτές θα ξεκινούσε πάλι από το μηδέν.
+				var o = { listing: listing, carried: carriedRows() };
 				FLD.forEach(function(id){ o[id] = fldVal(id); });
 				return o;
 			},
 			apply: function(d){
 				listing = d.listing || null;
+				carried = Array.isArray(d.carried) ? d.carried : [];
+				renderCarried();
 				FLD.forEach(function(id){ fldSet(id, d[id]); });
 				if (!d.kindCat) setKind(d.subcategory); /* πρόχειρα πριν τα κουμπιά */
 				renderPurpose();

@@ -331,7 +331,10 @@ function normalizeFollowup(raw) {
 		const q = txt(f.q).slice(0, 220);
 		const a = txt(f.a).slice(0, 300);
 		return q && a ? { q, a } : null;
-	}).filter(Boolean).slice(0, 6);
+	// Οκτώ, όχι έξι: τέσσερις ερωτήσεις ανά γύρο, και μια εκτίμηση που
+	// άνοιξε από το ιστορικό κουβαλά τις παλιές απαντήσεις ΚΑΙ δικαιούται
+	// τον δικό της γύρο.
+	}).filter(Boolean).slice(0, 8);
 }
 
 /* ΠΡΩΤΟ ΠΕΡΑΣΜΑ — ένα δείγμα, ή τρία και η διάμεσος στη γη.
@@ -340,7 +343,12 @@ function normalizeFollowup(raw) {
    μέτρηση της αβεβαιότητας του ίδιου του μοντέλου, και ο ελεγκτής πρέπει
    να την περάσει στο εύρος και στη βεβαιότητα αντί να την αγνοήσει. */
 async function firstPass(env, prop, dataBlock) {
-	const final = prop.followup && prop.followup.length ? FOLLOWUP_FINAL : "";
+	/* «Τελευταίος γύρος» ΜΟΝΟ σε πραγματική συμπλήρωση, δηλαδή όταν
+	   υπάρχει parent_ref. Μια εκτίμηση που άνοιξε από το ιστορικό κουβαλά
+	   κι αυτή απαντήσεις (τις ίδιες, ως δεδομένα), αλλά είναι ΝΕΑ εκτίμηση
+	   με άλλη αγορά: δικαιούται τον δικό της γύρο ερωτήσεων για ό,τι δεν
+	   έχει ήδη απαντηθεί. */
+	const final = prop.parentRef && prop.followup && prop.followup.length ? FOLLOWUP_FINAL : "";
 	const ask = () => askJson(env, PASS1_SYSTEM, dataBlock + "\n\n" + PASS1_ASK + final, { search: true });
 	if (!SAMPLED_PROFILES.has(prop.profile)) return { draft: await ask(), spread: "" };
 
@@ -555,7 +563,9 @@ function canFollowUp(result) {
 	if (!result || !result.computedAt || result.followedUp) return false;
 	if (result.priceTable && result.priceTable !== AREA_PRICES_META.asOf) return false;
 	const prop = result.prop || {};
-	if (Array.isArray(prop.followup) && prop.followup.length) return false;
+	// Κριτήριο το parentRef, ΟΧΙ το followup: απαντήσεις κουβαλάει και μια
+	// εκτίμηση που άνοιξε από το ιστορικό, και εκείνη είναι πρώτος γύρος.
+	if (prop.parentRef) return false;
 	const age = Date.now() - new Date(result.computedAt).getTime();
 	return age >= 0 && age <= FOLLOWUP_MAX_AGE_MS;
 }
@@ -724,9 +734,16 @@ export async function handleValuationRequest(request, env, url) {
 		ref,
 		submitted_at: payload.submitted_at || "",
 		summary: payload.summary || "",
-		// Το has_followup είναι η άμυνα της φόρμας: μια ΗΔΗ συμπληρωμένη
-		// εκτίμηση δεν ξανασυμπληρώνεται, ένας γύρος είναι ο κανόνας.
-		has_followup: Array.isArray(payload.followup) && payload.followup.length > 0,
+		/* Οι απαντήσεις της συμπλήρωσης ΓΥΡΙΖΟΥΝ ΚΙ ΑΥΤΕΣ. Είναι στοιχεία
+		   του ακινήτου («τα κουφώματα άλλαξαν το 2021»), όχι επεισόδιο
+		   της παλιάς αναφοράς: χωρίς αυτές η επόμενη εκτίμηση του ίδιου
+		   ακινήτου ξαναρχίζει τυφλή, με το κενό που είχε ήδη κλείσει. Η
+		   φόρμα τις δείχνει και τις ξαναστέλνει (βλ. carried). */
+		followup: normalizeFollowup(payload.followup),
+		// Η άμυνα της φόρμας για τον έναν γύρο: μια εκτίμηση που ΕΙΝΑΙ ήδη
+		// συμπλήρωση δεν ξανασυμπληρώνεται. Κριτήριο το parent_ref και όχι
+		// το followup, που πλέον υπάρχει και σε πρώτο γύρο (κουβαλημένο).
+		is_followup: /^[0-9a-f-]{16,64}$/i.test(String(payload.parent_ref || "")),
 		value_mid: row ? row.value_mid || 0 : 0,
 		rent_mid: row ? row.rent_mid || 0 : 0,
 		sent: row ? row.sent || null : null,
@@ -1735,11 +1752,13 @@ const FOLLOWUP_FINAL = `
 /* Οι απαντήσεις είναι δεδομένα ΠΡΩΤΟΥ ΧΕΡΙΟΥ: τις δίνει ο άνθρωπος που
    στέκεται μέσα στο ακίνητο. Βαραίνουν πάνω από το feed και πάνω από το
    τυπικό σενάριο της περιοχής. Το «Δεν γνωρίζω» είναι ΑΠΑΝΤΗΣΗ, όχι κενό. */
-function followupBlock(rows) {
+function followupBlock(rows, isFollowup) {
 	return [
-		"ΣΥΜΠΛΗΡΩΜΑΤΙΚΑ ΣΤΟΙΧΕΙΑ ΑΠΟ ΤΟΝ ΣΥΜΒΟΥΛΟ (απάντησε ο ίδιος στις ερωτήσεις της πρώτης εκτίμησης):",
+		isFollowup
+			? "ΣΥΜΠΛΗΡΩΜΑΤΙΚΑ ΣΤΟΙΧΕΙΑ ΑΠΟ ΤΟΝ ΣΥΜΒΟΥΛΟ (απάντησε ο ίδιος στις ερωτήσεις της πρώτης εκτίμησης):"
+			: "ΣΥΜΠΛΗΡΩΜΑΤΙΚΑ ΣΤΟΙΧΕΙΑ ΑΠΟ ΤΟΝ ΣΥΜΒΟΥΛΟ (τα είχε δώσει σε παλιότερη εκτίμηση του ΙΔΙΟΥ ακινήτου και τα κράτησε):",
 		JSON.stringify(rows.map((f) => ({ ερώτηση: f.q, απάντηση: f.a }))),
-		"ΠΩΣ ΔΙΑΒΑΖΟΝΤΑΙ: είναι δεδομένα ΠΡΩΤΟΥ ΧΕΡΙΟΥ — τα δίνει ο άνθρωπος που στέκεται μέσα στο ακίνητο. Βαραίνουν ΠΑΝΩ από το τυπικό σενάριο της περιοχής και πάνω από ό,τι υπέθεσες στην πρώτη εκτίμηση. Ενσωμάτωσέ τα στη βάση και στις προσαρμογές, και ανέβασε ανάλογα τη βεβαιότητα: το κενό που δικαιολογούσε το πλατύ εύρος έκλεισε.",
+		"ΠΩΣ ΔΙΑΒΑΖΟΝΤΑΙ: είναι δεδομένα ΠΡΩΤΟΥ ΧΕΡΙΟΥ — τα δίνει ο άνθρωπος που στέκεται μέσα στο ακίνητο. Βαραίνουν ΠΑΝΩ από το τυπικό σενάριο της περιοχής και πάνω από ό,τι θα υπέθετες. Ενσωμάτωσέ τα στη βάση και στις προσαρμογές, και ανέβασε ανάλογα τη βεβαιότητα: το κενό που δικαιολογούσε το πλατύ εύρος έκλεισε.",
 		"«Δεν γνωρίζω» είναι ΑΠΑΝΤΗΣΗ, όχι κενό: σημαίνει ότι ρωτήθηκε και δεν ξέρεται ούτε από τον ιδιοκτήτη. Κράτησε το εύρος πλατύ σε ό,τι κρίνεται από αυτό, πες το στο confidence_reason, και ΜΗΝ υποθέσεις το ευνοϊκό σενάριο επειδή δεν διαψεύστηκε.",
 	].join("\n");
 }
@@ -1842,7 +1861,7 @@ function buildDataBlock(prop, comps, stats, priceRow, offers) {
 	lines.push(JSON.stringify(propertyForPrompt(prop)));
 	if (prop.followup && prop.followup.length) {
 		lines.push("");
-		lines.push(followupBlock(prop.followup));
+		lines.push(followupBlock(prop.followup, !!prop.parentRef));
 	}
 	lines.push("");
 	lines.push(LEGAL_RULES);
@@ -2288,6 +2307,12 @@ function renderReport(prop, comps, stats, priceRow, v, payload, offers) {
 	   μόνο, όπως οι αιρέσεις και η ανακαίνιση. */
 	const followup = Array.isArray(prop.followup) ? prop.followup : [];
 	const delta = followupDelta(prop, v);
+	/* Τα ίδια στοιχεία, δύο ιδιότητες: σε συμπλήρωση (parentRef) είναι η
+	   ΑΠΑΝΤΗΣΗ που μετακίνησε το νούμερο, με το «πριν → τώρα» από πάνω· σε
+	   εκτίμηση που άνοιξε από το ιστορικό είναι σκέτα δεδομένα που
+	   κουβαλήθηκαν, και «ΣΥΜΠΛΗΡΩΜΕΝΗ ΕΚΤΙΜΗΣΗ» θα υποσχόταν σύγκριση που
+	   δεν υπάρχει. */
+	const fupTitle = prop.parentRef ? "ΣΥΜΠΛΗΡΩΜΕΝΗ ΕΚΤΙΜΗΣΗ" : "ΣΤΟΙΧΕΙΑ ΑΠΟ ΤΟΝ ΣΥΜΒΟΥΛΟ";
 
 	const html = `<!doctype html><html lang="el"><head><meta charset="utf-8"><title>${esc(subject)}</title></head>
 <body style="margin:0; padding:0; background:#f4f5f7; font-family:Arial,sans-serif;">
@@ -2330,7 +2355,7 @@ function renderReport(prop, comps, stats, priceRow, v, payload, offers) {
 	${followup.length ? `<tr><td style="padding:12px 20px 0;">
 		<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
 			<td style="background:#f7f8fa; border:1px solid #e3e6eb; border-left:3px solid ${NAVY}; border-radius:8px; padding:11px 14px;">
-				<div style="font-size:11px; font-weight:bold; letter-spacing:1px; color:#6b7280;">ΣΥΜΠΛΗΡΩΜΕΝΗ ΕΚΤΙΜΗΣΗ</div>
+				<div style="font-size:11px; font-weight:bold; letter-spacing:1px; color:#6b7280;">${fupTitle}</div>
 				${delta ? `<div style="font-size:12.5px; color:${NAVY}; margin-top:3px;">Πριν από τα στοιχεία ${eur(delta.prev)}${delta.suffix}, τώρα <strong>${eur(delta.now)}${delta.suffix}</strong>${delta.pct ? ` (${delta.pct > 0 ? "+" : ""}${delta.pct}%)` : " (χωρίς αλλαγή)"}</div>` : ""}
 				${followup.map((f) => `<div style="margin-top:7px;">
 					<div style="font-size:12px; color:#6b7280; line-height:1.45;">${esc(f.q)}</div>
@@ -2502,6 +2527,7 @@ function renderPrintHtml(result) {
 	const caveats = (Array.isArray(v.caveats) ? v.caveats : []).filter(Boolean);
 	const followup = Array.isArray(p.followup) ? p.followup : [];
 	const delta = followupDelta(p, v);
+	const fupTitle = p.parentRef ? "ΣΥΜΠΛΗΡΩΜΕΝΗ ΕΚΤΙΜΗΣΗ" : "ΣΤΟΙΧΕΙΑ ΑΠΟ ΤΟΝ ΣΥΜΒΟΥΛΟ";
 	const isLand = p.profile === "plot" || p.profile === "parcel";
 	const perSqmLabel = isLand ? "/τ.μ. γης" : "/τ.μ.";
 	const buildableNote = isLand && Number(v.eur_per_buildable_sqm)
@@ -2597,7 +2623,7 @@ td.num{text-align:right;white-space:nowrap;}
 		${Number(v.gross_yield_pct) ? `<div class="y">Μικτή απόδοση ~${esc(String(v.gross_yield_pct).replace(".", ","))}% ${wantsSale ? "στην εκτιμώμενη αξία" : `σε εκτιμώμενη αξία ${eur(v.value_mid)}`}</div>` : ""}
 	</div>` : ""}
 	${followup.length ? `<div class="fup">
-		<div class="l">ΣΥΜΠΛΗΡΩΜΕΝΗ ΕΚΤΙΜΗΣΗ</div>
+		<div class="l">${fupTitle}</div>
 		${delta ? `<div class="d">Πριν από τα στοιχεία ${eur(delta.prev)}${delta.suffix}, τώρα <strong>${eur(delta.now)}${delta.suffix}</strong>${delta.pct ? ` (${delta.pct > 0 ? "+" : ""}${delta.pct}%)` : " (χωρίς αλλαγή)"}</div>` : ""}
 		${followup.map((f) => `<div class="q">${esc(f.q)}</div><div class="a">${esc(f.a)}</div>`).join("")}
 	</div>` : ""}
