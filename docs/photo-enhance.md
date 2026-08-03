@@ -195,15 +195,24 @@ Gemini → POST {{1.watermark_url}} (signed, apex) → Drive enhanced/
 `finalize` mints `watermark_url` (HMAC + 6 h expiry, same scheme as the photo
 URLs) and Make POSTs every edited image to it. The endpoint reads the batch's
 own `meta.json` from R2 and either draws the logo (Cloudflare **Images
-binding**, `env.IMAGES.draw()`, ~15% frame width, 90% opacity, bottom-right)
-or passes the bytes through untouched — so the scenario needs **no router**,
-and batches without the option burn zero Images transformations. It
-**fails open**: a missing binding, missing asset or Images error logs a
-warning and returns the unwatermarked photo rather than killing the batch.
+binding**, `env.IMAGES.draw()`, 29% of the frame's long edge, capped at 42%
+of its width, 90% opacity, bottom-right, inset 3.5%) or passes the bytes
+through untouched — so the scenario needs **no router**, and batches without
+the option burn zero Images transformations. It **fails open**: a missing
+binding, missing asset or Images error logs a warning and returns the
+unwatermarked photo rather than killing the batch.
 
 The asset is [images/logo/fourwalls_watermark.png](../images/logo/fourwalls_watermark.png)
 — white wordmark + pink cube on transparency with a soft shadow baked in (no
 solid box); see docs/brand.md for how to regenerate it.
+
+**The mark only survives if nothing crops the photo.** Sitting 3.5% in from
+the corner, it is the first thing over the edge, and the site's listing
+frames used to crop to fill — `/properties` was a wall of cards reading
+«FOURWAL» (04/08/2026). Every photo frame on the site is now **16:9** (the
+ratio this pipeline hands back) and fits the photo whole inside it rather
+than cropping, so a pipeline photo fills its frame exactly. If the frames
+are ever re-cut, cut them to 16:9 (see `css/fourwalls.css`, `.fw-shot`).
 
 ### Disclaimer overlays (`staging_notice`, `render_notice`)
 

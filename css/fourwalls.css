@@ -659,11 +659,76 @@
 .fw-band-moderate  { background: #e8833a; }
 .fw-band-limited   { background: #9aa0a6; }
 .fw-score-ev { color: #6c7378; margin-left: 10px; }
-/* CRM photos come in arbitrary aspect ratios — normalize the frames */
+/* Photo frames — every one of them is 16:9, the ratio the photos come off
+   the enhance pipeline in, so a normal listing photo fills its frame edge
+   to edge with nothing added and nothing taken away.
+
+   And CONTAIN, not cover, for whatever does not match: cropping a photo to
+   fill the box cut the Four Walls watermark off, because it is drawn 3.5%
+   in from the bottom-right corner and so is always the first thing over
+   the edge — /properties was a wall of cards reading «FOURWAL»
+   (04/08/2026). An older or phone-shot photo is now fitted whole inside
+   the frame instead, and .fw-shot below fills what is left over, so the
+   frame keeps the size the layout wants, nothing is cropped, and nothing
+   letterboxes against a dead grey bar. Portrait shots (about a third of
+   what is still in the CRM) used to show only a thin middle slice. */
 #fw-grid .carousel-item img,
-#fw-latest .carousel-item img { aspect-ratio: 3 / 2; object-fit: cover; }
-#fw-similar .img-gallery img { aspect-ratio: 3 / 2; object-fit: cover; }
-#fw-gallery .carousel-item img { aspect-ratio: 16 / 10; object-fit: cover; }
+#fw-latest .carousel-item img,
+#fw-similar .img-gallery img,
+#fw-gallery .carousel-item img,
+#fw-thumbs img { aspect-ratio: 16 / 9; object-fit: contain; }
+
+/* The frame around a fitted photo: a blurred, scaled-up copy of that same
+   photo (--fw-shot, set per image by fitShot() in listings.fw.js) fills the
+   margins the fit leaves. */
+.fw-shot {
+  position: relative;
+  overflow: hidden;
+  /* Isolate, so the backdrop's z-index:-1 stays inside this frame instead
+     of sliding behind the whole card — and so the theme's absolutely
+     positioned «Πώληση»/«Ενοικίαση» tag (z-index:1) still paints on top. */
+  isolation: isolate;
+  background: #eceff1; /* shows only until the photo loads */
+}
+.fw-shot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--fw-shot);
+  background-position: center;
+  background-size: cover;
+  /* Scaled past the edges, or the blur samples the frame border and leaves
+     a pale halo around the photo. Blurred hard and pushed back, so it reads
+     as a surround and the photo itself stays the thing you look at — at a
+     gentler setting the watermark ghosted through as a big pink smudge. */
+  transform: scale(1.2);
+  filter: blur(34px) saturate(1.25) brightness(0.72);
+}
+/* The photo carries its own rounded corners (.border-20 / .border-10), so
+   the frame behind it has to round the same way or the backdrop shows as
+   four sharp corners. Cards and «Παρόμοια» are already clipped by a
+   rounded, overflow-hidden ancestor. */
+#fw-gallery .fw-shot { border-radius: 20px; }
+#fw-thumbs .fw-shot { border-radius: 10px; }
+
+/* Thumbnail column, desktop only (below lg the theme lays it out as a strip
+   under the photo). The theme stacks the thumbs from the top with a fixed
+   25px gap while the white panel is stretched to the height of the photo
+   beside it, so four 4:3 thumbs left ~110px of blank panel hanging below
+   the last one. Five 16:9 thumbs spread across the full height come out
+   almost exactly even at every desktop width (~35px apart), so the panel
+   ends where the photo does. Only spread them when there really are five:
+   with two photos, space-between would pin one to each end. */
+@media (min-width: 992px) {
+  #fw-thumbs {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+  }
+  #fw-thumbs button { margin: 0; }
+  #fw-thumbs:has(> :nth-child(5)) { justify-content: space-between; }
+}
 
 /* Sort pill («Ταξινόμηση») — the theme fixes it at 126px, which squeezes
    the long Greek labels («Τιμή (αύξουσα)») right up against the arrow,
@@ -710,8 +775,6 @@
   -moz-appearance: textfield;
   appearance: textfield;
 }
-#fw-thumbs img { aspect-ratio: 4 / 3; object-fit: cover; }
-
 /* Empty search results — «Δεν βρήκατε αυτό που ψάχνετε;» CTA ---------- */
 /* A failed search is a lead: offer to search on the visitor's behalf —
    the button opens contact.html with their criteria pre-filled (?msg=) —

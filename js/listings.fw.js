@@ -338,6 +338,27 @@
 		return img;
 	}
 
+	/* CRM photos arrive in every ratio the office's phones and cameras make
+	   (4:3, 16:9, 3:2, and about a third of them portrait) while every photo
+	   frame on the site is a fixed box. Cropping them to fill it cut the Four
+	   Walls watermark off, since it is drawn 3.5% in from the bottom-right
+	   corner and is therefore always the first thing over the edge: /properties
+	   was a wall of cards reading «FOURWAL» (spotted 04/08/2026). So the photo
+	   is fitted whole inside the frame (object-fit:contain, see fourwalls.css)
+	   and whatever is left over is filled with a blurred, scaled-up copy of the
+	   same shot — the frame keeps the exact size the layout wants, nothing is
+	   cropped away, and there are no dead bars around a portrait photo. */
+	function fitShot(img) {
+		var frame = img && img.parentNode;
+		if (!frame || !frame.classList) return img;
+		frame.classList.add("fw-shot");
+		/* img.src is already resolved and percent-encoded — re-encoding it
+		   would turn %20 into %2520. Only the quote that would close the
+		   url("…") string needs escaping. */
+		frame.style.setProperty("--fw-shot", 'url("' + img.src.replace(/["\\]/g, encodeURIComponent) + '")');
+		return img;
+	}
+
 	/* Which glyph stands for the listing's type in the overview strip.
 	   Four buckets is the whole set — every EstatePrime category maps to a
 	   home, a commercial building, bare land or a parking space. */
@@ -521,6 +542,7 @@
 		/* alt via property assignment (never innerHTML) for the same reason. */
 		col.querySelectorAll(".carousel-item img").forEach(function (img, i) {
 			img.alt = cardTitle + (shortAddress(l) ? ", " + shortAddress(l) : "") + STR.photoOf(i + 1);
+			fitShot(img);
 		});
 		/* Card facts follow the type bucket like the detail page: beds and
 		   baths only for homes, rooms and WC for commercial space, just the
@@ -865,11 +887,14 @@
 			img.className = "border-20 w-100";
 			if (i > 0) img.loading = "lazy";
 			item.appendChild(img);
+			fitShot(img);
 			inner.appendChild(item);
 		});
 		var thumbs = document.getElementById("fw-thumbs");
 		thumbs.textContent = "";
-		photos.slice(0, 4).forEach(function (src, i) {
+		/* Five, not four: at 16:9 that is what fills the white panel beside
+		   the photo without leaving a gap under the last one (fourwalls.css). */
+		photos.slice(0, 5).forEach(function (src, i) {
 			var b = document.createElement("button");
 			b.type = "button";
 			b.setAttribute("data-bs-target", "#media_slider");
@@ -882,6 +907,7 @@
 			img.className = "border-10 w-100";
 			img.loading = "lazy";
 			b.appendChild(img);
+			fitShot(img);
 			thumbs.appendChild(b);
 		});
 		var photosBtn = document.getElementById("fw-photos-btn");
@@ -1098,7 +1124,9 @@
 			col.querySelector(".title").textContent = simTitle;
 			col.querySelector(".address").textContent = shortAddress(s);
 			col.querySelector(".price").textContent = fmtPrice(s);
-			col.querySelector(".img-gallery img").alt = simTitle + (shortAddress(s) ? ", " + shortAddress(s) : "");
+			var simImg = col.querySelector(".img-gallery img");
+			simImg.alt = simTitle + (shortAddress(s) ? ", " + shortAddress(s) : "");
+			fitShot(simImg);
 			simRow.appendChild(col);
 		});
 	}
