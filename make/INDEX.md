@@ -6,7 +6,7 @@
 | ID | Σενάριο | Ενεργό | Χρονισμός | Modules | Αρχείο |
 |---|---|---|---|---|---|
 | `6405443` | Spitogatos - Αίτηση ανάθεσης | ναι | άμεσα (webhook/mailhook) | 24 | [6405443-spitogatos-aitisi-anathesis.blueprint.json](scenarios/6405443-spitogatos-aitisi-anathesis.blueprint.json) |
-| `6530594` | Site - Φόρμα επικοινωνίας | ναι | άμεσα (webhook/mailhook) | 33 | [6530594-site-forma-epikoinonias.blueprint.json](scenarios/6530594-site-forma-epikoinonias.blueprint.json) |
+| `6530594` | Site - Φόρμα επικοινωνίας | ναι | άμεσα (webhook/mailhook) | 48 | [6530594-site-forma-epikoinonias.blueprint.json](scenarios/6530594-site-forma-epikoinonias.blueprint.json) |
 | `6600035` | Έντυπα — υποβολή φόρμας | ναι | άμεσα (webhook/mailhook) | 15 | [6600035-entypa-ypovoli-formas.blueprint.json](scenarios/6600035-entypa-ypovoli-formas.blueprint.json) |
 | `6604242` | Spitogatos - Ενδιαφέρον για ακίνητο | ναι | άμεσα (webhook/mailhook) | 21 | [6604242-spitogatos-endiaferon-gia-akinito.blueprint.json](scenarios/6604242-spitogatos-endiaferon-gia-akinito.blueprint.json) |
 | `6683649` | Site - Ολοκλήρωση αναζήτησης | ναι | άμεσα (webhook/mailhook) | 2 | [6683649-site-oloklirosi-anazitisis.blueprint.json](scenarios/6683649-site-oloklirosi-anazitisis.blueprint.json) |
@@ -85,6 +85,18 @@
         50  zoho-mail:sendMail · Email ανάθεσης (χωρίς επαφή) · [onerror: builtin:Ignore]
   ├─ route 3
     2   zoho-mail:sendMail · Email στον Πάνο · [φίλτρο: Κανονική επικοινωνία]
+  ├─ route 4
+    60  http:ActionSendDataBasicAuth · CRM: Αναζήτηση επαφής · [φίλτρο: Μόνο ενδιαφέρον για ακίνητο] · [onerror: builtin:Resume]
+    61  builtin:BasicIfElse
+      ├─ condition «Νέα επαφή»
+        62  http:ActionSendDataBasicAuth · CRM: Δημιουργία επαφής (ΕΝΔΙΑΦΕΡΟΝ) · [onerror: builtin:Resume]
+        63  http:ActionSendDataBasicAuth · CRM: Επικοινωνία (νέα επαφή) · [onerror: builtin:Resume]
+        64  zoho-mail:sendMail · Email ενδιαφέροντος (νέα επαφή) · [onerror: builtin:Ignore]
+      ├─ condition «Υπάρχουσα επαφή»
+        65  http:ActionSendDataBasicAuth · CRM: Επικοινωνία (υπάρχουσα επαφή) · [onerror: builtin:Resume]
+        66  zoho-mail:sendMail · Email ενδιαφέροντος (υπάρχουσα επαφή) · [onerror: builtin:Ignore]
+      ├─ else
+        67  zoho-mail:sendMail · Email ενδιαφέροντος (χωρίς επαφή) · [onerror: builtin:Ignore]
 ```
 
 ## Έντυπα — υποβολή φόρμας `6600035`

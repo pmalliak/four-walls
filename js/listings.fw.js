@@ -257,6 +257,14 @@
 				energyClass: "Ενεργειακή κλάση", maintenance: "Κοινόχρηστα"
 			},
 			inquiry: function (ref) { return "Γεια σας, ενδιαφέρομαι για το ακίνητο " + ref + "."; },
+			inquiryDraft: function (title, code) {
+				return "Γεια σας, ενδιαφέρομαι για το ακίνητο «" + title + "»" +
+					(code ? " (κωδ. " + code + ")" : "") +
+					". Θα ήθελα περισσότερες πληροφορίες και, αν γίνεται, να το δω από κοντά.";
+			},
+			inquiryRequestNote: function (ref) {
+				return "Ξεκίνησα από το ακίνητο " + ref + " στο site σας.";
+			},
 			allAreas: "Όλες οι περιοχές",
 			feedError: "Τα ακίνητα δεν είναι διαθέσιμα αυτή τη στιγμή. Δοκιμάστε ξανά σε λίγο."
 		},
@@ -314,6 +322,14 @@
 				energyClass: "Energy class", maintenance: "Service charges"
 			},
 			inquiry: function (ref) { return "Hello, I am interested in property " + ref + "."; },
+			inquiryDraft: function (title, code) {
+				return "Hello, I am interested in the property “" + title + "”" +
+					(code ? " (ref. " + code + ")" : "") +
+					". I would like more information and, if possible, to arrange a viewing.";
+			},
+			inquiryRequestNote: function (ref) {
+				return "I started from property " + ref + " on your website.";
+			},
 			allAreas: "All areas",
 			feedError: "Listings are unavailable right now. Please try again shortly."
 		}
@@ -1097,9 +1113,31 @@
 			hide("fw-map-block");
 		}
 
-		/* inquiry message prefill */
+		/* Inquiry form («Ενδιαφέρομαι για το ακίνητο»): which property it is
+		   about, and a first draft of the message. An empty box asks the
+		   visitor to compose a letter; a ready sentence they can edit asks
+		   them to press a button. The text stays editable on purpose — we
+		   never send words they did not see. The property itself travels
+		   as the bare code: everything the office reads is looked up from
+		   the feed in worker/lib/property-inquiry.mjs, so a tampered field
+		   cannot invent a price. The «ζήτηση» URL is the popup's follow-up
+		   offer (js/fourwalls.js) — same criteria, minus this one flat. */
 		var msg = document.getElementById("fw-inquiry-msg");
-		if (msg) msg.placeholder = STR.inquiry(l.code || title);
+		if (msg) {
+			msg.placeholder = STR.inquiry(l.code || title);
+			if (!msg.value) msg.value = STR.inquiryDraft(title, l.code);
+		}
+		var inqForm = document.getElementById("fw-inquiry-form");
+		if (inqForm) {
+			if (inqForm.elements.code) inqForm.elements.code.value = l.code || l.id || "";
+			var rq = new URLSearchParams();
+			if (l.transaction) rq.set("transaction", l.transaction);
+			if (l.category) rq.set("category", l.category);
+			if (l.subcategory) rq.set("subcategory", l.subcategory);
+			if (loc(l, "area")) rq.set("areas", loc(l, "area"));
+			rq.set("msg", STR.inquiryRequestNote(l.code || title));
+			inqForm.dataset.requestUrl = BASE + "/request?" + rq.toString();
+		}
 
 		/* similar listings: same transaction + category is the hard filter,
 		   then the best three by score (see similarityScore). */

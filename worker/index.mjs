@@ -44,6 +44,7 @@ import { handleLeadApi, serveLeadFile } from "./lib/leads.mjs";
 import { handleLeadReply } from "./lib/lead-reply.mjs";
 import { handlePropertyRequest } from "./lib/property-request.mjs";
 import { handlePropertyAssignment } from "./lib/property-assignment.mjs";
+import { handlePropertyInquiry } from "./lib/property-inquiry.mjs";
 import { handleValuation, handleValuationLog, handleValuationRequest } from "./lib/valuation.mjs";
 import { handleAreaPricesRefresh } from "./lib/area-prices-refresh.mjs";
 import { maybeRunDlqWatch, handleDlqReport } from "./lib/dlq-watch.mjs";
@@ -299,6 +300,13 @@ export default {
 		// CRM contact + comm -> «ΝΕΑ ΑΝΑΘΕΣΗ» email to the office.
 		if (pathname === "/api/property-assignment") {
 			return handlePropertyAssignment(request, env);
+		}
+		// Η φόρμα «Ενδιαφέρομαι για το ακίνητο» στη σελίδα του ακινήτου:
+		// στοιχεία επικοινωνίας + ο κωδικός· το ίδιο το ακίνητο το διαβάζει
+		// ο Worker από το feed. -> CRM επαφή + επικοινωνία (ΖΗΤΗΣΗ +
+		// ΥΠΟΔΕΙΞΗ) + email στο γραφείο. Βλ. docs/site-request-form.md.
+		if (pathname === "/api/property-inquiry") {
+			return handlePropertyInquiry(request, env);
 		}
 		// Tracked outbound links from our emails/CRM: /go?to=/path&c=<campaign>.
 		// Logs one structured "email_click" line (queryable in the Worker's

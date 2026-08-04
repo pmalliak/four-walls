@@ -790,6 +790,204 @@
   });
 })();
 
+/* Property inquiry: «ενδιαφέρομαι για το ακίνητο» ---------------------- *
+ * The sidebar form on every listing page. The theme shipped it as
+ * `action="#"`: the visitor filled it in, pressed Αποστολή and nothing
+ * happened — no email, no error, and the warmest lead on the site
+ * (someone looking at one specific property) was lost silently.
+ *
+ * It now posts to /api/property-inquiry, which verifies the Turnstile
+ * token, looks the property up in the feed (the browser sends only the
+ * code) and relays to Make → CRM επαφή + επικοινωνία with the ΖΗΤΗΣΗ and
+ * ΥΠΟΔΕΙΞΗ tags + email to the office. The message box arrives with a
+ * ready draft (js/listings.fw.js) that the visitor can rewrite.
+ *
+ * On success a popup confirms — and asks the obvious next question: this
+ * one property may not be the one, so «shall we look for you?» leads to
+ * the ζήτηση form pre-filled with what they were just looking at. The
+ * inquiry answers today; a ζήτηση keeps working for months.             */
+(function () {
+  "use strict";
+  var form = document.getElementById("fw-inquiry-form");
+  if (!form) return;
+
+  var ENDPOINT = "/api/property-inquiry";
+  var IS_LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+  var LANG = /^en\b/i.test(document.documentElement.lang || "") ? "en" : "el";
+  var STR = ({
+    el: {
+      errorHtml:
+        '<div class="alert alert-danger">Το μήνυμα δεν στάλθηκε — δοκιμάστε ξανά σε λίγο, ' +
+        'ή καλέστε μας στο <a href="tel:+306907483463">+30 6907 483 463</a>.</div>',
+      turnstile:
+        '<div class="alert alert-danger">Περιμένετε να ολοκληρωθεί ο έλεγχος ασφαλείας ' +
+        '(το πλαίσιο πάνω από το κουμπί) και πατήστε ξανά «Αποστολή».</div>',
+      missing:
+        '<div class="alert alert-danger">Συμπληρώστε όνομα και επώνυμο, και ' +
+        'τουλάχιστον ένα τηλέφωνο ή email.</div>',
+      sending: "Αποστολη...",
+      popupTitle: "Το μήνυμά σας εστάλη!",
+      popupBody: "Θα επικοινωνήσουμε μαζί σας για το ακίνητο το συντομότερο δυνατό.",
+      popupAsk: "Να ψάχνουμε κι εμείς για εσάς; Πείτε μας τι ακριβώς αναζητάτε και " +
+        "θα σας ειδοποιούμε μόλις βρεθεί κάτι που ταιριάζει.",
+      popupPrimary: "Πειτε μας τι ψαχνετε",
+      popupClose: "Όχι τώρα"
+    },
+    en: {
+      errorHtml:
+        '<div class="alert alert-danger">Your message was not sent — please try again shortly, ' +
+        'or call us on <a href="tel:+306907483463">+30 6907 483 463</a>.</div>',
+      turnstile:
+        '<div class="alert alert-danger">Please wait for the security check (the box above ' +
+        'the button) to finish, then press “Send” again.</div>',
+      missing:
+        '<div class="alert alert-danger">Please fill in your first and last name, and at least ' +
+        'one of phone or email.</div>',
+      sending: "Sending...",
+      popupTitle: "Your message has been sent!",
+      popupBody: "We will get back to you about this property as soon as possible.",
+      popupAsk: "Shall we look for you too? Tell us exactly what you are after and we will " +
+        "let you know as soon as something matching comes up.",
+      popupPrimary: "Tell us what you're looking for",
+      popupClose: "Not now"
+    }
+  })[LANG];
+
+  var messages = document.getElementById("fw-inq-messages");
+  var btn = form.querySelector("button[type=submit]");
+
+  function val(name) {
+    var el = form.elements[name];
+    return el && el.value ? el.value.trim() : "";
+  }
+
+  /* Same popup as the contact form, one offer richer. Built on demand so
+     a page whose form is never submitted carries no extra nodes.        */
+  var overlay = null;
+  var lastFocus = null;
+
+  function buildPopup() {
+    var el = document.createElement("div");
+    el.className = "fw-popup-overlay";
+    el.innerHTML =
+      '<div class="fw-popup" role="dialog" aria-modal="true" aria-labelledby="fw-inq-popup-title">' +
+        '<span class="fw-popup-check" aria-hidden="true">' +
+          '<svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        "</span>" +
+        '<h3 id="fw-inq-popup-title"></h3>' +
+        "<p></p>" +
+        '<p class="fw-popup-ask"></p>' +
+        '<div class="fw-popup-actions">' +
+          '<a class="btn-nine text-uppercase rounded-3 fw-normal" href="/request"></a>' +
+          '<button type="button" class="fw-popup-dismiss"></button>' +
+        "</div>" +
+      "</div>";
+    el.querySelector("h3").textContent = STR.popupTitle;
+    el.querySelector("p").textContent = STR.popupBody;
+    el.querySelector(".fw-popup-ask").textContent = STR.popupAsk;
+    el.querySelector(".fw-popup-actions a").textContent = STR.popupPrimary;
+    el.querySelector(".fw-popup-dismiss").textContent = STR.popupClose;
+    el.querySelector(".fw-popup-dismiss").addEventListener("click", closePopup);
+    el.addEventListener("click", function (e) {
+      if (e.target === el) closePopup();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && el.classList.contains("is-open")) closePopup();
+    });
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function openPopup() {
+    if (!overlay) overlay = buildPopup();
+    /* The ζήτηση link carries the listing they were just reading
+       (js/listings.fw.js): same transaction, type and area, so the form
+       opens half-answered. Without the feed it stays the plain /request. */
+    var link = overlay.querySelector(".fw-popup-actions a");
+    if (form.dataset.requestUrl) link.href = form.dataset.requestUrl;
+    lastFocus = document.activeElement;
+    document.body.classList.add("fw-popup-lock");
+    overlay.classList.add("is-open");
+    link.focus();
+  }
+
+  function closePopup() {
+    overlay.classList.remove("is-open");
+    document.body.classList.remove("fw-popup-lock");
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    var firstName = val("firstName");
+    var lastName = val("lastName");
+    var phone = val("phone");
+    var email = val("email");
+    if (!firstName || !lastName || (!phone && !email)) {
+      messages.innerHTML = STR.missing;
+      (form.elements.firstName || form).focus();
+      return;
+    }
+
+    var tokenField = form.querySelector('input[name="cf-turnstile-response"]');
+    var token = tokenField ? tokenField.value : "";
+    if (!token && !IS_LOCAL) {
+      messages.innerHTML = STR.turnstile;
+      return;
+    }
+
+    var payload = {
+      firstName: firstName,
+      lastName: lastName,
+      phone: phone,
+      email: email,
+      /* The property is just its code here; the Worker reads the rest
+         (type, size, area, price, URL) from the feed. */
+      code: val("code"),
+      message: val("message"),
+      lang: LANG,
+      page: window.location.pathname,
+      token: token,
+      website: form.website ? form.website.value : ""
+    };
+
+    var label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = STR.sending;
+    messages.innerHTML = "";
+
+    var send = IS_LOCAL
+      ? new Promise(function (resolve) {
+          setTimeout(function () { resolve({ ok: true }); }, 500);
+        })
+      : fetch(ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+    send
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        var code = payload.code;
+        form.reset();
+        if (form.elements.code) form.elements.code.value = code;
+        // Tokens are single-use — rearm for a second inquiry.
+        if (window.turnstile) window.turnstile.reset();
+        btn.disabled = false;
+        btn.textContent = label;
+        openPopup();
+      })
+      .catch(function () {
+        if (window.turnstile) window.turnstile.reset();
+        btn.disabled = false;
+        btn.textContent = label;
+        messages.innerHTML = STR.errorHtml;
+      });
+  });
+})();
+
 /* Snappy scroll-to-top ------------------------------------------------ *
  * Bootstrap sets `:root { scroll-behavior: smooth }`, so every programmatic
  * scrollTop write (the theme's jQuery $.animate, and any scrollTo) gets

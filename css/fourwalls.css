@@ -512,6 +512,48 @@
   border-color: #ff0062;
 }
 
+/* Sidebar inquiry form («Ενδιαφέρομαι για το ακίνητο») ----------------- */
+/* The theme shipped this form decorative (action="#"); it now posts to
+   /api/property-inquiry (js/fourwalls.js). What it needs on top of the
+   theme's .input-box-three fields: the phone/email note, the error slot,
+   the honeypot, and room for the Turnstile widget. The widget is the
+   COMPACT variant (150px) in the markup — the standard one is 300px and
+   the sidebar's inner width is ~240px at the xl breakpoint.             */
+.tour-schedule .fw-inq-note {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #6a6a6a;
+  margin: -10px 0 22px;
+}
+.tour-schedule .fw-inq-messages:empty {
+  display: none;
+}
+.tour-schedule .fw-inq-messages .alert {
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.tour-schedule .fw-inq-messages .alert a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.tour-schedule .fw-inq-turnstile {
+  display: flex;
+  justify-content: center;
+}
+/* Same honeypot treatment as the contact form — see .form-style-one
+   .fw-hp: parked off-screen instead of display:none, so naive bots still
+   fill it in while visitors and screen readers never see it.            */
+.tour-schedule .fw-hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* Property cards — the whole box is one link -------------------------- */
 /* The card title carries Bootstrap's .stretched-link, whose ::after
    overlay (z-index:1) pins to the nearest positioned ancestor — make
@@ -1038,6 +1080,42 @@ body.fw-popup-lock {
    text-align: center do its job.                                       */
 .fw-popup .btn-nine {
   display: inline-block;
+}
+/* The property-inquiry popup adds a second act: the message is sent, and
+   the obvious next question is whether we should keep looking for them
+   (→ /request, pre-filled). Separated from the confirmation by a rule so
+   it reads as an offer, not as part of the receipt.                     */
+.fw-popup .fw-popup-ask {
+  border-top: 1px solid #eceef2;
+  padding-top: 22px;
+  margin-bottom: 22px;
+  font-size: 15px;
+}
+.fw-popup-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.fw-popup-actions .btn-nine {
+  width: 100%;
+}
+/* «Όχι τώρα» — a real button for keyboard users, styled as the quiet
+   way out so the ζήτηση offer above keeps the weight.                   */
+.fw-popup-dismiss {
+  display: inline-block;
+  background: none;
+  border: 0;
+  padding: 4px 8px;
+  color: #6a6a6a;
+  font-size: 15px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s ease;
+}
+.fw-popup-dismiss:hover,
+.fw-popup-dismiss:focus-visible {
+  color: #ff0062;
 }
 @media (prefers-reduced-motion: reduce) {
   .fw-popup-overlay,

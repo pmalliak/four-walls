@@ -33,6 +33,8 @@
 	<link rel="stylesheet" type="text/css" href="css/style.fw.min.css" media="all">
 	<!-- responsive style sheet -->
 	<link rel="stylesheet" type="text/css" href="css/responsive.css" media="all">
+	<!-- MapLibre GL (branded approximate-location map) -->
+	<link rel="stylesheet" type="text/css" href="css/maplibre-gl.css" media="all">
 	<!-- Four Walls custom overrides (loaded last so they win) -->
 	<link rel="stylesheet" type="text/css" href="css/fourwalls.css" media="all">
 
@@ -259,9 +261,7 @@
 							<p class="fs-16 pb-20 m0">The map location is approximate.</p>
 							<div class="bg-white shadow4 border-20 p-30">
 								<div class="map-banner overflow-hidden border-15">
-									<div class="gmap_canvas h-100 w-100">
-										<iframe id="fw-map" src="" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="w-100 h-100"></iframe>
-									</div>
+									<div id="fw-map" class="fw-map h-100 w-100"></div>
 								</div>
 							</div>
 						</div>
@@ -295,28 +295,43 @@
 
 							<div class="tour-schedule bg-white border-20 p-30">
 								<h5 class="mb-40">I'm interested in this property</h5>
-								<form action="#">
+								<!-- First/last name kept apart: the CRM wants two fields,
+								     same as the request and assignment forms. The listing
+								     code is filled in by js/listings.fw.js; the Worker
+								     trusts nothing else about the property and reads the
+								     rest from the feed. -->
+								<form id="fw-inquiry-form" novalidate>
+									<input type="hidden" name="code" value="">
 									<div class="input-box-three mb-25">
-										<div class="label">Full name*</div>
-										<input type="text" placeholder="Your name" class="type-input">
+										<div class="label">First name*</div>
+										<input type="text" name="firstName" placeholder="Your first name" class="type-input" autocomplete="given-name" required>
 									</div>
 									<!-- /.input-box-three -->
 									<div class="input-box-three mb-25">
-										<div class="label">Email*</div>
-										<input type="email" placeholder="Your email address" class="type-input">
+										<div class="label">Last name*</div>
+										<input type="text" name="lastName" placeholder="Your last name" class="type-input" autocomplete="family-name" required>
 									</div>
 									<!-- /.input-box-three -->
 									<div class="input-box-three mb-25">
-										<div class="label">Phone*</div>
-										<input type="tel" placeholder="Your phone number" class="type-input">
+										<div class="label">Phone</div>
+										<input type="tel" name="phone" placeholder="e.g. +30 694 1234567" class="type-input" autocomplete="tel">
 									</div>
 									<!-- /.input-box-three -->
 									<div class="input-box-three mb-15">
-										<div class="label">Message*</div>
-										<textarea id="fw-inquiry-msg"></textarea>
+										<div class="label">Email</div>
+										<input type="email" name="email" placeholder="Your email address" class="type-input" autocomplete="email">
 									</div>
 									<!-- /.input-box-three -->
-									<button class="btn-nine text-uppercase rounded-3 w-100 mb-10">Send</button>
+									<p class="fw-inq-note">Please fill in at least one of the two, so we can get back to you.</p>
+									<div class="input-box-three mb-15">
+										<div class="label">Message</div>
+										<textarea id="fw-inquiry-msg" name="message" rows="4"></textarea>
+									</div>
+									<!-- /.input-box-three -->
+									<input class="fw-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+									<div class="cf-turnstile fw-inq-turnstile mb-20" data-sitekey="0x4AAAAAAD0HkhD-wnMiyq6Y" data-size="compact" data-action="property-inquiry" data-language="en"></div>
+									<div class="fw-inq-messages" id="fw-inq-messages" role="alert" aria-live="polite"></div>
+									<button type="submit" class="btn-nine text-uppercase rounded-3 w-100 mb-10">Send</button>
 								</form>
 							</div>
 							<!-- /.tour-schedule -->
@@ -642,8 +657,13 @@
 		<script src="js/theme.js"></script>
 		<!-- Four Walls custom js -->
 		<script src="js/fourwalls.js"></script>
+		<!-- MapLibre GL + branded map helpers (approximate-location circle) -->
+		<script src="js/maplibre-gl.js"></script>
+		<script src="js/map.fw.js"></script>
 		<!-- Listings feed renderer -->
 		<script src="js/listings.fw.js"></script>
+		<!-- Turnstile (bot protection for the property inquiry form) -->
+		<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 	</div> <!-- /.main-page-wrapper -->
 </body>
 

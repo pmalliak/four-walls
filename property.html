@@ -295,28 +295,43 @@
 
 							<div class="tour-schedule bg-white border-20 p-30">
 								<h5 class="mb-40">Ενδιαφέρομαι για το ακίνητο</h5>
-								<form action="#">
+								<!-- Χωριστά όνομα/επώνυμο: το CRM τα θέλει σε δύο πεδία,
+								     όπως στη ζήτηση και στην ανάθεση. Ο κωδικός του
+								     ακινήτου μπαίνει από το js/listings.fw.js· ο Worker
+								     δεν εμπιστεύεται τίποτα άλλο για το ακίνητο και τα
+								     διαβάζει όλα από το feed. -->
+								<form id="fw-inquiry-form" novalidate>
+									<input type="hidden" name="code" value="">
 									<div class="input-box-three mb-25">
-										<div class="label">Ονοματεπώνυμο*</div>
-										<input type="text" placeholder="Το όνομά σας" class="type-input">
+										<div class="label">Όνομα*</div>
+										<input type="text" name="firstName" placeholder="Το όνομά σας" class="type-input" autocomplete="given-name" required>
 									</div>
 									<!-- /.input-box-three -->
 									<div class="input-box-three mb-25">
-										<div class="label">Email*</div>
-										<input type="email" placeholder="Το email σας" class="type-input">
+										<div class="label">Επώνυμο*</div>
+										<input type="text" name="lastName" placeholder="Το επώνυμό σας" class="type-input" autocomplete="family-name" required>
 									</div>
 									<!-- /.input-box-three -->
 									<div class="input-box-three mb-25">
-										<div class="label">Τηλέφωνο*</div>
-										<input type="tel" placeholder="Το τηλέφωνό σας" class="type-input">
+										<div class="label">Τηλέφωνο</div>
+										<input type="tel" name="phone" placeholder="π.χ. 6941234567" class="type-input" autocomplete="tel">
 									</div>
 									<!-- /.input-box-three -->
 									<div class="input-box-three mb-15">
-										<div class="label">Μήνυμα*</div>
-										<textarea id="fw-inquiry-msg"></textarea>
+										<div class="label">Email</div>
+										<input type="email" name="email" placeholder="Το email σας" class="type-input" autocomplete="email">
 									</div>
 									<!-- /.input-box-three -->
-									<button class="btn-nine text-uppercase rounded-3 w-100 mb-10">Αποστολη</button>
+									<p class="fw-inq-note">Συμπληρώστε τουλάχιστον ένα από τα δύο, για να μπορέσουμε να σας απαντήσουμε.</p>
+									<div class="input-box-three mb-15">
+										<div class="label">Μήνυμα</div>
+										<textarea id="fw-inquiry-msg" name="message" rows="4"></textarea>
+									</div>
+									<!-- /.input-box-three -->
+									<input class="fw-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+									<div class="cf-turnstile fw-inq-turnstile mb-20" data-sitekey="0x4AAAAAAD0HkhD-wnMiyq6Y" data-size="compact" data-action="property-inquiry" data-language="el"></div>
+									<div class="fw-inq-messages" id="fw-inq-messages" role="alert" aria-live="polite"></div>
+									<button type="submit" class="btn-nine text-uppercase rounded-3 w-100 mb-10">Αποστολη</button>
 								</form>
 							</div>
 							<!-- /.tour-schedule -->
@@ -642,6 +657,8 @@
 		<script src="js/fourwalls.js"></script>
 		<!-- Listings feed renderer -->
 		<script src="js/listings.fw.js"></script>
+		<!-- Turnstile (bot protection for the «Ενδιαφέρομαι» form) -->
+		<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 	</div> <!-- /.main-page-wrapper -->
 </body>
 
