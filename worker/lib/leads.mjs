@@ -100,23 +100,41 @@ const EXTRACT_PROMPT = [
 	"street_hint belongs to the PHOTO, not to a notice: a street name or building number visible ANYWHERE in it — a street plate, a door number, a nearby shop's address. This is the only clue to the address when the photo carries no location data, so read it if it is there.",
 ].join("\n");
 
-/* Ένα «χαρτί» στον τοίχο. Ό,τι είναι δικό του και μόνο δικό του. */
+/* Ένα «χαρτί» στον τοίχο. Ό,τι είναι δικό του και μόνο δικό του.
+
+   ΤΟ maxLength ΔΕΝ ΕΙΝΑΙ ΚΑΛΛΩΠΙΣΜΟΣ. Χωρίς αυτό το μοντέλο μπορεί να
+   κολλήσει σε βρόχο επανάληψης μέσα σε ένα ελεύθερο πεδίο και να γράφει
+   μέχρι να τελειώσουν τα tokens. Πραγματικό, 04/08/2026: σε τρεις στις
+   τρεις πινακίδες το `size_sqm` βγήκε
+   «55_καθαρά_ή_55_τ.μ._(καθαρά)_-> 55_καθαρά_ή_…» επί 65.000 tokens,
+   η γέννηση κόπηκε στο MAX_TOKENS, το JSON έμεινε μισό και ΟΛΗ η
+   φωτογραφία έγινε «ΧΩΡΙΣ ΤΗΛΕΦΩΝΟ» — ενώ το τηλέφωνο είχε διαβαστεί
+   σωστά στην τρίτη γραμμή της απάντησης. Με τα όρια εδώ ο βρόχος δεν
+   έχει πού να τρέξει: ίδιες φωτογραφίες, 225 tokens και καθαρό JSON.
+   Τα μήκη είναι τα ίδια με τα clip() παρακάτω — ό,τι θα κοβόταν έτσι κι
+   αλλιώς, τώρα δεν γράφεται καν.
+
+   Το propertyOrdering βάζει ΠΡΩΤΑ τα τηλέφωνα: αν ποτέ ξανακοπεί μια
+   απάντηση, το salvageJson() σώζει ό,τι προλαβαίνει, και το τηλέφωνο
+   είναι το πρώτο που έχει γραφτεί. */
 const SIGN_SCHEMA = {
 	type: "OBJECT",
 	properties: {
 		listing_type: { type: "STRING", enum: ["sale", "rent", "unknown"] },
-		phones: { type: "ARRAY", items: { type: "STRING" } },
+		phones: { type: "ARRAY", items: { type: "STRING", maxLength: 20 }, maxItems: 4 },
 		advertiser: { type: "STRING", enum: ["private", "agency", "unknown"] },
-		agency_name: { type: "STRING" },
-		contact_name: { type: "STRING" },
-		property_type: { type: "STRING" },
-		size_sqm: { type: "STRING" },
-		floor: { type: "STRING" },
-		price: { type: "STRING" },
-		sign_text: { type: "STRING" },
-		extras: { type: "STRING" },
 		confidence: { type: "STRING", enum: ["high", "medium", "low"] },
+		agency_name: { type: "STRING", maxLength: 120 },
+		contact_name: { type: "STRING", maxLength: 60 },
+		property_type: { type: "STRING", maxLength: 60 },
+		size_sqm: { type: "STRING", maxLength: 20 },
+		floor: { type: "STRING", maxLength: 40 },
+		price: { type: "STRING", maxLength: 40 },
+		sign_text: { type: "STRING", maxLength: 400 },
+		extras: { type: "STRING", maxLength: 200 },
 	},
+	propertyOrdering: ["listing_type", "phones", "advertiser", "confidence", "agency_name",
+		"contact_name", "property_type", "size_sqm", "floor", "price", "sign_text", "extras"],
 	required: ["listing_type", "phones", "advertiser", "confidence"],
 };
 
@@ -124,11 +142,12 @@ const EXTRACT_SCHEMA = {
 	type: "OBJECT",
 	properties: {
 		is_sign: { type: "BOOLEAN" },
+		signs: { type: "ARRAY", items: SIGN_SCHEMA, maxItems: 8 },
 		/* Της φωτογραφίας, όχι της κάθε αγγελίας: η πινακίδα του δρόμου
 		   είναι μία όσες αγγελίες κι αν κρέμονται από κάτω. */
-		street_hint: { type: "STRING" },
-		signs: { type: "ARRAY", items: SIGN_SCHEMA },
+		street_hint: { type: "STRING", maxLength: 120 },
 	},
+	propertyOrdering: ["is_sign", "signs", "street_hint"],
 	required: ["is_sign", "signs"],
 };
 
@@ -219,6 +238,42 @@ function toBase64(buf) {
 	return btoa(s);
 }
 
+/* Το δίχτυ για κομμένη απάντηση: κλείνει ένα μισοτελειωμένο JSON στο
+   τελευταίο σημείο όπου ήταν ακόμη έγκυρο και το κάνει parse. Κόβει
+   ΜΟΝΟ σε ολοκληρωμένες τιμές (κλειστό string, κλειστή αγκύλη, κόμμα),
+   οπότε ό,τι επιστρέφεται είναι πλήρες: μισογραμμένο τηλέφωνο δεν
+   φτάνει ποτέ εδώ. Ό,τι έλειπε μένει undefined και πέφτει στα defaults
+   παρακάτω — χαμηλό confidence, άρα δεν περνάει στο CRM μόνο του. */
+function salvageJson(text) {
+	const stack = [];
+	let inStr = false, esc = false, cut = -1, cutStack = null;
+	const mark = (i) => { cut = i; cutStack = [...stack]; };
+	for (let i = 0; i < text.length; i++) {
+		const ch = text[i];
+		if (inStr) {
+			if (esc) esc = false;
+			else if (ch === "\\") esc = true;
+			else if (ch === '"') {
+				inStr = false;
+				/* Κλειστό string: τιμή αν δεν ακολουθεί «:» (τότε ήταν κλειδί). */
+				const rest = text.slice(i + 1).match(/^\s*(.?)/)[1];
+				if (rest !== ":") mark(i + 1);
+			}
+			continue;
+		}
+		if (ch === '"') inStr = true;
+		else if (ch === "{" || ch === "[") stack.push(ch === "{" ? "}" : "]");
+		else if (ch === "}" || ch === "]") { stack.pop(); mark(i + 1); }
+		else if (ch === ",") mark(i);          // ό,τι προηγήθηκε είχε κλείσει
+	}
+	if (cut < 0) return null;
+	try {
+		return JSON.parse(text.slice(0, cut) + cutStack.reverse().join(""));
+	} catch {
+		return null;
+	}
+}
+
 /* Ένα vision call ανά φωτογραφία, ~0,005 €. responseSchema ώστε η
    απάντηση να είναι εγγυημένα JSON — χωρίς αυτό το parsing γίνεται
    ψάξιμο για αγκύλες μέσα σε πεζό κείμενο. Ποτέ δεν κάνει throw: μία
@@ -238,6 +293,10 @@ async function extractSign(env, bytes, contentType) {
 				}],
 				generationConfig: {
 					temperature: 0,
+					/* Ταβάνι ζημιάς. Μια κανονική ανάγνωση θέλει ~230 tokens·
+					   ο βρόχος της 04/08/2026 έγραψε 65.000 (30πλάσιο κόστος
+					   και 165 δευτ. αναμονή ανά φωτογραφία). */
+					maxOutputTokens: 2048,
 					responseMimeType: "application/json",
 					responseSchema: EXTRACT_SCHEMA,
 				},
@@ -250,7 +309,18 @@ async function extractSign(env, bytes, contentType) {
 		const body = await res.json();
 		const text = body?.candidates?.[0]?.content?.parts?.[0]?.text;
 		if (!text) return { error: "empty response" };
-		return JSON.parse(text);
+		try {
+			return JSON.parse(text);
+		} catch {
+			/* Κομμένη απάντηση: σώζουμε ό,τι προλαβε να γραφτεί αντί να
+			   πετάξουμε ολόκληρη τη φωτογραφία. */
+			const salvaged = salvageJson(text);
+			console.warn(`leads: truncated JSON (${body?.candidates?.[0]?.finishReason}, `
+				+ `${body?.usageMetadata?.candidatesTokenCount} tokens) — `
+				+ (salvaged ? "salvaged" : "unusable"));
+			if (salvaged) return { ...salvaged, truncated: true };
+			return { error: "truncated response" };
+		}
 	} catch (err) {
 		console.warn(`leads: extraction failed: ${String(err)}`);
 		return { error: String(err).slice(0, 120) };
@@ -320,10 +390,17 @@ function mapsLink(l) {
    αυτό σημαίνει «ιδιώτης, δικό μας lead», και είναι το καλύτερο νέο της
    γραμμής. Ο σύνδεσμος της πηγής μπαίνει πάντα, ώστε να μπορεί κάποιος
    να διαψεύσει το μοντέλο σε ένα κλικ. */
-function phoneCheck(p) {
+function phoneCheck(p, crmBase) {
 	const bits = [];
 	if (p.crm) {
-		bits.push(`<span style="color:#b45309; font-weight:bold;">ήδη στο CRM:</span> ${esc(p.crm.name || "επαφή")}`);
+		/* Η υπάρχουσα επαφή ανοίγει με ένα κλικ — το `/contacts/view/{id}`
+		   είναι ο μόνος σύνδεσμος που δουλεύει· τα `/contacts/{id}` και
+		   `/contacts/edit/{id}` γυρίζουν στη λίστα (docs/estateprime-crm-ui.md). */
+		const name = esc(p.crm.name || "επαφή");
+		bits.push(`<span style="color:#b45309; font-weight:bold;">ήδη στο CRM:</span> `
+			+ (crmBase && p.crm.id
+				? `<a href="${esc(crmBase)}/contacts/view/${encodeURIComponent(p.crm.id)}" style="color:${NAVY}; font-weight:bold;">${name}</a>`
+				: name));
 	}
 	const w = p.web;
 	if (w) {
@@ -343,7 +420,7 @@ function phoneCheck(p) {
 	return `<div style="font-size:12px; color:${MUTED}; margin:2px 0 6px 0; line-height:1.5;">↳ ${bits.join(" · ")}</div>`;
 }
 
-function leadCard(l, i) {
+function leadCard(l, i, crmBase) {
 	const phones = l.phones || [];
 	const flagged = !phones.length;
 	const link = mapsLink(l);
@@ -362,7 +439,7 @@ function leadCard(l, i) {
 	if (phones.length) {
 		row("Τηλέφωνο", phones.map((p) => `<a href="tel:+30${p.digits}" style="color:${PINK}; font-weight:bold; text-decoration:none;">${esc(p.display)}</a>`
 			+ (p.duplicate ? `<span style="color:${MUTED}; font-size:12px;"> (ίδιο με προηγούμενο)</span>` : "")
-			+ phoneCheck(p)).join("<br>"));
+			+ phoneCheck(p, crmBase)).join("<br>"));
 	}
 	if (l.contact_name) row("Ζητήστε", `<strong>${esc(l.contact_name)}</strong>`);
 	row("Είδος", esc(TYPE_LABEL[l.listing_type] || "—")
@@ -377,7 +454,8 @@ function leadCard(l, i) {
 	if (l.sign_text) row("Πινακίδα", `<span style="color:${MUTED};">${esc(l.sign_text)}</span>`);
 	if (l.taken_at) row("Λήψη", esc(l.taken_at.replace("T", " ")));
 	row("Ποιότητα", esc(CONFIDENCE_LABEL[l.confidence] || "—")
-		+ (l.is_sign === false ? ` · <strong style="color:#b45309;">δεν φαίνεται πινακίδα</strong>` : ""));
+		+ (l.is_sign === false ? ` · <strong style="color:#b45309;">δεν φαίνεται πινακίδα</strong>` : "")
+		+ (l.truncated ? ` · <strong style="color:#b45309;">η ανάγνωση κόπηκε — έλεγξε τη φωτογραφία</strong>` : ""));
 
 	return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${flagged ? "#f0c9a8" : LINE}; border-left:3px solid ${flagged ? "#c2410c" : PINK}; border-radius:6px; margin:0 0 14px 0;">
 	<tr><td style="padding:12px 14px;">
@@ -393,7 +471,7 @@ function leadCard(l, i) {
 }
 
 function buildEmail(payload) {
-	const { leads, note, submitted_by, count } = payload;
+	const { leads, note, submitted_by, count, crm_base: crmBase } = payload;
 	const signs = leads.length;
 	const withPhone = leads.filter((l) => (l.phones || []).length).length;
 	const agencies = leads.filter((l) => l.advertiser === "agency").length;
@@ -430,7 +508,7 @@ function buildEmail(payload) {
 		</td></tr>
 		${note ? `<tr><td style="padding:10px 20px 0 20px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="background:#f7f8fa; border-radius:6px; padding:11px 13px; font-size:13px; color:${NAVY};"><strong>Σημείωση:</strong> ${esc(note)}</td></tr></table></td></tr>` : ""}
 		<tr><td style="padding:16px 20px 4px 20px;">
-			${leads.map(leadCard).join("\n\t\t\t")}
+			${leads.map((l, i) => leadCard(l, i, crmBase)).join("\n\t\t\t")}
 		</td></tr>
 		<tr><td style="border-top:1px solid ${LINE}; padding:14px 20px; font-size:11px; color:#999999; line-height:1.6;">
 			Στάλθηκε αυτόματα από τα Έντυπα (Πινακίδα). Τα στοιχεία διαβάστηκαν από φωτογραφία με AI — <strong>επιβεβαίωσέ τα πριν την κλήση</strong>.
@@ -804,6 +882,7 @@ async function finalizeBatch(request, env, url, batchId) {
 				street_hint: clip(ai.street_hint, 120) || null,
 				is_sign: ai.is_sign !== false,
 				error: ai.error || null,
+				truncated: ai.truncated === true,
 			};
 
 			/* Χωρίς πινακίδα (ή με σφάλμα ανάγνωσης) μένει ΕΝΑ κενό lead: η
@@ -913,6 +992,12 @@ async function finalizeBatch(request, env, url, batchId) {
 		   έλεγχο δεν φτάνει καν εκεί. Κενή λίστα = καμία εγγραφή στο CRM. */
 		crm: crmReady.map((l) => l.crm),
 		crm_count: crmReady.length,
+		/* Για τους συνδέσμους «άνοιξε την επαφή» μέσα στο email. Η νέα
+		   επαφή δεν έχει ακόμη id εδώ (τη φτιάχνει το Make μετά), αλλά
+		   όποια ΥΠΑΡΧΕΙ ήδη ανοίγει με ένα κλικ. */
+		crm_base: env.ESTATEPRIME_SUBDOMAIN
+			? `https://${env.ESTATEPRIME_SUBDOMAIN}.estateprime.gr`
+			: null,
 		leads,
 	};
 	Object.assign(payload, buildEmail(payload));
