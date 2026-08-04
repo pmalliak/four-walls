@@ -25,13 +25,13 @@
    ===================================================================== */
 
 export const AREA_PRICES_META = {
-	asOf: "2026-07",
-	source: "Μηνιαίος έλεγχος με live αναζήτηση (Spitogatos, xe.gr, δείκτες ΤτΕ/SPI), εγκεκριμένος από τον Πάνο 2026-07-30. Επόμενο email ελέγχου: 1η του μήνα.",
+	asOf: "2026-08",
+	source: "Μηνιαίος έλεγχος με live αναζήτηση (Spitogatos, xe.gr, δείκτες ΤτΕ/SPI), εγκεκριμένος από τον Πάνο 2026-08-04. Επόμενο email ελέγχου: 1η του μήνα.",
 	/* Οι δημοσιευμένοι δείκτες του τελευταίου εγκεκριμένου ελέγχου. Δίνουν
 	   στην εκτίμηση το πρόσημο της αγοράς (πλαίσιο για σχόλιο/συμβουλή,
 	   ΟΧΙ συντελεστή πάνω στα εύρη — βλ. buildDataBlock στο valuation.mjs).
 	   Ενημερώνεται μαζί με τον πίνακα σε κάθε έγκριση. */
-	trend: "Spitogatos SPI πώλησης: Δήμος Θεσσαλονίκης +3,4%, προάστια +12,8%, πανελλαδικά +6,1% (Β' τρίμηνο 2026)· δείκτης τιμών διαμερισμάτων ΤτΕ Θεσσαλονίκη +6,4% ετησίως (Α' τρίμηνο 2026).",
+	trend: "Spitogatos SPI πώλησης (Δήμος Θεσσαλονίκης) +7,7% (Β' τρίμηνο 2026)· Spitogatos SPI πώλησης (Προάστια Θεσσαλονίκης) +12,8% (Β' τρίμηνο 2026)· Spitogatos SPI πώλησης (Πανελλαδικός) +6,1% (Β' τρίμηνο 2026)· Spitogatos SPI ενοικίασης (Δήμος Θεσσαλονίκης) +6,6% (Β' τρίμηνο 2026)· Spitogatos SPI ενοικίασης (Πανελλαδικός) +1,3% (Β' τρίμηνο 2026)· Δείκτης τιμών διαμερισμάτων ΤτΕ (Θεσσαλονίκη) +6,4% (Α' τρίμηνο 2026)· Δείκτης τιμών νεόδμητων διαμερισμάτων ΤτΕ (έως 5 ετών) +6,0% (Α' τρίμηνο 2026)· Δείκτης τιμών παλαιών διαμερισμάτων ΤτΕ (άνω των 5 ετών) +5,5% (Α' τρίμηνο 2026)· ΕΛΣΤΑΤ ΔΤΚ (Υποδείκτης ενοικίων κατοικιών) +7,7% (Μάιος 2026)",
 };
 
 /* Κάθε γραμμή: όνομα περιοχής όπως μιλιέται (το matching είναι χαλαρό,
@@ -39,46 +39,46 @@ export const AREA_PRICES_META = {
    ενοικίασης €/τ.μ./μήνα. Τα εύρη είναι για «τυπικό» διαμέρισμα της
    περιοχής· παλιά αναξιοποίητα και νεόδμητα πέφτουν έξω από αυτά. */
 export const AREA_PRICES = [
-	{ area: "Κέντρο Θεσσαλονίκης", saleLow: 2400, saleHigh: 3350, rentLow: 9.5, rentHigh: 13 },
-	{ area: "Ανάληψη / Ντεπώ / Φάληρο", saleLow: 2400, saleHigh: 3150, rentLow: 9, rentHigh: 12 },
-	{ area: "Τριανδρία", saleLow: 2000, saleHigh: 2650, rentLow: 8.5, rentHigh: 11 },
-	{ area: "Τούμπα", saleLow: 1800, saleHigh: 2450, rentLow: 8, rentHigh: 10.5 },
-	{ area: "Χαριλάου", saleLow: 2000, saleHigh: 2650, rentLow: 8.5, rentHigh: 11 },
-	{ area: "Καλαμαριά", saleLow: 2550, saleHigh: 3350, rentLow: 9, rentHigh: 12.5 },
-	{ area: "Πυλαία", saleLow: 2350, saleHigh: 3150, rentLow: 8.5, rentHigh: 11.5 },
-	{ area: "Πανόραμα", saleLow: 2450, saleHigh: 3350, rentLow: 8, rentHigh: 11 },
-	{ area: "Θέρμη", saleLow: 2150, saleHigh: 2950, rentLow: 8, rentHigh: 10.5 },
-	{ area: "Θερμαϊκός (Περαία, Ν. Επιβάτες, Αγ. Τριάδα)", saleLow: 1700, saleHigh: 2450, rentLow: 7, rentHigh: 9.5 },
-	{ area: "Εύοσμος", saleLow: 1500, saleHigh: 2050, rentLow: 7, rentHigh: 9 },
-	{ area: "Κορδελιό", saleLow: 1300, saleHigh: 1850, rentLow: 6.5, rentHigh: 8.5 },
-	{ area: "Αμπελόκηποι", saleLow: 1400, saleHigh: 1950, rentLow: 7, rentHigh: 9 },
-	{ area: "Μενεμένη", saleLow: 1100, saleHigh: 1650, rentLow: 6, rentHigh: 8 },
-	{ area: "Σταυρούπολη", saleLow: 1400, saleHigh: 1950, rentLow: 7, rentHigh: 9 },
-	{ area: "Πολίχνη", saleLow: 1400, saleHigh: 1950, rentLow: 7, rentHigh: 9 },
-	{ area: "Νεάπολη", saleLow: 1300, saleHigh: 1850, rentLow: 7, rentHigh: 9 },
-	{ area: "Συκιές", saleLow: 1350, saleHigh: 1900, rentLow: 7, rentHigh: 9 },
-	{ area: "Ωραιόκαστρο", saleLow: 1600, saleHigh: 2250, rentLow: 7, rentHigh: 9.5 },
-	{ area: "Καλλιθέα (Παύλου Μελά)", saleLow: 1300, saleHigh: 1850, rentLow: 6.5, rentHigh: 8.5 },
-	{ area: "Λαγκαδάς", saleLow: 950, saleHigh: 1400, rentLow: 5.5, rentHigh: 7.5 },
-	{ area: "Ασπροβάλτα / Σταυρός", saleLow: 1300, saleHigh: 1950, rentLow: 6, rentHigh: 8.5 },
+	{ area: "Κέντρο Θεσσαλονίκης", saleLow: 2500, saleHigh: 3400, rentLow: 10, rentHigh: 13.5 },
+	{ area: "Ανάληψη / Ντεπώ / Φάληρο", saleLow: 2450, saleHigh: 3250, rentLow: 9.5, rentHigh: 12.5 },
+	{ area: "Τριανδρία", saleLow: 2050, saleHigh: 2750, rentLow: 9, rentHigh: 11.5 },
+	{ area: "Τούμπα", saleLow: 1900, saleHigh: 2550, rentLow: 8.5, rentHigh: 11 },
+	{ area: "Χαριλάου", saleLow: 2100, saleHigh: 2750, rentLow: 9, rentHigh: 11.5 },
+	{ area: "Καλαμαριά", saleLow: 2650, saleHigh: 3450, rentLow: 9.5, rentHigh: 13 },
+	{ area: "Πυλαία", saleLow: 2400, saleHigh: 3250, rentLow: 9, rentHigh: 12 },
+	{ area: "Πανόραμα", saleLow: 2500, saleHigh: 3400, rentLow: 8.5, rentHigh: 11.5 },
+	{ area: "Θέρμη", saleLow: 2200, saleHigh: 3050, rentLow: 8.5, rentHigh: 11 },
+	{ area: "Θερμαϊκός (Περαία, Ν. Επιβάτες, Αγ. Τριάδα)", saleLow: 1800, saleHigh: 2550, rentLow: 7.5, rentHigh: 10 },
+	{ area: "Εύοσμος", saleLow: 1600, saleHigh: 2150, rentLow: 7.5, rentHigh: 9.5 },
+	{ area: "Κορδελιό", saleLow: 1350, saleHigh: 1950, rentLow: 7, rentHigh: 9 },
+	{ area: "Αμπελόκηποι", saleLow: 1450, saleHigh: 2000, rentLow: 7.5, rentHigh: 9.5 },
+	{ area: "Μενεμένη", saleLow: 1150, saleHigh: 1750, rentLow: 6.5, rentHigh: 8.5 },
+	{ area: "Σταυρούπολη", saleLow: 1500, saleHigh: 2100, rentLow: 7.5, rentHigh: 9.5 },
+	{ area: "Πολίχνη", saleLow: 1450, saleHigh: 2000, rentLow: 7.5, rentHigh: 9.5 },
+	{ area: "Νεάπολη", saleLow: 1350, saleHigh: 1950, rentLow: 7.5, rentHigh: 9.5 },
+	{ area: "Συκιές", saleLow: 1400, saleHigh: 2000, rentLow: 7.5, rentHigh: 9.5 },
+	{ area: "Ωραιόκαστρο", saleLow: 1650, saleHigh: 2300, rentLow: 6, rentHigh: 8 },
+	{ area: "Καλλιθέα (Παύλου Μελά)", saleLow: 1100, saleHigh: 1650, rentLow: 6.5, rentHigh: 8.5 },
+	{ area: "Λαγκαδάς", saleLow: 1000, saleHigh: 1450, rentLow: 6, rentHigh: 8 },
+	{ area: "Ασπροβάλτα / Σταυρός", saleLow: 1350, saleHigh: 2000, rentLow: 6, rentHigh: 8.5 },
 	/* Χαλκιδική: έντονη εποχικότητα, οι εξοχικές τιμές τραβάνε το πάνω
 	   άκρο και τα ενοίκια δωδεκάμηνου είναι δυσανάλογα χαμηλά. */
-	{ area: "Νέα Μουδανιά / Ν. Καλλικράτεια", saleLow: 1600, saleHigh: 2450, rentLow: 6.5, rentHigh: 9 },
-	{ area: "Κασσάνδρα Χαλκιδικής", saleLow: 1950, saleHigh: 3100, rentLow: 6, rentHigh: 9 },
-	{ area: "Σιθωνία Χαλκιδικής", saleLow: 1950, saleHigh: 3200, rentLow: 6, rentHigh: 9 },
-	{ area: "Πολύγυρος", saleLow: 1050, saleHigh: 1600, rentLow: 5, rentHigh: 7 },
+	{ area: "Νέα Μουδανιά / Ν. Καλλικράτεια", saleLow: 1700, saleHigh: 2550, rentLow: 7, rentHigh: 9.5 },
+	{ area: "Κασσάνδρα Χαλκιδικής", saleLow: 2050, saleHigh: 3200, rentLow: 7, rentHigh: 10 },
+	{ area: "Σιθωνία Χαλκιδικής", saleLow: 2050, saleHigh: 3300, rentLow: 7, rentHigh: 10 },
+	{ area: "Πολύγυρος", saleLow: 1100, saleHigh: 1650, rentLow: 5.5, rentHigh: 7.5 },
 	/* Πιερία */
-	{ area: "Κατερίνη", saleLow: 1050, saleHigh: 1600, rentLow: 5.5, rentHigh: 7.5 },
-	{ area: "Παραλία Κατερίνης / Ολυμπιακή Ακτή", saleLow: 1400, saleHigh: 2150, rentLow: 5.5, rentHigh: 8 },
-	{ area: "Λιτόχωρο / Λεπτοκαρυά / Πλαταμώνας", saleLow: 1300, saleHigh: 2050, rentLow: 5.5, rentHigh: 7.5 },
+	{ area: "Κατερίνη", saleLow: 1100, saleHigh: 1650, rentLow: 5.5, rentHigh: 7.5 },
+	{ area: "Παραλία Κατερίνης / Ολυμπιακή Ακτή", saleLow: 1450, saleHigh: 2200, rentLow: 6, rentHigh: 8.5 },
+	{ area: "Λιτόχωρο / Λεπτοκαρυά / Πλαταμώνας", saleLow: 1350, saleHigh: 2100, rentLow: 6, rentHigh: 8 },
 	/* Σέρρες, Ημαθία, Πέλλα, Κιλκίς */
-	{ area: "Σέρρες", saleLow: 950, saleHigh: 1400, rentLow: 5, rentHigh: 7 },
-	{ area: "Βέροια", saleLow: 850, saleHigh: 1300, rentLow: 5, rentHigh: 7 },
-	{ area: "Νάουσα", saleLow: 650, saleHigh: 1100, rentLow: 4.5, rentHigh: 6.5 },
-	{ area: "Αλεξάνδρεια Ημαθίας", saleLow: 750, saleHigh: 1200, rentLow: 4.5, rentHigh: 6.5 },
-	{ area: "Έδεσσα", saleLow: 750, saleHigh: 1200, rentLow: 4.5, rentHigh: 6.5 },
-	{ area: "Γιαννιτσά", saleLow: 850, saleHigh: 1300, rentLow: 5, rentHigh: 7 },
-	{ area: "Κιλκίς", saleLow: 750, saleHigh: 1200, rentLow: 4.5, rentHigh: 6.5 },
+	{ area: "Σέρρες", saleLow: 1000, saleHigh: 1450, rentLow: 5.5, rentHigh: 7.5 },
+	{ area: "Βέροια", saleLow: 900, saleHigh: 1350, rentLow: 5.5, rentHigh: 7.5 },
+	{ area: "Νάουσα", saleLow: 700, saleHigh: 1150, rentLow: 5, rentHigh: 7 },
+	{ area: "Αλεξάνδρεια Ημαθίας", saleLow: 800, saleHigh: 1250, rentLow: 5, rentHigh: 7 },
+	{ area: "Έδεσσα", saleLow: 800, saleHigh: 1250, rentLow: 5, rentHigh: 7 },
+	{ area: "Γιαννιτσά", saleLow: 900, saleHigh: 1350, rentLow: 5.5, rentHigh: 7.5 },
+	{ area: "Κιλκίς", saleLow: 800, saleHigh: 1250, rentLow: 5, rentHigh: 7 },
 ];
 
 /* =====================================================================

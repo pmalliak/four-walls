@@ -955,6 +955,437 @@
 					}
 				]
 			}
+		},
+		{
+			"recordedAt": "2026-08-04T05:24:19.998Z",
+			"source": "Μηνιαίος έλεγχος με live αναζήτηση (Spitogatos, xe.gr, δείκτες ΤτΕ/SPI), εγκεκριμένος από τον Πάνο 2026-08-04. Επόμενο email ελέγχου: 1η του μήνα.",
+			"asOf": "2026-08",
+			"trend": "Spitogatos SPI πώλησης (Δήμος Θεσσαλονίκης) +7,7% (Β' τρίμηνο 2026)· Spitogatos SPI πώλησης (Προάστια Θεσσαλονίκης) +12,8% (Β' τρίμηνο 2026)· Spitogatos SPI πώλησης (Πανελλαδικός) +6,1% (Β' τρίμηνο 2026)· Spitogatos SPI ενοικίασης (Δήμος Θεσσαλονίκης) +6,6% (Β' τρίμηνο 2026)· Spitogatos SPI ενοικίασης (Πανελλαδικός) +1,3% (Β' τρίμηνο 2026)· Δείκτης τιμών διαμερισμάτων ΤτΕ (Θεσσαλονίκη) +6,4% (Α' τρίμηνο 2026)· Δείκτης τιμών νεόδμητων διαμερισμάτων ΤτΕ (έως 5 ετών) +6,0% (Α' τρίμηνο 2026)· Δείκτης τιμών παλαιών διαμερισμάτων ΤτΕ (άνω των 5 ετών) +5,5% (Α' τρίμηνο 2026)· ΕΛΣΤΑΤ ΔΤΚ (Υποδείκτης ενοικίων κατοικιών) +7,7% (Μάιος 2026)",
+			"rows": [
+				{
+					"area": "Κέντρο Θεσσαλονίκης",
+					"saleLow": 2500,
+					"saleHigh": 3400,
+					"rentLow": 10,
+					"rentHigh": 13.5
+				},
+				{
+					"area": "Ανάληψη / Ντεπώ / Φάληρο",
+					"saleLow": 2450,
+					"saleHigh": 3250,
+					"rentLow": 9.5,
+					"rentHigh": 12.5
+				},
+				{
+					"area": "Τριανδρία",
+					"saleLow": 2050,
+					"saleHigh": 2750,
+					"rentLow": 9,
+					"rentHigh": 11.5
+				},
+				{
+					"area": "Τούμπα",
+					"saleLow": 1900,
+					"saleHigh": 2550,
+					"rentLow": 8.5,
+					"rentHigh": 11
+				},
+				{
+					"area": "Χαριλάου",
+					"saleLow": 2100,
+					"saleHigh": 2750,
+					"rentLow": 9,
+					"rentHigh": 11.5
+				},
+				{
+					"area": "Καλαμαριά",
+					"saleLow": 2650,
+					"saleHigh": 3450,
+					"rentLow": 9.5,
+					"rentHigh": 13
+				},
+				{
+					"area": "Πυλαία",
+					"saleLow": 2400,
+					"saleHigh": 3250,
+					"rentLow": 9,
+					"rentHigh": 12
+				},
+				{
+					"area": "Πανόραμα",
+					"saleLow": 2500,
+					"saleHigh": 3400,
+					"rentLow": 8.5,
+					"rentHigh": 11.5
+				},
+				{
+					"area": "Θέρμη",
+					"saleLow": 2200,
+					"saleHigh": 3050,
+					"rentLow": 8.5,
+					"rentHigh": 11
+				},
+				{
+					"area": "Θερμαϊκός (Περαία, Ν. Επιβάτες, Αγ. Τριάδα)",
+					"saleLow": 1800,
+					"saleHigh": 2550,
+					"rentLow": 7.5,
+					"rentHigh": 10
+				},
+				{
+					"area": "Εύοσμος",
+					"saleLow": 1600,
+					"saleHigh": 2150,
+					"rentLow": 7.5,
+					"rentHigh": 9.5
+				},
+				{
+					"area": "Κορδελιό",
+					"saleLow": 1350,
+					"saleHigh": 1950,
+					"rentLow": 7,
+					"rentHigh": 9
+				},
+				{
+					"area": "Αμπελόκηποι",
+					"saleLow": 1450,
+					"saleHigh": 2000,
+					"rentLow": 7.5,
+					"rentHigh": 9.5
+				},
+				{
+					"area": "Μενεμένη",
+					"saleLow": 1150,
+					"saleHigh": 1750,
+					"rentLow": 6.5,
+					"rentHigh": 8.5
+				},
+				{
+					"area": "Σταυρούπολη",
+					"saleLow": 1500,
+					"saleHigh": 2100,
+					"rentLow": 7.5,
+					"rentHigh": 9.5
+				},
+				{
+					"area": "Πολίχνη",
+					"saleLow": 1450,
+					"saleHigh": 2000,
+					"rentLow": 7.5,
+					"rentHigh": 9.5
+				},
+				{
+					"area": "Νεάπολη",
+					"saleLow": 1350,
+					"saleHigh": 1950,
+					"rentLow": 7.5,
+					"rentHigh": 9.5
+				},
+				{
+					"area": "Συκιές",
+					"saleLow": 1400,
+					"saleHigh": 2000,
+					"rentLow": 7.5,
+					"rentHigh": 9.5
+				},
+				{
+					"area": "Ωραιόκαστρο",
+					"saleLow": 1650,
+					"saleHigh": 2300,
+					"rentLow": 6,
+					"rentHigh": 8
+				},
+				{
+					"area": "Καλλιθέα (Παύλου Μελά)",
+					"saleLow": 1100,
+					"saleHigh": 1650,
+					"rentLow": 6.5,
+					"rentHigh": 8.5
+				},
+				{
+					"area": "Λαγκαδάς",
+					"saleLow": 1000,
+					"saleHigh": 1450,
+					"rentLow": 6,
+					"rentHigh": 8
+				},
+				{
+					"area": "Ασπροβάλτα / Σταυρός",
+					"saleLow": 1350,
+					"saleHigh": 2000,
+					"rentLow": 6,
+					"rentHigh": 8.5
+				},
+				{
+					"area": "Νέα Μουδανιά / Ν. Καλλικράτεια",
+					"saleLow": 1700,
+					"saleHigh": 2550,
+					"rentLow": 7,
+					"rentHigh": 9.5
+				},
+				{
+					"area": "Κασσάνδρα Χαλκιδικής",
+					"saleLow": 2050,
+					"saleHigh": 3200,
+					"rentLow": 7,
+					"rentHigh": 10
+				},
+				{
+					"area": "Σιθωνία Χαλκιδικής",
+					"saleLow": 2050,
+					"saleHigh": 3300,
+					"rentLow": 7,
+					"rentHigh": 10
+				},
+				{
+					"area": "Πολύγυρος",
+					"saleLow": 1100,
+					"saleHigh": 1650,
+					"rentLow": 5.5,
+					"rentHigh": 7.5
+				},
+				{
+					"area": "Κατερίνη",
+					"saleLow": 1100,
+					"saleHigh": 1650,
+					"rentLow": 5.5,
+					"rentHigh": 7.5
+				},
+				{
+					"area": "Παραλία Κατερίνης / Ολυμπιακή Ακτή",
+					"saleLow": 1450,
+					"saleHigh": 2200,
+					"rentLow": 6,
+					"rentHigh": 8.5
+				},
+				{
+					"area": "Λιτόχωρο / Λεπτοκαρυά / Πλαταμώνας",
+					"saleLow": 1350,
+					"saleHigh": 2100,
+					"rentLow": 6,
+					"rentHigh": 8
+				},
+				{
+					"area": "Σέρρες",
+					"saleLow": 1000,
+					"saleHigh": 1450,
+					"rentLow": 5.5,
+					"rentHigh": 7.5
+				},
+				{
+					"area": "Βέροια",
+					"saleLow": 900,
+					"saleHigh": 1350,
+					"rentLow": 5.5,
+					"rentHigh": 7.5
+				},
+				{
+					"area": "Νάουσα",
+					"saleLow": 700,
+					"saleHigh": 1150,
+					"rentLow": 5,
+					"rentHigh": 7
+				},
+				{
+					"area": "Αλεξάνδρεια Ημαθίας",
+					"saleLow": 800,
+					"saleHigh": 1250,
+					"rentLow": 5,
+					"rentHigh": 7
+				},
+				{
+					"area": "Έδεσσα",
+					"saleLow": 800,
+					"saleHigh": 1250,
+					"rentLow": 5,
+					"rentHigh": 7
+				},
+				{
+					"area": "Γιαννιτσά",
+					"saleLow": 900,
+					"saleHigh": 1350,
+					"rentLow": 5.5,
+					"rentHigh": 7.5
+				},
+				{
+					"area": "Κιλκίς",
+					"saleLow": 800,
+					"saleHigh": 1250,
+					"rentLow": 5,
+					"rentHigh": 7
+				}
+			],
+			"assets": {
+				"asOf": "2026-08",
+				"verified": false,
+				"landShare": {
+					"prime": {
+						"low": 0.22,
+						"high": 0.32
+					},
+					"urban": {
+						"low": 0.16,
+						"high": 0.24
+					},
+					"regional": {
+						"low": 0.1,
+						"high": 0.18
+					}
+				},
+				"commercialRents": {
+					"retail": {
+						"prime": {
+							"low": 14,
+							"high": 26
+						},
+						"urban": {
+							"low": 8,
+							"high": 15
+						},
+						"regional": {
+							"low": 5,
+							"high": 10
+						}
+					},
+					"office": {
+						"prime": {
+							"low": 9,
+							"high": 16
+						},
+						"urban": {
+							"low": 6,
+							"high": 11
+						},
+						"regional": {
+							"low": 4,
+							"high": 7
+						}
+					},
+					"industrial": {
+						"prime": {
+							"low": 3.5,
+							"high": 6
+						},
+						"urban": {
+							"low": 2.5,
+							"high": 4.5
+						},
+						"regional": {
+							"low": 1.8,
+							"high": 3.5
+						}
+					}
+				},
+				"yields": {
+					"residential": {
+						"prime": {
+							"low": 4,
+							"high": 5
+						},
+						"urban": {
+							"low": 4.5,
+							"high": 6
+						},
+						"regional": {
+							"low": 5.5,
+							"high": 7
+						}
+					},
+					"retail": {
+						"prime": {
+							"low": 5,
+							"high": 6.5
+						},
+						"urban": {
+							"low": 6,
+							"high": 7.5
+						},
+						"regional": {
+							"low": 7,
+							"high": 9
+						}
+					},
+					"office": {
+						"prime": {
+							"low": 5.5,
+							"high": 7
+						},
+						"urban": {
+							"low": 6.5,
+							"high": 8
+						},
+						"regional": {
+							"low": 7.5,
+							"high": 9.5
+						}
+					},
+					"industrial": {
+						"prime": {
+							"low": 7,
+							"high": 8.5
+						},
+						"urban": {
+							"low": 7.5,
+							"high": 9
+						},
+						"regional": {
+							"low": 8.5,
+							"high": 10.5
+						}
+					}
+				},
+				"agri": [
+					{
+						"prefecture": "Θεσσαλονίκη",
+						"dryLow": 2500,
+						"dryHigh": 5000,
+						"irrigatedLow": 5000,
+						"irrigatedHigh": 9000
+					},
+					{
+						"prefecture": "Χαλκιδική",
+						"dryLow": 4000,
+						"dryHigh": 9000,
+						"irrigatedLow": 7000,
+						"irrigatedHigh": 14000
+					},
+					{
+						"prefecture": "Πιερία",
+						"dryLow": 3000,
+						"dryHigh": 6000,
+						"irrigatedLow": 5000,
+						"irrigatedHigh": 10000
+					},
+					{
+						"prefecture": "Σέρρες",
+						"dryLow": 2000,
+						"dryHigh": 4500,
+						"irrigatedLow": 4000,
+						"irrigatedHigh": 8000
+					},
+					{
+						"prefecture": "Ημαθία",
+						"dryLow": 3000,
+						"dryHigh": 6000,
+						"irrigatedLow": 6000,
+						"irrigatedHigh": 12000
+					},
+					{
+						"prefecture": "Πέλλα",
+						"dryLow": 3000,
+						"dryHigh": 6000,
+						"irrigatedLow": 6000,
+						"irrigatedHigh": 12000
+					},
+					{
+						"prefecture": "Κιλκίς",
+						"dryLow": 1800,
+						"dryHigh": 4000,
+						"irrigatedLow": 3500,
+						"irrigatedHigh": 7000
+					}
+				]
+			}
 		}
 	]
 }
