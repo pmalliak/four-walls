@@ -375,6 +375,51 @@
 		return img;
 	}
 
+	/* The listing heading is written from the feed («Οροφοδιαμέρισμα 145 τ.μ.»),
+	   so its length is not ours to pick: at the theme's 64px the longer
+	   subcategories wrapped to a second line, which pushed the tag/address row
+	   under it out of line with the price on the right. Shrink the type just
+	   enough to keep the heading on one line — down to a floor (60% of the
+	   breakpoint's size), below which it is left to wrap rather than turn into
+	   small print. Re-run it on resize: the base size is per breakpoint. */
+	function fitOneLine(node) {
+		if (!node) return;
+		node.style.fontSize = "";
+		node.style.whiteSpace = "nowrap";
+		var base = parseFloat(window.getComputedStyle(node).fontSize) || 0;
+		var avail = node.clientWidth;
+		if (!base || !avail) { node.style.whiteSpace = ""; return; }
+		if (node.scrollWidth <= avail) return;
+		var min = Math.max(22, Math.round(base * 0.6));
+		var size = Math.max(min, Math.floor(base * avail / node.scrollWidth));
+		node.style.fontSize = size + "px";
+		/* Scaling by the overflow ratio is only an estimate — glyph widths do
+		   not track the type size exactly — so step down until it truly fits. */
+		while (size > min && node.scrollWidth > avail) {
+			size -= 1;
+			node.style.fontSize = size + "px";
+		}
+		if (node.scrollWidth > avail) node.style.whiteSpace = "";
+	}
+
+	/* Fit the detail page's h1 now, again once the webfont has swapped in (the
+	   fallback face measures differently) and on every resize. */
+	var titleRefit, titleBound = false;
+	function keepTitleOnOneLine() {
+		var node = document.getElementById("fw-title");
+		if (!node) return;
+		fitOneLine(node);
+		if (document.fonts && document.fonts.ready) {
+			document.fonts.ready.then(function () { fitOneLine(node); });
+		}
+		if (titleBound) return;
+		titleBound = true;
+		window.addEventListener("resize", function () {
+			clearTimeout(titleRefit);
+			titleRefit = setTimeout(function () { fitOneLine(node); }, 150);
+		});
+	}
+
 	/* Which glyph stands for the listing's type in the overview strip.
 	   Four buckets is the whole set — every EstatePrime category maps to a
 	   home, a commercial building, bare land or a parking space. */
@@ -870,8 +915,11 @@
 		var m = window.location.pathname.match(/\/(?:properties|akinit[ao])\/([^\/]+?)\/?$/);
 		var key = m ? decodeURIComponent(m[1]) : new URLSearchParams(window.location.search).get("id");
 		var l = findByKey(feed, key);
+		/* Whatever ends up in the heading (a listing or «δεν βρέθηκε»), it is
+		   kept to one line — see fitOneLine, and keepTitleOnOneLine below. */
 		if (!l) {
 			document.getElementById("fw-title").textContent = STR.notFound;
+			keepTitleOnOneLine();
 			document.getElementById("fw-detail").querySelectorAll(".fw-when-found")
 				.forEach(function (n) { n.style.display = "none"; });
 			return;
@@ -885,6 +933,7 @@
 		var title = heading + (loc(l, "area") ? ", " + loc(l, "area") : "");
 		document.title = title + " | Four Walls";
 		setText("fw-title", heading);
+		keepTitleOnOneLine();
 		setText("fw-tag", TRANSACTION[l.transaction] || l.transaction || "");
 		setText("fw-address", " " + [shortAddress(l), loc(l, "city")].filter(Boolean).join(", "));
 		setText("fw-code", l.code ? STR.refLabel + l.code : "");
@@ -1104,11 +1153,16 @@
 			show("fw-video-block");
 		}
 
-		/* map (approximate coordinates by design — privacy) */
-		if (l.location.lat != null && l.location.lng != null) {
-			document.getElementById("fw-map").src =
-				"https://maps.google.com/maps?q=" + l.location.lat + "," + l.location.lng +
-				"&z=15&hl=" + LANG + "&output=embed";
+		/* map: an approximate AREA CIRCLE, never a precise pin, because the
+		   stored coordinates are already fuzzed for privacy (see the
+		   «κατά προσέγγιση» note in property.html). Branded MapLibre map
+		   from js/map.fw.js; if that couldn't load, hide the block. */
+		if (l.location.lat != null && l.location.lng != null &&
+			window.FWMap && window.FWMap.approximate) {
+			window.FWMap.approximate(
+				document.getElementById("fw-map"),
+				l.location.lat, l.location.lng, { radius: 250 }
+			);
 		} else {
 			hide("fw-map-block");
 		}

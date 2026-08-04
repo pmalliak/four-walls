@@ -465,6 +465,14 @@
   height: 33px;
   z-index: 1;
 }
+/* On the property page the map lives inside .map-banner, which already
+   has an explicit height (485px desktop / 400px mobile). Fill it exactly
+   instead of forcing the contact map's 450px min-height, so the banner
+   isn't overflowed/clipped on mobile. */
+.property-location .map-banner .fw-map {
+  min-height: 0;
+  height: 100%;
+}
 /* MapLibre UI, nudged toward the brand */
 .fw-map .maplibregl-ctrl-group {
   border-radius: 8px;
@@ -753,6 +761,39 @@
    rounded, overflow-hidden ancestor. */
 #fw-gallery .fw-shot { border-radius: 20px; }
 #fw-thumbs .fw-shot { border-radius: 10px; }
+
+/* Gallery arrows — the theme flips the white circles to BLACK on hover,
+   which reads as a different site from the «φωτογραφίες» button sitting
+   in the opposite corner of the same photo (that one is already brand
+   pink in the .fw build). Same accent for both. */
+#media_slider .carousel-control-prev:hover,
+#media_slider .carousel-control-next:hover,
+#media_slider .carousel-control-prev:focus-visible,
+#media_slider .carousel-control-next:focus-visible {
+  background: #ff0062;
+  color: #fff;
+}
+
+/* Which thumbnail you are looking at. The theme leaves every thumb
+   identical (`border:none; opacity:1`), so the column gave no clue which
+   photo was on screen. Ring the active one in brand pink — the same
+   accent the «φωτογραφίες» button hovers to right beside it.
+
+   An OUTLINE, not a border: the thumb button is also the .fw-shot frame,
+   so a border would shrink the photo inside it and shift the whole column
+   every time you clicked. The outline is drawn outside the box, follows
+   the 10px radius, and eats none of the 25px gap. */
+#fw-thumbs button {
+  border-radius: 10px;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: outline-color 0.2s ease-in-out;
+}
+#fw-thumbs button:hover { outline-color: rgba(255, 0, 98, 0.35); }
+#fw-thumbs button.active { outline-color: #ff0062; }
+/* The transparent outline above would otherwise swallow the browser's own
+   focus ring, leaving keyboard users nothing to follow. */
+#fw-thumbs button:focus-visible { outline-color: #1C3457; }
 
 /* Thumbnail column, desktop only (below lg the theme lays it out as a strip
    under the photo). The theme stacks the thumbs from the top with a fixed
