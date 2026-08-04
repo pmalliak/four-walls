@@ -34,8 +34,8 @@
 						<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eceef2; border-radius:6px; overflow:hidden;">
 
 							{% if listing.photos %}
-								<tr><td style="padding:0;">
-									<a href="{{ listing.url }}" style="display:block;"><img src="{{ listing.photos.0 }}" alt="{{ listing.title }}" width="480" style="width:100%; max-width:480px; height:300px; object-fit:cover; display:block; border:0;"></a>
+								<tr><td align="center" height="270" bgcolor="#16233A" style="padding:0; height:270px; background-color:#16233A;">
+									<a href="{{ listing.url }}" style="display:block;"><img src="{{ listing.photos.0 }}" alt="{{ listing.title }}" width="480" style="max-width:100%; max-height:270px; width:auto; height:auto; margin:0 auto; display:block; border:0;"></a>
 								</td></tr>
 							{% endif %}
 

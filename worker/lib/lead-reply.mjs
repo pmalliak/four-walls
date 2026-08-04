@@ -195,7 +195,7 @@ function listingCard(l, lang, campaign) {
 	const addr = [hood && (!district || !district.includes(hood)) ? hood : null, district]
 		.filter(Boolean).join(", ");
 	return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eceef2; border-radius:6px; overflow:hidden;">
-	${photo ? `<tr><td style="padding:0;"><a href="${url}" style="display:block;"><img src="${esc(photo)}" alt="" width="480" style="width:100%; max-width:480px; height:260px; object-fit:cover; display:block; border:0;"></a></td></tr>` : ""}
+	${photo ? `<tr><td align="center" height="270" bgcolor="#16233A" style="padding:0; height:270px; background-color:#16233A;"><a href="${url}" style="display:block;"><img src="${esc(photo)}" alt="" width="480" style="max-width:100%; max-height:270px; width:auto; height:auto; margin:0 auto; display:block; border:0;"></a></td></tr>` : ""}
 	<tr><td style="padding:12px 14px 14px 14px; font-size:14px; line-height:1.6; color:#16233A;">
 		<div style="font-size:15px; font-weight:bold; color:#16233A; margin:0 0 4px 0;">${esc(heading)}</div>
 		${addr ? `<div style="font-size:13px; color:#777777; margin:0 0 4px 0;">${esc(addr)}</div>` : ""}

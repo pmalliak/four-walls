@@ -52,6 +52,35 @@ The matchings email ends with a **«σταματήστε τις προτάσει
 Both families expose `listings` as an **array with `{% for %}`** — a ζήτηση or a
 recommendation batch can carry several listings.
 
+## Το κουτί της φωτογραφίας: 16:9, ολόκληρη, ποτέ κομμένη
+
+Και τα δύο email δείχνουν την πρώτη φωτογραφία σε κουτί **480×270 (16:9)** με
+φόντο navy `#16233A`, και η φωτογραφία μπαίνει **ολόκληρη** μέσα του
+(`max-height:270px; width:auto`), με σκίαση δεξιά/αριστερά όταν είναι κάθετη.
+
+Ήταν `height:300px; object-fit:cover` — δηλαδή κόψιμο. Δύο λόγοι που άλλαξε
+(04/08/2026):
+
+1. **Το watermark φεύγει.** Κάθεται 3,5% μέσα από την κάτω δεξιά γωνία, οπότε
+   είναι το πρώτο που βγαίνει έξω σε κάθε κόψιμο — τα emails έγραφαν «FOURWAL»
+   ακριβώς όπως έκαναν και οι κάρτες του site πριν διορθωθούν
+   ([docs/photo-enhance.md](../docs/photo-enhance.md)).
+2. **Οι κάθετες γίνονταν ζουμ σε μια λωρίδα στη μέση** — ένα τριώροφο
+   φαινόταν σαν μπαλκόνι.
+
+Το 16:9 δεν είναι αυθαίρετο: είναι ο λόγος που επιστρέφει το pipeline
+επεξεργασίας, οπότε μια περασμένη από εκεί φωτογραφία γεμίζει το κουτί
+ακριβώς, χωρίς μπάρες. Ίδιος κανόνας στο site (`.fw-shot` στο
+`css/fourwalls.css`, με θολωμένο αντίγραφο αντί για σκέτο navy — το email δεν
+έχει blur) και στο auto-reply των Spitogatos leads
+([worker/lib/lead-reply.mjs](../worker/lib/lead-reply.mjs)).
+
+`object-fit` **δεν** δουλεύει σε πολλούς email clients — εκεί το παλιό markup
+δεν έκοβε καν, τέντωνε τη φωτογραφία στα 480×300. Το `max-height` που το
+αντικατέστησε το καταλαβαίνουν Gmail, Apple Mail/Spark, Zoho, Outlook.com·
+ο desktop Outlook (μηχανή Word) αγνοεί και τα δύο, γι' αυτό μένει και το
+`width="480"` attribute ως δίχτυ.
+
 ## The two hosted landing pages (where the email buttons go)
 
 The recommendation/matching emails link to **EstatePrime-hosted** pages, not to

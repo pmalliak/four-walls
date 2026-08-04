@@ -214,6 +214,13 @@ ratio this pipeline hands back) and fits the photo whole inside it rather
 than cropping, so a pipeline photo fills its frame exactly. If the frames
 are ever re-cut, cut them to 16:9 (see `css/fourwalls.css`, `.fw-shot`).
 
+**Same rule in the emails we send** (same day): the listing cards in the
+ζήτηση-matchings and «Προτάσεις Ακινήτων» templates and in the Spitogatos
+auto-reply were cropping to 480×300 — cutting the mark and zooming portrait
+shots into a middle band. They now letterbox into a 480×270 box on navy
+`#16233A`; no blurred backdrop as on the site, because email clients have no
+`filter`. See [../crm/README.md](../crm/README.md).
+
 ### Disclaimer overlays (`staging_notice`, `render_notice`)
 
 Ticking «Εικονική επίπλωση» reveals a **pre-ticked** sub-option that stamps
