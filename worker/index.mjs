@@ -280,8 +280,9 @@ export default {
 		}
 		// Μηνιαίος έλεγχος του πίνακα τιμών περιοχών: το Make το καλεί μία
 		// φορά τον μήνα και στέλνει το αποτέλεσμα στον Πάνο για έγκριση.
-		// Χωρίς κλειδί — μηνιαία cache στο KV φράσσει το κόστος. Βλ.
-		// worker/lib/area-prices-refresh.mjs.
+		// Χωρίς κλειδί — μηνιαία cache στο KV φράσσει το κόστος· το
+		// ?fresh=<sig> του email παρακάμπτει το cache (HMAC του μήνα, με
+		// όριο επανεκτελέσεων). Βλ. worker/lib/area-prices-refresh.mjs.
 		if (pathname === "/api/area-prices-refresh") {
 			return handleAreaPricesRefresh(request, env);
 		}

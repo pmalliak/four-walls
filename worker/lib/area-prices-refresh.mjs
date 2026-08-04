@@ -29,6 +29,21 @@
    Η κατάχρηση φράσσεται έτσι σε ~μία κλήση Gemini τον μήνα, τα retries
    του Make σερβίρονται δωρεάν, και το περιεχόμενο είναι ούτως ή άλλως
    δημόσια στοιχεία αγοράς.
+
+   ΚΑΙ ΟΤΑΝ ΤΟ CACHE ΕΙΝΑΙ ΛΑΘΟΣ; Ακριβώς επειδή το cache είναι η μόνη
+   άμυνα, ήταν και φυλακή: αν ο έλεγχος του μήνα έτρεξε με μισό κώδικα
+   (π.χ. πριν προστεθεί το σκέλος «γη & επαγγελματικά»), το email έμενε
+   κολλημένο μέχρι την 1η του επόμενου μήνα. Γι' αυτό το email κουβαλά
+   κουμπί «ξανατρέξε τον έλεγχο»:
+
+     GET /api/area-prices-refresh?fresh=<sig>
+
+   Το <sig> είναι HMAC του WEBHOOK_KEY πάνω στον ΜΗΝΑ — δεν είναι το ίδιο
+   το μυστικό (δεν ταξιδεύει ποτέ σε mailbox), δεν δουλεύει τον επόμενο
+   μήνα, και το KV μετρά τις επανεκτελέσεις (MAX_RERUNS): ακόμη κι αν
+   διαρρεύσει ο σύνδεσμος, το πολύ τόσες κλήσεις Gemini. Το πάτημα του
+   κουμπιού αγνοεί το cache, ξαναγράφει και τα δύο σκέλη, και επιστρέφει
+   το ίδιο το email ως σελίδα (ο Πάνος το ανοίγει από το κινητό).
    ===================================================================== */
 
 import {
@@ -39,21 +54,52 @@ import {
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 const DEFAULT_MODEL = "gemini-3.5-flash";
 const CACHE_PREFIX = "area-prices-refresh:";
+const RERUN_PREFIX = "area-prices-refresh-runs:";
+const MAX_RERUNS = 3; // επανεκτελέσεις με το κουμπί, ανά μήνα
+
+/* Έκδοση του δελτίου. ΑΝΕΒΑΣΕ ΤΗΝ όταν το email αποκτά περιεχόμενο που το
+   παλιό cache δεν μπορεί να έχει (νέο σκέλος, νέα πεδία). Δελτίο άλλης
+   έκδοσης μετριέται ως μπαγιάτικο και ξανατρέχει μία φορά — αλλιώς μια
+   βελτίωση που έγινε στις 2 του μήνα περιμένει την 1η του επόμενου.
+   v2: προστέθηκε το σκέλος «γη, επαγγελματικά, αποδόσεις». */
+const EMAIL_VERSION = 2;
 
 export async function handleAreaPricesRefresh(request, env) {
 	if (request.method !== "GET") return json({ error: "method_not_allowed" }, 405);
 	if (!env.GEMINI_API_KEY) return json({ error: "not_configured" }, 503);
 
+	const url = new URL(request.url);
 	const month = new Date().toISOString().slice(0, 7);
 	const cacheKey = CACHE_PREFIX + month;
-	const cached = await env.LISTINGS_KV.get(cacheKey);
-	if (cached) return json(JSON.parse(cached), 200);
+
+	/* Το κουμπί του email. Ο σύνδεσμος ανοίγεται από browser, οπότε ό,τι
+	   γυρίσει εδώ το βλέπει άνθρωπος — και σφάλμα και αποτέλεσμα. */
+	const sig = url.searchParams.get("fresh");
+	if (sig !== null) {
+		const expected = await freshSig(env, month);
+		if (!expected || !safeEqual(sig, expected)) return page("Ο σύνδεσμος δεν ισχύει — είναι περσινού ή άλλου μήνα.", 403);
+		const runs = Number(await env.LISTINGS_KV.get(RERUN_PREFIX + month)) || 0;
+		if (runs >= MAX_RERUNS) {
+			return page(`Ο έλεγχος έχει ήδη ξανατρέξει ${runs} φορές αυτόν τον μήνα — περίμενε την 1η του επόμενου. (Το όριο υπάρχει για να μη γίνει ο σύνδεσμος βρύση κλήσεων Gemini.)`, 429);
+		}
+		// Μετράμε ΠΡΙΝ την κλήση: μια αποτυχία που χρεώθηκε πρέπει να
+		// μετρήσει, αλλιώς ένα βρόχος σφαλμάτων παρακάμπτει το όριο.
+		await env.LISTINGS_KV.put(RERUN_PREFIX + month, String(runs + 1), { expirationTtl: 40 * 24 * 3600 });
+	} else {
+		const cached = await env.LISTINGS_KV.get(cacheKey);
+		if (cached) {
+			const prev = JSON.parse(cached);
+			if (prev.v === EMAIL_VERSION) return json(prev, 200);
+			console.log(`area-prices-refresh: cached bulletin is v${prev.v || 1}, current is v${EMAIL_VERSION} — rerunning`);
+		}
+	}
 
 	let rows;
 	try {
 		rows = await askGeminiWithSearch(env);
 	} catch (err) {
 		console.error(`area-prices-refresh: ${String(err)}`);
+		if (sig !== null) return page(`Ο έλεγχος απέτυχε: ${String(err).slice(0, 200)}. Ξαναδοκίμασε — μετρήθηκε μία από τις ${MAX_RERUNS} επανεκτελέσεις του μήνα.`, 502);
 		return json({ error: "refresh_failed", detail: String(err).slice(0, 200) }, 502);
 	}
 
@@ -76,9 +122,46 @@ export async function handleAreaPricesRefresh(request, env) {
 	// πραγματικά, και του δείχνει πού να κοιτάξει.
 	const stock = await feedMedians(env);
 
-	const email = buildEmail(rows, stock, assets);
+	const email = buildEmail(rows, stock, assets, url.origin, await freshSig(env, month));
 	await env.LISTINGS_KV.put(cacheKey, JSON.stringify(email), { expirationTtl: 40 * 24 * 3600 });
+	// Το cache ξαναγράφτηκε: το επόμενο τρέξιμο του Make (ή ένα retry)
+	// στέλνει ΑΥΤΟ το email, όχι το παλιό.
+	if (sig !== null) return new Response(email.html, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
 	return json(email, 200);
+}
+
+/* Η υπογραφή του «ξανατρέξε»: HMAC του WEBHOOK_KEY πάνω στον μήνα. Χωρίς
+   ημερομηνία λήξης επίτηδες — ο ίδιος ο μήνας ΕΙΝΑΙ η λήξη, και έτσι ο
+   σύνδεσμος του email δουλεύει όσο το email είναι επίκαιρο, ούτε μέρα
+   παραπάνω. Αν λείπει το WEBHOOK_KEY, δεν υπάρχει κουμπί καθόλου. */
+async function freshSig(env, month) {
+	if (!env.WEBHOOK_KEY) return "";
+	const key = await crypto.subtle.importKey(
+		"raw", new TextEncoder().encode(env.WEBHOOK_KEY),
+		{ name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+	);
+	const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`area-prices-refresh:${month}`));
+	return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+}
+
+function safeEqual(a, b) {
+	if (a.length !== b.length) return false;
+	let diff = 0;
+	for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+	return diff === 0;
+}
+
+/* Ό,τι βλέπει ο άνθρωπος που πάτησε το κουμπί, όταν δεν έχουμε email να
+   του δείξουμε. */
+function page(message, status) {
+	return new Response(`<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Τιμές περιοχών</title></head>
+<body style="margin:0; background:#f4f5f7; font-family:Arial,sans-serif;">
+<div style="max-width:520px; margin:40px auto; background:#fff; border-radius:8px; overflow:hidden;">
+	<div style="background:${NAVY}; padding:15px 20px;"><span style="color:#fff; font-size:18px; font-weight:bold; letter-spacing:1.5px;">FOUR WALLS</span></div>
+	<div style="height:3px; background:${PINK};"></div>
+	<div style="padding:20px; font-size:14px; color:#333; line-height:1.6;">${esc(message)}</div>
+</div>
+</body></html>`, { status, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
 }
 
 const FEED_KEY = "listings.json"; // ίδιο με τον worker/index.mjs
@@ -318,7 +401,7 @@ function assetsJsBlock(assets) {
 	return parts.join("\n\n");
 }
 
-function buildEmail(data, stock, assets) {
+function buildEmail(data, stock, assets, origin, sig) {
 	const proposed = Array.isArray(data.rows) ? data.rows : [];
 	const byArea = new Map(proposed.map((r) => [r.area, r]));
 	const today = new Date().toISOString().slice(0, 7);
@@ -409,6 +492,10 @@ function buildEmail(data, stock, assets) {
 		<div style="font-size:16px; font-weight:bold; color:${NAVY}; margin-top:4px;">${esc(subject)}</div>
 		${data.summary ? `<div style="font-size:13px; color:#444; margin-top:8px; line-height:1.55;">${esc(data.summary)}</div>` : ""}
 		<div style="font-size:12px; color:#6b7280; margin-top:8px;">Τρέχων πίνακας: ${esc(AREA_PRICES_META.asOf)}. Τίποτα δεν έχει αλλάξει μόνο του — για να εφαρμοστεί, πες στον Claude «εφάρμοσε τον νέο πίνακα τιμών από το email» ή επικόλλησε το block από κάτω στο <code>worker/lib/area-prices.mjs</code>.</div>
+		${sig ? `<div style="margin-top:12px;">
+			<a href="${esc(origin)}/api/area-prices-refresh?fresh=${esc(sig)}" style="display:inline-block; background:${NAVY}; color:#ffffff; text-decoration:none; font-size:12.5px; font-weight:bold; padding:9px 16px; border-radius:6px;">Ξανατρέξε τον έλεγχο τώρα</a>
+			<span style="font-size:11.5px; color:#9aa3af; margin-left:8px;">νέα αναζήτηση, ανοίγει το φρέσκο δελτίο στον browser · έως ${MAX_RERUNS} φορές τον μήνα</span>
+		</div>` : ""}
 	</td></tr>
 	${allIndices.length ? `<tr><td style="padding:14px 20px 0;">
 		<div style="font-size:12px; font-weight:bold; letter-spacing:1px; color:${NAVY}; margin-bottom:6px;">ΕΠΙΣΗΜΟΙ ΔΕΙΚΤΕΣ — ΤΟ ΜΕΤΡΟ ΤΗΣ ΤΑΣΗΣ</div>
@@ -456,10 +543,11 @@ function buildEmail(data, stock, assets) {
 </td></tr></table>
 </body></html>`;
 
-	// Τα rows (και οι δείκτες/τάση) μπαίνουν και στο cached αντικείμενο
-	// ώστε το «εφάρμοσε τον πίνακα από το email» να διαβάζει δομημένα
-	// δεδομένα από το KV αντί να κάνει parsing στο HTML.
-	return { subject, html, flagged, proposed_count: proposed.length, rows: proposed, indices: Array.isArray(data.indices) ? data.indices : [], trend: trendLine };
+	// Τα rows (και οι δείκτες/τάση, και το σκέλος γης/επαγγελματικών)
+	// μπαίνουν και στο cached αντικείμενο ώστε το «εφάρμοσε τον πίνακα από
+	// το email» να διαβάζει δομημένα δεδομένα από το KV αντί να κάνει
+	// parsing στο HTML — το HTML είναι για μάτια, όχι για μηχανή.
+	return { v: EMAIL_VERSION, subject, html, flagged, proposed_count: proposed.length, rows: proposed, indices: Array.isArray(data.indices) ? data.indices : [], trend: trendLine, assets: assets || null };
 }
 
 function json(obj, status) {
