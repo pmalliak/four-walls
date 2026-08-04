@@ -9,6 +9,11 @@
    WHICH categories depends on what the property IS (see PROFILES below).
    A school next door sells a family flat and is noise on an office listing:
 
+   A category's band weighs ALL of what it needs, not just the closest thing
+   in it: a chemist downstairs does not buy the groceries, so «ψώνια» goes to
+   "excellent" only when the food shop and the pharmacy are both close (see
+   `combine` on CATEGORIES).
+
      home       transit · errands · education · leisure
      workplace  transit · dining · errands · parking
      logistics  transit · roads · parking
@@ -16,10 +21,11 @@
 
    Ratings are qualitative bands (excellent…limited) — NOT invented 0–100
    numbers — and AREA-LEVEL / approximate (published coords are fuzzed for
-   privacy). The result per category is { band, type, m } where `type` is a
-   POI slug the site localises and `m` is the straight-line metres, plus an
-   optional `also: { type, m }` runner-up (transit reports the rail stop and
-   the bus stop, since both are how you get out of the neighbourhood).
+   privacy). The result per category is { band, type, m } for the closest POI
+   that earned it, where `type` is a slug the site localises and `m` is the
+   straight-line metres, plus `also: [{ type, m }, …]` with the runners-up so
+   the page can show what else is around (the pharmacy AND the supermarket,
+   the bus stop AND the metro).
 
    USAGE — precompute OFFLINE, read in the Worker.
      Overpass is NOT reachable from the Cloudflare Worker (its outbound
@@ -62,86 +68,137 @@ function bandCeil(band, cap) {
 	return BAND_ORDER.indexOf(band) > BAND_ORDER.indexOf(cap) ? cap : band;
 }
 
-/* Each category grades by walking distance to the nearest relevant POI, and
-   carries the OSM selectors that find those POIs so the query only ever asks
-   for what the listing's profile actually uses (see PROFILES). A category may
-   define `tiers`, each rated on its own so one never hides another: the best
-   band takes the card and the runner-up is reported next to it as `also`
-   (transit names both the rail stop and the bus stop). Equal bands keep the
-   order declared here, so rail wins a tie. `match` returns a `type` slug the
-   site localises; `cap` ceilings a tier's band, which is how a bus-only area
-   stays off "excellent" however close the stop is. `bands` overrides the
-   walking bands for a category measured by car. */
+/* Each category is a list of `needs`, and each need is one errand you actually
+   run: the food shop, the chemist, the school. A need carries the OSM
+   selectors that find it (so the query only ever asks for what the listing's
+   profile uses) and a `match` returning a `type` slug the site localises.
+
+   HOW A CATEGORY'S BAND COMES OUT — `combine`:
+     "all"  (default) the needs are COMPLEMENTARY and the band is the average
+            of the `core` ones, because a chemist downstairs does not buy the
+            groceries: «ψώνια» is only excellent when the food shop AND the
+            pharmacy are both close. A core need with nothing in range counts
+            as `limited`, which is real information about the area.
+            Needs WITHOUT `core` never enter the sum and are only ever shown:
+            a bonus must not punish (a university 1.2 km off is no reason to
+            mark down a flat with a school at 200 m), and they are exactly the
+            things Greek OSM maps patchily (greengrocers, squares, gyms,
+            nurseries), so their absence must stay silent. Keep `core` for what
+            everybody needs AND mappers reliably record.
+     "best" the needs are ALTERNATIVES and the best one takes the band: metro
+            OR bus both get you out of the neighbourhood, so a station at the
+            edge of the radius must not drag down the stop round the corner.
+
+   Either way the runner-up needs ride along in `also` so the page names them.
+   `cap` ceilings a need's band (a bus-only area never reads "excellent" however
+   close the stop). `bands` overrides the walking bands for a category measured
+   by car. */
 const CATEGORIES = {
 	transit: {
 		radius: 1600,
-		selectors: ["[station=subway]", "[railway=station]", "[railway=subway_entrance]",
-			"[railway=tram_stop]", "[railway=halt]", "[highway=bus_stop]"],
-		tiers: [
-			{ match: (t) =>
-				(t.station === "subway" || t.railway === "station" || t.railway === "subway_entrance") ? "metro" :
-				t.railway === "tram_stop" ? "tram" :
-				t.railway === "halt" ? "train" : null },
-			{ cap: "good", match: (t) => t.highway === "bus_stop" ? "bus" : null },
+		combine: "best", // metro or bus: alternatives, not a shopping list
+		needs: [
+			{ key: "rail",
+				selectors: ["[station=subway]", "[railway=station]", "[railway=subway_entrance]",
+					"[railway=tram_stop]", "[railway=halt]"],
+				match: (t) =>
+					(t.station === "subway" || t.railway === "station" || t.railway === "subway_entrance") ? "metro" :
+					t.railway === "tram_stop" ? "tram" :
+					t.railway === "halt" ? "train" : null },
+			{ key: "bus", cap: "good",
+				selectors: ["[highway=bus_stop]"],
+				match: (t) => t.highway === "bus_stop" ? "bus" : null },
 		],
 	},
 	errands: {
 		radius: 1200,
-		selectors: ["[shop=supermarket]", "[shop=bakery]", "[amenity=pharmacy]",
-			"[shop=convenience]", "[shop=greengrocer]"],
-		tiers: [{ match: (t) =>
-			t.shop === "supermarket" ? "supermarket" :
-			t.shop === "bakery" ? "bakery" :
-			t.amenity === "pharmacy" ? "pharmacy" :
-			(t.shop === "convenience" || t.shop === "greengrocer") ? "convenience" : null }],
+		needs: [
+			/* The weekly shop. Supermarket first, but a mini market or a
+			   greengrocer is what a lot of Greek blocks actually live off. */
+			{ key: "food", core: true,
+				selectors: ["[shop=supermarket]", "[shop=convenience]", "[shop=greengrocer]"],
+				match: (t) => t.shop === "supermarket" ? "supermarket"
+					: (t.shop === "convenience" || t.shop === "greengrocer") ? "convenience" : null },
+			{ key: "pharmacy", core: true,
+				selectors: ["[amenity=pharmacy]"],
+				match: (t) => t.amenity === "pharmacy" ? "pharmacy" : null },
+			{ key: "bakery",
+				selectors: ["[shop=bakery]"],
+				match: (t) => t.shop === "bakery" ? "bakery" : null },
+		],
 	},
 	education: {
 		radius: 1400,
-		selectors: ["[amenity=school]", "[amenity=kindergarten]", "[amenity=university]", "[amenity=college]"],
-		tiers: [{ match: (t) =>
-			t.amenity === "school" ? "school" :
-			t.amenity === "kindergarten" ? "kindergarten" :
-			t.amenity === "university" ? "university" :
-			t.amenity === "college" ? "college" : null }],
+		needs: [
+			{ key: "school", core: true,
+				selectors: ["[amenity=school]"],
+				match: (t) => t.amenity === "school" ? "school" : null },
+			/* Nurseries and universities are mapped far less consistently, so
+			   they add to the score when they are there and never subtract. */
+			{ key: "preschool",
+				selectors: ["[amenity=kindergarten]"],
+				match: (t) => t.amenity === "kindergarten" ? "kindergarten" : null },
+			{ key: "higher",
+				selectors: ["[amenity=university]", "[amenity=college]"],
+				match: (t) => t.amenity === "university" ? "university"
+					: t.amenity === "college" ? "college" : null },
+		],
 	},
 	leisure: {
 		radius: 1200,
-		selectors: ["[leisure=park]", "[leisure=garden]", "[place=square]", "[leisure=playground]",
-			"[leisure=fitness_centre]", "[leisure=sports_centre]", "[amenity=cafe]", "[amenity=restaurant]"],
-		tiers: [{ match: (t) =>
-			(t.leisure === "park" || t.leisure === "garden") ? "park" :
-			t.place === "square" ? "square" :
-			t.leisure === "playground" ? "playground" :
-			(t.leisure === "fitness_centre" || t.leisure === "sports_centre") ? "gym" :
-			(t.amenity === "cafe" || t.amenity === "restaurant") ? "dining" : null }],
+		needs: [
+			{ key: "green", core: true,
+				selectors: ["[leisure=park]", "[leisure=garden]", "[place=square]"],
+				match: (t) => (t.leisure === "park" || t.leisure === "garden") ? "park"
+					: t.place === "square" ? "square" : null },
+			{ key: "dining", core: true,
+				selectors: ["[amenity=cafe]", "[amenity=restaurant]"],
+				match: (t) => (t.amenity === "cafe" || t.amenity === "restaurant") ? "dining" : null },
+			{ key: "active",
+				selectors: ["[leisure=playground]", "[leisure=fitness_centre]", "[leisure=sports_centre]"],
+				match: (t) => t.leisure === "playground" ? "playground"
+					: (t.leisure === "fitness_centre" || t.leisure === "sports_centre") ? "gym" : null },
+		],
 	},
 	/* Where the staff go for lunch. Tighter than the leisure radius on
-	   purpose: a lunch break is a short walk, not an outing. */
+	   purpose: a lunch break is a short walk, not an outing. Anywhere that
+	   feeds you will do, so these are alternatives. */
 	dining: {
 		radius: 700,
-		selectors: ["[amenity=cafe]", "[amenity=restaurant]", "[amenity=fast_food]", "[shop=bakery]"],
-		tiers: [{ match: (t) =>
-			t.amenity === "restaurant" ? "restaurant" :
-			t.amenity === "cafe" ? "cafe" :
-			t.amenity === "fast_food" ? "fastfood" :
-			t.shop === "bakery" ? "bakery" : null }],
+		combine: "best",
+		needs: [
+			{ key: "sitdown",
+				selectors: ["[amenity=restaurant]", "[amenity=cafe]"],
+				match: (t) => t.amenity === "restaurant" ? "restaurant"
+					: t.amenity === "cafe" ? "cafe" : null },
+			{ key: "quick",
+				selectors: ["[amenity=fast_food]", "[shop=bakery]"],
+				match: (t) => t.amenity === "fast_food" ? "fastfood"
+					: t.shop === "bakery" ? "bakery" : null },
+		],
 	},
 	/* Somewhere for customers and staff to leave the car. On-street parking
 	   is not mapped consistently enough to count, so this is car parks only. */
 	parking: {
 		radius: 800,
-		selectors: ["[amenity=parking]"],
-		tiers: [{ match: (t) => t.amenity === "parking"
-			? (t.parking === "multi-storey" || t.parking === "underground" ? "garage" : "carpark")
-			: null }],
+		needs: [
+			{ key: "parking", core: true,
+				selectors: ["[amenity=parking]"],
+				match: (t) => t.amenity === "parking"
+					? (t.parking === "multi-storey" || t.parking === "underground" ? "garage" : "carpark")
+					: null },
+		],
 	},
 	/* Lorry access, so measured by car, not on foot: what matters for a
 	   warehouse is how fast it reaches the ring road or the motorway. */
 	roads: {
 		radius: 8000,
 		bands: [[2000, "excellent"], [4000, "verygood"], [6000, "good"]],
-		selectors: ["[highway=motorway_junction]"],
-		tiers: [{ match: (t) => t.highway === "motorway_junction" ? "junction" : null }],
+		needs: [
+			{ key: "junction", core: true,
+				selectors: ["[highway=motorway_junction]"],
+				match: (t) => t.highway === "motorway_junction" ? "junction" : null },
+		],
 	},
 };
 
@@ -196,7 +253,9 @@ function overpassQuery(lat, lng, keys) {
 	const parts = [];
 	for (const key of keys) {
 		const cat = CATEGORIES[key];
-		for (const s of cat.selectors) parts.push(`nwr(around:${cat.radius},${lat},${lng})${s};`);
+		for (const need of cat.needs) {
+			for (const s of need.selectors) parts.push(`nwr(around:${cat.radius},${lat},${lng})${s};`);
+		}
 	}
 	return `[out:json][timeout:30];(${parts.join("")});out center tags;`;
 }
@@ -232,17 +291,13 @@ function scoreFromElements(lat, lng, elements, keys) {
 	const out = {};
 	for (const key of keys) {
 		const cat = CATEGORIES[key];
-		/* Rate EVERY tier, not just the first one that matches: a metro stop
-		   at the far edge of the radius must not hide the bus stop round the
-		   corner, because the bus is public transport too. The best band wins the
-		   card (ties go to the higher tier, so rail still beats bus when they
-		   are level) and the runner-up rides along in `also`, so the page can
-		   name both. */
+		/* Rate every need on its own, so none can hide another. */
 		const hits = [];
-		for (const tier of cat.tiers) {
+		let missingCore = 0;
+		for (const need of cat.needs) {
 			let best = null;
 			for (const el of elements) {
-				const type = tier.match(el.tags || {});
+				const type = need.match(el.tags || {});
 				if (!type) continue;
 				const eLat = el.lat ?? el.center?.lat, eLng = el.lon ?? el.center?.lon;
 				if (eLat == null) continue;
@@ -250,14 +305,47 @@ function scoreFromElements(lat, lng, elements, keys) {
 				if (m > cat.radius) continue;
 				if (!best || m < best.m) best = { type, m: Math.round(m) };
 			}
-			if (!best) continue;
+			if (!best) {
+				if (need.core) missingCore++; // nothing of the sort within reach
+				continue;
+			}
 			const raw = bandFor(best.m, cat.bands);
-			hits.push({ band: tier.cap ? bandCeil(raw, tier.cap) : raw, type: best.type, m: best.m });
+			hits.push({ band: need.cap ? bandCeil(raw, need.cap) : raw, type: best.type, m: best.m,
+				core: !!need.core });
 		}
-		// Stable sort, so an equal band keeps the tier order declared above.
+		// Best first. Stable, so an equal band keeps the order declared above
+		// (rail before bus, the food shop before the bakery).
 		hits.sort((a, b) => BAND_ORDER.indexOf(b.band) - BAND_ORDER.indexOf(a.band));
-		const result = hits[0] || { band: "limited", type: null, m: null };
-		if (hits[1]) result.also = { type: hits[1].type, m: hits[1].m };
+
+		let band;
+		if (!hits.length) {
+			band = "limited";
+		} else if (cat.combine === "best") {
+			band = hits[0].band; // alternatives: the best way out is the answer
+		} else {
+			/* Complementary needs: average the CORE bands, counting each core
+			   need with nothing in range as `limited`. Optional needs are left
+			   out of the sum entirely and only ever shown, because a bonus must
+			   not punish: a university 1.2 km away is no reason to mark down a
+			   flat whose school is 200 m away. Half-way lands on the LOWER band,
+			   so a category never rounds its way up into a claim it cannot back. */
+			const scores = hits.filter((h) => h.core).map((h) => BAND_ORDER.indexOf(h.band));
+			for (let i = 0; i < missingCore; i++) scores.push(0);
+			band = scores.length
+				? BAND_ORDER[Math.max(0, Math.ceil(scores.reduce((a, b) => a + b, 0) / scores.length - 0.5))]
+				: hits[0].band; // no core needs declared: fall back to the best found
+		}
+
+		/* Reading order. With "best" the top band goes first, because that is
+		   the need which set the score. With an average no single POI set it,
+		   so the nearest leads and the line simply reads closest-first. */
+		const ordered = cat.combine === "best"
+			? hits
+			: hits.slice().sort((a, b) => a.m - b.m);
+
+		const result = { band, type: ordered[0]?.type ?? null, m: ordered[0]?.m ?? null };
+		// The rest of what was weighed, so the band is answerable on the page.
+		if (ordered.length > 1) result.also = ordered.slice(1, 3).map((h) => ({ type: h.type, m: h.m }));
 		out[key] = result;
 	}
 	return out;

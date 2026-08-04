@@ -46,16 +46,34 @@ An unknown subcategory falls back to its category, then to `home`, so a slug the
 still gets sensible cards. `roads` is measured **by car** (its own wider bands), everything else
 on foot.
 
-`transit` names **two** means of transport, not one: a category can declare `tiers` (rail and bus)
-and each is rated separately, so a metro stop at the edge of the radius no longer hides the bus
-stop round the corner. The better band takes the card and the other is reported next to it as
-`also` («στάση λεωφορείου 170μ · μετρό 1,5χλμ»). Equal bands go to the higher tier, so rail wins a
-tie, and the bus tier is capped at «Καλή» so a bus-only area never reads «Άριστη».
+## A band weighs the whole category, not its nearest shop
+
+Each category is a list of **needs** (`needs` in `CATEGORIES`), one per errand you actually run,
+and every need is rated on its own so none can hide another. How they add up is `combine`:
+
+- **`"all"` (default), the needs are complementary.** The band is the average of the **`core`**
+  ones, because a chemist downstairs does not buy the groceries: «ψώνια» reaches «Άριστη» only when
+  the food shop *and* the pharmacy are both close. A core need with nothing in range counts as
+  «Περιορισμένη», which is real information. Halfway rounds **down**.
+  Needs without `core` stay **out of the sum** and are only displayed, because a bonus must never
+  punish: a nursery 1.2 km away is no reason to mark down a flat whose school is 200 m away (this
+  was the first version's bug). They are also exactly what Greek OSM maps patchily (μανάβικα,
+  πλατείες, γυμναστήρια, νηπιαγωγεία, absent from whole areas in the probe), so their absence has
+  to stay silent. Mark as `core` only what everyone needs *and* mappers record reliably.
+- **`"best"`, the needs are alternatives.** The best one takes the band: metro *or* bus both get you
+  out of the area, so a station at the edge of the radius must not drag down the stop round the
+  corner. Used by `transit` and `dining`.
+
+Either way the runners-up ride along in `also` and the card names up to three, so the band is
+answerable: «φαρμακείο 180μ · φούρνος 200μ · μίνι μάρκετ 240μ». With `"all"` the line reads
+nearest-first; with `"best"` the winner leads. The bus need is capped at «Καλή», so a bus-only area
+never reads «Άριστη» however close the stop is.
 
 To change what a type is rated on, edit `PROFILES` or `PROFILE_BY_SUBCATEGORY`, then run with
-`--all` so existing listings pick up the new set. New categories also need labels in **both**
-languages in `STR.access.cat` / `.types` in [js/listings.fw.js](../../../js/listings.fw.js),
-otherwise the card is silently skipped.
+`--all` so existing listings pick up the new set. Same for adding a need to a category or moving
+one in or out of `core`. New categories and new POI slugs need labels in **both** languages in
+`STR.access.cat` / `.types` in [js/listings.fw.js](../../../js/listings.fw.js), otherwise the card
+is silently skipped (a slug with no label falls back to the raw slug in the evidence line).
 
 ## Steps
 
@@ -65,6 +83,10 @@ otherwise the card is silently skipped.
    further than one retry: the small mirrors are flaky by nature and the next run catches up.
    The same applies if the run is interrupted: results are written after every listing, so
    re-running resumes where it stopped rather than starting over.
+   **After a scoring change, retry with `--all`, not a plain run.** A skipped listing keeps its
+   old record, coordinates and profile included, which is exactly what makes a normal run judge it
+   "already rated and unchanged" and leave it on the previous format forever. Repeat `--all` until
+   the run reports no failures.
 3. Show Panos what changed: `git diff --stat` plus which listings gained or changed ratings.
    `data/listings.json` is gitignored (it is the local preview feed), so only
    `worker/lib/accessibility-data.mjs` should appear.

@@ -18,13 +18,29 @@ export const ACCESSIBILITY = {
 			},
 			"dining": {
 				"band": "excellent",
-				"type": "bakery",
-				"m": 4
+				"type": "restaurant",
+				"m": 184,
+				"also": [
+					{
+						"type": "bakery",
+						"m": 4
+					}
+				]
 			},
 			"errands": {
 				"band": "excellent",
 				"type": "bakery",
-				"m": 4
+				"m": 4,
+				"also": [
+					{
+						"type": "pharmacy",
+						"m": 122
+					},
+					{
+						"type": "supermarket",
+						"m": 135
+					}
+				]
 			},
 			"parking": {
 				"band": "excellent",
@@ -73,7 +89,17 @@ export const ACCESSIBILITY = {
 			"errands": {
 				"band": "excellent",
 				"type": "pharmacy",
-				"m": 61
+				"m": 61,
+				"also": [
+					{
+						"type": "convenience",
+						"m": 94
+					},
+					{
+						"type": "bakery",
+						"m": 349
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
@@ -81,9 +107,19 @@ export const ACCESSIBILITY = {
 				"m": 188
 			},
 			"leisure": {
-				"band": "excellent",
+				"band": "verygood",
 				"type": "dining",
-				"m": 6
+				"m": 6,
+				"also": [
+					{
+						"type": "playground",
+						"m": 304
+					},
+					{
+						"type": "park",
+						"m": 305
+					}
+				]
 			}
 		}
 	},
@@ -96,20 +132,38 @@ export const ACCESSIBILITY = {
 				"band": "excellent",
 				"type": "metro",
 				"m": 161,
-				"also": {
-					"type": "bus",
-					"m": 55
-				}
+				"also": [
+					{
+						"type": "bus",
+						"m": 55
+					}
+				]
 			},
 			"dining": {
 				"band": "excellent",
-				"type": "bakery",
-				"m": 39
+				"type": "cafe",
+				"m": 66,
+				"also": [
+					{
+						"type": "bakery",
+						"m": 39
+					}
+				]
 			},
 			"errands": {
 				"band": "excellent",
 				"type": "supermarket",
-				"m": 25
+				"m": 25,
+				"also": [
+					{
+						"type": "bakery",
+						"m": 39
+					},
+					{
+						"type": "pharmacy",
+						"m": 40
+					}
+				]
 			},
 			"parking": {
 				"band": "excellent",
@@ -129,9 +183,15 @@ export const ACCESSIBILITY = {
 				"m": 208
 			},
 			"errands": {
-				"band": "excellent",
+				"band": "verygood",
 				"type": "supermarket",
-				"m": 202
+				"m": 202,
+				"also": [
+					{
+						"type": "pharmacy",
+						"m": 308
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
@@ -139,9 +199,15 @@ export const ACCESSIBILITY = {
 				"m": 192
 			},
 			"leisure": {
-				"band": "excellent",
+				"band": "moderate",
 				"type": "playground",
-				"m": 145
+				"m": 145,
+				"also": [
+					{
+						"type": "park",
+						"m": 613
+					}
+				]
 			}
 		}
 	},
@@ -158,17 +224,43 @@ export const ACCESSIBILITY = {
 			"errands": {
 				"band": "excellent",
 				"type": "pharmacy",
-				"m": 125
+				"m": 125,
+				"also": [
+					{
+						"type": "bakery",
+						"m": 165
+					},
+					{
+						"type": "supermarket",
+						"m": 173
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
 				"type": "school",
-				"m": 225
+				"m": 225,
+				"also": [
+					{
+						"type": "kindergarten",
+						"m": 318
+					}
+				]
 			},
 			"leisure": {
 				"band": "excellent",
 				"type": "dining",
-				"m": 13
+				"m": 13,
+				"also": [
+					{
+						"type": "park",
+						"m": 97
+					},
+					{
+						"type": "gym",
+						"m": 333
+					}
+				]
 			}
 		}
 	},
@@ -185,17 +277,43 @@ export const ACCESSIBILITY = {
 			"errands": {
 				"band": "excellent",
 				"type": "bakery",
-				"m": 250
+				"m": 250,
+				"also": [
+					{
+						"type": "convenience",
+						"m": 257
+					},
+					{
+						"type": "pharmacy",
+						"m": 262
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
 				"type": "school",
-				"m": 155
+				"m": 155,
+				"also": [
+					{
+						"type": "kindergarten",
+						"m": 200
+					}
+				]
 			},
 			"leisure": {
 				"band": "excellent",
 				"type": "park",
-				"m": 74
+				"m": 74,
+				"also": [
+					{
+						"type": "dining",
+						"m": 147
+					},
+					{
+						"type": "gym",
+						"m": 333
+					}
+				]
 			}
 		}
 	},
@@ -208,25 +326,57 @@ export const ACCESSIBILITY = {
 				"band": "verygood",
 				"type": "metro",
 				"m": 314,
-				"also": {
-					"type": "bus",
-					"m": 20
-				}
+				"also": [
+					{
+						"type": "bus",
+						"m": 20
+					}
+				]
 			},
 			"errands": {
 				"band": "excellent",
 				"type": "pharmacy",
-				"m": 44
+				"m": 44,
+				"also": [
+					{
+						"type": "bakery",
+						"m": 160
+					},
+					{
+						"type": "supermarket",
+						"m": 165
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
 				"type": "school",
-				"m": 179
+				"m": 179,
+				"also": [
+					{
+						"type": "university",
+						"m": 194
+					},
+					{
+						"type": "kindergarten",
+						"m": 674
+					}
+				]
 			},
 			"leisure": {
 				"band": "excellent",
 				"type": "dining",
-				"m": 20
+				"m": 20,
+				"also": [
+					{
+						"type": "square",
+						"m": 29
+					},
+					{
+						"type": "gym",
+						"m": 314
+					}
+				]
 			}
 		}
 	},
@@ -261,25 +411,57 @@ export const ACCESSIBILITY = {
 				"band": "good",
 				"type": "metro",
 				"m": 685,
-				"also": {
-					"type": "bus",
-					"m": 143
-				}
+				"also": [
+					{
+						"type": "bus",
+						"m": 143
+					}
+				]
 			},
 			"errands": {
 				"band": "excellent",
 				"type": "pharmacy",
-				"m": 80
+				"m": 80,
+				"also": [
+					{
+						"type": "supermarket",
+						"m": 153
+					},
+					{
+						"type": "bakery",
+						"m": 385
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
 				"type": "school",
-				"m": 100
+				"m": 100,
+				"also": [
+					{
+						"type": "kindergarten",
+						"m": 192
+					},
+					{
+						"type": "university",
+						"m": 684
+					}
+				]
 			},
 			"leisure": {
 				"band": "excellent",
 				"type": "park",
-				"m": 88
+				"m": 88,
+				"also": [
+					{
+						"type": "playground",
+						"m": 193
+					},
+					{
+						"type": "dining",
+						"m": 259
+					}
+				]
 			}
 		}
 	},
@@ -294,17 +476,33 @@ export const ACCESSIBILITY = {
 				"m": 303
 			},
 			"errands": {
-				"band": "excellent",
+				"band": "verygood",
 				"type": "bakery",
-				"m": 239
+				"m": 239,
+				"also": [
+					{
+						"type": "convenience",
+						"m": 281
+					},
+					{
+						"type": "pharmacy",
+						"m": 392
+					}
+				]
 			},
 			"education": {
 				"band": "verygood",
 				"type": "school",
-				"m": 473
+				"m": 473,
+				"also": [
+					{
+						"type": "kindergarten",
+						"m": 1174
+					}
+				]
 			},
 			"leisure": {
-				"band": "excellent",
+				"band": "good",
 				"type": "dining",
 				"m": 54
 			}
@@ -319,25 +517,57 @@ export const ACCESSIBILITY = {
 				"band": "good",
 				"type": "metro",
 				"m": 861,
-				"also": {
-					"type": "bus",
-					"m": 76
-				}
+				"also": [
+					{
+						"type": "bus",
+						"m": 76
+					}
+				]
 			},
 			"errands": {
-				"band": "excellent",
+				"band": "verygood",
 				"type": "pharmacy",
-				"m": 240
+				"m": 240,
+				"also": [
+					{
+						"type": "bakery",
+						"m": 280
+					},
+					{
+						"type": "supermarket",
+						"m": 428
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
 				"type": "school",
-				"m": 187
+				"m": 187,
+				"also": [
+					{
+						"type": "kindergarten",
+						"m": 283
+					},
+					{
+						"type": "university",
+						"m": 1025
+					}
+				]
 			},
 			"leisure": {
-				"band": "excellent",
+				"band": "verygood",
 				"type": "gym",
-				"m": 165
+				"m": 165,
+				"also": [
+					{
+						"type": "park",
+						"m": 362
+					},
+					{
+						"type": "dining",
+						"m": 379
+					}
+				]
 			}
 		}
 	},
@@ -350,25 +580,53 @@ export const ACCESSIBILITY = {
 				"band": "good",
 				"type": "bus",
 				"m": 127,
-				"also": {
-					"type": "metro",
-					"m": 1200
-				}
+				"also": [
+					{
+						"type": "metro",
+						"m": 1200
+					}
+				]
 			},
 			"errands": {
 				"band": "excellent",
 				"type": "pharmacy",
-				"m": 204
+				"m": 204,
+				"also": [
+					{
+						"type": "convenience",
+						"m": 269
+					},
+					{
+						"type": "bakery",
+						"m": 579
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
 				"type": "school",
-				"m": 163
+				"m": 163,
+				"also": [
+					{
+						"type": "kindergarten",
+						"m": 183
+					}
+				]
 			},
 			"leisure": {
 				"band": "excellent",
 				"type": "park",
-				"m": 93
+				"m": 93,
+				"also": [
+					{
+						"type": "dining",
+						"m": 292
+					},
+					{
+						"type": "gym",
+						"m": 430
+					}
+				]
 			}
 		}
 	},
@@ -383,19 +641,41 @@ export const ACCESSIBILITY = {
 				"m": 46
 			},
 			"errands": {
-				"band": "excellent",
+				"band": "verygood",
 				"type": "convenience",
-				"m": 293
+				"m": 293,
+				"also": [
+					{
+						"type": "pharmacy",
+						"m": 309
+					}
+				]
 			},
 			"education": {
 				"band": "verygood",
 				"type": "kindergarten",
-				"m": 339
+				"m": 339,
+				"also": [
+					{
+						"type": "school",
+						"m": 410
+					},
+					{
+						"type": "college",
+						"m": 791
+					}
+				]
 			},
 			"leisure": {
-				"band": "excellent",
+				"band": "good",
 				"type": "dining",
-				"m": 248
+				"m": 248,
+				"also": [
+					{
+						"type": "gym",
+						"m": 634
+					}
+				]
 			}
 		}
 	},
@@ -408,25 +688,57 @@ export const ACCESSIBILITY = {
 				"band": "verygood",
 				"type": "metro",
 				"m": 347,
-				"also": {
-					"type": "bus",
-					"m": 63
-				}
+				"also": [
+					{
+						"type": "bus",
+						"m": 63
+					}
+				]
 			},
 			"errands": {
 				"band": "excellent",
 				"type": "pharmacy",
-				"m": 94
+				"m": 94,
+				"also": [
+					{
+						"type": "supermarket",
+						"m": 137
+					},
+					{
+						"type": "bakery",
+						"m": 170
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
 				"type": "college",
-				"m": 163
+				"m": 163,
+				"also": [
+					{
+						"type": "school",
+						"m": 230
+					},
+					{
+						"type": "kindergarten",
+						"m": 721
+					}
+				]
 			},
 			"leisure": {
 				"band": "excellent",
 				"type": "dining",
-				"m": 24
+				"m": 24,
+				"also": [
+					{
+						"type": "square",
+						"m": 33
+					},
+					{
+						"type": "gym",
+						"m": 291
+					}
+				]
 			}
 		}
 	},
@@ -439,10 +751,12 @@ export const ACCESSIBILITY = {
 				"band": "good",
 				"type": "bus",
 				"m": 193,
-				"also": {
-					"type": "metro",
-					"m": 1304
-				}
+				"also": [
+					{
+						"type": "metro",
+						"m": 1304
+					}
+				]
 			},
 			"roads": {
 				"band": "excellent",
@@ -465,25 +779,57 @@ export const ACCESSIBILITY = {
 				"band": "good",
 				"type": "metro",
 				"m": 618,
-				"also": {
-					"type": "bus",
-					"m": 36
-				}
+				"also": [
+					{
+						"type": "bus",
+						"m": 36
+					}
+				]
 			},
 			"errands": {
 				"band": "excellent",
 				"type": "pharmacy",
-				"m": 22
+				"m": 22,
+				"also": [
+					{
+						"type": "bakery",
+						"m": 121
+					},
+					{
+						"type": "convenience",
+						"m": 258
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
 				"type": "school",
-				"m": 79
+				"m": 79,
+				"also": [
+					{
+						"type": "kindergarten",
+						"m": 113
+					},
+					{
+						"type": "university",
+						"m": 886
+					}
+				]
 			},
 			"leisure": {
 				"band": "excellent",
 				"type": "park",
-				"m": 200
+				"m": 200,
+				"also": [
+					{
+						"type": "playground",
+						"m": 208
+					},
+					{
+						"type": "dining",
+						"m": 285
+					}
+				]
 			}
 		}
 	},
@@ -518,25 +864,53 @@ export const ACCESSIBILITY = {
 				"band": "good",
 				"type": "bus",
 				"m": 28,
-				"also": {
-					"type": "metro",
-					"m": 1108
-				}
+				"also": [
+					{
+						"type": "metro",
+						"m": 1108
+					}
+				]
 			},
 			"errands": {
 				"band": "excellent",
 				"type": "pharmacy",
-				"m": 95
+				"m": 95,
+				"also": [
+					{
+						"type": "convenience",
+						"m": 164
+					},
+					{
+						"type": "bakery",
+						"m": 449
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
 				"type": "kindergarten",
-				"m": 48
+				"m": 48,
+				"also": [
+					{
+						"type": "school",
+						"m": 50
+					}
+				]
 			},
 			"leisure": {
 				"band": "excellent",
 				"type": "park",
-				"m": 36
+				"m": 36,
+				"also": [
+					{
+						"type": "dining",
+						"m": 155
+					},
+					{
+						"type": "gym",
+						"m": 328
+					}
+				]
 			}
 		}
 	},
@@ -549,25 +923,57 @@ export const ACCESSIBILITY = {
 				"band": "good",
 				"type": "metro",
 				"m": 629,
-				"also": {
-					"type": "bus",
-					"m": 76
-				}
+				"also": [
+					{
+						"type": "bus",
+						"m": 76
+					}
+				]
 			},
 			"errands": {
 				"band": "excellent",
 				"type": "pharmacy",
-				"m": 16
+				"m": 16,
+				"also": [
+					{
+						"type": "supermarket",
+						"m": 74
+					},
+					{
+						"type": "bakery",
+						"m": 106
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
 				"type": "school",
-				"m": 132
+				"m": 132,
+				"also": [
+					{
+						"type": "kindergarten",
+						"m": 610
+					},
+					{
+						"type": "university",
+						"m": 700
+					}
+				]
 			},
 			"leisure": {
 				"band": "excellent",
 				"type": "dining",
-				"m": 68
+				"m": 68,
+				"also": [
+					{
+						"type": "playground",
+						"m": 127
+					},
+					{
+						"type": "park",
+						"m": 137
+					}
+				]
 			}
 		}
 	},
@@ -582,7 +988,7 @@ export const ACCESSIBILITY = {
 				"m": 191
 			},
 			"errands": {
-				"band": "excellent",
+				"band": "good",
 				"type": "pharmacy",
 				"m": 143
 			},
@@ -611,7 +1017,17 @@ export const ACCESSIBILITY = {
 			"errands": {
 				"band": "excellent",
 				"type": "convenience",
-				"m": 124
+				"m": 124,
+				"also": [
+					{
+						"type": "pharmacy",
+						"m": 187
+					},
+					{
+						"type": "bakery",
+						"m": 388
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
@@ -621,7 +1037,17 @@ export const ACCESSIBILITY = {
 			"leisure": {
 				"band": "excellent",
 				"type": "dining",
-				"m": 108
+				"m": 108,
+				"also": [
+					{
+						"type": "park",
+						"m": 182
+					},
+					{
+						"type": "playground",
+						"m": 440
+					}
+				]
 			}
 		}
 	},
@@ -638,7 +1064,17 @@ export const ACCESSIBILITY = {
 			"errands": {
 				"band": "verygood",
 				"type": "pharmacy",
-				"m": 325
+				"m": 325,
+				"also": [
+					{
+						"type": "convenience",
+						"m": 455
+					},
+					{
+						"type": "bakery",
+						"m": 556
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
@@ -646,9 +1082,19 @@ export const ACCESSIBILITY = {
 				"m": 64
 			},
 			"leisure": {
-				"band": "excellent",
+				"band": "verygood",
 				"type": "park",
-				"m": 263
+				"m": 263,
+				"also": [
+					{
+						"type": "dining",
+						"m": 371
+					},
+					{
+						"type": "playground",
+						"m": 588
+					}
+				]
 			}
 		}
 	},
@@ -664,13 +1110,29 @@ export const ACCESSIBILITY = {
 			},
 			"dining": {
 				"band": "excellent",
-				"type": "bakery",
-				"m": 10
+				"type": "restaurant",
+				"m": 174,
+				"also": [
+					{
+						"type": "bakery",
+						"m": 10
+					}
+				]
 			},
 			"errands": {
 				"band": "excellent",
 				"type": "bakery",
-				"m": 10
+				"m": 10,
+				"also": [
+					{
+						"type": "pharmacy",
+						"m": 112
+					},
+					{
+						"type": "supermarket",
+						"m": 143
+					}
+				]
 			},
 			"parking": {
 				"band": "excellent",
@@ -688,25 +1150,53 @@ export const ACCESSIBILITY = {
 				"band": "excellent",
 				"type": "metro",
 				"m": 294,
-				"also": {
-					"type": "bus",
-					"m": 193
-				}
+				"also": [
+					{
+						"type": "bus",
+						"m": 193
+					}
+				]
 			},
 			"errands": {
 				"band": "excellent",
 				"type": "convenience",
-				"m": 41
+				"m": 41,
+				"also": [
+					{
+						"type": "pharmacy",
+						"m": 47
+					},
+					{
+						"type": "bakery",
+						"m": 160
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
 				"type": "school",
-				"m": 46
+				"m": 46,
+				"also": [
+					{
+						"type": "kindergarten",
+						"m": 248
+					}
+				]
 			},
 			"leisure": {
 				"band": "excellent",
 				"type": "park",
-				"m": 90
+				"m": 90,
+				"also": [
+					{
+						"type": "dining",
+						"m": 119
+					},
+					{
+						"type": "gym",
+						"m": 327
+					}
+				]
 			}
 		}
 	},
@@ -719,25 +1209,57 @@ export const ACCESSIBILITY = {
 				"band": "excellent",
 				"type": "metro",
 				"m": 82,
-				"also": {
-					"type": "bus",
-					"m": 54
-				}
+				"also": [
+					{
+						"type": "bus",
+						"m": 54
+					}
+				]
 			},
 			"errands": {
 				"band": "excellent",
 				"type": "convenience",
-				"m": 76
+				"m": 76,
+				"also": [
+					{
+						"type": "pharmacy",
+						"m": 104
+					},
+					{
+						"type": "bakery",
+						"m": 123
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
 				"type": "school",
-				"m": 88
+				"m": 88,
+				"also": [
+					{
+						"type": "university",
+						"m": 176
+					},
+					{
+						"type": "kindergarten",
+						"m": 373
+					}
+				]
 			},
 			"leisure": {
 				"band": "excellent",
 				"type": "park",
-				"m": 144
+				"m": 144,
+				"also": [
+					{
+						"type": "dining",
+						"m": 158
+					},
+					{
+						"type": "playground",
+						"m": 382
+					}
+				]
 			}
 		}
 	},
@@ -750,25 +1272,53 @@ export const ACCESSIBILITY = {
 				"band": "good",
 				"type": "bus",
 				"m": 167,
-				"also": {
-					"type": "metro",
-					"m": 1456
-				}
+				"also": [
+					{
+						"type": "metro",
+						"m": 1456
+					}
+				]
 			},
 			"errands": {
 				"band": "excellent",
 				"type": "pharmacy",
-				"m": 179
+				"m": 179,
+				"also": [
+					{
+						"type": "bakery",
+						"m": 202
+					},
+					{
+						"type": "convenience",
+						"m": 241
+					}
+				]
 			},
 			"education": {
 				"band": "excellent",
 				"type": "school",
-				"m": 100
+				"m": 100,
+				"also": [
+					{
+						"type": "kindergarten",
+						"m": 278
+					}
+				]
 			},
 			"leisure": {
-				"band": "excellent",
+				"band": "verygood",
 				"type": "playground",
-				"m": 138
+				"m": 138,
+				"also": [
+					{
+						"type": "park",
+						"m": 338
+					},
+					{
+						"type": "dining",
+						"m": 361
+					}
+				]
 			}
 		}
 	}

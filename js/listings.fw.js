@@ -1062,13 +1062,15 @@
 				var block = el("div", "block mb-25");
 				block.appendChild(el("h6", "mb-1", STR.access.cat[catKey]));
 				block.appendChild(el("span", "fw-band fw-band-" + c.band, STR.access.band[c.band] || c.band));
-				/* Evidence line: the nearest POI that earned the band, and
-				   where a category has a runner-up worth naming (transit: the
-				   rail stop next to the bus stop) that one too. */
+				/* Evidence line: the POI that earned the band, then the rest
+				   of what the category weighed, so the band is answerable
+				   («φαρμακείο 180μ · σούπερ μάρκετ 260μ · φούρνος 200μ»). */
 				if (c.type) {
-					var ev = poiDist(c.type, c.m);
-					if (c.also && c.also.type) ev += " · " + poiDist(c.also.type, c.also.m);
-					block.appendChild(el("span", "fs-16 fw-score-ev", ev));
+					var ev = [poiDist(c.type, c.m)];
+					(c.also || []).forEach(function (a) {
+						if (a && a.type) ev.push(poiDist(a.type, a.m));
+					});
+					block.appendChild(el("span", "fs-16 fw-score-ev", ev.join(" · ")));
 				}
 				col.appendChild(block);
 				scoreRow.appendChild(col);
