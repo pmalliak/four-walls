@@ -16,13 +16,40 @@ forms.four-walls.gr ──▶ Cloudflare Access ──▶ Worker (worker/index.m
 
 Code: [worker/lib/crm.mjs](../worker/lib/crm.mjs) (server) +
 [forms/_crm.fw.js](../forms/_crm.fw.js) (picker UI, loaded by
-`ypodeixi.html`, `anathesi.html`, `apodeixi.html` and `prosfora.html`).
+`ypodeixi.html`, `anathesi.html`, `apodeixi.html`, `prosfora.html`,
+`ektimisi.html` and `katachorisi.html`).
 
 The file attaches itself by finding known `data-k` fields, so a page without
 them gets no buttons. For those, the same two sheets are exposed as a callback
 API: `FWCrm.pickListing(cb)` and `FWCrm.pickContact(cb)`, which hand back the
 raw listing record and the full contact detail respectively. That is how
 [the προσφορά page](forms-prosfora.md) picks without having a form to fill.
+
+### Η καταχώριση: ο εντολέας από τον κατάλογο (2026-08-05)
+
+Η [φόρμα καταχώρισης](forms-katachorisi-crm.md) χτίζει τα πεδία της από
+schema, οπότε δεν έχει `data-k` — το κουμπί **«Επαφή από CRM»** γράφεται μέσα
+στην κεφαλίδα της κάρτας «Ιδιοκτήτης & επικοινωνία» κατά το `render()` (όχι
+με `querySelector` μετά: το `#sections` ξαναχτίζεται σε κάθε αλλαγή
+κατηγορίας/συναλλαγής και θα το έσβηνε) και καλεί `FWCrm.pickContact`.
+Γεμίζει όνομα/τηλέφωνο/email και **κρατά το id** ως `crm.contact.id` στο
+payload, ώστε το create να δέσει στην υπάρχουσα καρτέλα. Ο εντολέας είναι
+συνήθως ήδη επαφή — τον βρήκαμε από πινακίδα ή έχει άλλο ακίνητο μαζί μας —
+και μια δεύτερη καρτέλα με το ίδιο τηλέφωνο χαλάει και τον έλεγχο
+«τον ξέρουμε ήδη;» του [phone-lookup](pinakides.md).
+
+### Τα toast παίζουν με κλάση, όχι με inline display (2026-08-05)
+
+Το `_crm.fw.js` έχει **δικό του** toast: γράφει στο `#toast` της σελίδας και
+βάζει κλάση `.on`. Ανάθεση, υπόδειξη και απόδειξη έδειχναν το δικό τους με
+`style.display='block'` και δεν είχαν κανόνα `.toast.on` — άρα κάθε μήνυμα
+του picker έμενε **αόρατο**: όχι μόνο το «Συμπληρώθηκε από το CRM», αλλά και
+το «Χρειάζεται σύνδεση — άνοιξε ξανά την εφαρμογή» και το «Λείπουν από το CRM
+: n πεδία», δηλαδή ακριβώς τα μηνύματα που δικαιολογούν ένα μισογεμάτο
+έντυπο. Και οι έξι σελίδες δείχνουν πλέον με κλάση (`.toast.on{display:block}`
++ `classList.remove('on')` στο timeout), όπως έκαναν εξαρχής η εκτίμηση και η
+προσφορά. **Μην γυρίσει κανένα σε inline `display`** — το inline style κερδίζει
+την κλάση, οπότε το ένα toast ξανακρύβει το άλλο.
 
 ## Design rules
 
