@@ -61,29 +61,14 @@
 					</td></tr>
 				{% endfor %}
 
-				<tr><td style="padding:16px 20px 6px 20px; font-size:14px; line-height:1.7; color:#16233A;">
-					<p style="font-size:12px; color:#777777; margin:0 0 12px 0; line-height:1.5;">Αν κάποιο από τα παραπάνω σας ενδιαφέρει, απαντήστε σε αυτό το email ή καλέστε μας στο <strong style="color:#FF1462;">{{ user.phone }}</strong> για να κλείσουμε επίσκεψη. Συνεχίζουμε να παρακολουθούμε την αγορά και θα σας ενημερώσουμε μόλις προκύψει κάτι νέο.</p>
+<tr><td style="padding:16px 20px 6px 20px; font-size:14px; line-height:1.7; color:#16233A;">
+					<p style="font-size:12px; color:#777777; margin:0 0 12px 0; line-height:1.5;">Αν κάποιο σας ενδιαφέρει, απαντήστε σε αυτό το email ή καλέστε μας στο <strong style="color:#FF1462;">+30 6907 483 463</strong> για να κλείσουμε επίσκεψη ή για οποιαδήποτε πληροφορία.</p>
 
-					<p style="font-size:12px; color:#777777; margin:0 0 12px 0; line-height:1.5; padding-top:10px; border-top:1px solid #eceef2;">Βρήκατε ήδη αυτό που ψάχνατε; <a href="https://four-walls.gr/request-closed?r={{ request.id }}&amp;c={{ contact.id }}" style="color:#FF1462; text-decoration:underline;">Πείτε μας να σταματήσουμε τις προτάσεις</a> για τη ζήτηση αυτή.</p>
-
-					<p style="margin:14px 0 4px 0;">Με εκτίμηση,</p>
-
-					{% if user.photo %}
-						<table role="presentation" cellpadding="0" cellspacing="0" style="margin:2px 0 4px 0;">
-							<tr>
-								<td valign="middle" style="padding-right:14px;"><img src="{{ user.photo }}" alt="{{ user.first_name }} {{ user.last_name }}" width="52" height="52" style="width:52px; height:52px; border-radius:50%; display:block; border:0;"></td>
-								<td valign="middle">
-									<div style="font-size:14px; font-weight:bold; color:#16233A;">{{ user.first_name }} {{ user.last_name }}</div>
-									<div style="font-size:12px; color:#FF1462; font-weight:bold;">Σύμβουλος ακινήτων</div>
-									<div style="font-size:12px; color:#777777;">{{ user.email }} · {{ user.phone }}</div>
-								</td>
-							</tr>
-						</table>
-					{% else %}
-						<div style="font-size:14px; font-weight:bold; color:#16233A;">{{ user.first_name }} {{ user.last_name }}</div>
-						<div style="font-size:12px; color:#FF1462; font-weight:bold;">Σύμβουλος ακινήτων</div>
-						<div style="font-size:12px; color:#777777;">{{ user.email }} · {{ user.phone }}</div>
-					{% endif %}
+					<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 12px;">
+						<tr><td style="background:#f7f8fa; border-radius:6px; padding:12px 14px; font-size:13px; line-height:1.6; color:#16233A; text-align:center;">
+							Βρήκατε ακίνητο; <a href="https://four-walls.gr/request-closed?e={{ contact.email|url_encode }}" style="color:#FF1462; font-weight:bold; text-decoration:underline;">Πείτε μας να σταματήσουμε τις προτάσεις</a>
+						</td></tr>
+					</table>
 				</td></tr>
 
 				<tr><td style="border-top:1px solid #eceef2; padding:14px 20px; font-size:11px; color:#999999; line-height:1.6;">

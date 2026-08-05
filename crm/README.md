@@ -20,9 +20,22 @@ and constraints:
 | [`appointment-created.en.sms.twig`](appointment-created.en.sms.twig) | SMS (EN) | appointment booked | ” |
 | [`appointment-reminder.en.sms.twig`](appointment-reminder.en.sms.twig) | SMS (EN) | appointment reminder | ” |
 
-The matchings email ends with a **«σταματήστε τις προτάσεις»** link to
-`/request-closed?r=…&c=…` — the client's opt-out, wired to Make; see
-[../docs/request-closed.md](../docs/request-closed.md).
+**All four client emails now end the same way** (05/08/2026): the office phone
+in the closing line, then a grey opt-out box with a **«σταματήστε τις
+προτάσεις»** link to `/request-closed?e={{ contact.email|url_encode }}` — wired
+to Make, see [../docs/request-closed.md](../docs/request-closed.md). Two things
+went away from the **matchings** pair to get there:
+
+- **The agent signature block** (`user.photo` / name / «Σύμβουλος ακινήτων» /
+  email + phone). The recommendations emails never had it — that family gets no
+  `user` root — so the matchings pair was the odd one out, signed by whichever
+  CRM user the ζήτηση hung off. The closing line's `{{ user.phone }}` became the
+  **hardcoded office number** for the same reason.
+- **The `?r=`/`?c=` ids** in the opt-out link, and (EN only) the «Your search
+  ref. {{ request.id }}» chip. The client no longer sees a reference number, and
+  `info@` gets the client's email instead of the ζήτηση id — the office looks the
+  ζήτηση up. `request.*` is still available to these two templates if it is ever
+  wanted back.
 
 **Two different template families, two different editors** (learned 2026-07-27):
 
@@ -190,8 +203,10 @@ so save one before opening the other.
 
 **`request.purpose` / `request.category` come through in Greek even on the
 English template** (the sample data does; assume a real send does too). The
-English copy therefore avoids them — its chip shows only `ref. {{ request.id }}`
-and its subject is the plain wording. Revisit after a real English send.
+English copy therefore avoids them, and its subject is the plain wording. Since
+05/08/2026 **neither template prints anything off `request`** — the EN «Your
+search ref.» chip went with the opt-out ids — so this trap is dormant rather than
+solved; it comes back the moment a `request.*` value is put back on the page.
 
 ## SMS templates (2026-07-25)
 

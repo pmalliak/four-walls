@@ -6,12 +6,25 @@ replying, calling, or being ignored.
 
 ```
 crm/request-matchings.twig.html        request-closed.html         worker/index.mjs
-  «Πείτε μας να σταματήσουμε»  ──►  /request-closed?r=&c=  ──POST──►  /api/request-closed
-                                    (button + Turnstile)                     │
-                                                                             ▼
-                                                              Make hook ──► email to info@
-                                                              (later: close the ζήτηση in the CRM)
+  «Πείτε μας να σταματήσουμε»  ──►  /request-closed?e=  ──POST──►  /api/request-closed
+                                    (button + Turnstile)                   │
+                                                                           ▼
+                                                            Make hook ──► email to info@
+                                                            (later: close the ζήτηση in the CRM)
 ```
+
+The page takes **two shapes** and switches on the query string:
+
+| Link | Shape | Who sends it |
+|---|---|---|
+| `?e=<email>` | «Διακοπή προτάσεων» — no ζήτηση shown, the client's email rides to `info@` inside the comment as `[Πελάτης: …]` | **all four CRM emails** since 05/08/2026 (matchings GR/EN + recommendations GR/EN) and the batch page |
+| `?r=<id>&c=<id>` | «Ολοκλήρωσα την αναζήτηση» — echoes the ζήτηση code, ids ride as their own fields | the original matchings link; **no template sends it any more**, kept working for links already in inboxes |
+
+Both paths still work, and `?e=` was there first for the recommendations email
+(which has no `request` root at all). The matchings templates moved onto it so
+all four emails close the same way — the trade-off is that `info@` no longer gets
+the ζήτηση id in its own field, only the client's email, and has to look the
+ζήτηση up.
 
 ## Why a page and not a one-click link
 
@@ -34,7 +47,7 @@ are.
 
 | Piece | Where |
 |---|---|
-| Link in the email | `crm/request-matchings*.twig.html` — `?r={{ request.id }}&c={{ contact.id }}` (EN points at `/en/request-closed`) |
+| Link in the email | `crm/request-matchings*.twig.html` + `crm/listing-recommendations*.twig.html` — `?e={{ contact.email\|url_encode }}` (EN points at `/en/request-closed`) |
 | Page | [../request-closed.html](../request-closed.html) (`/request-closed`) + [../en/request-closed.html](../en/request-closed.html) (`/en/request-closed`), both `sitemap: false` |
 | Styles | `css/fourwalls.css` → «Ολοκλήρωση αναζήτησης» |
 | Client JS | `js/fourwalls.js` → «Request closed» |
@@ -87,6 +100,12 @@ of burning the error budget.
 query string, so they are visitor input; the Worker passes them through only if
 they are digits. A blank one means «ψάξ' το από το email του παραλήπτη», never
 «πάρε την πρώτη ζήτηση».
+
+Since **all four templates send `?e=`**, a blank `request_id` is now the normal
+case, not the exception: what identifies the client is the `[Πελάτης: …]` prefix
+the page stamps onto `comment` (and `page`, which carries the raw query string).
+The Worker never puts the email in its own field — it is free text from a link,
+so it stays inside the free-text field where nothing keys off it.
 
 ## Abuse surface (deliberately small)
 
