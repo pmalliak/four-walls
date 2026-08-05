@@ -141,6 +141,11 @@ const PROP_TYPE = {
 	studio: ["apartment", ["1", "2"]], apartment: ["apartment", null], maisonette: ["maisonette", null],
 	loft: ["loft", null], detached: ["detached", null], villa: ["villa", null],
 	residential_building: ["residential_building", null], apartment_complex: ["apartment_complex", null],
+	// commercial & land (slug-identical to the CRM subcategory list — see docs/estateprime-api.md)
+	office: ["office", null], store: ["store", null], warehouse: ["warehouse", null],
+	hotel: ["hotel", null], commercial_building: ["commercial_building", null], hall: ["hall", null],
+	industrial_space: ["industrial_space", null], craft_space: ["craft_space", null],
+	plot: ["plot", null], parcel: ["parcel", null],
 };
 
 // ---- request fields (everything except contact/tags/areas, which the browser adds) ----

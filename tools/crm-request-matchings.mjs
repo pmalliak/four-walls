@@ -183,7 +183,10 @@ async function main() {
 	console.log(`Ενεργές ζητήσεις: ${requests.length}`);
 	if (!requests.length) return 0;
 
-	const tab = await Tab.open(CRM + '/requests');
+	// openActive, όχι open: ένα tab που περνάει στο παρασκήνιο το παγώνει ο Edge
+	// (σταματούν timers και fetch), και η σάρωση κρεμάει για πάντα — το evaluate
+	// περιμένει promise που δεν λύνεται ποτέ.
+	const tab = await Tab.openActive(CRM + '/requests');
 	try {
 		await sleep(4000);
 		const path = await tab.eval('location.pathname');

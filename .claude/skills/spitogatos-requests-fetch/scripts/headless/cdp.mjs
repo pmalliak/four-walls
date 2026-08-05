@@ -85,6 +85,24 @@ export class Tab {
 		await sleep(300);
 	}
 	close() { try { this.ws.close(); } catch {} }
+	// close() only drops our websocket — this also closes the tab in Edge, so a script
+	// that opens a fresh tab per retry does not leave a pile of them behind.
+	async destroy() { try { await fetch(BASE + '/json/close/' + this.info.id); } catch {} this.close(); }
+	// A background tab gets FROZEN by Edge: its timers never fire and fetch/XHR never
+	// settle, so Runtime.evaluate({awaitPromise}) hangs forever (no timeout applies).
+	// Opening our own tab and activating it is the only reliable cure.
+	static async openActive(url, { waitMs = 45000 } = {}) {
+		const tab = await Tab.open(url);
+		await tab.send('Page.enable').catch(() => {});
+		await tab.send('Page.bringToFront').catch(() => {});
+		await tab.send('Page.setWebLifecycleState', { state: 'active' }).catch(() => {});
+		const t0 = Date.now();
+		while (Date.now() - t0 < waitMs) {
+			await sleep(500);
+			try { if ((await tab.eval('document.readyState')) === 'complete') return tab; } catch { /* mid-navigation */ }
+		}
+		throw new Error('openActive timeout: ' + url);
+	}
 }
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

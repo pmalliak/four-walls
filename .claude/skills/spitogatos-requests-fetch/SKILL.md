@@ -104,6 +104,27 @@ Gotchas learned 2026-07-30:
   itself — `/contacts/view/` is behind Cloudflare bot protection and 403s any
   non-browser client (2026-08-04).
 
+Gotchas learned 2026-08-05:
+- **Edge FREEZES a background tab, and a frozen tab hangs the whole run.** Its timers stop
+  and `fetch`/`XHR` never settle, so `Runtime.evaluate({awaitPromise:true})` waits forever —
+  the `timeout` param does not apply to the awaited promise, so nothing rescues you. Symptom:
+  one lead lands, then silence (a 40-minute stall here). A `document.readyState` eval still
+  answers instantly, which makes the tab look healthy; the tell is that even an **in-page**
+  `setTimeout` fails to fire. This bites whenever a second session drives the same Edge and
+  brings its own tab to the front. Cure: `Tab.openActive()` (new tab + `bringToFront` +
+  `Page.setWebLifecycleState:active`) — a fresh tab answers in 0s. `crm-post.mjs` now bounds
+  every eval from node, reopens the tab on a timeout, and **reads `/api` back to adopt a POST
+  that landed** instead of re-posting it (a blind retry = a duplicate ζήτηση); it also writes
+  `results.json` after each lead, so a kill mid-run keeps what finished.
+  `tools/crm-request-matchings.mjs` uses `openActive` for the same reason.
+- **Resume after a stall**: read `/api/requests` (newest first) and `/api/communication` to see
+  what actually landed, drop those leads from the worklist, and seed `results.json` with them
+  by hand — then `verify-log.mjs` closes the run normally.
+- Commercial/land ζητήσεις now get a subcategory too: `prep.mjs`'s `PROP_TYPE` maps
+  `office/store/warehouse/hotel/commercial_building/hall/industrial_space/craft_space/plot/parcel`
+  (slug-identical to the CRM). Before that a warehouse lead stored category only, which the
+  matching sweep cannot use.
+
 ## Anti-scraping rule
 Enumerate leads from **emails** (Spark, `info@four-walls.gr`, folder `Inbox/Spitogatos`, pushed by
 the portal = zero risk). Fetch

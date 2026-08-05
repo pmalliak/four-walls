@@ -64,5 +64,7 @@ for (const r of results) {
 }
 
 processed.done = [...doneSet];
-writeFileSync(processedPath, JSON.stringify(processed, null, 1));
+// TAB indent: the file is committed after every run, and a space-indented rewrite
+// buries a 3-line change under a 400-line reformat diff.
+writeFileSync(processedPath, JSON.stringify(processed, null, "\t"));
 console.log(`--- ${pass} passed, ${fail} failed; processed.json now has ${processed.done.length} leads ---`);
