@@ -813,6 +813,36 @@
   #fw-thumbs:has(> :nth-child(5)) { justify-content: space-between; }
 }
 
+/* Same strip below lg, where the theme lays it out as a row under the photo:
+   the five thumbs shrink to fit and the theme leaves no space between them,
+   so at 16:9 a phone showed five 66x37 tiles touching edge to edge, reading
+   as one long band of photo instead of five pictures. Space them, and on a
+   phone show four so each is wide enough to make out (04/08/2026). */
+@media (max-width: 991.98px) {
+  #fw-thumbs { gap: 10px; }
+  #fw-thumbs button { margin: 0; }
+}
+@media (max-width: 767.98px) {
+  #fw-thumbs button:nth-child(5) { display: none; }
+}
+
+/* «Δείτε και τις N φωτογραφίες». The theme's 50px pill is sized for a photo
+   600px tall; on a phone the photo is 181px, so the pill covered better than
+   a quarter of it. Below md it shrinks and moves to the bottom left corner,
+   where it sits over the floor rather than the room, and stays clear of the
+   watermark in the opposite corner. */
+@media (max-width: 767.98px) {
+  #fw-photos-btn {
+    top: auto;
+    right: auto;
+    bottom: 12px;
+    left: 12px;
+    padding: 0 14px;
+    font-size: 13px;
+    line-height: 32px;
+  }
+}
+
 /* Sort pill («Ταξινόμηση») — the theme fixes it at 126px, which squeezes
    the long Greek labels («Τιμή (αύξουσα)») right up against the arrow,
    and its 1px black border aliases into a ragged edge on the 30px pill
