@@ -53,6 +53,9 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 .btn:active{transform:translateY(1px);}
 .btn[disabled]{opacity:.55;}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;background:var(--navy);color:#fff;padding:11px 16px;border-radius:10px;font-size:14px;max-width:90%;box-shadow:0 6px 20px rgba(0,0,0,.25);z-index:30;display:none;}
+/* Με κλάση, όχι inline display: το _crm.fw.js έχει δικό του toast που βάζει
+   το ίδιο .on, και με inline style το ένα έκρυβε τα μηνύματα του άλλου */
+.toast.on{display:block;}
 .toast.ok{background:#12855b;}.toast.err{background:#b3261e;}
 /* ===== generated document ===== */
 .doc{width:720px;background:#fff;color:#242a33;font-family:'Manrope',Arial,sans-serif;font-size:12.5px;line-height:1.45;counter-reset:c;padding:18px 20px;}
@@ -193,7 +196,7 @@ function OPT(fn){return {margin:[8,10,8,10],filename:fn,image:{type:'jpeg',quali
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 async function ready(el){try{if(document.fonts&&document.fonts.ready)await document.fonts.ready;}catch(e){}
  var imgs=[].slice.call(el.querySelectorAll('img'));await Promise.all(imgs.map(function(im){return (im.complete&&im.naturalWidth)?0:new Promise(function(r){im.onload=im.onerror=r;});}));await sleep(120);}
-function toast(msg,type){var t=document.getElementById('toast');t.className='toast '+(type||'');t.textContent=msg;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(function(){t.style.display='none';},4600);}
+function toast(msg,type){var t=document.getElementById('toast');t.className='toast on '+(type||'');t.textContent=msg;clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('on');},4600);}
 /* Όσο το έντυπο περιμένει στην ουρά, το κουμπί αποστολής ΔΕΝ ξαναπροσφέρεται:
    το outbox το στέλνει μόνο του μόλις βρεθεί σήμα, και το δεύτερο πάτημα
    («ήρθαν γραμμές, να το ξαναστείλω») είναι ακριβώς αυτό που έστελνε δύο

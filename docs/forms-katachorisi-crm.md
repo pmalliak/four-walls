@@ -52,7 +52,7 @@ Gotchas του CRM που κληρονομεί το σχήμα: `energy_class` s
     "location": { "address_el": "…", "postal_code": "54646",
                   "area_level1": 108, "area_level2": 499121,
                   "display_address": "fake" },
-    "contact": { "name": "…", "phone": "…", "email": "…" }
+    "contact": { "name": "…", "phone": "…", "email": "…", "id": 42 }
   }
 }
 ```
@@ -61,6 +61,12 @@ Gotchas του CRM που κληρονομεί το σχήμα: `energy_class` s
   features/view/flooring/positioning ως arrays (όπως τα επιστρέφει το API).
 - `crm.contact` = ο ιδιοκτήτης, για `POST /api/contacts` (δες τα required
   extras στο [estateprime-api.md](estateprime-api.md)).
+- `crm.contact.id` υπάρχει **μόνο** όταν ο ιδιοκτήτης διαλέχτηκε από το
+  «Επαφή από CRM» ([forms-crm.md](forms-crm.md)) — τότε το create πρέπει να
+  δέσει σε αυτή την καρτέλα αντί να φτιάξει δεύτερη με το ίδιο τηλέφωνο. Αν ο
+  σύμβουλος πειράξει το όνομα μετά την επιλογή, το id **φεύγει**: δεν
+  εγγυόμαστε πια ποιον δείχνει, και μια λάθος καρτέλα είναι χειρότερη από
+  καμία.
 - `data.*` κρατά τις ελληνικές ετικέτες **και τα παλιά aliases που διαβάζει
   το Make scenario 6600035** (`transaction_type`, `subtype`, `address`, `tk`,
   `region`, `area`) — μην τα αφαιρέσεις χωρίς να αλλάξεις το scenario.

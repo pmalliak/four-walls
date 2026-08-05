@@ -198,6 +198,9 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;line-heig
   display:flex;justify-content:space-between;align-items:flex-end;font-size:10.5px;color:#6b7385;line-height:1.5}
 .pd-foot b{color:var(--navy)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;background:var(--navy);color:#fff;padding:11px 16px;border-radius:10px;font-size:14px;max-width:90%;box-shadow:0 6px 20px rgba(0,0,0,.25);z-index:60;display:none}
+/* Το .on το βάζει και το _crm.fw.js (δικό του toast) — γι' αυτό η εμφάνιση
+   παίζει με κλάση, όχι με inline display, αλλιώς το ένα κρύβει το άλλο */
+.toast.on{display:block}
 .toast.ok{background:#12855b}.toast.err{background:#b3261e}
 /* ===== shared έντυπα chrome (header / steps / preview / document) ===== */
 .hdrwrap{max-width:860px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) 16px 0;}
@@ -346,7 +349,7 @@ const landish=s=>s.category==="land"||["detached","villa","maisonette","farmhous
 const renting=s=>s.availability==="rent"||s.availability==="shortterm";
 
 const SECTIONS=[
-  {title:"Ιδιοκτήτης & επικοινωνία", hint:"Ο εντολέας — γίνεται επαφή στο CRM.", fields:[
+  {title:"Ιδιοκτήτης & επικοινωνία", hint:"Ο εντολέας — γίνεται επαφή στο CRM.", crm:"contact", fields:[
     {k:"owner_name", l:"Ονοματεπώνυμο ιδιοκτήτη", t:"text", req:true},
     {k:"owner_phone", l:"Τηλέφωνο", t:"tel", req:true, ph:"69........"},
     {k:"owner_email", l:"Email", t:"email", ph:"προαιρετικό"},
@@ -540,7 +543,11 @@ function render(){
   root.innerHTML=visibleSections().map(sec=>{
     const flds=(sec.fields||[]).filter(f=>!f.when||f.when(state));
     const body=`<div class="grid ${flds.every(x=>x.t==='yn')?'yn':''}">${flds.map(fieldHTML).join("")}</div>`;
-    return `<section class="card"><h2><span class="dot"></span>${esc(sec.title)}</h2>${sec.hint?`<p class="hint">${esc(sec.hint)}</p>`:""}${body}</section>`;
+    /* Το κουμπί γράφεται μαζί με την κάρτα, όχι με querySelector μετά: το
+       #sections ξαναχτίζεται σε κάθε render() και θα το έσβηνε. Η κλάση
+       .crmbtn έρχεται από το _crm.fw.js, μαζί με το sheet που ανοίγει. */
+    const crmBtn=sec.crm?`<button type="button" class="crmbtn" data-crm="${sec.crm}">Επαφή από CRM</button>`:"";
+    return `<section class="card"><h2><span class="dot"></span>${esc(sec.title)}${crmBtn}</h2>${sec.hint?`<p class="hint">${esc(sec.hint)}</p>`:""}${body}</section>`;
   }).join("");
   reflect(); alignYN();
 }
@@ -575,12 +582,48 @@ function cascade(key){
   if(key==="subcategory"){ delete state.subtype; }
   if(key==="area_level1"){ delete state.area_level2; }
 }
+/* ---------- Ιδιοκτήτης από το CRM ---------- */
+/* Ο εντολέας είναι συνήθως ήδη επαφή στο CRM (τον βρήκαμε από πινακίδα, μας
+   τηλεφώνησε, έχει άλλο ακίνητο μαζί μας). Το κουμπί ανοίγει το ίδιο sheet
+   με τα υπόλοιπα έντυπα (_crm.fw.js) και γράφει τα τρία πεδία της κάρτας.
+
+   Κρατάμε και το id της επαφής: το payload το στέλνει ως crm.contact.id,
+   ώστε το αυτόματο create να δέσει στην υπάρχουσα καρτέλα αντί να φτιάξει
+   δεύτερη με το ίδιο τηλέφωνο. */
+function setOwnerField(k,v){
+  const val=String(v==null?"":v).trim();
+  if(val)state[k]=val; else delete state[k];
+  const el=document.getElementById("fld_"+k);
+  if(el){ el.value=val; el.classList.remove("invalid"); }
+}
+function pickOwnerFromCrm(){
+  if(!window.FWCrm){ toast("Ο κατάλογος του CRM δεν φόρτωσε — γράψ' τα στο χέρι.","err"); return; }
+  FWCrm.pickContact(c=>{
+    if(!c)return;
+    setOwnerField("owner_name",c.onomatepwnymo);
+    setOwnerField("owner_phone",c.phone);
+    setOwnerField("owner_email",c.email);
+    if(c.id!=null)state.owner_crm_id=c.id; else delete state.owner_crm_id;
+    saveDraft();
+    /* Το τηλέφωνο είναι υποχρεωτικό εδώ, το email το θέλει η αποστολή
+       αντιγράφου: αν λείπουν από το CRM, να το ακούσει τώρα ο σύμβουλος και
+       όχι στο validate. */
+    const miss=[!state.owner_phone?"τηλέφωνο":null,!state.owner_email?"email":null].filter(Boolean);
+    toast(miss.length?"Συμπληρώθηκε. Λείπει από το CRM: "+miss.join(" και ")+".":"Συμπληρώθηκε από το CRM.",miss.length?"":"ok");
+  });
+}
+
 function wire(){
   const root=document.getElementById("sections");
-  const onInput=e=>{ const el=e.target; if(!el.name)return; state[el.name]=el.value; if(el.value==="")delete state[el.name]; el.classList.remove("invalid"); saveDraft(); };
+  const onInput=e=>{ const el=e.target; if(!el.name)return; state[el.name]=el.value; if(el.value==="")delete state[el.name]; el.classList.remove("invalid");
+    /* Άλλαξε το όνομα με το χέρι -> δεν εγγυόμαστε πια ότι είναι η επαφή που
+       διαλέχτηκε. Καλύτερα καμία σύνδεση παρά λάθος καρτέλα στο CRM. */
+    if(el.name==="owner_name")delete state.owner_crm_id;
+    saveDraft(); };
   root.addEventListener("input",onInput);
   root.addEventListener("change",onInput);
   root.addEventListener("click",e=>{
+    if(e.target.closest('[data-crm="contact"]')){ pickOwnerFromCrm(); return; }
     const segBtn=e.target.closest("[data-seg] button[data-val]");
     if(segBtn){
       const seg=segBtn.closest("[data-seg]"),key=seg.dataset.seg,val=segBtn.dataset.val;
@@ -696,6 +739,9 @@ function buildPayload(){
   if(state.fake_address!==undefined)loc.display_address=state.fake_address===true?"fake":"real";
   if(Object.keys(loc).length)crm.location=loc;
   crm.contact={name:state.owner_name||"",phone:state.owner_phone||"",email:state.owner_email||""};
+  /* Μπαίνει μόνο όταν ο ιδιοκτήτης διαλέχτηκε από το CRM (και δεν πειράχτηκε
+     το όνομα μετά) — αλλιώς το πεδίο λείπει και το create δουλεύει όπως πριν */
+  if(state.owner_crm_id!=null&&state.owner_crm_id!=="")crm.contact.id=state.owner_crm_id;
   /* aliases που διαβάζει το Make email (τα παλιά ονόματα των πεδίων) —
      μην τα αλλάξεις χωρίς να αλλάξεις και το scenario 6600035 */
   data.address=state.address_el||"";
@@ -818,7 +864,7 @@ async function makePdf(mode){
   }finally{ document.body.removeChild(holder); }
 }
 function savePDF(){ try{ window.print(); }catch(e){} }
-function toast(msg,type){ const t=document.getElementById("toast"); if(!t) return; t.className="toast "+(type||""); t.textContent=msg; t.style.display="block"; clearTimeout(t._t); t._t=setTimeout(()=>{ t.style.display="none"; },4600); }
+function toast(msg,type){ const t=document.getElementById("toast"); if(!t) return; t.className="toast on "+(type||""); t.textContent=msg; clearTimeout(t._t); t._t=setTimeout(()=>{ t.classList.remove("on"); },4600); }
 function sendLabel(){ return state.send_to_client===true ? "Αποστολή + email στον ιδιοκτήτη" : "Αποστολή"; }
 /* Όσο η καταχώριση περιμένει στην ουρά, το κουμπί δεν ξαναπροσφέρεται: το
    outbox τη στέλνει μόνο του μόλις βρεθεί σήμα, και το δεύτερο πάτημα
@@ -872,6 +918,9 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 <script src="_outbox.fw.js"></script>
 <script src="_drafts.fw.js"></script>
+<!-- Το sheet επιλογής επαφής. Δεν βρίσκει data-k πεδία εδώ, οπότε δεν
+     κολλάει δικά του κουμπιά: η σελίδα καλεί μόνη της το FWCrm.pickContact. -->
+<script src="_crm.fw.js"></script>
 <!-- DEV AUTOFILL: dev-only test helper, loads only on localhost (see _autofill.dev.js) --><script>if(/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname))document.body.appendChild(Object.assign(document.createElement("script"),{src:"_autofill.dev.js"}));</script>
 </body>
 </html>
