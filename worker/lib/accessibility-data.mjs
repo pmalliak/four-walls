@@ -1321,5 +1321,110 @@ export const ACCESSIBILITY = {
 				]
 			}
 		}
+	},
+	"132": {
+		"lat": 40.598891754329,
+		"lng": 22.997817993164,
+		"profile": "land",
+		"scores": {
+			"transit": {
+				"band": "good",
+				"type": "bus",
+				"m": 1
+			},
+			"errands": {
+				"band": "excellent",
+				"type": "bakery",
+				"m": 173,
+				"also": [
+					{
+						"type": "pharmacy",
+						"m": 218
+					},
+					{
+						"type": "supermarket",
+						"m": 241
+					}
+				]
+			},
+			"leisure": {
+				"band": "excellent",
+				"type": "dining",
+				"m": 152,
+				"also": [
+					{
+						"type": "park",
+						"m": 182
+					},
+					{
+						"type": "playground",
+						"m": 577
+					}
+				]
+			}
+		}
+	},
+	"133": {
+		"lat": 40.6239932,
+		"lng": 22.9704908,
+		"profile": "home",
+		"scores": {
+			"transit": {
+				"band": "good",
+				"type": "metro",
+				"m": 789,
+				"also": [
+					{
+						"type": "bus",
+						"m": 142
+					}
+				]
+			},
+			"errands": {
+				"band": "excellent",
+				"type": "bakery",
+				"m": 106,
+				"also": [
+					{
+						"type": "convenience",
+						"m": 127
+					},
+					{
+						"type": "pharmacy",
+						"m": 169
+					}
+				]
+			},
+			"education": {
+				"band": "excellent",
+				"type": "school",
+				"m": 97,
+				"also": [
+					{
+						"type": "university",
+						"m": 667
+					},
+					{
+						"type": "kindergarten",
+						"m": 878
+					}
+				]
+			},
+			"leisure": {
+				"band": "excellent",
+				"type": "dining",
+				"m": 104,
+				"also": [
+					{
+						"type": "park",
+						"m": 132
+					},
+					{
+						"type": "playground",
+						"m": 182
+					}
+				]
+			}
+		}
 	}
 };
