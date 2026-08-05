@@ -97,12 +97,13 @@ export async function crmMatches(env, digitsList) {
 
 const KINDS = new Set(["agency", "business", "private", "unknown"]);
 
-function prompt(numbers) {
+function prompt(numbers, context) {
 	return [
 		"You are checking Greek phone numbers that were printed on FOR SALE / FOR RENT signs in Thessaloniki. For each number, search the open web and say whether it belongs to a BUSINESS (and which one) or looks like a PRIVATE individual's number.",
 		"",
 		"Numbers to check:",
-		...numbers.map((d) => `- ${d}  (also written as ${fmtPhone(d)}, +30 ${d})`),
+		...numbers.map((d) => `- ${d}  (also written as ${fmtPhone(d)}, +30 ${d})`
+			+ (context?.get(d) ? `\n  Printed on this sign: «${context.get(d)}»` : "")),
 		"",
 		"Where Greek businesses publish their numbers: their own website, spitogatos.gr and xe.gr profiles and listings, Google Maps / Google Business, Facebook and Instagram pages, business directories (vrisko.gr, xo.gr), chamber-of-commerce records. A real-estate agency almost always shows its number on several of these.",
 		"",
@@ -117,6 +118,15 @@ function prompt(numbers) {
 		"- A number appearing on an agency's website is not automatically the agency's own: agencies also publish their clients' numbers in listings. If the number is shown as the agency's contact number (header, footer, contact page, Google Maps entry) it is the agency's; if it appears inside one single property advert, say unknown and explain.",
 		"- Never invent a website, a company name or a source URL. If you have no source, leave the field empty.",
 		"- Greek mobiles start with 69 and are almost never publicly listed unless they belong to a business.",
+		/* Ό,τι γράφει η ίδια η πινακίδα είναι ΑΠΟΔΕΙΞΗ, και μάλιστα η
+		   ισχυρότερη που έχουμε. Χωρίς αυτόν τον κανόνα το μοντέλο έβλεπε
+		   δέκα γυμνά ψηφία και απαντούσε «private» επειδή η αναζήτηση δεν
+		   γύρισε τίποτα: το 2318509904 ήταν τυπωμένο κάτω από το
+		   «HellasHome REAL ESTATE SERVICES» και το email το εμφάνισε
+		   πράσινο, «μάλλον ιδιώτης» (04/08/2026). */
+		"- THE SIGN TEXT IS EVIDENCE, and it outranks a fruitless search. When the sign shows this number under an agency's name, logo or the word ΜΕΣΙΤΙΚΟ / REAL ESTATE, the number is that agency's: answer agency and put the agency's name in `name`, even if you find nothing online. Say so in `evidence` («από την ίδια την πινακίδα»). Only a source that clearly shows the number belonging to someone else overrides it.",
+		"- NEVER answer private for a number the sign itself attributes to a business. `private` means «nothing anywhere ties this number to a business» — and the sign is somewhere.",
+		"- A landline (starting with 2) that you cannot find is weaker evidence than an unfindable mobile: businesses publish landlines, so an unlisted landline next to an agency name is still the agency's. Prefer unknown over private for landlines when the search comes up empty and the sign says nothing.",
 		"",
 		"Answer with ONLY a JSON object, no prose around it:",
 		'{"results":[{"phone":"<the 10 digits>","kind":"agency|business|private|unknown","name":"<business name, or empty>","website":"<main source URL, or empty>","evidence":"<one short Greek sentence saying what you found and where, or what you searched and did not find>","confidence":"high|medium|low"}]}',
@@ -124,13 +134,13 @@ function prompt(numbers) {
 	].join("\n");
 }
 
-async function lookupChunk(env, numbers) {
+async function lookupChunk(env, numbers, context) {
 	const model = env.LEADS_GEMINI_MODEL || DEFAULT_MODEL;
 	const res = await fetch(`${GEMINI_URL}/${model}:generateContent`, {
 		method: "POST",
 		headers: { "x-goog-api-key": env.GEMINI_API_KEY, "content-type": "application/json" },
 		body: JSON.stringify({
-			contents: [{ role: "user", parts: [{ text: prompt(numbers) }] }],
+			contents: [{ role: "user", parts: [{ text: prompt(numbers, context) }] }],
 			// Το grounding ΕΙΝΑΙ το feature. Με tools δεν επιτρέπεται
 			// responseMimeType/responseSchema, οπότε το JSON κόβεται από το
 			// κείμενο — ίδιο μοτίβο με το area-prices-refresh.mjs.
@@ -152,10 +162,22 @@ async function lookupChunk(env, numbers) {
 	return JSON.parse(text.slice(a, b + 1)).results || [];
 }
 
+/* Δύο προσπάθειες, με μια ανάσα ανάμεσα. Δεν αξίζουν περισσότερες: ο
+   έλεγχος τηλεφώνου είναι συμπλήρωμα, και το email πρέπει να φύγει. */
+async function withRetry(fn, chunk) {
+	try {
+		return await fn();
+	} catch (err) {
+		console.warn(`phone-lookup: chunk retry (${chunk.join(",")}): ${String(err)}`);
+		await new Promise((r) => setTimeout(r, 2000));
+		return await fn();
+	}
+}
+
 /* Επιστρέφει Map digits -> {kind,name,website,evidence,confidence}.
    Ποτέ δεν κάνει throw: μια αποτυχία της αναζήτησης δεν πρέπει να ρίξει
    τη βόλτα — το email απλώς δεν θα έχει τη γραμμή του ελέγχου. */
-export async function webLookup(env, digitsList) {
+export async function webLookup(env, digitsList, context) {
 	const out = new Map();
 	if (!digitsList.length || !env.GEMINI_API_KEY) return out;
 
@@ -171,7 +193,14 @@ export async function webLookup(env, digitsList) {
 		while (next < chunks.length) {
 			const chunk = chunks[next++];
 			try {
-				for (const r of await lookupChunk(env, chunk)) {
+				/* Μία δεύτερη προσπάθεια, γιατί η συνηθισμένη αποτυχία εδώ
+				   είναι παροδική: το grounded μοντέλο απαντάει με πεζό
+				   κείμενο χωρίς JSON («no JSON in model output»), ή
+				   χτυπάει 429. Χωρίς αυτήν, ΟΛΑ τα νούμερα του chunk
+				   έμεναν χωρίς έλεγχο και το email δεν έδειχνε τίποτα
+				   δίπλα τους — δύο μεσιτικά πέρασαν έτσι για ιδιώτες
+				   στις 04/08/2026. */
+				for (const r of await withRetry(() => lookupChunk(env, chunk, context), chunk)) {
 					const d = normPhone(r?.phone);
 					// Μόνο νούμερα που ΕΜΕΙΣ ρωτήσαμε: αν το μοντέλο
 					// επιστρέψει κάτι άλλο, δεν το κρατάμε.

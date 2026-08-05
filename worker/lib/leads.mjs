@@ -59,6 +59,12 @@ const EXT_FOR_MIME = {
 
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 const DEFAULT_MODEL = "gemini-3.5-flash";
+/* Πόσες φορές ζητάμε ΤΗΝ ΙΔΙΑ φωτογραφία πριν την παρατήσουμε. Ένα 429
+   δεν είναι απάντηση, είναι «ξαναρώτα»: χωρίς επανάληψη μια ολόκληρη
+   βόλτα χάνεται σε ένα δευτερόλεπτο (05/08/2026). */
+const AI_TRIES = 3;
+const AI_BACKOFF_MS = [1500, 6000];         // πριν από την 2η και την 3η
+const AI_MAX_WAIT_MS = 20000;               // ταβάνι· η φόρμα περιμένει άνθρωπο
 /* Το Nominatim θέλει αναγνωρίσιμο User-Agent και max 1 κλήση/δευτ. — βλ.
    την πολιτική χρήσης. Ίδια σύμβαση με το accessibility.mjs. */
 const NOMINATIM = "https://nominatim.openstreetmap.org";
@@ -274,57 +280,132 @@ function salvageJson(text) {
 	}
 }
 
+/* Το σώμα ενός 429 λέει ΠΟΙΟ όριο έσκασε, και η διάκριση αλλάζει τα
+   πάντα: ένα όριο ανά λεπτό περνάει με λίγη αναμονή, ένα ανά ημέρα δεν
+   περνάει με τίποτα και η βόλτα πρέπει να το πει καθαρά αντί να
+   κατηγορήσει τη φωτογραφία. Ο κώδικας κρατούσε μόνο το status, οπότε
+   και οι δύο περιπτώσεις κατέληγαν στο ίδιο σιωπηλό «η ανάγνωση
+   απέτυχε» και κανείς δεν μάθαινε ποτέ τι έφταιγε. */
+function quotaInfo(body) {
+	const details = body?.error?.details || [];
+	const find = (t) => details.find((d) => String(d?.["@type"] || "").endsWith(t));
+	const violations = find("QuotaFailure")?.violations || [];
+	const ids = violations.map((v) => v?.quotaId || v?.subject || "").join(" ");
+	const message = String(body?.error?.message || "");
+	const secs = Number(String(find("RetryInfo")?.retryDelay || "").replace(/s$/, ""));
+	return {
+		perDay: /per.?day|PerDay/i.test(`${ids} ${message}`),
+		retryMs: secs > 0 ? Math.min(secs * 1000, AI_MAX_WAIT_MS) : 0,
+		detail: (ids || message).slice(0, 180),
+	};
+}
+
+/* Ένα 429 δεν αφορά μία φωτογραφία, αφορά ΟΛΗ τη βόλτα: τα τέσσερα
+   παράλληλα calls μοιράζονται το ίδιο quota. Χωρίς κοινή αναμονή το
+   πρώτο 429 γίνεται ακαριαία τέσσερα, οι επαναλήψεις καίγονται όλες
+   μέσα στο ίδιο δευτερόλεπτο και η βόλτα βγαίνει άδεια — ακριβώς ό,τι
+   έγινε στις 05/08/2026 (τρεις φωτογραφίες, τρία 429 στο ίδιο
+   δευτερόλεπτο, μηδέν τηλέφωνα). Το gate είναι ένα κοινό ρολόι: όποιος
+   φάει πόρτα, σταματάει και τους υπόλοιπους. */
+function newRateGate() {
+	let until = 0;
+	let dayExhausted = false;
+	return {
+		get dayExhausted() { return dayExhausted; },
+		markDay() { dayExhausted = true; },
+		backOff(ms) { until = Math.max(until, Date.now() + ms); },
+		async wait() {
+			const ms = until - Date.now();
+			if (ms > 0) await new Promise((r) => setTimeout(r, ms));
+		},
+	};
+}
+
 /* Ένα vision call ανά φωτογραφία, ~0,005 €. responseSchema ώστε η
    απάντηση να είναι εγγυημένα JSON — χωρίς αυτό το parsing γίνεται
    ψάξιμο για αγκύλες μέσα σε πεζό κείμενο. Ποτέ δεν κάνει throw: μία
    αποτυχία δεν πρέπει να ρίξει όλη τη βόλτα. */
-async function extractSign(env, bytes, contentType) {
+async function extractSign(env, bytes, contentType, gate) {
 	const model = env.LEADS_GEMINI_MODEL || DEFAULT_MODEL;
-	try {
-		const res = await fetch(`${GEMINI_URL}/${model}:generateContent`, {
-			method: "POST",
-			headers: { "x-goog-api-key": env.GEMINI_API_KEY, "content-type": "application/json" },
-			body: JSON.stringify({
-				contents: [{
-					parts: [
-						{ text: EXTRACT_PROMPT },
-						{ inline_data: { mime_type: contentType, data: toBase64(bytes) } },
-					],
-				}],
-				generationConfig: {
-					temperature: 0,
-					/* Ταβάνι ζημιάς. Μια κανονική ανάγνωση θέλει ~230 tokens·
-					   ο βρόχος της 04/08/2026 έγραψε 65.000 (30πλάσιο κόστος
-					   και 165 δευτ. αναμονή ανά φωτογραφία). */
-					maxOutputTokens: 2048,
-					responseMimeType: "application/json",
-					responseSchema: EXTRACT_SCHEMA,
-				},
-			}),
-		});
-		if (!res.ok) {
-			console.warn(`leads: Gemini HTTP ${res.status}`);
-			return { error: `HTTP ${res.status}` };
+	const data = toBase64(bytes);
+	let last = { error: "not read" };
+
+	for (let attempt = 0; attempt < AI_TRIES; attempt++) {
+		/* Το ημερήσιο όριο δεν ανοίγει με αναμονή: μόλις το δει έστω μία
+		   φωτογραφία, οι υπόλοιπες δεν έχουν λόγο να το ξαναζητήσουν. */
+		if (gate?.dayExhausted) return { error: "quota exhausted", error_kind: "quota_day" };
+		if (attempt > 0) {
+			await new Promise((r) => setTimeout(r, AI_BACKOFF_MS[attempt - 1]));
 		}
-		const body = await res.json();
-		const text = body?.candidates?.[0]?.content?.parts?.[0]?.text;
-		if (!text) return { error: "empty response" };
+		await gate?.wait();
+
 		try {
-			return JSON.parse(text);
-		} catch {
-			/* Κομμένη απάντηση: σώζουμε ό,τι προλαβε να γραφτεί αντί να
-			   πετάξουμε ολόκληρη τη φωτογραφία. */
-			const salvaged = salvageJson(text);
-			console.warn(`leads: truncated JSON (${body?.candidates?.[0]?.finishReason}, `
-				+ `${body?.usageMetadata?.candidatesTokenCount} tokens) — `
-				+ (salvaged ? "salvaged" : "unusable"));
-			if (salvaged) return { ...salvaged, truncated: true };
-			return { error: "truncated response" };
+			const res = await fetch(`${GEMINI_URL}/${model}:generateContent`, {
+				method: "POST",
+				headers: { "x-goog-api-key": env.GEMINI_API_KEY, "content-type": "application/json" },
+				body: JSON.stringify({
+					contents: [{
+						parts: [
+							{ text: EXTRACT_PROMPT },
+							{ inline_data: { mime_type: contentType, data } },
+						],
+					}],
+					generationConfig: {
+						temperature: 0,
+						/* Ταβάνι ζημιάς. Μια κανονική ανάγνωση θέλει ~230 tokens·
+						   ο βρόχος της 04/08/2026 έγραψε 65.000 (30πλάσιο κόστος
+						   και 165 δευτ. αναμονή ανά φωτογραφία). */
+						maxOutputTokens: 2048,
+						responseMimeType: "application/json",
+						responseSchema: EXTRACT_SCHEMA,
+					},
+				}),
+			});
+
+			if (res.status === 429) {
+				const q = quotaInfo(await res.json().catch(() => null));
+				console.warn(`leads: Gemini 429 (${q.perDay ? "ημερήσιο" : "ανά λεπτό"}) `
+					+ `try ${attempt + 1}/${AI_TRIES}: ${q.detail}`);
+				if (q.perDay) {
+					gate?.markDay();
+					return { error: "quota exhausted", error_kind: "quota_day" };
+				}
+				/* Το retryDelay του Google όταν υπάρχει, αλλιώς το δικό μας
+				   κλιμακωτό backoff — και για ΟΛΟΥΣ, όχι μόνο γι' αυτόν. */
+				gate?.backOff(q.retryMs || AI_BACKOFF_MS[Math.min(attempt, AI_BACKOFF_MS.length - 1)]);
+				last = { error: "rate limited", error_kind: "quota_minute" };
+				continue;
+			}
+			/* 5xx είναι «ξαναρώτα»· 4xx (λάθος κλειδί, λάθος μοντέλο) δεν
+			   φτιάχνεται με επανάληψη και δεν αξίζει την αναμονή. */
+			if (!res.ok) {
+				console.warn(`leads: Gemini HTTP ${res.status} try ${attempt + 1}/${AI_TRIES}`);
+				last = { error: `HTTP ${res.status}`, error_kind: res.status >= 500 ? "upstream" : "call" };
+				if (res.status >= 500) continue;
+				return last;
+			}
+
+			const body = await res.json();
+			const text = body?.candidates?.[0]?.content?.parts?.[0]?.text;
+			if (!text) return { error: "empty response", error_kind: "call" };
+			try {
+				return JSON.parse(text);
+			} catch {
+				/* Κομμένη απάντηση: σώζουμε ό,τι προλαβε να γραφτεί αντί να
+				   πετάξουμε ολόκληρη τη φωτογραφία. */
+				const salvaged = salvageJson(text);
+				console.warn(`leads: truncated JSON (${body?.candidates?.[0]?.finishReason}, `
+					+ `${body?.usageMetadata?.candidatesTokenCount} tokens) — `
+					+ (salvaged ? "salvaged" : "unusable"));
+				if (salvaged) return { ...salvaged, truncated: true };
+				return { error: "truncated response", error_kind: "call" };
+			}
+		} catch (err) {
+			console.warn(`leads: extraction failed try ${attempt + 1}/${AI_TRIES}: ${String(err)}`);
+			last = { error: String(err).slice(0, 120), error_kind: "call" };
 		}
-	} catch (err) {
-		console.warn(`leads: extraction failed: ${String(err)}`);
-		return { error: String(err).slice(0, 120) };
 	}
+	return last;
 }
 
 /* --------------------------------------------------- reverse geocode
@@ -390,7 +471,7 @@ function mapsLink(l) {
    αυτό σημαίνει «ιδιώτης, δικό μας lead», και είναι το καλύτερο νέο της
    γραμμής. Ο σύνδεσμος της πηγής μπαίνει πάντα, ώστε να μπορεί κάποιος
    να διαψεύσει το μοντέλο σε ένα κλικ. */
-function phoneCheck(p, crmBase) {
+function phoneCheck(p, crmBase, signSaysAgency) {
 	const bits = [];
 	if (p.crm) {
 		/* Η υπάρχουσα επαφή ανοίγει με ένα κλικ — το `/contacts/view/{id}`
@@ -411,13 +492,39 @@ function phoneCheck(p, crmBase) {
 				+ (w.website ? ` · <a href="${esc(w.website)}" style="color:${MUTED};">πηγή</a>` : "")
 				+ (w.confidence !== "high" ? ` <span style="color:${MUTED};">(βεβαιότητα ${esc(CONFIDENCE_LABEL[w.confidence] || w.confidence)})</span>` : ""));
 		} else if (w.kind === "private") {
-			bits.push(`<span style="color:#12855b;">δεν βρέθηκε σε επιχείρηση — μάλλον ιδιώτης</span>`);
+			/* Το πράσινο εδώ σημαίνει «καλό lead, σήκωσε το ακουστικό».
+			   Όταν όμως η ίδια η πινακίδα γράφει μεσιτικό, το «μάλλον
+			   ιδιώτης» δεν είναι απλώς άχρηστο, είναι λάθος οδηγία: το
+			   σταθερό της HellasHome τυπώθηκε έτσι στις 04/08/2026, δύο
+			   γραμμές κάτω από το «Από: Μεσιτικό γραφείο» της ίδιας
+			   κάρτας. Η πινακίδα κερδίζει, και το χρώμα το δείχνει. */
+			bits.push(signSaysAgency
+				? `<span style="color:${MUTED};">δεν βρέθηκε στο web — η πινακίδα όμως γράφει γραφείο</span>`
+				: `<span style="color:#12855b;">δεν βρέθηκε σε επιχείρηση — μάλλον ιδιώτης</span>`);
 		} else {
 			bits.push(`<span style="color:${MUTED};">ο έλεγχος δεν κατέληξε</span>`);
 		}
 	}
 	if (!bits.length) return "";
 	return `<div style="font-size:12px; color:${MUTED}; margin:2px 0 6px 0; line-height:1.5;">↳ ${bits.join(" · ")}</div>`;
+}
+
+const isQuota = (l) => l.error_kind === "quota_day" || l.error_kind === "quota_minute";
+
+/* Τρία εντελώς διαφορετικά πράγματα κατέληγαν στο ίδιο «η ανάγνωση
+   απέτυχε»: η πινακίδα δεν είχε τηλέφωνο, το μοντέλο δεν το διάβασε, ή
+   το μοντέλο δεν ρωτήθηκε ΠΟΤΕ επειδή είχε τελειώσει το quota. Το τρίτο
+   διαβάζεται σαν «κακή φωτογραφία» και είναι το χειρότερο ψέμα που
+   μπορεί να πει αυτό το email: στις 05/08/2026 ολόκληρη βόλτα με
+   πεντακάθαρες πινακίδες βγήκε «0 με τηλέφωνο» ενώ καμία τους δεν είχε
+   φτάσει καν στο μοντέλο. */
+function noPhoneNote(l) {
+	if (isQuota(l)) {
+		return "<strong>ΧΩΡΙΣ ΤΗΛΕΦΩΝΟ</strong> — η φωτογραφία <strong>δεν διαβάστηκε ποτέ</strong>: "
+			+ "είχε εξαντληθεί το όριο του AI. Δεν φταίει η λήψη, ξαναστείλ' την.";
+	}
+	if (l.error) return "<strong>ΧΩΡΙΣ ΤΗΛΕΦΩΝΟ</strong> — δες τη φωτογραφία (η ανάγνωση απέτυχε).";
+	return "<strong>ΧΩΡΙΣ ΤΗΛΕΦΩΝΟ</strong> — δες τη φωτογραφία.";
 }
 
 function leadCard(l, i, crmBase) {
@@ -439,7 +546,7 @@ function leadCard(l, i, crmBase) {
 	if (phones.length) {
 		row("Τηλέφωνο", phones.map((p) => `<a href="tel:+30${p.digits}" style="color:${PINK}; font-weight:bold; text-decoration:none;">${esc(p.display)}</a>`
 			+ (p.duplicate ? `<span style="color:${MUTED}; font-size:12px;"> (ίδιο με προηγούμενο)</span>` : "")
-			+ phoneCheck(p, crmBase)).join("<br>"));
+			+ phoneCheck(p, crmBase, l.advertiser === "agency")).join("<br>"));
 	}
 	if (l.contact_name) row("Ζητήστε", `<strong>${esc(l.contact_name)}</strong>`);
 	row("Είδος", esc(TYPE_LABEL[l.listing_type] || "—")
@@ -462,7 +569,7 @@ function leadCard(l, i, crmBase) {
 		<div style="font-size:15px; font-weight:bold; color:${NAVY}; margin-bottom:8px;">${i + 1}. ${esc(l.address || TYPE_LABEL[l.listing_type] || "Lead")}${l.sign_count > 1
 			? `<span style="font-size:11px; font-weight:bold; color:#ffffff; background:${PINK}; border-radius:9px; padding:2px 8px; margin-left:7px; white-space:nowrap;">ΠΙΝΑΚΙΔΑ ${l.sign_index + 1}/${l.sign_count}</span>`
 			: ""}</div>
-		${flagged ? `<div style="background:#fdeee7; border-radius:5px; padding:8px 10px; margin-bottom:9px; font-size:13px; color:#8a2c06;"><strong>ΧΩΡΙΣ ΤΗΛΕΦΩΝΟ</strong> — δες τη φωτογραφία${l.error ? " (η ανάγνωση απέτυχε)" : ""}.</div>` : ""}
+		${flagged ? `<div style="background:#fdeee7; border-radius:5px; padding:8px 10px; margin-bottom:9px; font-size:13px; color:#8a2c06;">${noPhoneNote(l)}</div>` : ""}
 		${l.conflict ? `<div style="background:#fdeee7; border-radius:5px; padding:8px 10px; margin-bottom:9px; font-size:13px; color:#8a2c06;"><strong>ΠΡΟΣΟΧΗ</strong> — η πινακίδα δεν γράφει γραφείο, αλλά το τηλέφωνο βγαίνει μεσιτικό.</div>` : ""}
 		<table role="presentation" cellpadding="0" cellspacing="0" width="100%">${rows.join("\n\t\t")}</table>
 		<a href="${esc(l.url)}" style="display:block; margin-top:10px;"><img src="${esc(l.url)}" alt="" width="240" style="width:240px; max-width:100%; border-radius:5px; border:1px solid ${LINE}; display:block;"></a>
@@ -485,8 +592,15 @@ function buildEmail(payload) {
 		? `${count} ${photoWord}`
 		: `${signs} ${signWord} σε ${count} ${photoWord}`;
 
+	/* Όσες δεν έφτασαν ΠΟΤΕ στο μοντέλο. Μπαίνουν στο θέμα πριν από
+	   οτιδήποτε άλλο: ένα «0 με τηλέφωνο» διαβάζεται σαν άκαρπη βόλτα
+	   και το email αρχειοθετείται, ενώ στην πραγματικότητα τα leads
+	   είναι εκεί και περιμένουν μια δεύτερη αποστολή. */
+	const unread = leads.filter(isQuota).length;
 	const subject = `Νέα leads από πινακίδες — ${headline}`
-		+ (withPhone < signs ? ` (${withPhone} με τηλέφωνο)` : "");
+		+ (unread
+			? ` (${unread} ${unread === 1 ? "αδιάβαστη" : "αδιάβαστες"} — το AI δεν απάντησε)`
+			: withPhone < signs ? ` (${withPhone} με τηλέφωνο)` : "");
 
 	const known = leads.filter((l) => l.known_contact).length;
 	const summary = [
@@ -495,6 +609,14 @@ function buildEmail(payload) {
 		agencies ? `${agencies} από μεσιτικό γραφείο` : "",
 		known ? `${known} ήδη στο CRM` : "",
 	].filter(Boolean).join(" · ");
+
+	const quotaBanner = unread
+		? `<tr><td style="padding:10px 20px 0 20px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="background:#fdeee7; border-left:3px solid #c2410c; border-radius:6px; padding:11px 13px; font-size:13px; color:#8a2c06;">`
+			+ `<strong>${unread} ${unread === 1 ? "φωτογραφία δεν διαβάστηκε" : "φωτογραφίες δεν διαβάστηκαν"}.</strong> `
+			+ `Είχε εξαντληθεί το όριο του AI, όχι πρόβλημα των φωτογραφιών. `
+			+ `Ξαναστείλτε τις από τα Έντυπα (Πινακίδα) για να διαβαστούν.`
+			+ `</td></tr></table></td></tr>`
+		: "";
 
 	const html = `<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(subject)}</title></head>
 <body style="margin:0; padding:0; background:#f4f5f7; font-family:Arial,sans-serif;">
@@ -506,6 +628,7 @@ function buildEmail(payload) {
 			<div style="font-size:17px; font-weight:bold; color:${NAVY};">Leads από πινακίδες</div>
 			<div style="font-size:13px; color:${MUTED}; margin-top:4px;">${esc(summary)}${submitted_by ? " · " + esc(submitted_by) : ""}</div>
 		</td></tr>
+		${quotaBanner}
 		${note ? `<tr><td style="padding:10px 20px 0 20px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="background:#f7f8fa; border-radius:6px; padding:11px 13px; font-size:13px; color:${NAVY};"><strong>Σημείωση:</strong> ${esc(note)}</td></tr></table></td></tr>` : ""}
 		<tr><td style="padding:16px 20px 4px 20px;">
 			${leads.map((l, i) => leadCard(l, i, crmBase)).join("\n\t\t\t")}
@@ -531,8 +654,14 @@ function buildEmail(payload) {
 				+ (p.crm ? ` [ήδη στο CRM: ${p.crm.name}]` : "")
 				+ (p.web?.kind === "agency" ? ` [μεσιτικό${p.web.name ? ": " + p.web.name : ""}]`
 					: p.web?.kind === "business" ? ` [επιχείρηση${p.web.name ? ": " + p.web.name : ""}]`
-					: p.web?.kind === "private" ? " [δεν βρέθηκε σε επιχείρηση]" : "")).join(", ")
-				|| "— ΧΩΡΙΣ ΤΗΛΕΦΩΝΟ, δες τη φωτό"}`,
+					: p.web?.kind === "private"
+						? (l.advertiser === "agency"
+							? " [δεν βρέθηκε στο web, αλλά η πινακίδα γράφει γραφείο]"
+							: " [δεν βρέθηκε σε επιχείρηση]")
+						: "")).join(", ")
+				|| (isQuota(l)
+					? "— ΔΕΝ ΔΙΑΒΑΣΤΗΚΕ: είχε εξαντληθεί το όριο του AI, ξαναστείλ' τη φωτογραφία"
+					: "— ΧΩΡΙΣ ΤΗΛΕΦΩΝΟ, δες τη φωτό")}`,
 			l.conflict ? "   ΠΡΟΣΟΧΗ: η πινακίδα δεν γράφει γραφείο, αλλά το τηλέφωνο βγαίνει μεσιτικό." : "",
 			`   ${TYPE_LABEL[l.listing_type] || "—"}${l.property_type ? " · " + l.property_type : ""} · ${ADVERTISER_LABEL[l.advertiser]}${l.agency_name ? " (" + l.agency_name + ")" : ""}`,
 			l.price || l.size_sqm || l.floor ? `   ${[l.size_sqm ? l.size_sqm + " τ.μ." : "", l.floor, l.price].filter(Boolean).join(" · ")}` : "",
@@ -854,6 +983,8 @@ async function finalizeBatch(request, env, url, batchId) {
 	   αρκετά λίγα ώστε να μη χτυπάμε rate limit. */
 	const perPhotoLeads = new Array(objects.length);
 	const CONC = 4;
+	/* Κοινό για ΟΛΕΣ τις φωτογραφίες της βόλτας: το quota είναι ένα. */
+	const gate = newRateGate();
 	let next = 0;
 	await Promise.all(Array.from({ length: Math.min(CONC, objects.length) }, async () => {
 		while (next < objects.length) {
@@ -867,7 +998,7 @@ async function finalizeBatch(request, env, url, batchId) {
 			let ai = { error: "not read" };
 			try {
 				const obj = await env.PHOTO_BUCKET.get(o.key);
-				if (obj) ai = await extractSign(env, await obj.arrayBuffer(), contentType);
+				if (obj) ai = await extractSign(env, await obj.arrayBuffer(), contentType, gate);
 			} catch (err) {
 				console.warn(`leads: could not read ${o.key}: ${String(err)}`);
 			}
@@ -882,6 +1013,11 @@ async function finalizeBatch(request, env, url, batchId) {
 				street_hint: clip(ai.street_hint, 120) || null,
 				is_sign: ai.is_sign !== false,
 				error: ai.error || null,
+				/* Ξεχωριστό από το `error`: το email πρέπει να λέει «δεν
+				   διαβάστηκε ΠΟΤΕ» και όχι «η φωτογραφία δεν διαβάζεται»,
+				   αλλιώς ο σύμβουλος νομίζει ότι φταίει η λήψη του και
+				   δεν ξαναστέλνει μια πεντακάθαρη πινακίδα. */
+				error_kind: ai.error_kind || null,
 				truncated: ai.truncated === true,
 			};
 
@@ -935,7 +1071,20 @@ async function finalizeBatch(request, env, url, batchId) {
 	   πηγαίνουν μόνο όσα δεν τα ξέρουμε ήδη. */
 	const uniquePhones = [...new Set(leads.flatMap((l) => l.phones.map((p) => p.digits)))];
 	const crm = await crmMatches(env, uniquePhones);
-	const web = await webLookup(env, uniquePhones.filter((d) => !crm.has(d)));
+	/* Ό,τι έχει ήδη διαβάσει το vision πάει μαζί με το νούμερο: το web
+	   lookup έβλεπε δέκα γυμνά ψηφία και απαντούσε «μάλλον ιδιώτης» για
+	   ένα τηλέφωνο τυπωμένο κάτω από «HellasHome REAL ESTATE SERVICES»
+	   (04/08/2026). Η πινακίδα είναι η ισχυρότερη πηγή που έχουμε και
+	   δεν υπήρχε λόγος να την κρύβουμε από το μοντέλο. */
+	const signContext = new Map();
+	for (const l of leads) {
+		for (const p of l.phones) {
+			if (signContext.has(p.digits)) continue;
+			const hint = clip([l.agency_name, l.sign_text].filter(Boolean).join(" · "), 300);
+			if (hint) signContext.set(p.digits, hint);
+		}
+	}
+	const web = await webLookup(env, uniquePhones.filter((d) => !crm.has(d)), signContext);
 	for (const l of leads) {
 		for (const p of l.phones) {
 			p.crm = crm.get(p.digits) || null;
