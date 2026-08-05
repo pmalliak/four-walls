@@ -352,10 +352,20 @@ async function extractSign(env, bytes, contentType, gate) {
 					}],
 					generationConfig: {
 						temperature: 0,
-						/* Ταβάνι ζημιάς. Μια κανονική ανάγνωση θέλει ~230 tokens·
-						   ο βρόχος της 04/08/2026 έγραψε 65.000 (30πλάσιο κόστος
-						   και 165 δευτ. αναμονή ανά φωτογραφία). */
-						maxOutputTokens: 2048,
+						/* Ταβάνι ζημιάς για τον βρόχο της 04/08/2026 (65.000
+						   tokens σε μία φωτογραφία), ΟΧΙ στόχος.
+
+						   ΤΟ THINKING ΜΕΤΡΑΕΙ ΕΔΩ ΜΕΣΑ, και στα 2048 έπνιγε
+						   την απάντηση: η σκέψη έτρωγε ~1.980 tokens και στο
+						   JSON έμεναν 68. `MAX_TOKENS` με 68 tokens, απάντηση
+						   κομμένη στη μέση, και μια φωτογραφία με ΔΥΟ χαρτιά
+						   έβγαζε μία πινακίδα — και στις τρεις λήψεις της
+						   βόλτας της 05/08/2026. Το salvageJson() έσωζε το
+						   πρώτο τηλέφωνο, οπότε το λάθος φαινόταν μόνο ως
+						   «η ανάγνωση κόπηκε» και η δεύτερη πινακίδα χανόταν
+						   σιωπηλά. Η απάντηση θέλει ~230 tokens· η σκέψη πάνω
+						   σε μια πυκνή λήψη θέλει πολλαπλάσια. */
+						maxOutputTokens: 8192,
 						responseMimeType: "application/json",
 						responseSchema: EXTRACT_SCHEMA,
 					},
@@ -394,8 +404,13 @@ async function extractSign(env, bytes, contentType, gate) {
 				/* Κομμένη απάντηση: σώζουμε ό,τι προλαβε να γραφτεί αντί να
 				   πετάξουμε ολόκληρη τη φωτογραφία. */
 				const salvaged = salvageJson(text);
+				/* Τα thinking tokens λογαριάζονται ΞΕΧΩΡΙΣΤΑ στο usageMetadata
+				   αλλά τρώνε το ΙΔΙΟ maxOutputTokens — χωρίς τα δύο νούμερα
+				   δίπλα δίπλα, ένα «MAX_TOKENS με 68 tokens» δεν βγάζει
+				   κανένα νόημα και ψάχνεις τον βρόχο εκεί που δεν είναι. */
 				console.warn(`leads: truncated JSON (${body?.candidates?.[0]?.finishReason}, `
-					+ `${body?.usageMetadata?.candidatesTokenCount} tokens) — `
+					+ `${body?.usageMetadata?.candidatesTokenCount} απάντηση `
+					+ `+ ${body?.usageMetadata?.thoughtsTokenCount || 0} σκέψη tokens) — `
 					+ (salvaged ? "salvaged" : "unusable"));
 				if (salvaged) return { ...salvaged, truncated: true };
 				return { error: "truncated response", error_kind: "call" };
