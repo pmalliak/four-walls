@@ -91,6 +91,24 @@
 .footer-one .logo img {
   height: 50px;
 }
+/* On a wide desktop (27" and up) the header keeps a lot of empty space either
+   side of the centred menu, and the 40px lockup reads small there. Step it up
+   past 1600px only: at 1400-1599 the menu already sits right next to it.     */
+@media (min-width: 1600px) {
+  .theme-main-menu .logo img {
+    height: 48px;
+  }
+}
+@media (min-width: 1920px) {
+  .theme-main-menu .logo img {
+    height: 56px;
+  }
+}
+@media (min-width: 2400px) {
+  .theme-main-menu .logo img {
+    height: 64px;
+  }
+}
 
 /* Footer logo — vertical brand lockup ------------------------------- */
 /* Optional stacked icon + wordmark + "REAL ESTATE" tagline, sized larger. */
