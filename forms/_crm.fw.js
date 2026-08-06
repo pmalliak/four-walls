@@ -31,6 +31,8 @@
 		{
 			// ανάθεση + υπόδειξη: an identical «Στοιχεία εντολέα» card.
 			// The ΑΔΤ issue date/authority keys carry no entoleas_ prefix.
+			// Η ανάθεση δεν έχει πια κατοικία/στοιχεία έκδοσης ΑΔΤ (μόνο η
+			// υπόδειξη τα κρατά)· το setField() αγνοεί αθόρυβα ό,τι λείπει.
 			anchor: "entoleas_onomatepwnymo",
 			map: {
 				onomatepwnymo: "entoleas_onomatepwnymo",
