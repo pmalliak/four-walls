@@ -223,11 +223,14 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;line-heig
 .steps .s.on .num{background:var(--pink);color:#fff}
 .hide{display:none!important}
 .pvnote{font-size:12.5px;color:var(--muted);margin:2px 2px 10px;text-align:center}
-/* Δύο έντυπα, δύο προεπισκοπήσεις: ο διακόπτης φαίνεται μόνο όταν
+/* Δύο έντυπα, δύο προεπισκοπήσεις: οι καρτέλες φαίνονται μόνο όταν
    υπάρχει και ανάθεση, αλλιώς η σελίδα δείχνει ό,τι έδειχνε πάντα. */
 .pvtabs{display:flex;gap:8px;margin:0 2px 10px}
 .pvtabs button{flex:1;font:inherit;font-size:13px;font-weight:700;color:#93a0b2;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 6px}
 .pvtabs button.on{color:#fff;background:var(--navy);border-color:var(--navy)}
+/* Επιλογή αντιγράφων και μέσα στην προεπισκόπηση (τελευταία στιγμή) */
+.pvmail{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin:0 2px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pvmail .lbl{font-size:12.5px;font-weight:600;color:#41506a}
 #pvwrap{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
 #pvscale{transform-origin:top left}
 .doc{width:720px;background:#fff;color:#242a33;font-family:"Manrope",Arial,sans-serif;font-size:13px;line-height:1.5;padding:18px 20px}
@@ -289,6 +292,9 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;line-heig
 </div>
 <div id="step2" class="hide"><div class="pvnote">Έλεγξε το έγγραφο. Αν χρειάζεται, πάτησε «Διόρθωση».</div>
 <div class="pvtabs hide" id="pvTabs"><button type="button" class="on" data-pv="doc">Καταχώριση</button><button type="button" data-pv="docA">Ανάθεση</button></div>
+<!-- Η επιλογή των αντιγράφων επαναλαμβάνεται εδώ ώστε να αλλάζει και την
+     τελευταία στιγμή, μπροστά στον ιδιοκτήτη, χωρίς επιστροφή στη φόρμα. -->
+<div class="pvmail" id="pvMail"></div>
 <div id="pvwrap"><div id="pvscale"><div id="doc" class="doc"></div><div id="docA" class="doc doc-anathesi hide"></div></div></div></div>
 </main>
 
@@ -370,9 +376,10 @@ const resi=s=>s.category==="residential";
 const comm=s=>s.category==="commercial";
 const landish=s=>s.category==="land"||["detached","villa","maisonette","farmhouse"].includes(s.subcategory);
 const renting=s=>s.availability==="rent"||s.availability==="shortterm";
-/* Το έντυπο ανάθεσης υπογράφεται στο ίδιο ραντεβού· ό,τι αφορά μόνο αυτό
-   κρύβεται όταν ο σύμβουλος το απενεργοποιήσει. */
-const withA=s=>s.with_anathesi===true;
+/* Το έντυπο ανάθεσης ακολουθεί τον «Τύπο ανάθεσης» του CRM: ένα πεδίο, δύο
+   φόρμες. Αποκλειστική ή Απλή βγάζουν το αντίστοιχο έντυπο· «Χωρίς» (ή
+   τίποτα επιλεγμένο) σημαίνει ούτε έγγραφο ούτε emails ανάθεσης. */
+const withA=s=>s.assignment==="exclusive"||s.assignment==="simple";
 /* Αμοιβή μόνο εκτός ενοικίασης: εκεί το κείμενο είναι σταθερό (50% ενός
    μισθώματος). Βραχυχρόνια/πλειστηριασμός πάνε με το κείμενο πώλησης,
    σπάνιο και ο σύμβουλος το βλέπει στην προεπισκόπηση. */
@@ -412,14 +419,18 @@ const SECTIONS=[
     {k:"is_rented", l:"Μισθωμένο", t:"yn"}
   ]},
   /* Το έντυπο ανάθεσης. Στο 99% των ραντεβού υπογράφεται μαζί με την
-     καταχώριση, γι' αυτό ο διακόπτης ανοίγει ΝΑΙ. Τα πεδία εδώ είναι της
-     σύμβασης, όχι του CRM: η «Αμοιβή» της ενότητας από πάνω είναι το τι
-     κρατά το EstatePrime για το ακίνητο, το ποσοστό εδώ είναι το τι
-     υπογράφει ο ιδιοκτήτης. Τα δύο δεν συνδέονται (docs/forms-crm.md). */
-  {title:"Έντυπο ανάθεσης", hint:"Υπογράφεται μαζί με την καταχώριση και φεύγει ως ξεχωριστό PDF.", fields:[
-    {k:"with_anathesi", l:"Μαζί και έντυπο ανάθεσης", t:"yn", full:true},
-    {k:"entoleas_adt", l:"Α.Δ.Τ. / Διαβατήριο ιδιοκτήτη", t:"text", when:withA},
-    {k:"entoleas_afm", l:"ΑΦΜ ιδιοκτήτη", t:"num", when:withA},
+     καταχώριση, γι' αυτό ο «Τύπος ανάθεσης» ανοίγει στην Απλή· η κάρτα
+     χάνεται μόνο με «Χωρίς». Τα πεδία εδώ είναι της σύμβασης, όχι του CRM:
+     η «Αμοιβή» της ενότητας από πάνω είναι το τι κρατά το EstatePrime για
+     το ακίνητο, το ποσοστό εδώ είναι το τι υπογράφει ο ιδιοκτήτης. Τα δύο
+     δεν συνδέονται (docs/forms-crm.md). */
+  {title:"Έντυπο ανάθεσης", when:withA, hint:"Βγαίνει από τον «Τύπο ανάθεσης» (με «Χωρίς» δεν υπάρχει), υπογράφεται μαζί με την καταχώριση και φεύγει ως ξεχωριστό PDF.", fields:[
+    {k:"entoleas_adt", l:"Α.Δ.Τ. / Διαβατήριο ιδιοκτήτη", t:"text"},
+    {k:"entoleas_afm", l:"ΑΦΜ ιδιοκτήτη", t:"num"},
+    {k:"has_proxy", l:"Ενεργεί κατ’ εντολή τρίτου (πληρεξούσιο)", t:"yn", full:true},
+    {k:"ekprosopoumenos", l:"Κατ’ εντολή του (ονοματεπώνυμο)", t:"text", full:true, when:s=>s.has_proxy===true},
+    {k:"plirexousio_imerominia", l:"Ημ/νία πληρεξουσίου", t:"date", when:s=>s.has_proxy===true},
+    {k:"anathesi_imerominia", l:"Ημερομηνία εντύπου", t:"date"},
     {k:"amoivi_pososto", l:"Μεσιτική αμοιβή πώλησης", t:"seg", opts:AMOIVI, full:true, when:feeA},
     {k:"amoivi_elaxisti", l:"Ελάχιστη αμοιβή", t:"yn", full:true, when:s=>feeA(s)&&s.amoivi_pososto!=="0"},
     {k:"amoivi_elaxisti_poso", l:"Ελάχιστη αμοιβή", t:"num", suf:"€", when:s=>feeA(s)&&s.amoivi_pososto!=="0"&&s.amoivi_elaxisti===true},
@@ -521,7 +532,8 @@ const SECTIONS=[
 /* Πεδία της φόρμας που ΔΕΝ είναι πεδία listing του CRM (πάνε σε contact/location) */
 const FORM_ONLY=new Set(["owner_name","owner_phone","owner_email","send_to_client","address_el","postal_code","area_level1","area_level2","area_other","fake_address",
   /* πεδία του εντύπου ανάθεσης: ζουν στη σύμβαση, όχι στην καρτέλα ακινήτου */
-  "with_anathesi","client_copy","entoleas_adt","entoleas_afm","amoivi_pososto","amoivi_elaxisti","amoivi_elaxisti_poso","amoivi_elaxisti_katofli"]);
+  "client_copy","entoleas_adt","entoleas_afm","has_proxy","ekprosopoumenos","plirexousio_imerominia","anathesi_imerominia",
+  "amoivi_pososto","amoivi_elaxisti","amoivi_elaxisti_poso","amoivi_elaxisti_katofli"]);
 const NUMERIC=new Set(["price","monthly_maintenance","assignment_fee","size","year_built","year_renovated","balcony_size","storage_size","garden_size","distance_sea","distance_city","distance_market","distance_airport","shop_window_length","land_size","frontage_length","coverage_ratio","build_ratio","max_height"]);
 
 /* slug → ελληνική ετικέτα, ανά πεδίο (για PDF/email) */
@@ -543,33 +555,29 @@ regLab("area_level1",AREAS1); Object.values(AREAS2).forEach(l=>regLab("area_leve
 /* ---------- State ---------- */
 const state={}; // key -> string slug | number | boolean | array (multi)
 const LS_DRAFT="fw_draft_kx2";
-const RERENDER=new Set(["availability","category","subcategory","area_level1","with_anathesi","amoivi_pososto","amoivi_elaxisti"]);
+const RERENDER=new Set(["availability","category","subcategory","area_level1","assignment","has_proxy","amoivi_pososto","amoivi_elaxisti"]);
 /* Segmented πεδία που ΔΕΝ ξε-επιλέγονται με δεύτερο tap: το έντυπο τυπώνει
    πάντα ένα ποσοστό και στέλνει πάντα κάπου τα αντίγραφα, οπότε «τίποτα
    επιλεγμένο» θα σήμαινε σιωπηλή επιστροφή στην προεπιλογή. */
 const STICKY=new Set(["amoivi_pososto","client_copy"]);
 
-/* Προεπιλογές ημερομηνιών: το ακίνητο είναι διαθέσιμο από σήμερα και η
-   ανάθεση τρέχει 6 μήνες. Τοπική ημερομηνία, όχι toISOString(): μετά τα
-   μεσάνυχτα η UTC δίνει ακόμα τη χθεσινή. Μπαίνουν πριν το πρώτο render,
-   ώστε το FWDrafts baseline να τις μετρά ως «κενή φόρμα». */
+/* Προεπιλογές: τοπική ημερομηνία, όχι toISOString() (μετά τα μεσάνυχτα η
+   UTC δίνει ακόμα τη χθεσινή). Μπαίνουν πριν το πρώτο render, ώστε το
+   FWDrafts baseline να τις μετρά ως «κενή φόρμα». Η «Λήξη ανάθεσης» μένει
+   επίτηδες κενή (απόφαση 06/08/2026): στέλνεται μόνο αν τη συμπληρώσει ο
+   σύμβουλος, και το έντυπο πέφτει τότε στους 6 μήνες του (anathesiMonths). */
 const isoDate=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-/* +n μήνες με κράτημα στο τέλος του μήνα: 31/8 → 28/2, όχι 3/3 */
-function addMonths(d,n){
-  const t=new Date(d.getFullYear(),d.getMonth()+n,1);
-  const last=new Date(t.getFullYear(),t.getMonth()+1,0).getDate();
-  t.setDate(Math.min(d.getDate(),last));
-  return t;
-}
 function applyDefaults(){
   const now=new Date();
   state.available_from=isoDate(now);
-  state.assignment_expires=isoDate(addMonths(now,6));
-  /* Ένα ραντεβού, δύο έντυπα: η ανάθεση είναι ο κανόνας, όχι η εξαίρεση.
-     Οι τιμές της αμοιβής είναι η πάγια πολιτική του γραφείου (2%, ελάχιστη
-     1.000 € κάτω από 50.000 € τίμημα) και αλλάζουν επιτόπου αν χρειαστεί. */
-  state.with_anathesi=true;
+  /* Ένα ραντεβού, δύο έντυπα: η ανάθεση είναι ο κανόνας, όχι η εξαίρεση,
+     γι' αυτό ο «Τύπος ανάθεσης» ανοίγει στην Απλή (όπως και η αυτόνομη
+     φόρμα, που ανοίγει χωρίς αποκλειστικότητα). Οι τιμές της αμοιβής είναι
+     η πάγια πολιτική του γραφείου (2%, ελάχιστη 1.000 € κάτω από 50.000 €
+     τίμημα) και αλλάζουν επιτόπου αν χρειαστεί. */
+  state.assignment="simple";
   state.client_copy="anathesi";
+  state.anathesi_imerominia=isoDate(now);
   state.amoivi_pososto="2";
   state.amoivi_elaxisti=true;
   state.amoivi_elaxisti_poso="1000";
@@ -700,6 +708,9 @@ function wire(){
       seg.classList.remove("miss"); cascade(key); saveDraft();
       if(RERENDER.has(key)) render();
       else seg.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.val===String(state[key]??"")));
+      /* Ο τύπος ανάθεσης ανοιγοκλείνει ολόκληρο το δεύτερο έντυπο:
+         υπογραφές, επιλογή αντιγράφων, ετικέτα κουμπιού. */
+      if(key==="assignment"){ syncSigCard(); refreshSendLabel(); }
       if(key==="client_copy")refreshSendLabel();
       return;
     }
@@ -713,11 +724,9 @@ function wire(){
       g.querySelector(".no").classList.toggle("on",next===false);
       if(key==="send_to_client")setTimeout(refreshSendLabel,0);
       saveDraft();
-      /* Το «Μαζί και έντυπο ανάθεσης» αλλάζει ολόκληρη τη φόρμα: πεδία
-         εντολέα και αμοιβής, την επιλογή αντιγράφων, τις υπογραφές και την
-         ετικέτα του κουμπιού αποστολής. */
+      /* Μερικά yn ανοίγουν πεδία (πληρεξούσιο, ελάχιστη αμοιβή), οπότε
+         θέλουν ξαναχτίσιμο όπως τα RERENDER segs. */
       if(RERENDER.has(key))render();
-      if(key==="with_anathesi"){ syncSigCard(); refreshSendLabel(); }
       return;
     }
     const pill=e.target.closest("[data-multi] .pill");
@@ -872,7 +881,7 @@ const SIGNS=[{k:"sig_entoleas",l:"Ο ΕΝΤΟΛΕΑΣ"},{k:"sig_mesitis",l:"Ο �
 const PADS={};
 /* Τα pads φτιάχνονται με την πρώτη εμφάνιση της κάρτας: σε κρυμμένο canvas
    το getBoundingClientRect() δίνει 0×0 και το pad βγαίνει νεκρό. Ό,τι έχει
-   ήδη υπογραφεί επιβιώνει το κλείσιμο/άνοιγμα του διακόπτη. */
+   ήδη υπογραφεί επιβιώνει τις εναλλαγές του «Τύπου ανάθεσης». */
 function syncSigCard(){
   const card=document.getElementById("sigCard");
   if(!card)return;
@@ -884,8 +893,9 @@ function signatures(){ const s={}; SIGNS.forEach(sg=>{ s[sg.k]=PADS[sg.k]?PADS[s
 
 /* Η αποκλειστικότητα του εντύπου μετριέται σε μήνες, η φόρμα κρατά
    ημερομηνία λήξης: στρογγυλοποιούμε στον πλησιέστερο μήνα και μένουμε στο
-   1..12, όσα δηλαδή ξέρει να γράψει ολόγραφα το κείμενο. Χωρίς έγκυρη
-   ημερομηνία, οι 6 μήνες της προεπιλογής. */
+   1..12, όσα δηλαδή ξέρει να γράψει ολόγραφα το κείμενο. Η «Λήξη ανάθεσης»
+   δεν προσυμπληρώνεται πια, οπότε κενή ή άκυρη σημαίνει τους 6 μήνες που
+   δίνει και η αυτόνομη φόρμα. */
 function anathesiMonths(){
   if(!state.assignment_expires)return 6;
   const end=new Date(state.assignment_expires+"T00:00:00");
@@ -906,6 +916,9 @@ function buildAnathesiData(){
     entoleas_afm:state.entoleas_afm||"",
     entoleas_email:state.owner_email||"",
     entoleas_tilefono:state.owner_phone||"",
+    has_proxy:state.has_proxy===true,
+    ekprosopoumenos:state.ekprosopoumenos||"",
+    plirexousio_imerominia:state.plirexousio_imerominia||"",
     akinito_odos:state.address_el||"",
     akinito_tk:state.postal_code||"",
     akinito_perioxi:areaLabel(),
@@ -921,7 +934,7 @@ function buildAnathesiData(){
     amoivi_elaxisti:state.amoivi_elaxisti===true,
     amoivi_elaxisti_poso:state.amoivi_elaxisti_poso||"",
     amoivi_elaxisti_katofli:state.amoivi_elaxisti_katofli||"",
-    imerominia:isoDate(new Date()),
+    imerominia:state.anathesi_imerominia||isoDate(new Date()),
     /* Το φίλτρο του Make (module #3) κόβει το email πελάτη μόνο σε ρητό
        false, οπότε η επιλογή ταξιδεύει μαζί με το έντυπο. */
     send_to_client:state.client_copy==="anathesi"||state.client_copy==="all"
@@ -983,7 +996,8 @@ function buildDoc(){
      sections. Τα πεδία του εντύπου ανάθεσης λείπουν επίσης: τα τυπώνει η
      ίδια η σύμβαση, εδώ θα ήταν διπλή (και παραπλανητική) καταγραφή. */
   const SKIP=new Set(["address_el","postal_code","area_level1","area_level2","area_other","price","size","availability","category","subcategory","subtype","send_to_client",
-    "with_anathesi","client_copy","entoleas_adt","entoleas_afm","amoivi_pososto","amoivi_elaxisti","amoivi_elaxisti_poso","amoivi_elaxisti_katofli"]);
+    "client_copy","entoleas_adt","entoleas_afm","has_proxy","ekprosopoumenos","plirexousio_imerominia","anathesi_imerominia",
+    "amoivi_pososto","amoivi_elaxisti","amoivi_elaxisti_poso","amoivi_elaxisti_katofli"]);
   visibleSections().forEach(sec=>{
     const items=[],notes=[];
     (sec.fields||[]).forEach(f=>{
@@ -1022,10 +1036,25 @@ function toPreview(){
   const both=withA(state);
   document.getElementById("pvTabs").classList.toggle("hide",!both);
   document.getElementById("docA").innerHTML=both?anathesiDocHTML():"";
+  renderPvMail();
   showPv("doc");
   showStep(2); fit();
 }
-function toEdit(){ clearQueued(); showStep(1); }
+/* Το ίδιο κουμπί σε δύο σημεία: ίδιο state, ίδια σημασιολογία με τη φόρμα
+   (το client_copy δεν ξε-επιλέγεται, το ΝΑΙ/ΟΧΙ ναι). Το reflect() στην
+   επιστροφή κρατά τη φόρμα συγχρονισμένη με ό,τι άλλαξε εδώ. */
+function renderPvMail(){
+  const el=document.getElementById("pvMail");
+  if(withA(state)){
+    el.innerHTML='<span class="lbl">Αντίγραφα στον ιδιοκτήτη με email</span><span class="seg" data-pvcopy>'+
+      COPIES.map(o=>'<button type="button" data-val="'+o.v+'"'+(String(state.client_copy||"")===o.v?' class="on"':'')+'>'+o.l+'</button>').join("")+'</span>';
+  }else{
+    el.innerHTML='<span class="lbl">Αποστολή αντιγράφου στον ιδιοκτήτη (email)</span><span class="yn" data-pvyn>'+
+      '<button type="button" class="yes'+(state.send_to_client===true?' on':'')+'" data-v="yes">ΝΑΙ</button>'+
+      '<button type="button" class="no'+(state.send_to_client===false?' on':'')+'" data-v="no">ΟΧΙ</button></span>';
+  }
+}
+function toEdit(){ clearQueued(); reflect(); showStep(1); }
 /* Τα δύο έντυπα ζουν στο ίδιο #pvscale (μία κλίμακα, ένα πλαίσιο) και
    εναλλάσσονται με τις καρτέλες· το ορατό ορίζει το ύψος και είναι αυτό που
    τυπώνει η «Αποθήκευση PDF». */
@@ -1145,11 +1174,21 @@ function closeScrim(el){ el.classList.remove("show"); }
 document.addEventListener("DOMContentLoaded",()=>{
   try{ localStorage.removeItem("fw_draft"); }catch(e){} // παλιό draft, πριν το CRM schema
   wire(); applyDefaults(); render(); loadDraft();
-  /* Μετά το loadDraft: ένα επαναφερμένο πρόχειρο μπορεί να έχει σβήσει το
-     with_anathesi, οπότε η κάρτα υπογραφών κρίνεται στο τελικό state. */
+  /* Μετά το loadDraft: ένα επαναφερμένο πρόχειρο μπορεί να έχει άλλον τύπο
+     ανάθεσης, οπότε η κάρτα υπογραφών κρίνεται στο τελικό state. */
   syncSigCard();
   document.querySelectorAll("#sigCard [data-clear]").forEach(b=>{ b.onclick=()=>{ const p=PADS[b.getAttribute("data-clear")]; if(p)p.clear(); }; });
   document.querySelectorAll("#pvTabs button").forEach(b=>{ b.onclick=()=>showPv(b.dataset.pv); });
+  document.getElementById("pvMail").addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b)return;
+    if(b.parentElement.hasAttribute("data-pvcopy")){ state.client_copy=b.dataset.val; }
+    else{
+      const yes=b.dataset.v==="yes"; const cur=state.send_to_client;
+      const next=(cur===true&&yes)||(cur===false&&!yes)?undefined:yes;
+      if(next===undefined)delete state.send_to_client; else state.send_to_client=next;
+    }
+    renderPvMail(); saveDraft(); refreshSendLabel();
+  });
   document.getElementById("toNext").onclick=()=>{ if(validate()) toPreview(); };
   document.getElementById("btnBack").onclick=toEdit;
   refreshSendLabel();

@@ -50,16 +50,18 @@ the Make templates read (`transaction_type`, `subtype`, `address`, `tk`,
 `region`, `area`), and `data.send_to_client` stays **boolean** because the
 client-email filter compares against the text `"true"`.
 
-**One appointment, two envelopes (2026-08-06).** With «Μαζί και έντυπο
-ανάθεσης» on (the default), the katachorisi page submits **twice** through
-`FWOutbox.submit`: its own `form:"katachorisi"` payload and a second,
-fully-formed `form:"anathesi"` one — same shape the standalone ανάθεση
-sends, built by `buildAnathesiData()` + the shared `_anathesi-doc.fw.js`
-text. Nothing downstream knows the difference: each submission gets its own
-dedupe hash, its own sent-log row and its own Make branch, which is why the
-Worker and the router needed **zero** changes (precedent: the εκτίμηση
-already submits twice). The PDFs are built strictly one after the other —
-two html2canvas runs in parallel starve each other on the iPad.
+**One appointment, two envelopes (2026-08-06).** The CRM's own «Τύπος
+ανάθεσης» drives it: Αποκλειστική or Απλή (the default) makes the
+katachorisi page submit **twice** through `FWOutbox.submit` — its own
+`form:"katachorisi"` payload and a second, fully-formed `form:"anathesi"`
+one, same shape the standalone ανάθεση sends, built by
+`buildAnathesiData()` + the shared `_anathesi-doc.fw.js` text. «Χωρίς»
+means no document, no tab, no anathesi emails. Nothing downstream knows
+the difference: each submission gets its own dedupe hash, its own sent-log
+row and its own Make branch, which is why the Worker and the router needed
+**zero** changes (precedent: the εκτίμηση already submits twice). The PDFs
+are built strictly one after the other — two html2canvas runs in parallel
+starve each other on the iPad.
 
 `prosfora` and `ektimisi` are the two entries with **no document at all**: no
 signatures, no `pdf_base64`, no `doc_html`. The προσφορά is an internal note
@@ -223,11 +225,14 @@ the combined flow, the «Αντίγραφα στον ιδιοκτήτη» τρί
 ανάθεση / Και τα δύο», which sets `send_to_client` on **each** of the two
 payloads: the ανάθεση gets `true` on «Μόνο ανάθεση» ή «Και τα δύο», η
 καταχώριση μόνο στο «Και τα δύο») and the ανάθεση itself, whose standalone
-page always sets `send_to_client:true` explicitly. Υπόδειξη and απόδειξη
-always mail the client — there is no second flow. The client copy and the
-internal reminder are different emails. Στο κοινό flow η γραμματεία
-παίρνει **δύο** ξεχωριστά emails «ΓΙΑ ΑΡΧΕΙΟ CRM»/«ΓΙΑ ΚΑΤΑΧΩΡΙΣΗ» (ένα ανά
-έντυπο), όπως αποφασίστηκε — όχι ένα με δύο συνημμένα.
+page always sets `send_to_client:true` explicitly. Η επιλογή
+επαναλαμβάνεται και στην **προεπισκόπηση** της καταχώρισης, ώστε να
+αλλάζει την τελευταία στιγμή, μπροστά στον ιδιοκτήτη. Υπόδειξη and
+απόδειξη always mail the client — there is no second flow. The client copy
+and the internal reminder are different emails. Στο κοινό flow η
+γραμματεία παίρνει **δύο** ξεχωριστά emails «ΓΙΑ ΑΡΧΕΙΟ CRM»/«ΓΙΑ
+ΚΑΤΑΧΩΡΙΣΗ» (ένα ανά έντυπο), όπως αποφασίστηκε — όχι ένα με δύο
+συνημμένα.
 
 ### Greek grammar in the templates
 
