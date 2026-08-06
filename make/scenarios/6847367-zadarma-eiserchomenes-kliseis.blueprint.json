@@ -1,0 +1,375 @@
+{
+	"flow": [
+		{
+			"id": 1,
+			"mapper": {},
+			"module": "zadarma:notifyEndTrigger",
+			"version": 1,
+			"metadata": {
+				"restore": {
+					"parameters": {
+						"__IMTHOOK__": {
+							"data": {
+								"editable": "false"
+							},
+							"label": "Zadarma — τέλος εισερχόμενης κλήσης"
+						}
+					}
+				},
+				"designer": {
+					"x": 0,
+					"y": 0,
+					"name": "Τέλος εισερχόμενης κλήσης"
+				},
+				"parameters": [
+					{
+						"name": "__IMTHOOK__",
+						"type": "hook:zadarma5",
+						"label": "Webhook",
+						"required": true
+					}
+				]
+			},
+			"parameters": {
+				"__IMTHOOK__": 3506369
+			}
+		},
+		{
+			"id": 2,
+			"mapper": {
+				"scope": "roundtrip",
+				"variables": [
+					{
+						"name": "searchKey",
+						"value": "{{if(length(replace(1.caller_id; \"/[^0-9]/g\"; \"\")) > 10; substring(replace(1.caller_id; \"/[^0-9]/g\"; \"\"); length(replace(1.caller_id; \"/[^0-9]/g\"; \"\")) - 10; length(replace(1.caller_id; \"/[^0-9]/g\"; \"\"))); replace(1.caller_id; \"/[^0-9]/g\"; \"\"))}}"
+					},
+					{
+						"name": "userId",
+						"value": "{{switch(ifempty(1.internal; \"\"); \"100\"; 1; \"101\"; 2; 1)}}"
+					},
+					{
+						"name": "commDate",
+						"value": "{{ifempty(1.callstart; formatDate(now; \"YYYY-MM-DD HH:mm:ss\"; \"Europe/Athens\"))}}"
+					},
+					{
+						"name": "comments",
+						"value": "{{if(parseNumber(ifempty(1.duration; \"0\")) > 0; \"Εισερχόμενη κλήση\"; \"Αναπάντητη εισερχόμενη κλήση\")}} από {{ifempty(1.caller_id; \"άγνωστο νούμερο\")}}{{if(length(ifempty(1.called_did; \"\")) > 0; \" στο \" + 1.called_did; \"\")}}.{{if(parseNumber(ifempty(1.duration; \"0\")) > 0; \" Διάρκεια \" + if(parseNumber(ifempty(1.duration; \"0\")) < 60; ifempty(1.duration; \"0\") + \" δευτ.\"; floor(parseNumber(ifempty(1.duration; \"0\")) / 60) + \" λεπτά \" + (parseNumber(ifempty(1.duration; \"0\")) - floor(parseNumber(ifempty(1.duration; \"0\")) / 60) * 60) + \" δευτ.\"); \"\")}}{{if(length(ifempty(1.internal; \"\")) > 0; \" Εσωτερικό \" + 1.internal + \".\"; \"\")}}{{if(length(ifempty(1.record_url; \"\")) > 0; \" Ηχογράφηση: \" + 1.record_url; \"\")}}"
+					}
+				]
+			},
+			"module": "util:SetVariables",
+			"version": 1,
+			"metadata": {
+				"restore": {
+					"expect": {
+						"scope": {
+							"label": "One cycle"
+						},
+						"variables": {
+							"items": [
+								null,
+								null,
+								null,
+								null
+							]
+						}
+					}
+				},
+				"designer": {
+					"x": 300,
+					"y": 0,
+					"name": "Στοιχεία κλήσης (εδώ το mapping εσωτερικών)"
+				},
+				"interface": [
+					{
+						"name": "searchKey",
+						"type": "any",
+						"label": "searchKey"
+					},
+					{
+						"name": "userId",
+						"type": "any",
+						"label": "userId"
+					},
+					{
+						"name": "commDate",
+						"type": "any",
+						"label": "commDate"
+					},
+					{
+						"name": "comments",
+						"type": "any",
+						"label": "comments"
+					}
+				]
+			},
+			"parameters": {}
+		},
+		{
+			"id": 3,
+			"filter": {
+				"name": "Μόνο εξωτερικοί αριθμοί",
+				"conditions": [
+					[
+						{
+							"a": "{{length(2.searchKey)}}",
+							"b": "9",
+							"o": "number:greaterorequal"
+						}
+					]
+				]
+			},
+			"mapper": {
+				"qs": [],
+				"url": "https://fourwalls.estateprime.gr/api/contacts?search={{encodeURL(2.searchKey)}}",
+				"gzip": true,
+				"method": "get",
+				"headers": [
+					{
+						"name": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"timeout": "",
+				"useMtls": false,
+				"authPass": "",
+				"authUser": "",
+				"serializeUrl": false,
+				"shareCookies": false,
+				"parseResponse": true,
+				"followRedirect": true,
+				"useQuerystring": false,
+				"followAllRedirects": false,
+				"rejectUnauthorized": true
+			},
+			"module": "http:ActionSendDataBasicAuth",
+			"onerror": [
+				{
+					"id": 7,
+					"mapper": {},
+					"module": "builtin:Ignore",
+					"version": 1,
+					"metadata": {
+						"designer": {
+							"x": 600,
+							"y": 300
+						}
+					},
+					"parameters": {}
+				}
+			],
+			"version": 3,
+			"metadata": {
+				"restore": {
+					"expect": {
+						"qs": {
+							"mode": "chose"
+						},
+						"method": {
+							"mode": "chose",
+							"label": "GET"
+						},
+						"headers": {
+							"mode": "chose",
+							"items": [
+								null
+							]
+						}
+					},
+					"parameters": {
+						"key": {
+							"label": "Estate Prime Auth"
+						}
+					}
+				},
+				"designer": {
+					"x": 600,
+					"y": 0,
+					"name": "CRM: Αναζήτηση επαφής"
+				},
+				"parameters": [
+					{
+						"name": "key",
+						"type": "keychain:basicauth",
+						"label": "Key",
+						"required": true
+					},
+					{
+						"name": "handleErrors",
+						"type": "boolean",
+						"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+						"required": true
+					}
+				]
+			},
+			"parameters": {
+				"key": 199013,
+				"handleErrors": false
+			}
+		},
+		{
+			"id": 4,
+			"mapper": null,
+			"module": "builtin:BasicIfElse",
+			"version": 1,
+			"branches": [
+				{
+					"flow": [
+						{
+							"id": 5,
+							"mapper": {
+								"qs": [],
+								"url": "https://fourwalls.estateprime.gr/api/communication",
+								"data": "{\"contact_id\": {{3.data.data[1].id}}, \"channel\": 1, \"type\": \"incoming\", \"user_id\": {{2.userId}}, \"store_id\": 1, \"communication_date\": \"{{2.commDate}}\", \"tags\": [5], \"comments\": \"{{2.comments}}\"}",
+								"gzip": true,
+								"method": "post",
+								"headers": [],
+								"timeout": "",
+								"useMtls": false,
+								"authPass": "",
+								"authUser": "",
+								"bodyType": "raw",
+								"contentType": "application/json",
+								"serializeUrl": false,
+								"shareCookies": false,
+								"parseResponse": true,
+								"followRedirect": true,
+								"useQuerystring": false,
+								"followAllRedirects": false,
+								"rejectUnauthorized": true
+							},
+							"module": "http:ActionSendDataBasicAuth",
+							"onerror": [
+								{
+									"id": 8,
+									"mapper": {},
+									"module": "builtin:Ignore",
+									"version": 1,
+									"metadata": {
+										"designer": {
+											"x": 1500,
+											"y": 0
+										}
+									},
+									"parameters": {}
+								}
+							],
+							"version": 3,
+							"metadata": {
+								"restore": {
+									"expect": {
+										"qs": {
+											"mode": "chose"
+										},
+										"method": {
+											"mode": "chose",
+											"label": "POST"
+										},
+										"headers": {
+											"mode": "chose"
+										},
+										"bodyType": {
+											"label": "Raw"
+										},
+										"contentType": {
+											"label": "JSON (application/json)"
+										}
+									},
+									"parameters": {
+										"key": {
+											"label": "Estate Prime Auth"
+										}
+									}
+								},
+								"designer": {
+									"x": 1200,
+									"y": -150,
+									"name": "CRM: Επικοινωνία (εισερχόμενη κλήση)"
+								},
+								"parameters": [
+									{
+										"name": "key",
+										"type": "keychain:basicauth",
+										"label": "Key",
+										"required": true
+									},
+									{
+										"name": "handleErrors",
+										"type": "boolean",
+										"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"key": 199013,
+								"handleErrors": true
+							}
+						}
+					],
+					"type": "condition",
+					"label": "Υπάρχουσα επαφή",
+					"merge": false,
+					"conditions": [
+						[
+							{
+								"a": "{{3.data.total_results}}",
+								"b": "0",
+								"o": "number:greater"
+							}
+						]
+					]
+				},
+				{
+					"flow": [
+						{
+							"id": 6,
+							"filter": null,
+							"mapper": null,
+							"module": "placeholder:Placeholder",
+							"version": 1,
+							"metadata": {
+								"designer": {
+									"x": 1200,
+									"y": 150,
+									"name": "Άγνωστο νούμερο (δεν φτιάχνουμε επαφή)"
+								}
+							},
+							"parameters": {}
+						}
+					],
+					"type": "else",
+					"label": "",
+					"merge": false,
+					"disabled": false
+				}
+			],
+			"metadata": {
+				"designer": {
+					"x": 900,
+					"y": 0
+				}
+			}
+		}
+	],
+	"name": "Zadarma - Εισερχόμενες κλήσεις",
+	"metadata": {
+		"instant": true,
+		"version": 1,
+		"designer": {
+			"orphans": []
+		},
+		"scenario": {
+			"dlq": true,
+			"slots": null,
+			"dataloss": false,
+			"maxErrors": 3,
+			"autoCommit": true,
+			"roundtrips": 1,
+			"sequential": false,
+			"confidential": false,
+			"freshVariables": false,
+			"autoCommitTriggerLast": true
+		}
+	}
+}

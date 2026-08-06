@@ -202,3 +202,4 @@ Make:
 | Site — φόρμα επικοινωνίας / ολοκλήρωση αναζήτησης | [request-closed.md](request-closed.md) |
 | CRM — νέα ακίνητα σε ζητήσεις | [request-matchings.md](request-matchings.md) |
 | Photos — AI enhance | [photo-enhance.md](photo-enhance.md) |
+| Zadarma — εισερχόμενες / εξερχόμενες κλήσεις | [zadarma-calls.md](zadarma-calls.md) |

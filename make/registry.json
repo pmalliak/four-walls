@@ -136,6 +136,20 @@
 			"type": "web",
 			"scenarioId": 6786126,
 			"udid": "(κρυφό)"
+		},
+		{
+			"id": 3506369,
+			"name": "Zadarma — τέλος εισερχόμενης κλήσης",
+			"type": "web",
+			"scenarioId": 6847367,
+			"udid": "(κρυφό)"
+		},
+		{
+			"id": 3506373,
+			"name": "Zadarma — τέλος εξερχόμενης κλήσης",
+			"type": "web",
+			"scenarioId": 6828361,
+			"udid": "(κρυφό)"
 		}
 	],
 	"dataStores": []

@@ -15,7 +15,8 @@
 | `6762737` | Εκτίμηση — φρεσκάρισμα τιμών περιοχών | ναι | monthly 09:00 1 | 2 | [6762737-ektimisi-freskarisma-timon-periochon.blueprint.json](scenarios/6762737-ektimisi-freskarisma-timon-periochon.blueprint.json) |
 | `6775485` | Φύλακας — ό,τι δεν στάλθηκε | ναι | άμεσα (webhook/mailhook) | 2 | [6775485-fylakas-o-ti-den-stalthike.blueprint.json](scenarios/6775485-fylakas-o-ti-den-stalthike.blueprint.json) |
 | `6786126` | Πινακίδες | ναι | άμεσα (webhook/mailhook) | 13 | [6786126-pinakides.blueprint.json](scenarios/6786126-pinakides.blueprint.json) |
-| `6828361` | Integration Zadarma | **όχι** | άμεσα (webhook/mailhook) | 1 | [6828361-integration-zadarma.blueprint.json](scenarios/6828361-integration-zadarma.blueprint.json) |
+| `6828361` | Zadarma - Εξερχόμενες κλήσεις | ναι | άμεσα (webhook/mailhook) | 7 | [6828361-zadarma-exerchomenes-kliseis.blueprint.json](scenarios/6828361-zadarma-exerchomenes-kliseis.blueprint.json) |
+| `6847367` | Zadarma - Εισερχόμενες κλήσεις | ναι | άμεσα (webhook/mailhook) | 7 | [6847367-zadarma-eiserchomenes-kliseis.blueprint.json](scenarios/6847367-zadarma-eiserchomenes-kliseis.blueprint.json) |
 
 ## Spitogatos - Αίτηση ανάθεσης `6405443`
 
@@ -260,11 +261,36 @@
         17  placeholder:Placeholder
 ```
 
-## Integration Zadarma `6828361`
+## Zadarma - Εξερχόμενες κλήσεις `6828361`
 
-- Ενεργό: όχι · χρονισμός: άμεσα (webhook/mailhook)
-- DLQ: όχι · maxErrors: 3 · sequential: όχι
+- Ενεργό: ναι · χρονισμός: άμεσα (webhook/mailhook)
+- Hook: `3506373` (Zadarma — τέλος εξερχόμενης κλήσης)
+- DLQ: ναι · maxErrors: 3 · sequential: όχι
 
 ```
-2   zadarma:NotifyOutStart
+1   zadarma:notifyOutEndTrigger · Τέλος εξερχόμενης κλήσης
+2   util:SetVariables · Στοιχεία κλήσης (εδώ το mapping εσωτερικών)
+3   http:ActionSendDataBasicAuth · CRM: Αναζήτηση επαφής · [φίλτρο: Μόνο εξωτερικοί αριθμοί] · [onerror: builtin:Ignore]
+4   builtin:BasicIfElse
+  ├─ condition «Υπάρχουσα επαφή»
+    5   http:ActionSendDataBasicAuth · CRM: Επικοινωνία (εξερχόμενη κλήση) · [onerror: builtin:Ignore]
+  ├─ else
+    6   placeholder:Placeholder · Άγνωστο νούμερο (δεν φτιάχνουμε επαφή)
+```
+
+## Zadarma - Εισερχόμενες κλήσεις `6847367`
+
+- Ενεργό: ναι · χρονισμός: άμεσα (webhook/mailhook)
+- Hook: `3506369` (Zadarma — τέλος εισερχόμενης κλήσης)
+- DLQ: ναι · maxErrors: 3 · sequential: όχι
+
+```
+1   zadarma:notifyEndTrigger · Τέλος εισερχόμενης κλήσης
+2   util:SetVariables · Στοιχεία κλήσης (εδώ το mapping εσωτερικών)
+3   http:ActionSendDataBasicAuth · CRM: Αναζήτηση επαφής · [φίλτρο: Μόνο εξωτερικοί αριθμοί] · [onerror: builtin:Ignore]
+4   builtin:BasicIfElse
+  ├─ condition «Υπάρχουσα επαφή»
+    5   http:ActionSendDataBasicAuth · CRM: Επικοινωνία (εισερχόμενη κλήση) · [onerror: builtin:Ignore]
+  ├─ else
+    6   placeholder:Placeholder · Άγνωστο νούμερο (δεν φτιάχνουμε επαφή)
 ```
