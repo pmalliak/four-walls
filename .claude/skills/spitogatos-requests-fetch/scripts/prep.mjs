@@ -105,6 +105,9 @@ function normPhone(p) {
 	if (/^0030/.test(s)) return "+" + s.slice(2);
 	if (/^30\d{10}$/.test(s)) return "+" + s;
 	if (/^69\d{8}$/.test(s)) return "+30" + s;      // Greek mobile without prefix
+	// Κυπριακό κινητό: 8 ψηφία από 9. Χωρίς πρόθεμα το CRM κολλάει μόνο του «+30»
+	// (η επαφή 277 αποθηκεύτηκε ως +3099567251) και το κινητό γίνεται άκυρο.
+	if (/^9\d{7}$/.test(s)) return "+357" + s;
 	return s;                                        // foreign / unknown -> leave as-is
 }
 
