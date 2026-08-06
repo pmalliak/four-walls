@@ -91,7 +91,8 @@ is silently skipped (a slug with no label falls back to the raw slug in the evid
    `data/listings.json` is gitignored (it is the local preview feed), so only
    `worker/lib/accessibility-data.mjs` should appear.
 4. **Ask before pushing.** `git push` to `main` IS the deploy (Cloudflare Workers Builds), live
-   in under a minute. Commit message in Greek, no dashes as punctuation.
+   in under a minute. Commit message in English, conventional (`feat(accessibility): …`), no
+   dashes as punctuation.
 5. If the run reports nothing to compute, say so and stop. No commit.
 
 ## Traps
@@ -101,6 +102,10 @@ is silently skipped (a slug with no label falls back to the raw slug in the evid
 - **The feed must be current.** The tool can only rate listings that are already in the feed, and
   the feed rebuilds on the CRM webhook plus a nightly cron. A listing added minutes ago may not be
   there yet: check `generatedAt` in the feed, or trigger a rebuild, before concluding it was skipped.
+- **A listing with no photos is not in the public feed** (it is held back from the site until the
+  first photo reaches the CRM, see [docs/listings-feed.md](../../../docs/listings-feed.md#a-listing-with-no-photos)),
+  so this run cannot rate it. Run the skill again **after** the shoot, otherwise the property goes
+  live without «Προσβασιμότητα περιοχής» cards.
 - **Coordinates are fuzzed on purpose** for privacy, so ratings are area level. That is why bands
   are qualitative («Καλή») and never invented 0 to 100 numbers, and why a move under 30 m does not
   trigger a recompute.

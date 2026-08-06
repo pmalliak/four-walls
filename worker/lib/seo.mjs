@@ -18,6 +18,7 @@
    ===================================================================== */
 
 import { SITE, PAGES_META, pageLang, alternateKey } from "./pages-meta.mjs";
+import { publicListings } from "./estateprime.mjs";
 
 /* KV key of the feed — keep in sync with FEED_KEY in worker/index.mjs. */
 const FEED_KEY = "listings.json";
@@ -179,7 +180,14 @@ function urlOrigin(src) {
 async function loadFeed(env) {
 	// One KV read per request, edge-cached: feed updates reach listing
 	// heads within ≤5 min, which webhook/cron cadence makes acceptable.
-	return env.LISTINGS_KV.get(FEED_KEY, { type: "json", cacheTtl: 300 });
+	const feed = await env.LISTINGS_KV.get(FEED_KEY, { type: "json", cacheTtl: 300 });
+	// Ό,τι διαβάζεται εδώ βγαίνει στο δίκτυο, οπότε βλέπει μόνο ό,τι βλέπει
+	// και το site: ένα ακίνητο χωρίς φωτογραφίες δεν έχει ούτε σελίδα
+	// (/properties/<code> -> 404) ούτε γραμμή στο sitemap, αλλιώς θα
+	// στέλναμε τη Google σε μια σελίδα που το feed δεν έχει να γεμίσει.
+	// Επανεμφανίζεται μόνο του με την πρώτη φωτογραφία (lib/estateprime.mjs).
+	if (feed && Array.isArray(feed.listings)) feed.listings = publicListings(feed.listings);
+	return feed;
 }
 
 /* ------------------------------------------------------------------ */

@@ -21,8 +21,10 @@
    diffable, and the same similarity rule as the website's «Παρόμοια
    ακίνητα» row.
 
-   PUBLIC BUT INERT: it only echoes data that is already public on the
-   site, sends nothing itself, and carries NO free text at all — the
+   PUBLIC BUT INERT: it echoes listing data the visitor has already seen
+   on the portal (a code they were given answers «διαθέσιμο ή όχι», even
+   for a listing the site itself is still holding back for lack of
+   photos), sends nothing itself, and carries NO free text at all — the
    query string is a listing code and a language, so the URL cannot be
    turned into a four-walls.gr-hosted message. (The visitor's name used
    to greet them, but Greek needs the vocative and the portal only gives
@@ -32,6 +34,7 @@
 
 import { SITE } from "./pages-meta.mjs";
 import { fmtNumber, subcategoryLabel, locField, canonicalUrl, listingTitle } from "./seo.mjs";
+import { hasPhotos, publicListings } from "./estateprime.mjs";
 import { claimOnce, logSent } from "./sent-log.mjs";
 
 /* KV key of the feed — keep in sync with FEED_KEY in worker/index.mjs. */
@@ -378,24 +381,34 @@ export async function handleLeadReply(request, env, url) {
 	} catch (err) {
 		console.error(`lead-reply: feed read failed: ${err.message}`);
 	}
-	const listings = Array.isArray(feed?.listings) ? feed.listings : [];
+	const stock = Array.isArray(feed?.listings) ? feed.listings : [];
+	/* Δύο σύνολα, επίτηδες. Η ΔΙΑΘΕΣΙΜΟΤΗΤΑ κρίνεται σε όλο το ενεργό στοκ:
+	   ο πελάτης ρωτάει για αγγελία που είδε στο Spitogatos, όπου το ακίνητο
+	   υπάρχει και χωρίς φωτογραφίες, και «δεν είναι πλέον διαθέσιμο» για
+	   κάτι που πουλάμε είναι το χειρότερο ψέμα που μπορεί να πει το email.
+	   Ό,τι όμως φέρει LINK βγαίνει μόνο από τα δημόσια: η σελίδα ενός
+	   ακινήτου χωρίς φωτογραφίες δεν σερβίρεται (lib/estateprime.mjs). */
+	const listings = publicListings(stock);
 
 	/* The feed carries active stock only, so «found in the feed» IS
 	   «still available» — no extra CRM call, no second source of truth. */
-	const listing = code ? listings.find((l) => l.code === code || l.id === code) || null : null;
-	const available = Boolean(listing);
+	const found = code ? stock.find((l) => l.code === code || l.id === code) || null : null;
+	const available = Boolean(found);
+	/* Διαθέσιμο αλλά αφωτογράφιστο: το λέμε με λόγια (thanksNoCard), χωρίς
+	   κάρτα προς σελίδα που θα γύριζε 404. */
+	const listing = found && hasPhotos(found) ? found : null;
 
 	/* Not found means sold/rented/withdrawn. We no longer know what the
 	   client wanted, so fall back to the newest stock of the transaction
 	   type Make passes along (from the email's «προς ενοικίαση/πώληση»). */
 	let similar = [];
 	let strictMatch = false;
-	if (listing) {
+	if (found) {
 		/* Strict only. If nothing is genuinely close we show nothing: the
 		   reader already found a property they like, so padding the mail
 		   with near-misses adds noise, and the ζήτηση invitation below is
 		   the better ask (Panos, 2026-07-29). */
-		similar = pickSimilar(listings, listing, 3, true);
+		similar = pickSimilar(listings, found, 3, true);
 		strictMatch = similar.length > 0;
 	} else {
 		const t = url.searchParams.get("transaction");

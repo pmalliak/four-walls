@@ -31,6 +31,9 @@ Design rules:
   that hand-maintained label redundant and it was removed.) `status` is the
   only publication signal the API offers — see
   [estateprime-api.md](estateprime-api.md#portals--publication-state-not-exposed).
+  The one thing that holds a listing back is having **no photos yet**, and
+  that is not a whitelist either: it resolves itself the moment the first
+  photo reaches the CRM (see [below](#a-listing-with-no-photos)).
 - **«Ακίνητο του μήνα» tag:** the listing carrying the EstatePrime tag named
   by the `FEATURED_TAG` var (currently `property-of-the-month`; ήταν
   `website-featured` έως τη μετονομασία στο CRM UI 2026-07-31) is published
@@ -91,7 +94,11 @@ valuation can compute *days on market* and read it as the market's own answer
 to the asking price (see [valuation.md](valuation.md)). Live coverage is
 complete (19/19 active listings carried a valid date when checked 2026-07-31).
 
-**It is stripped from the served feed** (`FEED_PRIVATE_FIELDS` in
+The served feed differs from the KV shape in exactly two ways, both in
+`serveFeed()`: `listedAt` is stripped, and photoless listings are dropped from
+the public copy (`count` follows). Everything else passes through untouched.
+
+**`listedAt` is stripped from the served feed** (`FEED_PRIVATE_FIELDS` in
 [../worker/index.mjs](../worker/index.mjs)) and shown above only to document
 the KV shape. How long a property has been sitting is commercially sensitive:
 a buyer who sees «449 days» knows the owner is tired and lowballs accordingly,
@@ -169,17 +176,44 @@ charges still renders — no charges is information.
 ## A listing with no photos
 
 `images` is regularly empty: a listing goes into the CRM the day it is signed
-and the photos follow after the shoot. Everywhere a photo would go the
-front-end then draws **`images/no-photo.fw.svg`** instead (`NO_PHOTO` in
-`js/listings.fw.js`): the grid card, the detail gallery and its thumbnail,
-the «Παρόμοια» row, the video poster on `property.html`.
+and the photos follow after the shoot. **Such a listing is not published on
+the site at all** — `hasPhotos()` / `publicListings()` in
+`worker/lib/estateprime.mjs` decide this, and everything public applies the
+filter:
 
-It used to be `images/lazy.svg`, the theme's white spinner, so such a listing
-sat on `/properties` looking like a card that never finished loading (and kept
-spinning forever). The stand-in is a 16:9 panel carrying the brand cube in a
-soft rose: the same ratio as every photo frame, so it fills the frame exactly
-and `fitShot()` skips the blurred surround it gives a real photo. It has no
-text on it, because the Greek and the English site are served the same file.
+| Public (photoless listing is invisible) | Internal (sees the full stock) |
+|---|---|
+| `GET /data/listings.json` on the apex → grid, search, «Νεότερα», «Νέες καταχωρίσεις», «Παρόμοια», home banner | `GET /data/listings.json` on **forms.**four-walls.gr (behind Access) → the valuation form's CRM prefill |
+| `/sitemap.xml` and `/properties/<code>` (a real 404 while photoless) | `/api/crm/listings` → the έντυπα property picker (its own CRM index, never the feed) |
+| the property cards inside the lead-reply mail | `worker/lib/valuation.mjs` comparables, `area-prices-refresh.mjs`, `property-inquiry.mjs` (office-facing) |
+
+Why: the freshest listing is also the one still waiting for its shoot, so it
+took **position 0** in «Νεότερα» and led the home page with an empty frame.
+That does not sell the property, it just shows an office that has not got
+round to it.
+
+The filter runs at **serve time, not build time**: KV keeps the complete feed,
+exactly like `FEED_PRIVATE_FIELDS` above, so internal consumers lose nothing.
+Nothing has to be flipped when the photos arrive — the next webhook/cron
+rebuild publishes the listing on its own.
+
+Availability is *not* filtered. `worker/lib/lead-reply.mjs` looks the asked-for
+code up in the **full** stock, because the client saw the ad on Spitogatos,
+where the property is listed photos or not, and telling them «δεν είναι πλέον
+διαθέσιμο» about something we are actively selling is the worst thing that
+mail can say. It just skips the property card (no link to a 404) and answers
+in words.
+
+**`images/no-photo.fw.svg` stays** as the fallback everywhere a photo would go
+(`NO_PHOTO` in `js/listings.fw.js`): the grid card, the detail gallery and its
+thumbnail, the «Παρόμοια» row, the video poster on `property.html`. It is now
+a safety net rather than an everyday sight — a cached feed, a listing whose
+photo URLs break. It used to be `images/lazy.svg`, the theme's white spinner,
+so such a listing sat on `/properties` looking like a card that never finished
+loading. The stand-in is a 16:9 panel carrying the brand cube in a soft rose:
+the same ratio as every photo frame, so it fills the frame exactly and
+`fitShot()` skips the blurred surround it gives a real photo. It has no text
+on it, because the Greek and the English site are served the same file.
 
 Two knock-on rules in the same file: «Δείτε και τις N φωτογραφίες» stays
 hidden, and the video poster keeps the stand-in rather than being set to
@@ -187,6 +221,10 @@ hidden, and the video poster keeps the stand-in rather than being set to
 
 The share preview is separate. `worker/lib/seo.mjs` falls back to the site's
 own `og:image` for a listing with no photos, never to this panel.
+
+One ordering note for `/area-accessibility`: it reads the **public** feed, so
+run it *after* the photos are in, otherwise the listing appears with no
+«Προσβασιμότητα περιοχής» cards until the next run.
 
 ## Deploy & setup (one-time)
 

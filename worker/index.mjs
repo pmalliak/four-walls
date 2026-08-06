@@ -37,7 +37,7 @@
    Deploy/setup steps: docs/listings-feed.md.
    ===================================================================== */
 
-import { buildFeed } from "./lib/estateprime.mjs";
+import { buildFeed, publicListings } from "./lib/estateprime.mjs";
 import { robotsResponse, sitemapResponse, serveListingPage, isProdHost } from "./lib/seo.mjs";
 import { requireAccess, isLocalDev, json } from "./lib/access.mjs";
 import { contactsIndex, contactDetail, listingsIndex } from "./lib/crm.mjs";
@@ -141,8 +141,11 @@ export default {
 			// Το feed σερβίρεται και σε αυτό το host: η φόρμα της εκτίμησης
 			// το διαβάζει για να προσυμπληρώσει όλα τα πεδία του ακινήτου,
 			// και η rewrite σε /forms παρακάτω δεν έχει data/ από κάτω της.
+			// Εδώ φεύγει ΟΛΟΚΛΗΡΟ (internal), μαζί με τα ακίνητα που δεν
+			// έχουν ακόμη φωτογραφίες: το γραφείο τα δουλεύει κανονικά, μόνο
+			// το site δεν τα δείχνει.
 			if (url.pathname === "/data/listings.json") {
-				return serveFeed(env);
+				return serveFeed(env, { internal: true });
 			}
 			// Ίδιος λόγος: η φόρμα της εκτίμησης τραβάει εδώ το ίδιο της το
 			// report για να το δείξει επιτόπου (δεύτερο βήμα του submit).
@@ -627,7 +630,13 @@ function contactJson(obj, status, extraHeaders) {
    listedAt (withListedRank στο lib/estateprime.mjs). */
 const FEED_PRIVATE_FIELDS = ["listedAt"];
 
-async function serveFeed(env) {
+/* internal:true σερβίρει το feed ΟΠΩΣ είναι στο KV, με τα ακίνητα που δεν
+   έχουν ακόμη φωτογραφίες. Το παίρνει μόνο το forms host, που είναι πίσω
+   από το Cloudflare Access: η φόρμα της εκτίμησης προσυμπληρώνει από εκεί
+   το ακίνητο που μόλις διάλεξε ο σύμβουλος στο CRM, και αυτό είναι τις
+   περισσότερες φορές το ολοκαίνουριο, το χωρίς φωτογραφίες (hasPhotos στο
+   lib/estateprime.mjs). Δημόσια δεν φεύγει ποτέ. */
+async function serveFeed(env, opts = {}) {
 	const feed = await env.LISTINGS_KV.get(FEED_KEY);
 	if (feed === null) {
 		return new Response(JSON.stringify({ error: "feed not generated yet" }), {
@@ -638,6 +647,10 @@ async function serveFeed(env) {
 	let body = feed;
 	try {
 		const parsed = JSON.parse(feed);
+		if (!opts.internal) {
+			parsed.listings = publicListings(parsed.listings);
+			parsed.count = parsed.listings.length;
+		}
 		for (const l of parsed.listings || []) {
 			for (const f of FEED_PRIVATE_FIELDS) delete l[f];
 		}

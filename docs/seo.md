@@ -75,8 +75,12 @@ HTMLRewriter:
 ### 3. Discovery — sitemap.xml + robots.txt (Worker routes)
 
 - `/sitemap.xml` — static pages from `PAGES_META` (+`sitemap: false` opts
-  out) plus one URL per feed listing with `<lastmod>`. A Worker route, not
-  a file, because listing URLs change on every webhook/cron rebuild.
+  out) plus one URL per **publicly listed** listing with `<lastmod>`. A
+  Worker route, not a file, because listing URLs change on every
+  webhook/cron rebuild. A listing with no photos is not public yet, so it
+  has neither a sitemap line nor a page: `/properties/<code>` answers a
+  real 404 until the first photo lands (see
+  [listings-feed.md](listings-feed.md#a-listing-with-no-photos)).
 - `/robots.txt` — host-aware: the production hosts allow crawling
   (`Disallow: /forms/` only) and point at the sitemap; **every other host**
   (`dev.*`, `*.workers.dev`, `forms.*`) answers `Disallow: /`, and their
