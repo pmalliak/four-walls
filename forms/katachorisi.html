@@ -229,8 +229,13 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;line-heig
 .pvtabs button{flex:1;font:inherit;font-size:13px;font-weight:700;color:#93a0b2;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 6px}
 .pvtabs button.on{color:#fff;background:var(--navy);border-color:var(--navy)}
 /* Επιλογή αντιγράφων και μέσα στην προεπισκόπηση (τελευταία στιγμή) */
-.pvmail{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin:0 2px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+/* Δύο ζευγάρια ερώτηση/επιλογή (γραφείο, ιδιοκτήτης): grid ώστε οι ετικέτες
+   να στοιχίζονται και σε στενή οθόνη να πέφτουν η μία κάτω από την άλλη. */
+.pvmail{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin:0 2px 10px;display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px 12px}
+.pvmail .seg{justify-self:end}
+.pvmail .yn{justify-self:end}
 .pvmail .lbl{font-size:12.5px;font-weight:600;color:#41506a}
+@media(max-width:520px){.pvmail{grid-template-columns:1fr}.pvmail .seg,.pvmail .yn{justify-self:stretch}}
 #pvwrap{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
 #pvscale{transform-origin:top left}
 .doc{width:720px;background:#fff;color:#242a33;font-family:"Manrope",Arial,sans-serif;font-size:13px;line-height:1.5;padding:18px 20px}
@@ -250,8 +255,13 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;line-heig
 .doc .frow .k{font-weight:700;color:var(--navy);font-size:12px;min-width:120px}
 .doc .frow .v2{flex:1;border-bottom:1px solid #cdd5e0;padding-bottom:2px;min-height:1.2em;font-weight:700;color:var(--navy)}
 .doc .sect2{font-weight:800;color:var(--navy);font-size:12.5px;letter-spacing:.02em;margin:14px 0 4px;padding-left:10px;border-left:4px solid var(--pink)}
-.doc .kv{display:grid;grid-template-columns:1fr 1fr;gap:1px 26px}
-.doc .kv .it{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #edf0f4;padding:3.5px 0;font-size:11.5px;break-inside:avoid}
+/* ΜΙΑ στήλη, όχι δύο: η γραμματεία διαβάζει με το CRM δίπλα και πληκτρολογεί
+   γραμμή-γραμμή προς τα κάτω. Δύο στήλες σημαίνουν αριστερά-δεξιά-αριστερά σε
+   κάθε πεδίο, και εκεί χάνεται η σειρά. */
+.doc .kv{display:block}
+.doc .kv .it{display:flex;justify-content:space-between;gap:14px;border-bottom:1px solid #edf0f4;padding:4.5px 2px;font-size:11.5px;break-inside:avoid}
+/* Ζέβρα: το μάτι κρατά τη γραμμή του σε ένα χαρτί με 30+ πεδία. */
+.doc .kv .it:nth-child(even){background:#f7f9fc}
 .doc .kv .it .k{color:#6b7385}
 .doc .kv .it .v{font-weight:700;color:var(--navy);text-align:right}
 .doc .noteblock{font-size:12px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;white-space:pre-wrap;margin-top:4px}
@@ -355,6 +365,10 @@ const STUNIT=[O("per_day","Ανά ημέρα"),O("per_week","Ανά εβδομά
 const AMOIVI=[O("0","0%"),O("1","1%"),O("2","2%")];
 const AMOIVI_M=[O("0","0%"),O("50","50%"),O("100","100%")];
 const COPIES=[O("none","Όχι"),O("anathesi","Μόνο ανάθεση"),O("all","Και τα δύο")];
+/* Τι φεύγει στο info@. Κανονικά και τα δύο έντυπα, αλλά μια ανάθεση που
+   υπογράφηκε για ακίνητο ήδη καταχωρισμένο (ή μια καταχώριση που η σύμβαση
+   θα υπογραφεί άλλη μέρα) θέλει μόνο το ένα. */
+const SENDWHAT=[O("all","Και τα δύο"),O("katachorisi","Μόνο καταχώριση"),O("anathesi","Μόνο ανάθεση")];
 /* Περιοχές με τα πραγματικά location ids του CRM (GET /locations, 2026-07-25) */
 const AREAS1=[O(108,"Θεσσαλονίκη - Δήμος"),O(109,"Θεσσαλονίκη - Περιφ/κοί δήμοι")];
 const AREAS2={
@@ -602,12 +616,13 @@ const SECTIONS=[
    της οθόνης. Ό,τι δεν αναφέρεται εδώ δεν τυπώνεται· ό,τι λείπει από το
    state απλώς παραλείπεται. */
 const CRM_DOC=[
-  {title:"Βασικά στοιχεία αγγελίας", keys:["auction_code","auction_date","auction_url",
+  {title:"Βασικά στοιχεία αγγελίας", keys:["availability","auction_code","auction_date","auction_url",
     "assignment","assignment_fee","assignment_expires","available_from",
-    "has_hidden_price","is_negotiable","min_price","yield","shortterm_unit",
+    "has_hidden_price","is_negotiable","price","min_price","yield","shortterm_unit",
     "has_keys","is_rented","lease_expiry_date"]},
-  {title:"Στοιχεία τοποθεσίας", keys:["area_level3"]},
-  {title:"Βασικά στοιχεία ακινήτου", keys:["build_ratio","coverage_ratio","max_height",
+  {title:"Στοιχεία τοποθεσίας", keys:["address_el","postal_code","area_level1","area_level2","area_level3","area_other"]},
+  {title:"Βασικά στοιχεία ακινήτου", keys:["category","subcategory","subtype","size",
+    "build_ratio","coverage_ratio","max_height",
     "property_condition","year_built","year_renovated","completion_year",
     "has_elevator","floor","levels","total_building_floors",
     "rooms","bathrooms","wcs","living_rooms","kitchens","master_bedrooms",
@@ -683,6 +698,7 @@ function applyDefaults(){
      η πάγια πολιτική του γραφείου (2%, ελάχιστη 1.000 € κάτω από 50.000 €
      τίμημα) και αλλάζουν επιτόπου αν χρειαστεί. */
   state.assignment="simple";
+  state.send_forms="all";
   state.client_copy="anathesi";
   state.anathesi_imerominia=isoDate(now);
   /* Το πληρεξούσιο είναι η εξαίρεση: ανοίγει ΟΧΙ, ώστε να μη μένει το κουτί
@@ -1130,17 +1146,17 @@ function buildDoc(){
   const logo=document.getElementById("hdrLogo").src;
   const dateStr=new Date().toLocaleDateString("el-GR",{day:"2-digit",month:"2-digit",year:"numeric"});
   let h='<div class="hd"><div class="brand2"><img src="'+logo+'" alt=""><div class="wm2"><div class="n">FOUR WALLS</div><div class="s">REAL ESTATE</div></div></div><div class="co"><strong>FOUR WALLS Real Estate</strong><br>Φραγκίνη 9, 54624 Θεσσαλονίκη<br>Τηλ +30 6907 483 463<br>info@four-walls.gr &middot; four-walls.gr</div></div>';
-  h+='<h1>ΦΟΡΜΑ ΚΑΤΑΧΩΡΙΣΗΣ ΑΚΙΝΗΤΟΥ</h1><div class="accent"></div><div class="datel">Θεσσαλονίκη '+dateStr+'</div>';
-  const band=[["Συναλλαγή",state.availability?labOf("availability",state.availability):""],
-    ["Κατηγορία",[state.category?labOf("category",state.category):null,state.subcategory?labOf("subcategory",state.subcategory):null,state.subtype?labOf("subtype",state.subtype):null].filter(Boolean).join(" · ")],
-    ["Διεύθυνση",[state.address_el,[state.postal_code,areaLabel()].filter(Boolean).join(" ")].filter(Boolean).join(", ")],
-    ["Τιμή",state.price?state.price+" €":""],["Εμβαδόν",state.size?state.size+" τ.μ.":""]].filter(x=>x[1]);
-  if(band.length) h+='<div class="props">'+band.map(x=>'<div class="frow"><span class="k">'+esc(x[0])+'</span><span class="v2">'+esc(String(x[1]))+'</span></div>').join("")+'</div>';
-  /* Από εδώ και κάτω το χαρτί ακολουθεί το CRM_DOC, δηλαδή τη σειρά της
-     φόρμας «Νέο ακίνητο» του EstatePrime: η γραμματεία το διαβάζει με το CRM
-     ανοιχτό δίπλα και πληκτρολογεί από πάνω προς τα κάτω. Ό,τι δείχνει ήδη
-     το band δεν επαναλαμβάνεται, και τα πεδία του εντύπου ανάθεσης λείπουν:
-     τα τυπώνει η ίδια η σύμβαση, εδώ θα ήταν διπλή καταγραφή. */
+  h+='<h1>ΦΟΡΜΑ ΚΑΤΑΧΩΡΙΣΗΣ ΑΚΙΝΗΤΟΥ</h1><div class="accent"></div>';
+  /* Μία γραμμή ταυτότητας: ποιο ακίνητο είναι αυτό το χαρτί. Δεν είναι πεδία
+     προς πληκτρολόγηση — αυτά ακολουθούν παρακάτω με τη σειρά του CRM. */
+  const who=[state.address_el,[state.postal_code,areaLabel()].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  h+='<div class="datel">Θεσσαλονίκη '+dateStr+(who?' &middot; '+esc(who):'')+'</div>';
+  /* Το χαρτί ακολουθεί το CRM_DOC, δηλαδή τη σειρά της φόρμας «Νέο ακίνητο»
+     του EstatePrime: η γραμματεία το διαβάζει με το CRM ανοιχτό δίπλα και
+     πληκτρολογεί από πάνω προς τα κάτω. Γι' αυτό ΔΕΝ υπάρχει σύνοψη στην
+     κορυφή: κάθε τιμή τυπώνεται μία φορά, στη θέση που θα πληκτρολογηθεί —
+     μια δεύτερη εμφάνιση σημαίνει «το έβαλα ή όχι;» και ψάξιμο πάνω κάτω.
+     Τα πεδία του εντύπου ανάθεσης λείπουν: τα τυπώνει η ίδια η σύμβαση. */
   const crm=buildPayload().crm;
   /* Τιμές που δεν κάθονται στο state: η αμοιβή ανάθεσης βγαίνει από το
      ποσοστό του εντύπου, αλλά στο CRM είναι δικό της πεδίο και πρέπει να
@@ -1199,7 +1215,12 @@ function toPreview(){
 function renderPvMail(){
   const el=document.getElementById("pvMail");
   if(withA(state)){
-    el.innerHTML='<span class="lbl">Αντίγραφα στον ιδιοκτήτη με email</span><span class="seg" data-pvcopy>'+
+    /* Δύο ξεχωριστές ερωτήσεις, γιατί είναι δύο διαφορετικοί παραλήπτες:
+       τι φεύγει στο γραφείο και τι στον ιδιοκτήτη. Μέχρι τώρα το πρώτο δεν
+       ρωτιόταν καθόλου — έφευγαν πάντα και τα δύο έντυπα. */
+    el.innerHTML='<span class="lbl">Στο γραφείο (info@)</span><span class="seg" data-pvsend>'+
+      SENDWHAT.map(o=>'<button type="button" data-val="'+o.v+'"'+(sendWhat()===o.v?' class="on"':'')+'>'+o.l+'</button>').join("")+'</span>'+
+      '<span class="lbl">Αντίγραφα στον ιδιοκτήτη με email</span><span class="seg" data-pvcopy>'+
       COPIES.map(o=>'<button type="button" data-val="'+o.v+'"'+(String(state.client_copy||"")===o.v?' class="on"':'')+'>'+o.l+'</button>').join("")+'</span>';
   }else{
     el.innerHTML='<span class="lbl">Αποστολή αντιγράφου στον ιδιοκτήτη (email)</span><span class="yn" data-pvyn>'+
@@ -1247,9 +1268,26 @@ async function makePdf(mode,which){
 }
 function savePDF(){ try{ window.print(); }catch(e){} }
 function toast(msg,type){ const t=document.getElementById("toast"); if(!t) return; t.className="toast on "+(type||""); t.textContent=msg; clearTimeout(t._t); t._t=setTimeout(()=>{ t.classList.remove("on"); },4600); }
+/* Τι φεύγει στο γραφείο. Χωρίς έντυπο ανάθεσης υπάρχει μόνο η καταχώριση,
+   οπότε η επιλογή δεν ρωτιέται καν. */
+function sendWhat(){ return withA(state)?(state.send_forms||"all"):"katachorisi"; }
+/* Παίρνει email ο ιδιοκτήτης; Μόνο αν το έντυπο που ζήτησε φεύγει όντως:
+   «Μόνο ανάθεση» στα αντίγραφα + «Μόνο καταχώριση» στο γραφείο σημαίνει
+   κανένα email, και το κουμπί δεν πρέπει να υπόσχεται ένα. */
+function mailsOwner(){
+  if(!withA(state)) return state.send_to_client===true;
+  const w=sendWhat(), c=state.client_copy||"none";
+  if(c==="none") return false;
+  if(c==="all") return true;          // ό,τι φύγει, φεύγει και σε αυτόν
+  return w!=="katachorisi";           // «Μόνο ανάθεση»: θέλει να φύγει η ανάθεση
+}
+/* Το κουμπί λέει με ονόματα τι στέλνει, όχι «2 εντύπων»: η γραμματεία
+   διαβάζει το ίδιο κουμπί δεκάδες φορές τη μέρα και πρέπει να ξέρει με μια
+   ματιά ποιο χαρτί φεύγει και σε ποιον. */
 function sendLabel(){
-  if(!withA(state)) return state.send_to_client===true ? "Αποστολή + email στον ιδιοκτήτη" : "Αποστολή";
-  return "Αποστολή 2 εντύπων"+(state.client_copy&&state.client_copy!=="none" ? " + email στον ιδιοκτήτη" : "");
+  const w=sendWhat();
+  const what=w==="all"?"καταχώριση + ανάθεση":(w==="anathesi"?"ανάθεση":"καταχώριση");
+  return "Αποστολή: "+what+(mailsOwner()?" · αντίγραφο στον ιδιοκτήτη":"");
 }
 /* Όσο η καταχώριση περιμένει στην ουρά, το κουμπί δεν ξαναπροσφέρεται: το
    outbox τη στέλνει μόνο του μόλις βρεθεί σήμα, και το δεύτερο πάτημα
@@ -1265,7 +1303,7 @@ function DOCHTML(which){var anath=which==="docA";var st='';document.querySelecto
    λέει τι έφυγε και τι περιμένει: «Στάλθηκε» για το ένα και σιωπή για το
    άλλο είναι ακριβώς η παρανόηση που στέλνει δεύτερη φορά το ίδιο έντυπο. */
 function reportSubmit(res,resA){
-  const all=resA?[res,resA]:[res];
+  const all=[res,resA].filter(Boolean);
   const sent=all.filter(x=>x.sent).length;
   const dup=all.filter(x=>x.sent&&x.duplicate).length;
   const auth=all.some(x=>!x.sent&&x.reason==="auth");
@@ -1285,23 +1323,27 @@ function reportSubmit(res,resA){
 }
 async function doSubmit(){
   if(!validate()){ toEdit(); return; }
-  const both=withA(state);
-  if(both&&!window.FWAnathesiDoc){ toast("Δεν φόρτωσε το κείμενο της ανάθεσης. Κάνε ανανέωση.","err"); return; }
+  /* Δύο ανεξάρτητα ερωτήματα: υπάρχει έντυπο ανάθεσης (τύπος ανάθεσης) και
+     ποιο από τα δύο ζητήθηκε να φύγει στο γραφείο. */
+  const w=sendWhat();
+  const wantK=w!=="anathesi", wantA=withA(state)&&w!=="katachorisi";
+  if(wantA&&!window.FWAnathesiDoc){ toast("Δεν φόρτωσε το κείμενο της ανάθεσης. Κάνε ανανέωση.","err"); return; }
   /* Ποιος θέλει email: με κοινό flow το λέει το client_copy, αλλιώς το
      παλιό ΝΑΙ/ΟΧΙ της κάρτας του ιδιοκτήτη. */
-  const wantsMail=both?(state.client_copy&&state.client_copy!=="none"):state.send_to_client===true;
-  if(wantsMail && !String(state.owner_email||"").trim()){ toast("Συμπλήρωσε το email του ιδιοκτήτη για να του σταλεί αντίγραφο.","err"); toEdit(); return; }
+  if(mailsOwner() && !String(state.owner_email||"").trim()){ toast("Συμπλήρωσε το email του ιδιοκτήτη για να του σταλεί αντίγραφο.","err"); toEdit(); return; }
   const btn=document.getElementById("submitBtn");
   btn.disabled=true; btn.textContent="Δημιουργία PDF...";
-  const payload=buildPayload();
+  const payload=wantK?buildPayload():null;
   try{
-    const r=await makePdf("send","doc");
-    payload.pdf_base64=r.uri.split(",")[1]; payload.pdf_filename=r.fn; payload.pdf_mime="application/pdf"; payload.doc_html=DOCHTML("doc");
+    if(payload){
+      const r=await makePdf("send","doc");
+      payload.pdf_base64=r.uri.split(",")[1]; payload.pdf_filename=r.fn; payload.pdf_mime="application/pdf"; payload.doc_html=DOCHTML("doc");
+    }
     /* Η ανάθεση φεύγει ως ξεχωριστή υποβολή με το δικό της form id: ο
        Worker και το Make τη βλέπουν σαν να ήρθε από την αυτόνομη φόρμα
        (δικό της dedupe hash, δική της γραμμή στο sent-log). */
     let anathesi=null;
-    if(both){
+    if(wantA){
       const ra=await makePdf("send","docA");
       anathesi={form:"anathesi",title:"Εντολή Ανάθεσης",submitted_at:new Date().toISOString(),
         data:buildAnathesiData(),signatures:signatures(),
@@ -1310,9 +1352,11 @@ async function doSubmit(){
     btn.textContent="Αποστολή...";
     /* Sent or queued, the payload is safe outside the draft — the
        outbox (see _outbox.fw.js) retries it when the network returns. */
-    const res=await FWOutbox.submit(payload,"Καταχώριση — "+(state.address_el||state.owner_name||""));
+    const res=payload?await FWOutbox.submit(payload,"Καταχώριση — "+(state.address_el||state.owner_name||"")):null;
     const resA=anathesi?await FWOutbox.submit(anathesi,"Εντολή Ανάθεσης · "+(state.owner_name||state.address_el||"")):null;
-    if(window.FWDrafts)FWDrafts.discard(); /* στάλθηκε ή μπήκε στο outbox — το πρόχειρο δεν χρειάζεται πια */
+    /* Όταν φεύγει μόνο το ένα έντυπο, το πρόχειρο ΜΕΝΕΙ: το άλλο θα σταλεί
+       αργότερα από την ίδια φόρμα, και σβήνοντάς το θα ξανάγραφε τα πάντα. */
+    if(window.FWDrafts&&res&&resA)FWDrafts.discard();
     reportSubmit(res,resA);
   }catch(err){
     toast("Αποτυχία — το έντυπο δεν στάλθηκε ούτε αποθηκεύτηκε.","err");
@@ -1334,7 +1378,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.querySelectorAll("#pvTabs button").forEach(b=>{ b.onclick=()=>showPv(b.dataset.pv); });
   document.getElementById("pvMail").addEventListener("click",e=>{
     const b=e.target.closest("button"); if(!b)return;
-    if(b.parentElement.hasAttribute("data-pvcopy")){ state.client_copy=b.dataset.val; }
+    if(b.parentElement.hasAttribute("data-pvsend")){ state.send_forms=b.dataset.val; }
+    else if(b.parentElement.hasAttribute("data-pvcopy")){ state.client_copy=b.dataset.val; }
     else{
       const yes=b.dataset.v==="yes"; const cur=state.send_to_client;
       const next=(cur===true&&yes)||(cur===false&&!yes)?undefined:yes;
