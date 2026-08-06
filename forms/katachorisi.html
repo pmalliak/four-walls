@@ -355,6 +355,7 @@ const FEETYPE=[O("percent","%"),O("fixed","€")];
 const STUNIT=[O("per_day","Ανά ημέρα"),O("per_week","Ανά εβδομάδα"),O("per_month","Ανά μήνα"),O("per_season","Ανά σεζόν"),O("per_year","Ανά έτος")];
 /* Επιλογές του εντύπου ανάθεσης (δεν πάνε στο CRM — δες FORM_ONLY) */
 const AMOIVI=[O("0","0%"),O("1","1%"),O("2","2%")];
+const AMOIVI_M=[O("0","0%"),O("50","50%"),O("100","100%")];
 const COPIES=[O("none","Όχι"),O("anathesi","Μόνο ανάθεση"),O("all","Και τα δύο")];
 /* Περιοχές με τα πραγματικά location ids του CRM (GET /locations, 2026-07-25) */
 const AREAS1=[O(108,"Θεσσαλονίκη - Δήμος"),O(109,"Θεσσαλονίκη - Περιφ/κοί δήμοι")];
@@ -433,6 +434,8 @@ const withA=s=>s.assignment==="exclusive"||s.assignment==="simple";
    μισθώματος). Βραχυχρόνια/πλειστηριασμός πάνε με το κείμενο πώλησης,
    σπάνιο και ο σύμβουλος το βλέπει στην προεπισκόπηση. */
 const feeA=s=>withA(s)&&s.availability!=="rent";
+/* Στην ενοικίαση η αμοιβή είναι ποσοστό ενός μηνιαίου μισθώματος (0/50/100) */
+const feeR=s=>withA(s)&&s.availability==="rent";
 
 /* Οι ενότητες και η σειρά των πεδίων ακολουθούν 1:1 τη φόρμα «Νέο ακίνητο»
    του EstatePrime (live capture 2026-08-06): «Βασικά στοιχεία αγγελίας» →
@@ -449,8 +452,10 @@ const SECTIONS=[
     {k:"auction_date", l:"Ημ/νία πλειστηριασμού", t:"date", when:s=>s.availability==="auction"},
     {k:"auction_url", l:"URL πλειστηριασμού", t:"text", when:s=>s.availability==="auction"},
     {k:"assignment", l:"Ανάθεση", t:"seg", opts:ASSIGNMENT, full:true},
-    {k:"assignment_fee", l:"Αμοιβή ανάθεσης", t:"num"},
-    {k:"assignment_fee_type", l:"Είδος αμοιβής", t:"seg", opts:FEETYPE},
+    /* Αμοιβή/είδος αμοιβής του CRM δεν ρωτιούνται εδώ (απόφαση 06/08/2026):
+       θα ήταν το ίδιο νούμερο με το ποσοστό του «Εντύπου ανάθεσης» στο τέλος
+       της φόρμας, οπότε το buildPayload() γεμίζει τα crm.assignment_fee(_type)
+       από εκείνο — ένα πεδίο, δύο φόρμες, καμία διαφωνία. */
     {k:"assignment_expires", l:"Λήξη ανάθεσης", t:"date"},
     {k:"price", l:"Τιμή", t:"num", suf:"€"},
     {k:"is_negotiable", l:"Συζητήσιμη τιμή", t:"yn"},
@@ -608,6 +613,7 @@ const SECTIONS=[
     {k:"ekprosopoumenos", l:"Κατ’ εντολή του (ονοματεπώνυμο)", t:"text", full:true, when:s=>s.has_proxy===true},
     {k:"plirexousio_imerominia", l:"Ημ/νία πληρεξουσίου", t:"date", when:s=>s.has_proxy===true},
     {k:"anathesi_imerominia", l:"Ημερομηνία εντύπου", t:"date"},
+    {k:"amoivi_misthosis", l:"Μεσιτική αμοιβή μίσθωσης (ποσοστό ενός μηνιαίου μισθώματος)", t:"seg", opts:AMOIVI_M, full:true, when:feeR},
     {k:"amoivi_pososto", l:"Μεσιτική αμοιβή πώλησης", t:"seg", opts:AMOIVI, full:true, when:feeA},
     {k:"amoivi_elaxisti", l:"Ελάχιστη αμοιβή", t:"yn", full:true, when:s=>feeA(s)&&s.amoivi_pososto!=="0"},
     {k:"amoivi_elaxisti_poso", l:"Ελάχιστη αμοιβή", t:"num", suf:"€", when:s=>feeA(s)&&s.amoivi_pososto!=="0"&&s.amoivi_elaxisti===true},
@@ -621,7 +627,7 @@ const FORM_ONLY=new Set(["owner_name","owner_phone","owner_email","send_to_clien
   "address_el","postal_code","area_level1","area_level2","area_level3","area_other","fake_address","fake_address_el","no_address","display_circle",
   /* πεδία του εντύπου ανάθεσης: ζουν στη σύμβαση, όχι στην καρτέλα ακινήτου */
   "client_copy","entoleas_adt","entoleas_afm","has_proxy","ekprosopoumenos","plirexousio_imerominia","anathesi_imerominia",
-  "amoivi_pososto","amoivi_elaxisti","amoivi_elaxisti_poso","amoivi_elaxisti_katofli"]);
+  "amoivi_pososto","amoivi_misthosis","amoivi_elaxisti","amoivi_elaxisti_poso","amoivi_elaxisti_katofli"]);
 const NUMERIC=new Set(["price","min_price","yield","monthly_maintenance","assignment_fee","size","year_built","year_renovated","completion_year","balcony_size","storage_size","rooftop_size","garden_size","distance_sea","distance_city","distance_market","distance_airport","shop_window_length","land_size","frontage_length","coverage_ratio","build_ratio","max_height"]);
 
 /* slug → ελληνική ετικέτα, ανά πεδίο (για PDF/email) */
@@ -636,7 +642,7 @@ regLab("view",VIEW); regLab("positioning",POSITIONING); regLab("flooring",FLOORI
 regLab("garden",GARDEN); regLab("zoning",ZONING); regLab("planning_status",PLANNING);
 regLab("land_slope",SLOPE); regLab("access_type",ACCESS); regLab("assignment",ASSIGNMENT);
 regLab("assignment_fee_type",FEETYPE); regLab("shortterm_unit",STUNIT); regLab("land_use",LANDUSE);
-regLab("user_ids",USERS); regLab("amoivi_pososto",AMOIVI); regLab("client_copy",COPIES);
+regLab("user_ids",USERS); regLab("amoivi_pososto",AMOIVI); regLab("amoivi_misthosis",AMOIVI_M); regLab("client_copy",COPIES);
 regLab("area_level1",AREAS1); Object.values(AREAS2).forEach(l=>regLab("area_level2",l));
 Object.values(AREAS3).forEach(l=>regLab("area_level3",l));
 [F_ENERGY,F_INTERIOR,F_SECURITY,F_EXTERIOR,F_SUITABLE,F_RENT,F_COMMERCIAL,F_LAND].forEach(l=>regLab("features",l));
@@ -648,7 +654,7 @@ const RERENDER=new Set(["availability","category","subcategory","area_level1","a
 /* Segmented πεδία που ΔΕΝ ξε-επιλέγονται με δεύτερο tap: το έντυπο τυπώνει
    πάντα ένα ποσοστό και στέλνει πάντα κάπου τα αντίγραφα, οπότε «τίποτα
    επιλεγμένο» θα σήμαινε σιωπηλή επιστροφή στην προεπιλογή. */
-const STICKY=new Set(["amoivi_pososto","client_copy"]);
+const STICKY=new Set(["amoivi_pososto","amoivi_misthosis","client_copy"]);
 
 /* Προεπιλογές: τοπική ημερομηνία, όχι toISOString() (μετά τα μεσάνυχτα η
    UTC δίνει ακόμα τη χθεσινή). Μπαίνουν πριν το πρώτο render, ώστε το
@@ -668,6 +674,7 @@ function applyDefaults(){
   state.client_copy="anathesi";
   state.anathesi_imerominia=isoDate(now);
   state.amoivi_pososto="2";
+  state.amoivi_misthosis="50";
   state.amoivi_elaxisti=true;
   state.amoivi_elaxisti_poso="1000";
   state.amoivi_elaxisti_katofli="50000";
@@ -946,6 +953,16 @@ function buildPayload(){
     if(state.display_circle!==undefined)loc.display_circle=state.display_circle===true;
   }
   if(Object.keys(loc).length)crm.location=loc;
+  /* Η αμοιβή ανάθεσης του CRM δεν έχει δικά της πεδία στη φόρμα: είναι το
+     ποσοστό που υπογράφει ο εντολέας στο έντυπο, οπότε βγαίνει από εκεί.
+     Πώληση: % επί του τιμήματος. Ενοικίαση: % ενός μηνιαίου μισθώματος
+     (έτσι διαβάζεται το «50%» στο CRM για μισθώσεις). Χωρίς έντυπο, καμία
+     συμφωνημένη αμοιβή, κανένα πεδίο. */
+  if(withA(state)){
+    const feePct=state.availability==="rent"?(state.amoivi_misthosis||"50"):(state.amoivi_pososto||"2");
+    const feeN=parseInt(feePct,10);
+    if(isFinite(feeN)){ crm.assignment_fee=feeN; crm.assignment_fee_type="percent"; }
+  }
   crm.contact={name:state.owner_name||"",phone:state.owner_phone||"",email:state.owner_email||""};
   /* Μπαίνει μόνο όταν ο ιδιοκτήτης διαλέχτηκε από το CRM (και δεν πειράχτηκε
      το όνομα μετά) — αλλιώς το πεδίο λείπει και το create δουλεύει όπως πριν */
@@ -1047,6 +1064,7 @@ function buildAnathesiData(){
     apokleistikotita:state.assignment==="exclusive",
     apok_diarkeia:String(anathesiMonths()),
     amoivi_pososto:state.amoivi_pososto||"2",
+    amoivi_misthosis:state.amoivi_misthosis||"50",
     amoivi_elaxisti:state.amoivi_elaxisti===true,
     amoivi_elaxisti_poso:state.amoivi_elaxisti_poso||"",
     amoivi_elaxisti_katofli:state.amoivi_elaxisti_katofli||"",
@@ -1113,7 +1131,7 @@ function buildDoc(){
      ίδια η σύμβαση, εδώ θα ήταν διπλή (και παραπλανητική) καταγραφή. */
   const SKIP=new Set(["address_el","postal_code","area_level1","area_level2","area_other","price","size","availability","category","subcategory","subtype","send_to_client",
     "client_copy","entoleas_adt","entoleas_afm","has_proxy","ekprosopoumenos","plirexousio_imerominia","anathesi_imerominia",
-    "amoivi_pososto","amoivi_elaxisti","amoivi_elaxisti_poso","amoivi_elaxisti_katofli"]);
+    "amoivi_pososto","amoivi_misthosis","amoivi_elaxisti","amoivi_elaxisti_poso","amoivi_elaxisti_katofli"]);
   visibleSections().forEach(sec=>{
     const items=[],notes=[];
     (sec.fields||[]).forEach(f=>{

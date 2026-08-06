@@ -273,11 +273,13 @@ The μεσιτική αμοιβή is deliberately **not** autofilled from `assig
 that is what the owner agreed to pay on the ανάθεση, which is not necessarily
 what this client is being asked for. A wrong number on a signed contract is
 worse than a blank one. The same rule covers the fee widgets of the ανάθεση
-(`amoivi_pososto`, ελάχιστη αμοιβή) in both the standalone form and the
-combined katachorisi flow: they open on the office defaults (2%, 1.000 €
-under 50.000 €), never on a CRM value — and the katachorisi's own
-`assignment_fee` CRM field stays a separate, unlinked thing (see
-[forms-katachorisi-crm.md](forms-katachorisi-crm.md)).
+(`amoivi_pososto`, ελάχιστη αμοιβή, `amoivi_misthosis` για μισθώσεις) in
+both the standalone form and the combined katachorisi flow: they open on
+the office defaults (2%, 1.000 € under 50.000 €, 50% ενός μισθώματος),
+never on a CRM value. Since 2026-08-06 the katachorisi's `crm.assignment_fee`
+is **derived from** those widgets instead of being asked separately (see
+[forms-katachorisi-crm.md](forms-katachorisi-crm.md)) — derived from the
+form the client signs, still never from a CRM value.
 
 ## Known limits
 
