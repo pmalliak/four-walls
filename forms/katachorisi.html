@@ -331,22 +331,25 @@ const SUBCATS={
 };
 const SUBTYPES=[O(1,"Στούντιο"),O(2,"Γκαρσονιέρα")];
 const CONDITION=[O("new","Νεόδμητο"),O("renovated","Ανακαινισμένο"),O("good","Καλή"),O("average","Μέτρια"),O("needs_renovation","Χρήζει ανακαίνισης"),O("under_construction","Υπό κατασκευή"),O("unfinished","Ημιτελές")];
-const FLOORS=[O(-1,"Υπόγειο"),O(-0.5,"Ημιυπόγειο"),O(0,"Ισόγειο"),O(0.5,"Ημιώροφος"),O(1,"1ος"),O(1.5,"1ος υπερυψ."),O(2,"2ος"),O(3,"3ος"),O(4,"4ος"),O(5,"5ος"),O(6,"6ος"),O(7,"7ος"),O(8,"8ος"),O(9,"9ος"),O(10,"10ος")];
+const FLOORS=[O(-4,"4ο Υπόγειο"),O(-3,"3ο Υπόγειο"),O(-2,"2ο Υπόγειο"),O(-1,"1ο Υπόγειο"),O(-0.5,"Ημιυπόγειο"),O(0,"Ισόγειο"),O(0.3,"Πατάρι"),O(0.5,"Ημιώροφος"),O(1,"1ος"),O(1.5,"1ος υπερυψ."),O(2,"2ος"),O(3,"3ος"),O(4,"4ος"),O(5,"5ος"),O(6,"6ος"),O(7,"7ος"),O(8,"8ος"),O(9,"9ος"),O(10,"10ος"),O(11,"11ος"),O(12,"12ος"),O(13,"13ος"),O(14,"14ος"),O(15,"15ος"),O(16,"16ος"),O(17,"17ος"),O(18,"18ος"),O(19,"19ος"),O(20,"20ος"),O(99,"Σοφίτα")];
 const HEATTYPE=[O("individual","Ατομική"),O("autonomous","Αυτόνομη"),O("central","Κεντρική"),O("none","Χωρίς θέρμανση")];
-const HEATSRC=[O("natural_gas","Φυσικό αέριο"),O("oil","Πετρέλαιο"),O("gas","Υγραέριο"),O("ac","Κλιματισμός"),O("heatpump","Αντλία θερμότητας"),O("wood","Ξύλο"),O("pellet","Pellet"),O("fan_coil","Fan coil"),O("geothermal_energy","Γεωθερμία"),O("stove","Σόμπα"),O("convection_heater","Θερμοπομπός"),O("storage_heater","Θερμοσυσσωρευτής"),O("teleheating","Τηλεθέρμανση"),O("other","Άλλο")];
-const ENERGY=[O("ap","Α+"),O("a","Α"),O("bp","Β+"),O("b","Β"),O("c","Γ"),O("d","Δ"),O("e","Ε"),O("f","Ζ"),O("g","Η")];
+const HEATSRC=[O("natural_gas","Φυσικό αέριο"),O("oil","Πετρέλαιο"),O("gas","Υγραέριο"),O("ac","Κλιματισμός"),O("heatpump","Αντλία θερμότητας"),O("wood","Ξύλο"),O("pellet","Pellet"),O("fan_coil","Fan coil"),O("geothermal_energy","Γεωθερμική ενέργεια"),O("stove","Σόμπα"),O("convection_heater","Θερμοπομπός"),O("storage_heater","Θερμοσυσσωρευτής"),O("teleheating","Τηλεθέρμανση"),O("other","Άλλο")];
+const ENERGY=[O("app","Α++"),O("ap","Α+"),O("a","Α"),O("bp","Β+"),O("b","Β"),O("c","Γ"),O("d","Δ"),O("e","Ε"),O("f","Ζ"),O("g","Η"),O("pending","Υπό έκδοση")];
 const FRAMES=[O("aluminum","Αλουμινίου"),O("wood","Ξύλινα"),O("synthetic","Συνθετικά"),O("pvc","PVC")];
 const GLASS=[O("single","Μονά"),O("double","Διπλά"),O("triple","Τριπλά")];
 const CONSTRUCTION=[O("concrete","Συμβατική"),O("stone","Πέτρινη"),O("wood","Ξύλινη"),O("metal","Μεταλλική"),O("prefab","Προκατασκευασμένη"),O("portable","Λυόμενη")];
 const ORIENT=[O("e","Ανατολικός"),O("w","Δυτικός"),O("n","Βόρειος"),O("s","Νότιος"),O("ne","Βορειοανατολικός"),O("nw","Βορειοδυτικός"),O("se","Νοτιοανατολικός"),O("sw","Νοτιοδυτικός"),O("ew","Ανατολικοδυτικός")];
-const VIEW=[O("sea","Θάλασσα"),O("mountain","Βουνό"),O("city","Πόλη"),O("park","Πάρκο"),O("openspace","Ανοιχτωσιά"),O("lake","Λίμνη"),O("river","Ποτάμι"),O("forest","Δάσος")];
-const POSITIONING=[O("is_corner","Γωνιακό"),O("is_front_facing","Προσόψεως"),O("is_side_facing","Πλαϊνό"),O("is_through","Διαμπερές"),O("is_interior","Εσωτερικό"),O("is_three_sided","Τριών όψεων"),O("is_four_sided","Τεσσάρων όψεων")];
-const FLOORING=[O("tile","Πλακάκι"),O("ceramic_tile","Κεραμικό πλακάκι"),O("marble","Μάρμαρο"),O("wood","Ξύλο"),O("parquet","Παρκέ"),O("laminate","Λάμινεϊτ"),O("mosaic","Μωσαϊκό"),O("granite","Γρανίτης"),O("stone","Πέτρα"),O("carpet","Μοκέτα"),O("industrial","Βιομηχανικό"),O("concrete","Σκυρόδεμα"),O("cement_screed","Τσιμεντοκονία"),O("epoxy_resin","Εποξειδική ρητίνη"),O("vinyl","Βινύλιο"),O("plastic","Πλαστικό")];
+const VIEW=[O("sea","Θάλασσα"),O("mountain","Βουνό"),O("city","Πόλη"),O("park","Πάρκο"),O("openspace","Ανοιχτωσιά"),O("panoramic","Πανοραμική"),O("lake","Λίμνη"),O("river","Ποτάμι"),O("forest","Δάσος")];
+const POSITIONING=[O("is_corner","Γωνιακό"),O("is_front_facing","Πρόσοψης"),O("is_side_facing","Πλαϊνό"),O("is_through","Διαμπερές"),O("is_interior","Εσωτερικό"),O("is_three_sided","Τριών όψεων"),O("is_four_sided","Τεσσάρων όψεων")];
+const FLOORING=[O("tile","Πλακάκι"),O("ceramic_tile","Κεραμικό"),O("marble","Μάρμαρο"),O("wood","Ξύλο"),O("parquet","Παρκέ"),O("laminate","Λάμινεϊτ"),O("mosaic","Μωσαϊκό"),O("granite","Γρανίτης"),O("stone","Πέτρα"),O("carpet","Μοκέτα"),O("industrial","Βιομηχανικό δάπεδο"),O("concrete","Σκυρόδεμα"),O("cement_screed","Τσιμεντοκονία"),O("epoxy_resin","Ενισχυμένη ρητίνη"),O("vinyl","Βινύλιο"),O("plastic","Πλαστικό")];
 const GARDEN=[O("private","Ιδιωτικός"),O("shared","Κοινόχρηστος"),O("roof_garden","Roof garden")];
 const ZONING=[O("residential","Οικιστική"),O("unzoned","Εκτός σχεδίου"),O("commercial","Εμπορική"),O("industrial","Βιομηχανική"),O("light_industrial","Βιοτεχνική"),O("agricultural","Αγροτική"),O("tourist","Τουριστική"),O("archaeological","Αρχαιολογική"),O("forest","Δασική"),O("protected","Προστασίας"),O("redevelopment","Ανάπλασης"),O("mixed","Μικτής χρήσης")];
 const PLANNING=[O("within","Εντός σχεδίου"),O("outside","Εκτός σχεδίου"),O("pending","Υπό ένταξη")];
 const SLOPE=[O("flat","Επίπεδο"),O("sloped","Επικλινές"),O("amphitheatrical","Αμφιθεατρικό")];
 const ACCESS=[O("road","Δρόμος"),O("dirt_road","Χωματόδρομος"),O("pedestrian","Πεζόδρομος"),O("sea","Θάλασσα"),O("no_access","Χωρίς πρόσβαση")];
+const LANDUSE=[O("exclusive_residential","Αμιγής κατοικία"),O("general_residential","Γενική κατοικία"),O("commercial","Εμπορική"),O("industrial","Βιομηχανική / Βιοτεχνική"),O("tourism","Τουριστική εκμετάλλευση"),O("agricultural","Καλλιεργήσιμη γη"),O("pasture","Βοσκότοπος"),O("forest","Δασική έκταση"),O("mixed_use","Μικτή χρήση"),O("other","Άλλη")];
+/* Οι δύο χρήστες του CRM (GET /listings/form, «Συνεργάτες ανάθεσης») */
+const USERS=[O(2,"Μάνος"),O(1,"Αφεντούλα")];
 const ASSIGNMENT=[O("exclusive","Αποκλειστική"),O("simple","Απλή"),O("none","Χωρίς")];
 const FEETYPE=[O("percent","%"),O("fixed","€")];
 const STUNIT=[O("per_day","Ανά ημέρα"),O("per_week","Ανά εβδομάδα"),O("per_month","Ανά μήνα"),O("per_season","Ανά σεζόν"),O("per_year","Ανά έτος")];
@@ -359,12 +362,58 @@ const AREAS2={
   "108":[O(499115,"Κέντρο Θεσσαλονίκης"),O(2803,"Άνω Πόλη"),O(499119,"40 Εκκλησιές - Ευαγγελίστρια"),O(499123,"Ανάληψη - Μπότσαρη - Νέα Παραλία"),O(499117,"Βαρδάρης - Λαχανόκηποι"),O(499124,"Βούλγαρη - Ντεπώ - Μαρτίου"),O(499118,"Ξηροκρήνη - Παναγία Φανερωμένη"),O(499116,"Σφαγεία - Ιχθυόσκαλα"),O(499121,"Τούμπα"),O(499120,"Τριανδρία - Δόξα"),O(499122,"Φάληρο - Ιπποκράτειο"),O(2823,"Χαριλάου")],
   "109":[O(2907,"Καλαμαριά"),O(2913,"Πυλαία"),O(2910,"Πανόραμα"),O(2906,"Θέρμη"),O(2905,"Θερμαϊκός"),O(2904,"Εύοσμος"),O(2901,"Αμπελόκηποι"),O(2915,"Συκιές"),O(2909,"Νεάπολη"),O(2912,"Πολίχνη"),O(2914,"Σταυρούπολη"),O(2911,"Πεύκα"),O(2903,"Ευκαρπία"),O(2918,"Ωραιόκαστρο"),O(2902,"Ελευθέριο-Κορδελιό"),O(2908,"Μενεμένη"),O(2900,"Άγιος Παύλος"),O(2917,"Χορτιάτης"),O(3019,"Μίκρα"),O(3009,"Επανομή"),O(3018,"Μηχανιώνα"),O(3006,"Βασιλικά"),O(3011,"Καλλιθέα"),O(3020,"Μυγδονία"),O(3010,"Εχέδωρος"),O(3002,"Αξιός"),O(3023,"Χαλάστρα")]
 };
+/* Γειτονιές (location level 3) — GET /api/locations, 2026-08-06. Το CRM τις
+   ζητά ως «Γειτονιά»· όπου δεν υπάρχει, το πεδίο δεν εμφανίζεται καν. */
+const AREAS3={
+  "499115":[O(507534,"Αγία Σοφία"),O(2826,"Άγιος Δημήτριος"),O(507535,"Αντιγονιδών"),O(2899,"ΔΕΘ - Πανεπιστήμια"),O(2807,"Διοικητήριο"),O(7378,"Ιστορικό Κέντρο"),O(2809,"Καμάρα - Ροτόντα"),O(2813,"Λαδάδικα"),O(2812,"Λευκός Πύργος")],
+  "2803":[O(499208,"Κάστρα"),O(499207,"Τσινάρι")],
+  "499119":[O(2800,"40 Εκκλησιές"),O(2808,"Ευαγγελίστρια")],
+  "499123":[O(2802,"Ανάληψη"),O(2816,"Μπότσαρη"),O(2818,"Νέα Παραλία")],
+  "499117":[O(2805,"Βαρδάρης"),O(2827,"Λαχανόκηποι"),O(2821,"Σταθμός ΟΣΕ")],
+  "499124":[O(2806,"Βούλγαρη - Άγιος Ελευθέριος - Ντεπώ"),O(2815,"Μαρτίου")],
+  "499118":[O(10304,"Ξηροκρήνη"),O(2820,"Παναγία Φανερωμένη")],
+  "499116":[O(10297,"Λιμάνι - Περιοχή FIX"),O(10301,"Παλαιός Σιδηροδρομικός Σταθμός")],
+  "499121":[O(2804,"Άνω Τούμπα"),O(2810,"Κάτω Τούμπα"),O(2814,"Μαλακοπή"),O(2824,"Παπάφη")],
+  "499120":[O(10293,"Δόξα"),O(2916,"Τριανδρία")],
+  "499122":[O(2822,"Αγία Τριάδα"),O(2825,"Ιπποκράτειο")],
+  "2823":[O(499209,"Αγία Κυριακή"),O(499210,"Άγιος Νικόλαος"),O(499211,"Βρυσάκι"),O(2817,"Νέα Ελβετία"),O(499212,"Οσία Ξένη")],
+  "2907":[O(110439,"Άγιος Ιωάννης"),O(290702,"Άγιος Παντελεήμων"),O(110440,"Αρετσού"),O(110442,"Βότση"),O(10291,"Βυζάντιο"),O(110438,"Δέρκων"),O(290700,"Επέκταση"),O(110443,"Καραμπουρνακι"),O(102907,"Κέντρο"),O(110444,"Κηφισιά"),O(110441,"Κουρί"),O(110445,"Νέα Κρήνη"),O(290701,"Φοίνικας")],
+  "2913":[O(291307,"Mediterranean Cosmos"),O(291300,"Άνω Μαλακοπή"),O(291301,"Βίλλα Ριτζ"),O(291304,"Ελαιώνες"),O(291306,"Επέκταση"),O(102913,"Κέντρο"),O(2811,"Κωνσταντινοπολίτικα"),O(291302,"Πουρνάρι"),O(291303,"Πυλαιώτικα"),O(291305,"Τοπογράφοι"),O(110305,"Φοινίκας")],
+  "2910":[O(102910,"Κέντρο"),O(329502,"Οικισμός Μακεδονία"),O(329503,"Οικισμός Τοπογράφων"),O(329500,"Παλιός Οικισμός Πανοράματος"),O(329501,"Συνοικισμός Νόμου 751")],
+  "2906":[O(102906,"Κέντρο"),O(110461,"Κράνη"),O(110460,"Νέα Ραιδεστός"),O(110456,"Νέο Ρύσιο"),O(499692,"Περιοχή Αεροδρομίου"),O(110452,"Σουρωτή"),O(110455,"Ταγαράδες"),O(110462,"Τριάδιο")],
+  "2905":[O(2801,"Αγία Τριάδα"),O(107425,"Κέντρο"),O(110628,"Λιβάδακιο"),O(110634,"Νέοι Επιβάτες"),O(110633,"Περαία"),O(110636,"Σκάλα Ν. Επιβατών")],
+  "2904":[O(290400,"Άνωθεν Περιφερειακού"),O(290401,"Ευαγγελισμός - Νέος Κουκλουτζάς"),O(110266,"Εύοσμο"),O(290402,"Κάτω Ηλιούπολη"),O(102904,"Κέντρο"),O(290403,"Νέα Πολιτεία")],
+  "2901":[O(110269,"Βόσπορος"),O(110271,"Δημαρχείου"),O(110274,"Επτάλοφος"),O(110273,"Ζωοδόχου Πηγής"),O(110258,"Μεταγωγών"),O(110262,"Πλατεία Δημοκρατίας"),O(110270,"Σκεπάρνη"),O(110272,"Φιλλίπου")],
+  "2915":[O(329505,"Άγιοι Θεόδωροι"),O(291500,"Άλσος"),O(329504,"Δροσιά"),O(110289,"Επταπύργιο"),O(110280,"Καλλιθέα"),O(102915,"Κέντρο"),O(291501,"Μαύρος Γάτος"),O(291502,"Παράσχου"),O(110284,"Ροδοχώρι")],
+  "2909":[O(290900,"Άγιος Γιώργιος - Τρώαδα"),O(290901,"Άνω Αναγέννηση"),O(290902,"Κάτω Αναγέννηση"),O(207219,"Κέντρο"),O(290909,"Κόκκορας"),O(290903,"Κουντουριώτη"),O(290904,"Νεάπολη"),O(290905,"Πυροπαθών"),O(290906,"Ρήγα Φεραίου"),O(290907,"Στρεμπενιώτη"),O(290908,"Υδραγωγείο")],
+  "2912":[O(291200,"Άγιος Ιωάννης"),O(291201,"Άγιος Παντελεήμονας"),O(291202,"Άγιος Ραφαήλ"),O(291204,"Άνω Πολίχνη"),O(291205,"Επέκταση"),O(291206,"Καρατάσσου"),O(102912,"Κέντρο"),O(110261,"Μετέωρα")],
+  "2914":[O(110260,"Ακριτών"),O(291401,"Αμπελώνες"),O(110259,"Αναγέννηση"),O(291203,"Ανθόκηποι"),O(291402,"Άνω Ηλιούπολη"),O(291400,"Άνωθεν Ασύλου"),O(291403,"Κάτω Ηλιούπολη"),O(206914,"Κέντρο"),O(291404,"Νικόπολη"),O(291405,"Ομόνοια"),O(110264,"Πρόνοια"),O(110263,"Τερψιθέα")],
+  "2911":[O(329508,"Δελασάλ"),O(102911,"Κέντρο"),O(329509,"Στροφή Φιλύρου")],
+  "2903":[O(499177,"Ευξεινούπολη Ευκαρπίας"),O(102903,"Κέντρο")],
+  "2918":[O(291803,"Αμφιθέα"),O(291800,"Ασπρόβρυση"),O(291801,"ΒΙ.ΠΑ."),O(110180,"Γαλήνη"),O(102918,"Κέντρο"),O(110181,"Παλαιόκαστρο")],
+  "2902":[O(102902,"Κέντρο"),O(110267,"Νέο Κορδελιό")],
+  "2908":[O(110265,"Δενδροπόταμος"),O(102908,"Κέντρο"),O(110268,"Λαχανόκηποι")],
+  "2900":[O(329506,"Γεντί Κουλέ"),O(110276,"Πανεπιστημιούπολη"),O(329507,"Χίλια Δέντρα")],
+  "2917":[O(110309,"Ασβεστοχώρι"),O(110308,"Εξοχή"),O(102917,"Κέντρο"),O(110307,"Πουρναροχώρι"),O(110310,"Φίλυρο")],
+  "3019":[O(110449,"Άνω Σχολάρι"),O(110451,"Καρδιά"),O(110446,"Κάτω Σχολάρι"),O(110453,"Πλαγιάρι"),O(110450,"Τρίλοφο")],
+  "3009":[O(103009,"Κέντρο"),O(110626,"Λεύκες"),O(110629,"Μεσημέρι"),O(110627,"Πύργος Επανομής")],
+  "3018":[O(110632,"Αγγελοχώρι"),O(103018,"Κέντρο"),O(110631,"Νέα Κερασιά")],
+  "3006":[O(110454,"Αγία Παρασκευή"),O(110448,"Άγιος Αντώνιος"),O(103006,"Κέντρο"),O(110458,"Λακκιά"),O(110459,"Λιβάδι"),O(110457,"Λουτρά Θέρμης"),O(110447,"Μονοπήγαδο"),O(110463,"Περιστέρα")],
+  "3011":[O(110187,"Μεσαίο"),O(110189,"Μονόλοφο"),O(110188,"Νέα Φιλαδέλφεια"),O(110182,"Νεοχωρούδα"),O(110183,"Πεντάλοφος"),O(110190,"Πετρωτό")],
+  "3020":[O(110179,"Ανθούπολη"),O(110186,"Δρυμός"),O(103020,"Κέντρο"),O(110184,"Λητή"),O(110185,"Μελισσοχώρι")],
+  "3010":[O(110196,"Διαβατά"),O(110192,"Καλοχώρι"),O(103010,"Κέντρο"),O(110197,"Νέα Μαγνησία"),O(110195,"Σίνδος")],
+  "3002":[O(110193,"Βραχιά"),O(108621,"Κύμινα"),O(110191,"Νέα Μάλγαρα")],
+  "3023":[O(110194,"Ανατολικό"),O(103023,"Κέντρο")]
+};
 
 /* Χαρακτηριστικά (CRM feature checkboxes) — ομαδοποιημένα θεματικά */
 const F_ENERGY=[O("has_air_condition","Κλιματιστικό"),O("has_underfloor_heating","Ενδοδαπέδια θέρμανση"),O("has_radiators","Καλοριφέρ"),O("has_solar_heater","Ηλιακός θερμοσίφωνας"),O("has_night_electricity","Νυχτερινό ρεύμα"),O("has_heating_per_floor","Θέρμανση ανά επίπεδο"),O("has_thermal_insulation","Θερμομόνωση"),O("has_external_thermal_insulation","Θερμοπρόσοψη"),O("has_sound_insulation","Ηχομόνωση"),O("has_solar_panels","Ηλιακά πάνελ"),O("has_photovoltaic","Φωτοβολταϊκό")];
-const F_INTERIOR=[O("is_furnished","Επιπλωμένο"),O("is_equipped","Με εξοπλισμό"),O("has_electrical_appliances","Ηλεκτρικές συσκευές"),O("has_fireplace","Τζάκι"),O("has_screens","Σίτες"),O("has_electric_shutters","Ηλεκτρικά ρολά"),O("is_painted","Βαμμένο"),O("is_bright","Φωτεινό"),O("has_internal_stairs","Εσωτερική σκάλα"),O("has_attic","Σοφίτα"),O("is_penthouse","Ρετιρέ"),O("is_whole_floor","Οροφοδιαμέρισμα"),O("has_false_ceiling","Ψευδοροφή"),O("is_luxurious","Πολυτελές"),O("has_smart_home","Smart Home"),O("has_fiber","Οπτική ίνα"),O("has_satellite","Δορυφορική κεραία"),O("has_storage_room","Αποθήκη"),O("pets_allowed","Δεκτά κατοικίδια")];
-const F_SECURITY=[O("has_security_door","Πόρτα ασφαλείας"),O("has_alarm","Συναγερμός"),O("has_security_cameras","Κάμερες ασφαλείας"),O("has_doorman","Θυρωρός"),O("has_fire_detectors","Πυρανίχνευση"),O("has_fire_extinguishing","Σύστημα πυρόσβεσης")];
-const F_EXTERIOR=[O("has_awnings","Τέντες"),O("has_disabled_access","Πρόσβαση ΑΜΕΑ"),O("has_private_pool","Ιδιωτική πισίνα"),O("has_shared_pool","Κοινόχρηστη πισίνα"),O("has_bbq","BBQ"),O("has_playground","Παιδική χαρά"),O("has_playroom","Playroom"),O("has_gym","Γυμναστήριο"),O("has_jacuzzi","Τζακούζι"),O("has_sauna","Sauna"),O("is_seaside","Παραθαλάσσιο"),O("is_central_location","Σε κεντρικό σημείο"),O("has_ev_charger","Φορτιστής EV"),O("has_public_parking","Δημόσιο πάρκινγκ πλησίον"),O("is_neoclassical","Νεοκλασικό"),O("is_preserved","Διατηρητέο"),O("is_vacation_home","Εξοχική κατοικία")];
+/* Το has_storage_room ΔΕΝ είναι εδώ: στο CRM είναι το checkbox δίπλα στο
+   «Εμβαδόν αποθήκης», όπως και τα has_balcony/has_rooftop. Τα βγάζει το
+   buildPayload() από τα αντίστοιχα εμβαδά — μία πηγή, όχι δύο. */
+const F_INTERIOR=[O("is_furnished","Επιπλωμένο"),O("is_equipped","Με εξοπλισμό"),O("has_electrical_appliances","Ηλεκτρικές συσκευές"),O("has_fireplace","Τζάκι"),O("has_energy_efficient_fireplace","Ενεργειακό τζάκι"),O("has_screens","Σίτες"),O("has_electric_shutters","Ηλεκτρικά ρολά"),O("is_painted","Βαμμένο"),O("is_bright","Φωτεινό"),O("has_internal_stairs","Εσωτερική σκάλα"),O("has_attic","Σοφίτα"),O("is_penthouse","Ρετιρέ"),O("is_whole_floor","Οροφοδιαμέρισμα"),O("has_false_ceiling","Ψευδοροφή"),O("is_luxurious","Πολυτελές"),O("has_smart_home","Smart Home"),O("has_fiber","Δίκτυο οπτικών ινών"),O("has_satellite","Δορυφορική κεραία"),O("pets_allowed","Επιτρέπονται κατοικίδια")];
+const F_SECURITY=[O("has_security_door","Θωρακισμένη πόρτα"),O("has_alarm","Συναγερμός"),O("has_security_cameras","Κάμερες ασφαλείας"),O("has_doorman","Θυρωρός"),O("has_fire_detectors","Πυρανίχνευση"),O("has_fire_extinguishing","Σύστημα πυρόσβεσης")];
+const F_EXTERIOR=[O("has_awnings","Τέντες"),O("has_disabled_access","Πρόσβαση ΑΜΕΑ"),O("has_private_pool","Ιδιωτική πισίνα"),O("has_shared_pool","Κοινόχρηστη πισίνα"),O("has_bbq","BBQ"),O("has_playground","Παιδική χαρά"),O("has_playroom","Playroom"),O("has_gym","Γυμναστήριο"),O("has_jacuzzi","Τζακούζι"),O("has_sauna","Sauna"),O("is_seaside","Παραθαλάσσιο"),O("is_central_location","Σε κεντρικό σημείο"),O("has_ev_charger","Σταθμός φόρτισης"),O("has_public_parking","Δημόσιο πάρκινγκ πλησίον"),O("is_neoclassical","Νεοκλασικό"),O("is_preserved","Διατηρητέο"),O("is_vacation_home","Εξοχική κατοικία")];
 const F_SUITABLE=[O("suitable_for_students","Για φοιτητές"),O("suitable_for_families","Για οικογένειες"),O("suitable_for_workers","Για εργαζόμενους"),O("suitable_for_commercial","Για επαγγελματική χρήση"),O("suitable_for_medical","Για ιατρείο"),O("is_investment","Επενδυτικό"),O("golden_visa","Golden Visa"),O("is_available_for_exchange","Αντιπαροχή")];
 const F_RENT=[O("includes_free_internet","Δωρεάν internet"),O("includes_free_electricity","Δωρεάν ρεύμα"),O("includes_free_water","Δωρεάν νερό"),O("includes_free_shared_expenses","Δωρεάν κοινόχρηστα")];
 const F_COMMERCIAL=[O("has_cargo_elevator","Ανελκυστήρας φορτίων"),O("has_loading_ramp","Ράμπα εκφόρτωσης"),O("has_three_phase_current","Τριφασικό ρεύμα"),O("has_industrial_current","Βιομηχανικό ρεύμα"),O("has_catering_facility","Υποδομή εστίασης"),O("has_ventilation","Εξαερισμός"),O("has_structured_wiring","Δομημένη καλωδίωση"),O("has_power_meter","Ρολόι ρεύματος"),O("has_power_now","Διαθέτει ρεύμα τώρα")];
@@ -385,45 +434,173 @@ const withA=s=>s.assignment==="exclusive"||s.assignment==="simple";
    σπάνιο και ο σύμβουλος το βλέπει στην προεπισκόπηση. */
 const feeA=s=>withA(s)&&s.availability!=="rent";
 
+/* Οι ενότητες και η σειρά των πεδίων ακολουθούν 1:1 τη φόρμα «Νέο ακίνητο»
+   του EstatePrime (live capture 2026-08-06): «Βασικά στοιχεία αγγελίας» →
+   «Στοιχεία τοποθεσίας» → «Βασικά στοιχεία ακινήτου» → «Επιπλέον
+   χαρακτηριστικά» → «Αποστάσεις» → «Πολυμέσα». Η γραμματεία συμπληρώνει τη
+   φόρμα στο ραντεβού και μετά αντιγράφει στο CRM: κάθε αναδιάταξη εδώ της
+   κοστίζει ψάξιμο. Οι κάρτες είναι συνεχόμενες φέτες της ίδιας σειράς —
+   σπάνε μόνο για να έχει η οθόνη ορόσημα, δεν ανακατεύουν πεδία. */
 const SECTIONS=[
+  /* ── CRM: Βασικά στοιχεία αγγελίας ── */
+  {title:"Βασικά στοιχεία αγγελίας", fields:[
+    {k:"availability", l:"Διαθέσιμο προς", t:"seg", opts:AVAIL, req:true, full:true},
+    {k:"auction_code", l:"Κωδικός πλειστηριασμού", t:"text", when:s=>s.availability==="auction"},
+    {k:"auction_date", l:"Ημ/νία πλειστηριασμού", t:"date", when:s=>s.availability==="auction"},
+    {k:"auction_url", l:"URL πλειστηριασμού", t:"text", when:s=>s.availability==="auction"},
+    {k:"assignment", l:"Ανάθεση", t:"seg", opts:ASSIGNMENT, full:true},
+    {k:"assignment_fee", l:"Αμοιβή ανάθεσης", t:"num"},
+    {k:"assignment_fee_type", l:"Είδος αμοιβής", t:"seg", opts:FEETYPE},
+    {k:"assignment_expires", l:"Λήξη ανάθεσης", t:"date"},
+    {k:"price", l:"Τιμή", t:"num", suf:"€"},
+    {k:"is_negotiable", l:"Συζητήσιμη τιμή", t:"yn"},
+    {k:"has_hidden_price", l:"Απόκρυψη τιμής στις αγγελίες", t:"yn"},
+    {k:"min_price", l:"Ελάχιστη τιμή", t:"num", suf:"€"},
+    {k:"yield", l:"Απόδοση", t:"num", suf:"%"},
+    {k:"shortterm_unit", l:"Μονάδα τιμής", t:"seg", opts:STUNIT, full:true, when:s=>s.availability==="shortterm"},
+    {k:"available_from", l:"Διαθέσιμο από", t:"date"},
+    {k:"has_keys", l:"Κλειδιά στο γραφείο", t:"yn"},
+    {k:"is_rented", l:"Μισθωμένο", t:"yn"},
+    /* Ο μισθωτής του CRM είναι καρτέλα επαφής, όχι κείμενο — μένει για το
+       CRM. Η ημερομηνία λήξης όμως ρωτιέται στο ραντεβού και χάνεται. */
+    {k:"lease_expiry_date", l:"Ημερομηνία λήξης μίσθωσης", t:"date", when:s=>s.is_rented===true}
+  ]},
+  /* Στο CRM οι «Ιδιοκτήτες ακινήτου» και οι «Συνεργάτες ανάθεσης» είναι τα
+     τελευταία πεδία της ίδιας ενότητας. Ξεχωριστή κάρτα γιατί κουβαλά το
+     κουμπί «Επαφή από CRM» (γεμίζει και ΑΔΤ/ΑΦΜ για την ανάθεση). */
   {title:"Ιδιοκτήτης & επικοινωνία", hint:"Ο εντολέας — γίνεται επαφή στο CRM.", crm:"contact", fields:[
     {k:"owner_name", l:"Ονοματεπώνυμο ιδιοκτήτη", t:"text", req:true},
     {k:"owner_phone", l:"Τηλέφωνο", t:"tel", req:true, ph:"69........"},
     {k:"owner_email", l:"Email", t:"email", ph:"προαιρετικό"},
+    {k:"user_ids", l:"Συνεργάτες ανάθεσης", t:"multi", opts:USERS, full:true},
     {k:"send_to_client", l:"Αποστολή αντιγράφου στον ιδιοκτήτη (email)", t:"yn", full:true, when:s=>!withA(s)},
     /* Με κοινό flow τα έντυπα είναι δύο, οπότε η ερώτηση δεν είναι πια
        ναι/όχι: το συνηθισμένο είναι να παίρνει ο ιδιοκτήτης τη σύμβαση που
        υπέγραψε, όχι και τη φόρμα καταχώρισης (εσωτερικό χαρτί). */
     {k:"client_copy", l:"Αντίγραφα στον ιδιοκτήτη με email", t:"seg", opts:COPIES, full:true, when:withA}
   ]},
-  {title:"Συναλλαγή", fields:[
-    {k:"availability", l:"Διαθέσιμο προς", t:"seg", opts:AVAIL, req:true, full:true},
-    {k:"price", l:"Τιμή", t:"num", suf:"€"},
-    {k:"is_negotiable", l:"Συζητήσιμη τιμή", t:"yn"},
-    {k:"has_hidden_price", l:"Απόκρυψη τιμής στις αγγελίες", t:"yn"},
-    {k:"monthly_maintenance", l:"Μηνιαία κοινόχρηστα", t:"num", suf:"€", when:notLand},
-    {k:"available_from", l:"Διαθέσιμο από", t:"date"},
-    {k:"shortterm_unit", l:"Μονάδα τιμής", t:"seg", opts:STUNIT, full:true, when:s=>s.availability==="shortterm"},
-    {k:"shortterm_min_stay", l:"Ελάχιστη διαμονή (νύχτες)", t:"stepper", when:s=>s.availability==="shortterm"},
-    {k:"shortterm_max_guests", l:"Μέγιστοι επισκέπτες", t:"stepper", when:s=>s.availability==="shortterm"},
-    {k:"auction_code", l:"Κωδικός πλειστηριασμού", t:"text", when:s=>s.availability==="auction"},
-    {k:"auction_date", l:"Ημ/νία πλειστηριασμού", t:"date", when:s=>s.availability==="auction"},
-    {k:"auction_url", l:"URL πλειστηριασμού", t:"text", when:s=>s.availability==="auction"}
+  /* ── CRM: Στοιχεία τοποθεσίας ── */
+  {title:"Στοιχεία τοποθεσίας", fields:[
+    {k:"address_el", l:"Οδός & αριθμός", t:"text", req:true, full:true, ph:"π.χ. Ολύμπου 62"},
+    {k:"postal_code", l:"Τ.Κ.", t:"num"},
+    {k:"area_level1", l:"Περιοχή", t:"seg", opts:AREAS1, full:true},
+    {k:"area_level2", l:"Υποπεριοχή", t:"seg", opts:s=>AREAS2[s.area_level1]||[], full:true, when:s=>!!s.area_level1},
+    {k:"area_level3", l:"Γειτονιά", t:"seg", opts:s=>AREAS3[s.area_level2]||[], full:true, when:s=>!!(AREAS3[s.area_level2]||[]).length},
+    {k:"area_other", l:"Περιοχή (εκτός Θεσσαλονίκης)", t:"text", ph:"ελεύθερο κείμενο", when:s=>!s.area_level1},
+    {k:"fake_address", l:"Απόκρυψη ακριβούς διεύθυνσης στις αγγελίες", t:"yn", full:true},
+    /* Τα τρία από κάτω είναι το μπλοκ «Εμφανιζόμενη διεύθυνση» του CRM και
+       έχουν νόημα μόνο όταν κρύβουμε την πραγματική. */
+    {k:"fake_address_el", l:"Εμφανιζόμενη διεύθυνση", t:"text", full:true, ph:"π.χ. πλησίον Ολύμπου", when:s=>s.fake_address===true&&s.no_address!==true},
+    {k:"no_address", l:"Χωρίς εμφανιζόμενη διεύθυνση", t:"yn", full:true, when:s=>s.fake_address===true},
+    {k:"display_circle", l:"Κύκλος αντί για πινέζα στον χάρτη", t:"yn", full:true, when:s=>s.fake_address===true}
   ]},
-  {title:"Ανάθεση", fields:[
-    {k:"assignment", l:"Τύπος ανάθεσης", t:"seg", opts:ASSIGNMENT, full:true},
-    {k:"assignment_fee", l:"Αμοιβή", t:"num"},
-    {k:"assignment_fee_type", l:"Είδος αμοιβής", t:"seg", opts:FEETYPE},
-    {k:"assignment_expires", l:"Λήξη ανάθεσης", t:"date"},
-    {k:"has_keys", l:"Κλειδιά στο γραφείο", t:"yn"},
-    {k:"is_rented", l:"Μισθωμένο", t:"yn"}
+  /* ── CRM: Βασικά στοιχεία ακινήτου ── */
+  {title:"Τύπος ακινήτου", fields:[
+    {k:"category", l:"Κατηγορία", t:"seg", opts:CATS, req:true, full:true},
+    {k:"subcategory", l:"Υποκατηγορία", t:"seg", opts:s=>SUBCATS[s.category]||[], full:true, when:s=>!!s.category},
+    {k:"subtype", l:"Ειδικός τύπος", t:"seg", opts:SUBTYPES, full:true, when:s=>s.subcategory==="apartment"}
+  ]},
+  {title:"Βασικά στοιχεία ακινήτου", fields:[
+    {k:"size", l:"Εμβαδόν ακινήτου", t:"num", suf:"τ.μ."},
+    {k:"build_ratio", l:"Συντελεστής δόμησης", t:"num", when:landish},
+    {k:"coverage_ratio", l:"Συντελεστής κάλυψης", t:"num", when:landish},
+    {k:"max_height", l:"Συντελεστής ύψους", t:"num", suf:"μ.", when:landish},
+    {k:"property_condition", l:"Κατάσταση", t:"seg", opts:CONDITION, full:true},
+    {k:"year_built", l:"Έτος κατασκευής", t:"num", ph:"π.χ. 2004"},
+    {k:"year_renovated", l:"Έτος ανακαίνισης", t:"num"},
+    {k:"completion_year", l:"Έτος αποπεράτωσης", t:"num", when:s=>s.property_condition==="under_construction"},
+    {k:"has_elevator", l:"Ασανσέρ", t:"yn", when:notLand},
+    {k:"floor", l:"Όροφος", t:"seg", opts:FLOORS, full:true, when:notLand},
+    {k:"levels", l:"Επίπεδα ακινήτου", t:"stepper", when:notLand},
+    {k:"total_building_floors", l:"Συνολικοί όροφοι κτιρίου", t:"stepper", when:notLand},
+    {k:"rooms", l:"Υπνοδωμάτια", t:"stepper", when:resi},
+    {k:"bathrooms", l:"Μπάνια", t:"stepper", when:notLand},
+    {k:"wcs", l:"WC", t:"stepper", when:notLand},
+    {k:"living_rooms", l:"Σαλόνια", t:"stepper", when:resi},
+    {k:"kitchens", l:"Κουζίνες", t:"stepper", when:notLand},
+    {k:"master_bedrooms", l:"Master υπνοδωμάτια", t:"stepper", when:resi},
+    {k:"shortterm_max_guests", l:"Αριθμός επισκεπτών", t:"stepper", when:s=>s.availability==="shortterm"},
+    {k:"shortterm_min_stay", l:"Ελάχιστες ημέρες διαμονής", t:"stepper", when:s=>s.availability==="shortterm"}
+  ]},
+  {title:"Θέρμανση & στάθμευση", when:notLand, fields:[
+    {k:"heating_type", l:"Τύπος θέρμανσης", t:"seg", opts:HEATTYPE, full:true},
+    {k:"heating_source", l:"Μέσο θέρμανσης", t:"seg", opts:HEATSRC, full:true},
+    {k:"parking_open_sheltered", l:"Πάρκινγκ στεγασμένο (πιλοτή)", t:"stepper"},
+    {k:"parking_open_unsheltered", l:"Πάρκινγκ ανοιχτό", t:"stepper"},
+    {k:"parking_garage", l:"Γκαράζ (κλειστό)", t:"stepper"},
+    {k:"garden", l:"Κήπος", t:"seg", opts:GARDEN, full:true},
+    {k:"garden_size", l:"Εμβαδόν κήπου", t:"num", suf:"τ.μ."}
+  ]},
+  {title:"Κατασκευή, γη & θέση", fields:[
+    {k:"construction_type", l:"Κατασκευή κτιρίου", t:"seg", opts:CONSTRUCTION, full:true, when:notLand},
+    {k:"land_size", l:"Εμβαδόν οικοπέδου", t:"num", suf:"τ.μ.", when:landish},
+    {k:"view", l:"Θέα", t:"multi", opts:VIEW, full:true},
+    {k:"positioning", l:"Χωροθέτηση", t:"multi", opts:POSITIONING, full:true, when:notLand},
+    {k:"frontage_length", l:"Μήκος πρόσοψης", t:"num", suf:"μ.", when:landish},
+    {k:"flooring", l:"Δάπεδα", t:"multi", opts:FLOORING, full:true, when:notLand},
+    {k:"zoning", l:"Ζώνη", t:"seg", opts:ZONING, full:true, when:landish},
+    {k:"land_use", l:"Χρήση γης", t:"seg", opts:LANDUSE, full:true, when:landish},
+    {k:"planning_status", l:"Σχέδιο πόλης", t:"seg", opts:PLANNING, full:true, when:landish},
+    {k:"land_slope", l:"Κλίση γης", t:"seg", opts:SLOPE, full:true, when:landish},
+    {k:"access_type", l:"Πρόσβαση από", t:"seg", opts:ACCESS, full:true},
+    {k:"orientation", l:"Προσανατολισμός", t:"seg", opts:ORIENT, full:true}
+  ]},
+  {title:"Ενέργεια & κουφώματα", when:notLand, fields:[
+    {k:"energy_class", l:"Ενεργειακή κλάση", t:"seg", opts:ENERGY, full:true},
+    {k:"frames", l:"Κουφώματα", t:"seg", opts:FRAMES, full:true},
+    {k:"frames_glass", l:"Τζάμια", t:"seg", opts:GLASS, full:true},
+    {k:"thermal_break", l:"Θερμοδιακοπτόμενα", t:"yn", full:true}
+  ]},
+  /* Τα εμβαδά μπαλκονιού/αποθήκης/δώματος: στο CRM κάθε ένα έχει από πάνω
+     του ένα checkbox (has_balcony/has_storage_room/has_rooftop) που εδώ
+     βγαίνει μόνο του από το εμβαδόν — δες buildPayload(). */
+  {title:"Χώροι & κοινόχρηστα", when:notLand, fields:[
+    {k:"shop_window_length", l:"Μήκος βιτρίνας", t:"num", suf:"μ.", when:comm},
+    {k:"balcony_size", l:"Εμβαδόν μπαλκονιών", t:"num", suf:"τ.μ."},
+    {k:"storage_size", l:"Εμβαδόν αποθήκης", t:"num", suf:"τ.μ."},
+    {k:"rooftop_size", l:"Εμβαδόν δώματος", t:"num", suf:"τ.μ."},
+    {k:"monthly_maintenance", l:"Μηνιαία κοινόχρηστα", t:"num", suf:"€"}
+  ]},
+  /* ── CRM: Επιπλέον χαρακτηριστικά ακινήτου ──
+     Το CRM τα δείχνει σε ένα ενιαίο πλέγμα 82 checkbox. Εδώ μένουν
+     ομαδοποιημένα θεματικά (σε tablet ένα πλέγμα 82 pills δεν ψάχνεται),
+     αλλά σε μία κάρτα και με τις ίδιες ετικέτες. */
+  {title:"Επιπλέον χαρακτηριστικά ακινήτου", fields:[
+    {k:"features", l:"Ενέργεια & θέρμανση", t:"multi", opts:F_ENERGY, full:true, when:notLand},
+    {k:"features", l:"Εσωτερικό & άνεση", t:"multi", opts:F_INTERIOR, full:true, when:notLand},
+    {k:"features", l:"Ασφάλεια", t:"multi", opts:F_SECURITY, full:true, when:notLand},
+    {k:"features", l:"Εξωτερικό & κτίριο", t:"multi", opts:F_EXTERIOR, full:true, when:notLand},
+    {k:"features", l:"Καταλληλότητα & επένδυση", t:"multi", opts:F_SUITABLE, full:true},
+    {k:"features", l:"Παροχές ενοικίασης", t:"multi", opts:F_RENT, full:true, when:renting},
+    {k:"features", l:"Επαγγελματικός χώρος", t:"multi", opts:F_COMMERCIAL, full:true, when:comm},
+    {k:"features", l:"Γη", t:"multi", opts:F_LAND, full:true, when:landish}
+  ]},
+  /* ── CRM: Αποστάσεις ── */
+  {title:"Αποστάσεις", fields:[
+    {k:"distance_sea", l:"Θάλασσα", t:"num", suf:"μ."},
+    {k:"distance_airport", l:"Αεροδρόμιο", t:"num", suf:"μ."},
+    {k:"distance_city", l:"Πόλη", t:"num", suf:"μ."},
+    {k:"distance_market", l:"Αγορά", t:"num", suf:"μ."}
+  ]},
+  /* ── CRM: Πολυμέσα ── */
+  {title:"Πολυμέσα", fields:[
+    {k:"youtube_url", l:"Youtube URL", t:"text", full:true, ph:"προαιρετικό"},
+    {k:"virtual_tour_url", l:"360 Tour URL", t:"text", full:true, ph:"προαιρετικό"}
+  ]},
+  /* Δικό μας πεδίο: το CRM έχει «Περιγραφή» (τίτλος + κείμενο αγγελίας) που
+     γράφεται μετά, με τις φωτογραφίες. Εδώ κρατάμε ό,τι ακούγεται στο
+     ραντεβού και δεν μπαίνει σε αγγελία. */
+  {title:"Σημειώσεις", fields:[
+    {k:"notes", l:"Ελεύθερες σημειώσεις", t:"textarea", full:true, ph:"Οτιδήποτε άλλο χρήσιμο για το ακίνητο ή τον ιδιοκτήτη"}
   ]},
   /* Το έντυπο ανάθεσης. Στο 99% των ραντεβού υπογράφεται μαζί με την
      καταχώριση, γι' αυτό ο «Τύπος ανάθεσης» ανοίγει στην Απλή· η κάρτα
      χάνεται μόνο με «Χωρίς». Τα πεδία εδώ είναι της σύμβασης, όχι του CRM:
-     η «Αμοιβή» της ενότητας από πάνω είναι το τι κρατά το EstatePrime για
-     το ακίνητο, το ποσοστό εδώ είναι το τι υπογράφει ο ιδιοκτήτης. Τα δύο
-     δεν συνδέονται (docs/forms-crm.md). */
+     η «Αμοιβή ανάθεσης» της πρώτης ενότητας είναι το τι κρατά το EstatePrime
+     για το ακίνητο, το ποσοστό εδώ είναι το τι υπογράφει ο ιδιοκτήτης. Τα
+     δύο δεν συνδέονται (docs/forms-crm.md). Μπαίνει τελευταίο επειδή δεν
+     είναι πεδία του CRM: η σειρά από πάνω πρέπει να διαβάζεται σαν τη
+     φόρμα του EstatePrime, χωρίς παρεμβολές. */
   {title:"Έντυπο ανάθεσης", when:withA, hint:"Βγαίνει από τον «Τύπο ανάθεσης» (με «Χωρίς» δεν υπάρχει), υπογράφεται μαζί με την καταχώριση και φεύγει ως ξεχωριστό PDF.", fields:[
     {k:"entoleas_adt", l:"Α.Δ.Τ. / Διαβατήριο ιδιοκτήτη", t:"text"},
     {k:"entoleas_afm", l:"ΑΦΜ ιδιοκτήτη", t:"num"},
@@ -435,106 +612,17 @@ const SECTIONS=[
     {k:"amoivi_elaxisti", l:"Ελάχιστη αμοιβή", t:"yn", full:true, when:s=>feeA(s)&&s.amoivi_pososto!=="0"},
     {k:"amoivi_elaxisti_poso", l:"Ελάχιστη αμοιβή", t:"num", suf:"€", when:s=>feeA(s)&&s.amoivi_pososto!=="0"&&s.amoivi_elaxisti===true},
     {k:"amoivi_elaxisti_katofli", l:"Όριο τιμήματος", t:"num", suf:"€", when:s=>feeA(s)&&s.amoivi_pososto!=="0"&&s.amoivi_elaxisti===true}
-  ]},
-  {title:"Τοποθεσία", fields:[
-    {k:"address_el", l:"Οδός & αριθμός", t:"text", req:true, full:true, ph:"π.χ. Ολύμπου 62"},
-    {k:"postal_code", l:"Τ.Κ.", t:"num"},
-    {k:"area_level1", l:"Περιοχή", t:"seg", opts:AREAS1, full:true},
-    {k:"area_level2", l:"Υποπεριοχή", t:"seg", opts:s=>AREAS2[s.area_level1]||[], full:true, when:s=>!!s.area_level1},
-    {k:"area_other", l:"Περιοχή (εκτός Θεσσαλονίκης)", t:"text", ph:"ελεύθερο κείμενο", when:s=>!s.area_level1},
-    {k:"fake_address", l:"Απόκρυψη ακριβούς διεύθυνσης στις αγγελίες", t:"yn", full:true}
-  ]},
-  {title:"Τύπος ακινήτου", fields:[
-    {k:"category", l:"Κατηγορία", t:"seg", opts:CATS, req:true, full:true},
-    {k:"subcategory", l:"Υποκατηγορία", t:"seg", opts:s=>SUBCATS[s.category]||[], full:true, when:s=>!!s.category},
-    {k:"subtype", l:"Ειδικός τύπος", t:"seg", opts:SUBTYPES, full:true, when:s=>s.subcategory==="apartment"}
-  ]},
-  {title:"Βασικά στοιχεία", fields:[
-    {k:"size", l:"Εμβαδόν", t:"num", suf:"τ.μ."},
-    {k:"property_condition", l:"Κατάσταση", t:"seg", opts:CONDITION, full:true},
-    {k:"year_built", l:"Έτος κατασκευής", t:"num", ph:"π.χ. 2004"},
-    {k:"year_renovated", l:"Έτος ανακαίνισης", t:"num"},
-    {k:"floor", l:"Όροφος", t:"seg", opts:FLOORS, full:true, when:notLand},
-    {k:"has_elevator", l:"Ασανσέρ", t:"yn", when:notLand},
-    {k:"total_building_floors", l:"Όροφοι κτιρίου", t:"stepper", when:notLand},
-    {k:"levels", l:"Επίπεδα", t:"stepper", when:notLand},
-    {k:"rooms", l:"Υπνοδωμάτια", t:"stepper", when:resi},
-    {k:"master_bedrooms", l:"Master υπνοδωμάτια", t:"stepper", when:resi},
-    {k:"living_rooms", l:"Σαλόνια", t:"stepper", when:resi},
-    {k:"kitchens", l:"Κουζίνες", t:"stepper", when:notLand},
-    {k:"bathrooms", l:"Μπάνια", t:"stepper", when:notLand},
-    {k:"wcs", l:"WC", t:"stepper", when:notLand},
-    {k:"balcony_size", l:"Εμβαδόν μπαλκονιών", t:"num", suf:"τ.μ.", when:notLand},
-    {k:"storage_size", l:"Εμβαδόν αποθήκης", t:"num", suf:"τ.μ.", when:notLand},
-    {k:"parking_open_sheltered", l:"Πάρκινγκ στεγασμένο (πιλοτή)", t:"stepper", when:notLand},
-    {k:"parking_open_unsheltered", l:"Πάρκινγκ ανοιχτό", t:"stepper", when:notLand},
-    {k:"parking_garage", l:"Γκαράζ (κλειστό)", t:"stepper", when:notLand}
-  ]},
-  {title:"Θέρμανση & ενέργεια", when:notLand, fields:[
-    {k:"heating_type", l:"Τύπος θέρμανσης", t:"seg", opts:HEATTYPE, full:true},
-    {k:"heating_source", l:"Μέσο θέρμανσης", t:"seg", opts:HEATSRC, full:true},
-    {k:"energy_class", l:"Ενεργειακή κλάση", t:"seg", opts:ENERGY, full:true},
-    {k:"features", l:"Ενεργειακά χαρακτηριστικά", t:"multi", opts:F_ENERGY, full:true}
-  ]},
-  {title:"Κατασκευή & κουφώματα", when:notLand, fields:[
-    {k:"construction_type", l:"Κατασκευή κτιρίου", t:"seg", opts:CONSTRUCTION, full:true},
-    {k:"frames", l:"Κουφώματα", t:"seg", opts:FRAMES, full:true},
-    {k:"frames_glass", l:"Τζάμια", t:"seg", opts:GLASS, full:true},
-    {k:"flooring", l:"Δάπεδα", t:"multi", opts:FLOORING, full:true}
-  ]},
-  {title:"Θέση & θέα", fields:[
-    {k:"orientation", l:"Προσανατολισμός", t:"seg", opts:ORIENT, full:true},
-    {k:"positioning", l:"Χωροθέτηση", t:"multi", opts:POSITIONING, full:true, when:notLand},
-    {k:"view", l:"Θέα", t:"multi", opts:VIEW, full:true},
-    {k:"distance_sea", l:"Απόσταση από θάλασσα", t:"num", suf:"μ."},
-    {k:"distance_city", l:"Απόσταση από κέντρο", t:"num", suf:"μ."},
-    {k:"distance_market", l:"Απόσταση από αγορά", t:"num", suf:"μ."},
-    {k:"distance_airport", l:"Απόσταση από αεροδρόμιο", t:"num", suf:"μ."}
-  ]},
-  {title:"Εσωτερικό & άνεση", when:notLand, fields:[
-    {k:"features", l:"", t:"multi", opts:F_INTERIOR, full:true}
-  ]},
-  {title:"Ασφάλεια", when:notLand, fields:[
-    {k:"features", l:"", t:"multi", opts:F_SECURITY, full:true}
-  ]},
-  {title:"Εξωτερικό & κτίριο", when:notLand, fields:[
-    {k:"garden", l:"Κήπος", t:"seg", opts:GARDEN},
-    {k:"garden_size", l:"Εμβαδόν κήπου", t:"num", suf:"τ.μ."},
-    {k:"features", l:"", t:"multi", opts:F_EXTERIOR, full:true}
-  ]},
-  {title:"Καταλληλότητα & επένδυση", fields:[
-    {k:"features", l:"", t:"multi", opts:F_SUITABLE, full:true}
-  ]},
-  {title:"Παροχές ενοικίασης", when:renting, fields:[
-    {k:"features", l:"", t:"multi", opts:F_RENT, full:true}
-  ]},
-  {title:"Επαγγελματικός χώρος", when:comm, fields:[
-    {k:"shop_window_length", l:"Μήκος βιτρίνας", t:"num", suf:"μ."},
-    {k:"features", l:"", t:"multi", opts:F_COMMERCIAL, full:true}
-  ]},
-  {title:"Γη & δόμηση", when:landish, fields:[
-    {k:"land_size", l:"Εμβαδόν οικοπέδου", t:"num", suf:"τ.μ."},
-    {k:"frontage_length", l:"Πρόσοψη", t:"num", suf:"μ."},
-    {k:"coverage_ratio", l:"Συντ. κάλυψης", t:"num"},
-    {k:"build_ratio", l:"Συντ. δόμησης", t:"num"},
-    {k:"max_height", l:"Μέγιστο ύψος", t:"num", suf:"μ."},
-    {k:"zoning", l:"Ζώνη", t:"seg", opts:ZONING, full:true},
-    {k:"planning_status", l:"Σχέδιο πόλης", t:"seg", opts:PLANNING, full:true},
-    {k:"land_slope", l:"Κλίση γης", t:"seg", opts:SLOPE, full:true},
-    {k:"access_type", l:"Πρόσβαση από", t:"seg", opts:ACCESS, full:true},
-    {k:"features", l:"", t:"multi", opts:F_LAND, full:true}
-  ]},
-  {title:"Σημειώσεις", fields:[
-    {k:"notes", l:"Ελεύθερες σημειώσεις", t:"textarea", full:true, ph:"Οτιδήποτε άλλο χρήσιμο για το ακίνητο ή τον ιδιοκτήτη"}
   ]}
 ];
 
 /* Πεδία της φόρμας που ΔΕΝ είναι πεδία listing του CRM (πάνε σε contact/location) */
-const FORM_ONLY=new Set(["owner_name","owner_phone","owner_email","send_to_client","address_el","postal_code","area_level1","area_level2","area_other","fake_address",
+const FORM_ONLY=new Set(["owner_name","owner_phone","owner_email","send_to_client",
+  /* τοποθεσία: πάνε στο crm.location, όχι στο listing */
+  "address_el","postal_code","area_level1","area_level2","area_level3","area_other","fake_address","fake_address_el","no_address","display_circle",
   /* πεδία του εντύπου ανάθεσης: ζουν στη σύμβαση, όχι στην καρτέλα ακινήτου */
   "client_copy","entoleas_adt","entoleas_afm","has_proxy","ekprosopoumenos","plirexousio_imerominia","anathesi_imerominia",
   "amoivi_pososto","amoivi_elaxisti","amoivi_elaxisti_poso","amoivi_elaxisti_katofli"]);
-const NUMERIC=new Set(["price","monthly_maintenance","assignment_fee","size","year_built","year_renovated","balcony_size","storage_size","garden_size","distance_sea","distance_city","distance_market","distance_airport","shop_window_length","land_size","frontage_length","coverage_ratio","build_ratio","max_height"]);
+const NUMERIC=new Set(["price","min_price","yield","monthly_maintenance","assignment_fee","size","year_built","year_renovated","completion_year","balcony_size","storage_size","rooftop_size","garden_size","distance_sea","distance_city","distance_market","distance_airport","shop_window_length","land_size","frontage_length","coverage_ratio","build_ratio","max_height"]);
 
 /* slug → ελληνική ετικέτα, ανά πεδίο (για PDF/email) */
 const LAB={};
@@ -547,15 +635,16 @@ regLab("frames_glass",GLASS); regLab("construction_type",CONSTRUCTION); regLab("
 regLab("view",VIEW); regLab("positioning",POSITIONING); regLab("flooring",FLOORING);
 regLab("garden",GARDEN); regLab("zoning",ZONING); regLab("planning_status",PLANNING);
 regLab("land_slope",SLOPE); regLab("access_type",ACCESS); regLab("assignment",ASSIGNMENT);
-regLab("assignment_fee_type",FEETYPE); regLab("shortterm_unit",STUNIT);
-regLab("amoivi_pososto",AMOIVI); regLab("client_copy",COPIES);
+regLab("assignment_fee_type",FEETYPE); regLab("shortterm_unit",STUNIT); regLab("land_use",LANDUSE);
+regLab("user_ids",USERS); regLab("amoivi_pososto",AMOIVI); regLab("client_copy",COPIES);
 regLab("area_level1",AREAS1); Object.values(AREAS2).forEach(l=>regLab("area_level2",l));
+Object.values(AREAS3).forEach(l=>regLab("area_level3",l));
 [F_ENERGY,F_INTERIOR,F_SECURITY,F_EXTERIOR,F_SUITABLE,F_RENT,F_COMMERCIAL,F_LAND].forEach(l=>regLab("features",l));
 
 /* ---------- State ---------- */
 const state={}; // key -> string slug | number | boolean | array (multi)
 const LS_DRAFT="fw_draft_kx2";
-const RERENDER=new Set(["availability","category","subcategory","area_level1","assignment","has_proxy","amoivi_pososto","amoivi_elaxisti"]);
+const RERENDER=new Set(["availability","category","subcategory","area_level1","area_level2","property_condition","is_rented","fake_address","no_address","assignment","has_proxy","amoivi_pososto","amoivi_elaxisti"]);
 /* Segmented πεδία που ΔΕΝ ξε-επιλέγονται με δεύτερο tap: το έντυπο τυπώνει
    πάντα ένα ποσοστό και στέλνει πάντα κάπου τα αντίγραφα, οπότε «τίποτα
    επιλεγμένο» θα σήμαινε σιωπηλή επιστροφή στην προεπιλογή. */
@@ -652,7 +741,8 @@ function reflect(){
 function cascade(key){
   if(key==="category"){ delete state.subcategory; delete state.subtype; }
   if(key==="subcategory"){ delete state.subtype; }
-  if(key==="area_level1"){ delete state.area_level2; }
+  if(key==="area_level1"){ delete state.area_level2; delete state.area_level3; }
+  if(key==="area_level2"){ delete state.area_level3; }
 }
 /* ---------- Ιδιοκτήτης από το CRM ---------- */
 /* Ο εντολέας είναι συνήθως ήδη επαφή στο CRM (τον βρήκαμε από πινακίδα, μας
@@ -794,7 +884,20 @@ function validate(){
 function eachVisibleField(cb){
   visibleSections().forEach(sec=>(sec.fields||[]).forEach(f=>{ if(f.when&&!f.when(state))return; cb(f,sec); }));
 }
-const toNum=v=>{ const n=parseFloat(String(v).replace(/\./g,"").replace(",",".")); return isNaN(n)?null:n; };
+/* «165.000» είναι χιλιάδες, «4.2» δεκαδικό — και τα δύο γράφονται φυσικά σε
+   ελληνικό πληκτρολόγιο. Ο κανόνας: κόμμα ⇒ δεκαδικό (οι τελείες χιλιάδες),
+   αλλιώς οι τελείες είναι χιλιάδες μόνο όταν χωρίζουν τριάδες ψηφίων και δεν
+   ξεκινά το ποσό από 0. Χωρίς αυτό ο συντελεστής δόμησης «0.8» γινόταν 8. */
+const toNum=v=>{
+  let s=String(v).trim().replace(/\s/g,"");
+  if(s.includes(",")){ s=s.replace(/\./g,"").replace(",","."); }
+  else{
+    const parts=s.split(".");
+    if(parts.length>1&&parts[0]!=="0"&&parts.slice(1).every(p=>/^\d{3}$/.test(p)))s=parts.join("");
+  }
+  const n=parseFloat(s);
+  return isNaN(n)?null:n;
+};
 const labOf=(k,v)=>(LAB[k]&&LAB[k][String(v)])||v;
 function areaLabel(){
   if(state.area_level2)return labOf("area_level2",state.area_level2);
@@ -820,15 +923,28 @@ function buildPayload(){
   if(feats.length){ crm.features=feats; data.features=feats.map(s=>labOf("features",s)).join(", "); }
   if(crm.floor!==undefined)crm.floor=parseFloat(crm.floor);
   if(crm.subtype!==undefined)crm.subtype=parseInt(crm.subtype,10);
+  if(Array.isArray(crm.user_ids))crm.user_ids=crm.user_ids.map(v=>parseInt(v,10));
+  /* Στο CRM κάθε ένα από τα τρία εμβαδά έχει δικό του checkbox από πάνω. Δεν
+     το ρωτάμε ξεχωριστά: εμβαδόν > 0 σημαίνει ότι υπάρχει, και μία πηγή δεν
+     μπορεί να διαφωνήσει με τον εαυτό της. */
   if(crm.balcony_size>0)crm.has_balcony=true;
-  if(crm.storage_size>0&&!feats.includes("has_storage_room"))crm.features=(crm.features||[]).concat("has_storage_room");
+  if(crm.storage_size>0)crm.has_storage_room=true;
+  if(crm.rooftop_size>0)crm.has_rooftop=true;
   const loc={};
   if(state.address_el)loc.address_el=state.address_el;
   if(state.postal_code)loc.postal_code=state.postal_code;
   if(state.area_level1)loc.area_level1=parseInt(state.area_level1,10);
   if(state.area_level2)loc.area_level2=parseInt(state.area_level2,10);
+  if(state.area_level3)loc.area_level3=parseInt(state.area_level3,10);
   if(state.area_other&&!state.area_level1)loc.area_other=state.area_other;
   if(state.fake_address!==undefined)loc.display_address=state.fake_address===true?"fake":"real";
+  /* Το μπλοκ «Εμφανιζόμενη διεύθυνση» του CRM: τι βλέπει ο κόσμος όταν η
+     πραγματική διεύθυνση είναι κρυμμένη. */
+  if(state.fake_address===true){
+    if(state.fake_address_el)loc.fake_address_el=state.fake_address_el;
+    if(state.no_address!==undefined)loc.no_address=state.no_address===true;
+    if(state.display_circle!==undefined)loc.display_circle=state.display_circle===true;
+  }
   if(Object.keys(loc).length)crm.location=loc;
   crm.contact={name:state.owner_name||"",phone:state.owner_phone||"",email:state.owner_email||""};
   /* Μπαίνει μόνο όταν ο ιδιοκτήτης διαλέχτηκε από το CRM (και δεν πειράχτηκε
