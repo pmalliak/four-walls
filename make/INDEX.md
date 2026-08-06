@@ -110,7 +110,7 @@
 2   builtin:BasicRouter · Ποιο έντυπο;
   ├─ route 1
     24  email:ActionSendEmail · Αρχείο CRM · ανάθεση · [φίλτρο: ανάθεση]
-    3   email:ActionSendEmail · Email · ανάθεση · [φίλτρο: ανάθεση]
+    3   email:ActionSendEmail · Email · ανάθεση · [φίλτρο: ανάθεση · και στον εντολέα;]
   ├─ route 2
     25  email:ActionSendEmail · Αρχείο CRM · υπόδειξη · [φίλτρο: υπόδειξη]
     4   email:ActionSendEmail · Email · υπόδειξη · [φίλτρο: υπόδειξη]

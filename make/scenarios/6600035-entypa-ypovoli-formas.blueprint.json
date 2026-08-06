@@ -309,13 +309,22 @@
 						{
 							"id": 3,
 							"filter": {
-								"name": "ανάθεση",
+								"name": "ανάθεση · και στον εντολέα;",
 								"conditions": [
 									[
 										{
 											"a": "{{1.form}}",
 											"b": "anathesi",
 											"o": "text:equal"
+										},
+										{
+											"a": "{{1.data.send_to_client}}",
+											"b": "false",
+											"o": "text:notequal"
+										},
+										{
+											"a": "{{1.data.entoleas_email}}",
+											"o": "exist"
 										}
 									]
 								]
