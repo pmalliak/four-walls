@@ -15,6 +15,7 @@
 | `6762737` | Εκτίμηση — φρεσκάρισμα τιμών περιοχών | ναι | monthly 09:00 1 | 2 | [6762737-ektimisi-freskarisma-timon-periochon.blueprint.json](scenarios/6762737-ektimisi-freskarisma-timon-periochon.blueprint.json) |
 | `6775485` | Φύλακας — ό,τι δεν στάλθηκε | ναι | άμεσα (webhook/mailhook) | 2 | [6775485-fylakas-o-ti-den-stalthike.blueprint.json](scenarios/6775485-fylakas-o-ti-den-stalthike.blueprint.json) |
 | `6786126` | Πινακίδες | ναι | άμεσα (webhook/mailhook) | 13 | [6786126-pinakides.blueprint.json](scenarios/6786126-pinakides.blueprint.json) |
+| `6828361` | Integration Zadarma | **όχι** | άμεσα (webhook/mailhook) | 1 | [6828361-integration-zadarma.blueprint.json](scenarios/6828361-integration-zadarma.blueprint.json) |
 
 ## Spitogatos - Αίτηση ανάθεσης `6405443`
 
@@ -257,4 +258,13 @@
         16  http:ActionSendDataBasicAuth · EstatePrime: Επικοινωνία (υπάρχουσα) · [onerror: builtin:Ignore]
       ├─ else
         17  placeholder:Placeholder
+```
+
+## Integration Zadarma `6828361`
+
+- Ενεργό: όχι · χρονισμός: άμεσα (webhook/mailhook)
+- DLQ: όχι · maxErrors: 3 · sequential: όχι
+
+```
+2   zadarma:NotifyOutStart
 ```

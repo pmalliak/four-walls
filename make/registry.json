@@ -45,6 +45,12 @@
 			"accountLabel": "Zoho Mail"
 		},
 		{
+			"id": 9542526,
+			"name": "Zadarma connection",
+			"accountName": "zadarma",
+			"accountLabel": "Zadarma MyApi"
+		},
+		{
 			"id": 8845636,
 			"name": "Zoho IMAP",
 			"accountName": "imap",
