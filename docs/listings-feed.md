@@ -166,6 +166,28 @@ that count means spaces, not bedrooms; and **zero counts are dropped**
 everywhere («Κουζίνες: 0» is noise), while an explicit `€0/μήνα` for service
 charges still renders — no charges is information.
 
+## A listing with no photos
+
+`images` is regularly empty: a listing goes into the CRM the day it is signed
+and the photos follow after the shoot. Everywhere a photo would go the
+front-end then draws **`images/no-photo.fw.svg`** instead (`NO_PHOTO` in
+`js/listings.fw.js`): the grid card, the detail gallery and its thumbnail,
+the «Παρόμοια» row, the video poster on `property.html`.
+
+It used to be `images/lazy.svg`, the theme's white spinner, so such a listing
+sat on `/properties` looking like a card that never finished loading (and kept
+spinning forever). The stand-in is a 16:9 panel carrying the brand cube in a
+soft rose: the same ratio as every photo frame, so it fills the frame exactly
+and `fitShot()` skips the blurred surround it gives a real photo. It has no
+text on it, because the Greek and the English site are served the same file.
+
+Two knock-on rules in the same file: «Δείτε και τις N φωτογραφίες» stays
+hidden, and the video poster keeps the stand-in rather than being set to
+`images[0]`.
+
+The share preview is separate. `worker/lib/seo.mjs` falls back to the site's
+own `og:image` for a listing with no photos, never to this panel.
+
 ## Deploy & setup (one-time)
 
 ```bash

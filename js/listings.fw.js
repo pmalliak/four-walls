@@ -32,6 +32,12 @@
 
 	var FEED_URL = "data/listings.json";
 
+	/* Stand-in photo for a listing the office has not shot yet. It used to be
+	   images/lazy.svg, the theme's white spinner, so a listing without photos
+	   sat on the grid looking like a card still loading (and kept spinning
+	   forever). images/no-photo.fw.svg is a 16:9 branded panel instead. */
+	var NO_PHOTO = "images/no-photo.fw.svg";
+
 	/* «Επιλεγμένο ακίνητο του μήνα» (index) — normally driven by the CRM:
 	   the listing tagged FEATURED_TAG in EstatePrime arrives in the feed
 	   with featured:true (see worker/lib/estateprime.mjs). This code (the
@@ -367,6 +373,10 @@
 	function fitShot(img) {
 		var frame = img && img.parentNode;
 		if (!frame || !frame.classList) return img;
+		/* The no-photo panel is already drawn at the frame's exact ratio, so
+		   there is no leftover to fill, and a blurred copy of it would only
+		   smear a grey haze over its own edges. Leave the frame plain. */
+		if (img.getAttribute("src") === NO_PHOTO) return img;
 		frame.classList.add("fw-shot");
 		/* img.src is already resolved and percent-encoded — re-encoding it
 		   would turn %20 into %2520. Only the quote that would close the
@@ -567,7 +577,7 @@
 	function listingCard(l, colClass) {
 		var col = el("div", colClass);
 		var photos = l.images.slice(0, 3);
-		if (!photos.length) photos = ["images/lazy.svg"];
+		if (!photos.length) photos = [NO_PHOTO];
 		var cid = "fwc-" + l.id;
 		var href = detailUrl(l);
 
@@ -948,7 +958,7 @@
 		}
 
 		/* gallery */
-		var photos = l.images.length ? l.images : ["images/lazy.svg"];
+		var photos = l.images.length ? l.images : [NO_PHOTO];
 		var inner = document.getElementById("fw-gallery");
 		inner.textContent = "";
 		photos.slice(0, 8).forEach(function (src, i) {
@@ -984,7 +994,7 @@
 		});
 		var photosBtn = document.getElementById("fw-photos-btn");
 		photosBtn.textContent = "";
-		if (photos.length > 1 && photos[0] !== "images/lazy.svg") {
+		if (photos.length > 1 && photos[0] !== NO_PHOTO) {
 			photosBtn.appendChild(document.createTextNode(STR.allPhotos(photos.length)));
 			/* Open the fullscreen gallery from the FIRST photo. Drive Fancybox
 			   explicitly with startIndex:0 instead of stacking one overlapping
@@ -1149,7 +1159,7 @@
 		if (l.youtubeUrl) {
 			document.getElementById("fw-video-link").href = l.youtubeUrl;
 			var poster = document.getElementById("fw-video-poster");
-			if (poster && photos[0] !== "images/lazy.svg") poster.src = photos[0];
+			if (poster && photos[0] !== NO_PHOTO) poster.src = photos[0];
 			show("fw-video-block");
 		}
 
@@ -1213,7 +1223,7 @@
 					'<div class="img-gallery p-15">' +
 						'<div class="position-relative border-20 overflow-hidden">' +
 							'<div class="tag bg-white text-dark fw-500 border-20"></div>' +
-							'<img src="' + encodeURI(s.images[0] || "images/lazy.svg") + '" class="w-100 border-20" loading="lazy" alt="">' +
+							'<img src="' + encodeURI(s.images[0] || NO_PHOTO) + '" class="w-100 border-20" loading="lazy" alt="">' +
 						'</div>' +
 					'</div>' +
 					'<div class="property-info pe-4 ps-4 pb-4">' +

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" role="img" aria-hidden="true">
+  <!-- Stand-in for a listing with no photos yet (js/listings.fw.js).
+       Before this existed the same slot showed images/lazy.svg, the theme's
+       white spinner, so an ακίνητο without photos looked like a card that
+       never finished loading.
+
+       16:9, the ratio of every photo frame on the site (css/fourwalls.css),
+       so it fills the frame edge to edge under object-fit:contain and needs
+       no blurred surround. No text: the file is served to the Greek and the
+       English site alike. The mark is the brand cube from
+       images/logo/fourwalls_logo.svg, held back to a soft rose so it reads
+       as «η φωτογραφία λείπει», not as a warning. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f5f7f9"/>
+      <stop offset="1" stop-color="#e6eaee"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <!-- Cube, 240u tall, centred. The inner viewBox is the mark's measured
+       bounding box in the logo's own coordinates, so the paths below are
+       copied from the logo untouched. -->
+  <svg x="531.8" y="240" width="216.4" height="240" viewBox="-9.08196 -10.5005 145.164 161.001">
+    <g opacity="0.28" transform="translate(63.5,70) scale(1.15) translate(-63.5,-70)">
+      <g fill="#FF0062" transform="translate(0.385,0) scale(1.2623) translate(-227.333,-283.879)">
+        <path d="M 0,0 V -39.545 L -35.454,-60 v 39.545 l 8.182,4.091 v -31.364 l 6.818,4.092 v 30 l 6.817,4.091 v -30 l 6.819,4.09 v 31.364 z" transform="matrix(1.3333333,0,0,-1.3333333,327.3332,314.78773)"/>
+        <path d="M 0,0 V -39.545 L 35.455,-60 v 39.545 l -8.183,4.091 v -31.364 l -6.817,4.092 v 30 l -6.818,4.091 v -30 l -6.819,4.09 v 31.364 z" transform="matrix(1.3333333,0,0,-1.3333333,227.3332,314.78773)"/>
+        <path d="M 0,0 6.818,4.091 38.183,-15 31.364,-19.091 Z" transform="matrix(1.3333333,0,0,-1.3333333,269.15093,289.33333)"/>
+        <path d="M 0,0 27.272,-16.364 53.467,-0.058 46.979,4.549 25.909,-8.182 5.455,4.091 Z" transform="matrix(1.3333333,0,0,-1.3333333,232.7876,309.33333)"/>
+      </g>
+    </g>
+  </svg>
+</svg>
