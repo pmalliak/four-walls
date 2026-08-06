@@ -121,20 +121,25 @@ for (const j of jobs) {
 		}
 	}
 
-	// --- οι παλιές ζητήσεις που αντικατέστησε η νέα γίνονται Ανενεργές ---
+	// --- οι παλιές ζητήσεις που αντικατέστησε η νέα κλείνουν ---
+	// Δύο ξεχωριστές ενέργειες του UI, και οι δύο χρειάζονται: η κατάσταση («Ανενεργή»)
+	// τη βγάζει από τις ενεργές, το στάδιο («Αποσύρθηκε», λόγος 5 = Διπλή καταχώρηση)
+	// εξηγεί ΓΙΑΤΙ — αλλιώς μένει «Ανοιχτό» και μοιάζει με δουλειά που ξεχάστηκε.
 	// Μόνο ΜΕΤΑ από επιτυχημένη δημιουργία: αλλιώς μια αποτυχία θα άφηνε τον πελάτη
-	// χωρίς καμία ενεργή ζήτηση. (`change_status` = η ενέργεια του dropdown στο UI.)
+	// χωρίς καμία ενεργή ζήτηση.
 	if (r.requestId && (j.supersedes || []).length) {
 		try {
 			r.deactivated = await evalJson(`(async () => {
 				const H = ${H}, out = {};
+				const post = (id, body) => fetch('/requests/view/' + id, { method: 'POST', credentials: 'include', headers: H, body })
+					.then((v) => v.json()).catch(() => null);
 				for (const id of ${JSON.stringify(j.supersedes)}) {
-					const x = await fetch('/requests/view/' + id, { method: 'POST', credentials: 'include', headers: H, body: 'change_status=2' })
-						.then((v) => v.json()).catch(() => null);
-					out[id] = x && x.success ? 'ανενεργή' : 'FAIL';
+					const a = await post(id, 'change_status=2');
+					const b = await post(id, 'change_deal_status=withdrawn&close_reason=5');
+					out[id] = (a && a.success ? 'ανενεργή' : 'FAIL κατάσταση') + '+' + (b && b.success ? 'αποσύρθηκε' : 'FAIL στάδιο');
 				}
 				return JSON.stringify(out);
-			})()`, `deactivate ${j.leadId}`);
+			})()`, `close ${j.leadId}`);
 		} catch (e) { r.deactivated = { error: 'timeout' }; await reopen(e.message); }
 	}
 

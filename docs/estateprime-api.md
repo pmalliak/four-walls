@@ -387,15 +387,30 @@ Field reference (from request 17/18):
   come straight from the lead's structured fields and free-text message. Source
   Spitogatos.gr, assigned to Μάνος, tags ai + spitogatos, contact linked.
 
-### Αλλαγή κατάστασης ζήτησης: `POST /requests/view/{id}` (mapped 2026-08-06)
+### Κατάσταση & στάδιο ζήτησης: `POST /requests/view/{id}` (mapped 2026-08-06)
 
-Το dropdown «Ενεργή / Ανενεργή» στη σελίδα της ζήτησης κάνει same-origin
-`POST /requests/view/{id}` με **`change_status=1|2`** (session cookie, no CSRF,
-urlencoded), απαντά `{"success":true}`. Δεν υπάρχει τίποτα αντίστοιχο στο public
-API (`PUT` 403, `PATCH` ψεύτικο 200). Το χρησιμοποιεί το `crm-post.mjs` για να
-απενεργοποιεί την προηγούμενη ζήτηση όταν ο ίδιος πελάτης ξαναϋποβάλλει σχεδόν
-την ίδια (δες το SKILL του spitogatos-requests-fetch). Επαληθεύτηκε στις
-ζητήσεις 188/147/41/37.
+Δύο **ξεχωριστά** πράγματα, δύο badges στη σελίδα της ζήτησης, δύο κλήσεις
+same-origin στο ίδιο URL (session cookie, no CSRF, urlencoded, απαντούν
+`{"success":true}`). Τίποτα από τα δύο δεν υπάρχει στο public API (`PUT` 403,
+`PATCH` ψεύτικο 200) και **το `GET /api/requests/{id}` δεν επιστρέφει καν το
+στάδιο** — επαλήθευσέ το από τη σελίδα (`.deal-status-btn`, `currentDealStatus`).
+
+- **Κατάσταση** (`.request-status-btn`): `change_status=1|2` — 1=Ενεργή,
+  2=Ανενεργή. Αυτή είναι που τη βγάζει από τις ενεργές ζητήσεις.
+- **Στάδιο** (`.deal-status-btn`): `change_deal_status=<key>`, και για τα κλειστά
+  στάδια (`lost`, `withdrawn`) **υποχρεωτικό** `close_reason=<id>`.
+  Στάδια: `open` Ανοιχτό · `under_offer` Σε προσφορά · `negotiation` Σε
+  διαπραγμάτευση · `under_contract` Σε συμβόλαιο · `won` Κερδισμένο ·
+  `lost` Χαμμένο · `withdrawn` Αποσύρθηκε.
+  Λόγοι `withdrawn`: 1 σταμάτησε την αναζήτηση · 2 δεν απαντά · 3 οικονομικοί ·
+  4 μη έγκυρη καταχώρηση · **5 διπλή καταχώρηση** · 6 άλλος.
+  Λόγοι `lost`: 7 βρήκε μόνος του · 8 βρήκε μέσω άλλου γραφείου · 9 ανατέθηκε
+  αποκλειστικά αλλού.
+
+Το `crm-post.mjs` στέλνει **και τα δύο** όταν μια ζήτηση αντικαθίσταται από
+νεότερη του ίδιου πελάτη: ανενεργή + «Αποσύρθηκε / Διπλή καταχώρηση», γιατί μια
+ανενεργή ζήτηση που έμεινε «Ανοιχτό» μοιάζει με δουλειά που ξεχάστηκε.
+Επαληθεύτηκε στις ζητήσεις 188/147/41/37.
 
 ### Γλώσσα επαφής: το `language_id: 2` δουλεύει, απλώς δεν φαίνεται (2026-08-06)
 
