@@ -97,6 +97,14 @@ localization, environment, and per-component notes).
   not the markers. Listing detail pages get their head injected per-request by
   the Worker. Internal links use clean root-absolute URLs (`/properties`, never
   `properties.html`) and each page has exactly one `<h1>`. See [docs/seo.md](docs/seo.md).
+- **Commit messages: English, conventional, always.** Every commit is
+  `type(scope): description` — no exceptions, not even one-line fixes. Types:
+  `feat`, `fix`, `docs`, `refactor`, `chore`, `test`, `sync`. Scopes come from
+  the existing history (`leads`, `make`, `pinakides`, `katachorisi`,
+  `anathesi`, `property`, `listings`, `ektimisi`, `accessibility`, `emails`,
+  `valuation`, `crm`). The subject is lowercase after the prefix, present
+  tense, and says **what the system does now**, not which files moved. English
+  even though the code, docs and chat are Greek, and no dashes as punctuation.
 
 ## Windows / editing gotchas
 
