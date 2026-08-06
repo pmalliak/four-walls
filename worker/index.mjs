@@ -39,7 +39,7 @@ import { robotsResponse, sitemapResponse, serveListingPage, isProdHost } from ".
 import { requireAccess, isLocalDev, json } from "./lib/access.mjs";
 import { contactsIndex, contactDetail, listingsIndex } from "./lib/crm.mjs";
 import { handleFormSubmit } from "./lib/forms.mjs";
-import { handlePhotoApi, servePhotoFile, applyWatermark } from "./lib/photos.mjs";
+import { handlePhotoApi, servePhotoFile, applyWatermark, servePhotoZip } from "./lib/photos.mjs";
 import { handleLeadApi, serveLeadFile } from "./lib/leads.mjs";
 import { handleLeadReply } from "./lib/lead-reply.mjs";
 import { handlePropertyRequest } from "./lib/property-request.mjs";
@@ -107,7 +107,7 @@ export default {
 		// so only a signed-in consultant can stage originals and spend Gemini
 		// credits. The public download half (/api/photos/file/) is deliberately
 		// NOT here — Make fetches it from the apex with an HMAC signature.
-		if (pathname.startsWith("/api/photos/") && !pathname.startsWith("/api/photos/file/") && !pathname.startsWith("/api/photos/watermark/")) {
+		if (pathname.startsWith("/api/photos/") && !pathname.startsWith("/api/photos/file/") && !pathname.startsWith("/api/photos/watermark/") && !pathname.startsWith("/api/photos/zip/")) {
 			if (!(url.hostname.startsWith("forms.") || isLocalDev(url, env))) {
 				return new Response("Not Found", { status: 404 });
 			}
@@ -246,6 +246,12 @@ export default {
 		// as the file serving above; Make POSTs each AI-edited image here.
 		if (pathname.startsWith("/api/photos/watermark/")) {
 			return applyWatermark(request, env, url);
+		}
+		// «Κατέβασμα ZIP» από το handoff email: ένα κλικ κατεβάζει τις τελικές
+		// φωτογραφίες της παρτίδας, χωρίς περιήγηση στο Google Drive. Ίδιο
+		// δημόσιο μοντέλο HMAC με τα παραπάνω, υπογραφή 6 ημερών.
+		if (pathname.startsWith("/api/photos/zip/")) {
+			return servePhotoZip(request, env, url);
 		}
 		// Οι φωτογραφίες των leads, όπως τις ζητάει ο image proxy του email
 		// (Zoho/Gmail) — apex, χωρίς Access, με HMAC + 30 ημέρες λήξη.

@@ -3,7 +3,8 @@
 A consultant uploads a property's photos from their phone; Gemini ("Nano
 Banana") declutters / brightens / fixes them per the options ticked; the
 originals + edited land in a Google Drive folder; and an email goes to info@
-(cc the consultant who submitted) with the Drive link and a link to the CRM property (or to
+(cc the consultant who submitted) with a one-click **«Κατέβασμα φωτογραφιών
+(ZIP)»** button, the Drive link and a link to the CRM property (or to
 create one). **Nothing auto-publishes** — a human reviews and uploads to the
 CRM, because AI edits occasionally warp a scene and a listing photo must not
 misrepresent the property.
@@ -19,8 +20,9 @@ Cloudflare Worker  (worker/lib/photos.mjs)
         │  MAKE_PHOTO_WEBHOOK  { batch, property, links, options, prompt, photos[{name,url}] }
         ▼
 Make scenario «Photos — AI enhance»
-        │  per photo:  GET signed url → Gemini edit → upload original+edited to Drive
-        │  once:       email info@ (cc submitter) with Drive link + CRM link
+        │  per photo:  GET signed url → Gemini edit → watermark POST (the
+        │              Worker keeps a copy in R2 enhanced/) → to Drive
+        │  once:       email info@ (cc submitter): ZIP button + Drive + CRM links
         ▼
 Google Drive  four-walls/…            +    Zoho email
 ```
@@ -189,11 +191,18 @@ logo unreliably, and the declutter pass would happily wipe one off. Instead
 the Worker draws it deterministically **after** the AI step:
 
 ```
-Gemini → POST {{1.watermark_url}} (signed, apex) → Drive enhanced/
+Gemini → POST {{1.watermark_url}}&name={{3.name}} (signed, apex) → Drive enhanced/
+                └── the Worker also stores the returned bytes in R2 enhanced/
 ```
 
 `finalize` mints `watermark_url` (HMAC + 6 h expiry, same scheme as the photo
-URLs) and Make POSTs every edited image to it. The endpoint reads the batch's
+URLs) and Make POSTs every edited image to it, appending `&name=` with the
+original filename (the query string is outside the signed message, so adding
+it broke nothing). Whatever the endpoint returns, watermarked or passed
+through, is also copied into `photos/<batch>/enhanced/` in R2 under that
+name (extension corrected to the actual output format), which is what feeds
+the ZIP download below. The copy is best-effort: if it fails, the batch
+loses its zip entry, never the Drive upload. The endpoint reads the batch's
 own `meta.json` from R2 and either draws the logo (Cloudflare **Images
 binding**, `env.IMAGES.draw()`, 29% of the frame's long edge, capped at 42%
 of its width, 90% opacity, bottom-right, inset 3.5%) or passes the bytes
@@ -220,6 +229,27 @@ auto-reply were cropping to 480×300 — cutting the mark and zooming portrait
 shots into a middle band. They now letterbox into a 480×270 box on navy
 `#16233A`; no blurred backdrop as on the site, because email clients have no
 `filter`. See [../crm/README.md](../crm/README.md).
+
+### Κατέβασμα ZIP (`GET /api/photos/zip/<batch>`)
+
+The handoff email's primary button (added 06/08/2026): one click saves
+`fourwalls-photos-<code>.zip` with the batch's final photos, so nobody has
+to open Google Drive, enter the folder and download from there. Drive stays
+the permanent archive; the button only spares the download dance.
+
+- Apex + HMAC like the other public photo routes, signature good for
+  **6 days** (`zip/<batch>\n<exp>`); the R2 lifecycle rule deletes the
+  batch on day 7. An expired or cleaned-up link answers in Greek, pointing
+  the reader back to the Drive folder.
+- Serves the `enhanced/` copies stored by the watermark endpoint; when none
+  exist (an archive-only batch never calls it), it falls back to the
+  originals under `orig/`.
+- The archive is streamed in ZIP **STORE** mode (no compression: the entries
+  are already-compressed images), which makes every byte predictable, so the
+  response carries an exact `Content-Length` and the browser shows real
+  download progress. Format verified against .NET's strict `Expand-Archive`.
+- The email button renders only `{{if(1.zip_url; …)}}`, so a payload without
+  the field (a replay from before the Worker deploy) shows no dead button.
 
 ### Disclaimer overlays (`staging_notice`, `render_notice`)
 
@@ -296,6 +326,10 @@ RULES clause forbids altering walls/doors/windows/floors/views regardless.
   },
   "options": ["declutter","lighting","straighten","sky","remove_people"],
   "prompt": "You are a professional real-estate photo editor…",  // ready to use
+  // Make POSTs each edited image here (appending &name=<original name>)
+  "watermark_url": "https://four-walls.gr/api/photos/watermark/<batch>?exp=…&sig=…",
+  // the email's «Κατέβασμα φωτογραφιών (ZIP)» button, see below
+  "zip_url": "https://four-walls.gr/api/photos/zip/<batch>?exp=…&sig=…",
   "count": 24,
   "photos": [
     { "name": "000-IMG_1.jpg", "content_type": "image/jpeg",
@@ -304,7 +338,9 @@ RULES clause forbids altering walls/doors/windows/floors/views regardless.
 }
 ```
 
-Signed URLs live 6 h — the scenario must run within that window.
+Signed URLs live 6 h — the scenario must run within that window. The one
+exception is `zip_url`, which the email hands to a human: it is signed for
+**6 days** (the R2 lifecycle rule deletes the batch on day 7).
 
 ## Make scenario build recipe — «Photos — AI enhance»
 
@@ -404,7 +440,8 @@ is there to reference.
 - **Security:** upload API is behind Cloudflare Access (only signed-in staff spend
   Gemini credits). The public download route carries no Access — it's guarded by a
   6-hour HMAC signature over `<batch>/<name>` and serves only that batch's
-  originals. Client photos are served `no-store`.
+  originals. The watermark and zip routes follow the same model (6 h and
+  6 days respectively). Client photos are served `no-store`.
 - **Privacy of R2 objects:** unguessable batch ids + short-lived signatures; the
-  lifecycle rule deletes originals after a week. These photos become public
-  listings anyway.
+  lifecycle rule deletes the whole batch after a week, originals and enhanced
+  copies alike. These photos become public listings anyway.

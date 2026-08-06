@@ -38,6 +38,7 @@ import { json } from "./access.mjs";
 const MAX_FILES = 60;                       // a generous single-shoot cap
 const MAX_FILE_BYTES = 30 * 1024 * 1024;    // 30 MB per original
 const SIGNED_URL_TTL = 6 * 3600;            // Make must fetch within 6 h
+const ZIP_URL_TTL = 6 * 86400;              // the R2 lifecycle rule deletes the batch at 7 days
 const ALLOWED_MIME = new Set([
 	"image/jpeg", "image/png", "image/webp", "image/heic", "image/heif",
 ]);
@@ -295,6 +296,17 @@ function newBatchId() {
 	return [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
 }
 
+async function listPrefix(env, prefix) {
+	const objects = [];
+	let cursor;
+	do {
+		const page = await env.PHOTO_BUCKET.list({ prefix, cursor });
+		objects.push(...page.objects);
+		cursor = page.truncated ? page.cursor : undefined;
+	} while (cursor);
+	return objects;
+}
+
 const isBatchId = (s) => /^[0-9a-f]{32}$/.test(s);
 
 function sanitizeName(name, mime) {
@@ -450,13 +462,7 @@ async function finalizeBatch(request, env, url, batchId) {
 	const meta = await metaObj.json();
 
 	// Enumerate what actually landed (the browser may have dropped a file).
-	const objects = [];
-	let cursor;
-	do {
-		const page = await env.PHOTO_BUCKET.list({ prefix: `photos/${batchId}/orig/`, cursor });
-		objects.push(...page.objects);
-		cursor = page.truncated ? page.cursor : undefined;
-	} while (cursor);
+	const objects = await listPrefix(env, `photos/${batchId}/orig/`);
 	if (!objects.length) return json({ error: "no_photos" }, 400);
 
 	// Signed URLs point at the apex (no Access) so Make can fetch them; on a
@@ -477,6 +483,7 @@ async function finalizeBatch(request, env, url, batchId) {
 	}
 
 	const wmExp = Math.floor(Date.now() / 1000) + SIGNED_URL_TTL;
+	const zipExp = Math.floor(Date.now() / 1000) + ZIP_URL_TTL;
 	const payload = {
 		batch_id: batchId,
 		submitted_by: meta.submitted_by,
@@ -495,6 +502,12 @@ async function finalizeBatch(request, env, url, batchId) {
 		// only when this batch ticked the option, else passes through — so
 		// the scenario needs no router. Signed like the file URLs.
 		watermark_url: `${origin}/api/photos/watermark/${batchId}?exp=${wmExp}&sig=${await hmac(env, `watermark/${batchId}\n${wmExp}`)}`,
+		// One click in the handoff email: downloads a ZIP of the final photos
+		// straight from R2 (the enhanced/ copies stored by applyWatermark, or
+		// the originals for an archive-only batch). Drive stays the permanent
+		// archive; this link only spares the download-from-Drive dance. Signed
+		// for 6 days, since the R2 lifecycle rule deletes the batch at 7.
+		zip_url: `${origin}/api/photos/zip/${batchId}?exp=${zipExp}&sig=${await hmac(env, `zip/${batchId}\n${zipExp}`)}`,
 		prompt: meta.prompt,
 		count: photos.length,
 		photos,
@@ -619,6 +632,30 @@ function imageSize(bytes) {
 	return null;
 }
 
+/* Whatever leaves this endpoint for Drive is ALSO copied into R2 under
+   photos/<batch>/enhanced/, so the email's «Κατέβασμα ZIP» button can serve
+   the final versions without touching Google. Best-effort: a failed copy
+   costs the batch its zip entry, never the Drive upload. The 7-day R2
+   lifecycle rule on photos/ cleans these up too; Drive stays the archive. */
+async function storeEnhanced(env, batchId, rawName, bytes, contentType) {
+	let base = String(rawName || "").split(/[\\/]/).pop().replace(/[^A-Za-z0-9._-]/g, "_").replace(/^\.+/, "");
+	if (!base) {
+		// Make normally passes ?name=<original>; without it (transitional or a
+		// hand-made call) fall back to a collision-proof random name.
+		base = "photo-" + [...crypto.getRandomValues(new Uint8Array(4))].map((x) => x.toString(16).padStart(2, "0")).join("");
+	}
+	// The edit pipeline re-encodes (Gemini and the overlay both emit PNG), so
+	// the extension follows the actual output type, not the original name.
+	const name = base.replace(/\.[A-Za-z0-9]+$/, "") + "." + (EXT_FOR_MIME[contentType] || "png");
+	try {
+		await env.PHOTO_BUCKET.put(`photos/${batchId}/enhanced/${name}`, bytes, {
+			httpMetadata: { contentType },
+		});
+	} catch (err) {
+		console.warn(`photos: could not store enhanced copy ${name} for ${batchId}: ${String(err)}`);
+	}
+}
+
 export async function applyWatermark(request, env, url) {
 	if (request.method !== "POST") {
 		return new Response("Method Not Allowed", { status: 405, headers: { "Allow": "POST" } });
@@ -642,10 +679,13 @@ export async function applyWatermark(request, env, url) {
 	const bytes = await request.arrayBuffer();
 	if (!bytes.byteLength) return new Response("Empty body", { status: 400 });
 	const contentType = (request.headers.get("Content-Type") || "image/png").split(";")[0].trim();
-	const passthrough = () =>
-		new Response(bytes, {
+	const rawName = url.searchParams.get("name") || "";
+	const passthrough = async () => {
+		await storeEnhanced(env, batchId, rawName, bytes, contentType);
+		return new Response(bytes, {
 			headers: { "Content-Type": contentType, "Cache-Control": "private, no-store" },
 		});
+	};
 
 	const meta = await env.PHOTO_BUCKET.get(`photos/${batchId}/meta.json`).then((o) => o?.json()).catch(() => null);
 	const opts = meta?.options || [];
@@ -736,9 +776,187 @@ export async function applyWatermark(request, env, url) {
 		}
 
 		const out = await pipeline.output({ format: "image/png" });
-		return out.response();
+		const res = out.response();
+		const outBytes = await res.arrayBuffer();
+		const outType = (res.headers.get("Content-Type") || "image/png").split(";")[0].trim();
+		await storeEnhanced(env, batchId, rawName, outBytes, outType);
+		return new Response(outBytes, {
+			headers: { "Content-Type": outType, "Cache-Control": "private, no-store" },
+		});
 	} catch (err) {
 		console.warn(`photos: overlay failed for ${batchId}, passing through: ${String(err)}`);
 		return passthrough();
 	}
+}
+
+/* ------------------------------------------------------ zip download
+
+   GET /api/photos/zip/<batch>?exp=&sig=   (apex, HMAC-guarded)
+
+   The «Κατέβασμα ZIP» button in the handoff email. Streams one ZIP with
+   the batch's final photos: the enhanced/ copies stored above, or the
+   originals when the batch was archive-only and nothing passed through
+   the watermark endpoint. STORE (no compression): the entries are already
+   compressed images, and storing lets us promise an exact Content-Length
+   so the browser shows real download progress. Signed for 6 days; the R2
+   lifecycle rule deletes the batch at 7, and Drive keeps the archive. */
+
+let CRC_TABLE;
+function crc32(bytes) {
+	if (!CRC_TABLE) {
+		CRC_TABLE = new Uint32Array(256);
+		for (let n = 0; n < 256; n++) {
+			let c = n;
+			for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+			CRC_TABLE[n] = c >>> 0;
+		}
+	}
+	let c = 0xffffffff;
+	for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+	return (c ^ 0xffffffff) >>> 0;
+}
+
+function dosDateTime(d) {
+	const date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+	const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+	return { date, time };
+}
+
+const ZIP_FLAGS = 0x0800; // bit 11: names are UTF-8
+
+function zipLocalHeader(entry, crc, dos) {
+	const h = new Uint8Array(30 + entry.nameBytes.length);
+	const dv = new DataView(h.buffer);
+	dv.setUint32(0, 0x04034b50, true);
+	dv.setUint16(4, 20, true);              // version needed
+	dv.setUint16(6, ZIP_FLAGS, true);
+	dv.setUint16(8, 0, true);               // method: STORE
+	dv.setUint16(10, dos.time, true);
+	dv.setUint16(12, dos.date, true);
+	dv.setUint32(14, crc, true);
+	dv.setUint32(18, entry.size, true);     // compressed = uncompressed
+	dv.setUint32(22, entry.size, true);
+	dv.setUint16(26, entry.nameBytes.length, true);
+	dv.setUint16(28, 0, true);              // extra field
+	h.set(entry.nameBytes, 30);
+	return h;
+}
+
+function zipCentralHeader(rec) {
+	const h = new Uint8Array(46 + rec.entry.nameBytes.length);
+	const dv = new DataView(h.buffer);
+	dv.setUint32(0, 0x02014b50, true);
+	dv.setUint16(4, 20, true);              // version made by
+	dv.setUint16(6, 20, true);              // version needed
+	dv.setUint16(8, ZIP_FLAGS, true);
+	dv.setUint16(10, 0, true);              // method: STORE
+	dv.setUint16(12, rec.dos.time, true);
+	dv.setUint16(14, rec.dos.date, true);
+	dv.setUint32(16, rec.crc, true);
+	dv.setUint32(20, rec.entry.size, true);
+	dv.setUint32(24, rec.entry.size, true);
+	dv.setUint16(28, rec.entry.nameBytes.length, true);
+	// extra len, comment len, disk, internal attrs, external attrs: all 0
+	dv.setUint32(42, rec.offset, true);
+	h.set(rec.entry.nameBytes, 46);
+	return h;
+}
+
+function zipEocd(count, cdSize, cdOffset) {
+	const h = new Uint8Array(22);
+	const dv = new DataView(h.buffer);
+	dv.setUint32(0, 0x06054b50, true);
+	dv.setUint16(8, count, true);
+	dv.setUint16(10, count, true);
+	dv.setUint32(12, cdSize, true);
+	dv.setUint32(16, cdOffset, true);
+	return h;
+}
+
+export async function servePhotoZip(request, env, url) {
+	if (!env.PHOTO_BUCKET || !env.PHOTO_SIGN_KEY) {
+		return new Response("Not configured", { status: 503 });
+	}
+	const m = url.pathname.match(/^\/api\/photos\/zip\/([0-9a-f]{32})$/);
+	if (!m) return new Response("Not Found", { status: 404 });
+	const batchId = m[1];
+
+	const plain = (text, status) =>
+		new Response(text, { status, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+
+	const exp = Number(url.searchParams.get("exp") || 0);
+	const sig = url.searchParams.get("sig") || "";
+	if (!exp || exp < Math.floor(Date.now() / 1000)) {
+		return plain("Ο σύνδεσμος έληξε. Οι φωτογραφίες παραμένουν μόνιμα στον φάκελο του Google Drive.", 410);
+	}
+	const expected = await hmac(env, `zip/${batchId}\n${exp}`);
+	if (!safeEqual(sig, expected)) return new Response("Forbidden", { status: 403 });
+
+	// The final versions when any exist, the originals for archive-only runs.
+	let prefix = `photos/${batchId}/enhanced/`;
+	let objects = await listPrefix(env, prefix);
+	if (!objects.length) {
+		prefix = `photos/${batchId}/orig/`;
+		objects = await listPrefix(env, prefix);
+	}
+	if (!objects.length) {
+		return plain("Οι φωτογραφίες αυτές έχουν καθαριστεί από την προσωρινή αποθήκευση. Θα τις βρεις στον φάκελο του Google Drive.", 404);
+	}
+
+	const meta = await env.PHOTO_BUCKET.get(`photos/${batchId}/meta.json`).then((o) => o?.json()).catch(() => null);
+	const label = String(meta?.property?.code || batchId.slice(0, 6)).replace(/[^A-Za-z0-9._-]/g, "_");
+
+	const encoder = new TextEncoder();
+	const entries = objects
+		.sort((a, b) => (a.key < b.key ? -1 : 1))
+		.map((o) => ({
+			key: o.key,
+			nameBytes: encoder.encode(o.key.slice(prefix.length)),
+			size: o.size,
+			uploaded: o.uploaded instanceof Date ? o.uploaded : new Date(),
+		}));
+
+	// STORE makes every byte predictable, so the length is exact.
+	const cdSize = entries.reduce((s, e) => s + 46 + e.nameBytes.length, 0);
+	const dataSize = entries.reduce((s, e) => s + 30 + e.nameBytes.length + e.size, 0);
+	const total = dataSize + cdSize + 22;
+
+	const { readable, writable } = new TransformStream();
+	(async () => {
+		const writer = writable.getWriter();
+		try {
+			const central = [];
+			let offset = 0;
+			for (const e of entries) {
+				const obj = await env.PHOTO_BUCKET.get(e.key);
+				if (!obj) throw new Error(`${e.key} vanished mid-zip`);
+				const data = new Uint8Array(await obj.arrayBuffer());
+				if (data.length !== e.size) throw new Error(`${e.key} size changed mid-zip`);
+				const crc = crc32(data);
+				const dos = dosDateTime(e.uploaded);
+				await writer.write(zipLocalHeader(e, crc, dos));
+				await writer.write(data);
+				central.push({ entry: e, crc, dos, offset });
+				offset += 30 + e.nameBytes.length + data.length;
+			}
+			for (const rec of central) await writer.write(zipCentralHeader(rec));
+			await writer.write(zipEocd(central.length, cdSize, offset));
+			await writer.close();
+		} catch (err) {
+			// Content-Length is already on the wire, so the only honest exit is
+			// aborting the stream: the browser reports a failed download instead
+			// of saving a silently truncated archive.
+			console.error(`photos: zip stream failed for ${batchId}: ${String(err)}`);
+			await writer.abort(err).catch(() => {});
+		}
+	})();
+
+	return new Response(readable, {
+		headers: {
+			"Content-Type": "application/zip",
+			"Content-Length": String(total),
+			"Content-Disposition": `attachment; filename="fourwalls-photos-${label}.zip"`,
+			"Cache-Control": "private, no-store",
+		},
+	});
 }
