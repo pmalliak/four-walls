@@ -215,6 +215,10 @@ messages in «paragraphs» separated by blank lines: heading, details
 (date/time, address, map link — one per line), and — **only on
 appointment-created** — the change/cancel phone. The reminder goes out ~1 hour
 before the appointment, so its change/cancel line was dropped (2026-07-27).
+Since **06/08/2026 all four messages end with the appointment-page link**
+(`https://four-walls.gr/r/{{ appointment.id }}` — see
+[../docs/rantevou.md](../docs/rantevou.md)), where the client confirms or
+asks to reschedule; the validator accepts a variable in the URL path.
 They live in **Ρυθμίσεις → SMS → Πρότυπα** (editor
 `/settings/sms/view/{slug}/{lang}` — `new_appointment` / `appointment_reminder`,
 lang `1` = Ελληνικά, `2` = English (UK)); endpoint details in
@@ -259,10 +263,12 @@ lang `1` = Ελληνικά, `2` = English (UK)); endpoint details in
   70/67 (= 3 segments, +50% cost). Greek-only transliteration shouldn't touch
   the Latin maps URL — but verify on a received SMS that the link stayed
   lowercase and clickable before relying on it.
-- «Αυτόματη αποστολή» (the list's Ρυθμίσεις modal) was **left Ανενεργή** by us;
-  the SMS provider became configured on 2026-07-27 (`#tab-settings`: easysms.gr,
-  api_key, sender «FourWalls»), so flipping a template Ενεργή makes it really
-  send.
+- «Αυτόματη αποστολή» (the list's Ρυθμίσεις modal): the SMS provider became
+  configured on 2026-07-27 (`#tab-settings`: easysms.gr, api_key, sender
+  «FourWalls»), so a template flipped Ενεργή really sends and bills. Since
+  **06/08/2026 `appointment_reminder` is Ενεργή with «1 ημέρα πριν»**
+  (Panos's call); `new_appointment` stays Ανενεργή — the secretary sends it
+  with the SMS button when booking.
 
 ## Two visual systems (don't mix them)
 

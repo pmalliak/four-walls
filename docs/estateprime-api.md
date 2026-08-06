@@ -533,7 +533,10 @@ Notes:
   `sender` ≤11 chars) — no SMS goes out until it's set up.
 - 2026-07-25: both appointment SMS (`new_appointment`, `appointment_reminder`)
   were written EL+EN mirroring the appointment emails; sources in
-  [../crm/](../crm/README.md) (`*.sms.twig`). Auto-send left Ανενεργή.
+  [../crm/](../crm/README.md) (`*.sms.twig`). 2026-08-06: both carry the
+  `/r/<id>` appointment-page link ([rantevou.md](rantevou.md)) and the
+  reminder's auto-send is Ενεργή, «1 ημέρα πριν»; `new_appointment` stays
+  manual (the SMS button).
 
 ## Offers / προσφορές (read-only, and currently EMPTY — probed 2026-07-31)
 

@@ -75,6 +75,7 @@ const STR = {
 		ics: "ΠΡΟΣΘΗΚΗ ΣΤΟ ΗΜΕΡΟΛΟΓΙΟ",
 		listing: "Το ακίνητο του ραντεβού",
 		listingCta: "Δείτε το ακίνητο",
+		mapsCta: "Στον χάρτη",
 		call: "Αν βιάζεστε ή κάτι άλλαξε, καλέστε μας:",
 		footer: "Four Walls Real Estate · Φραγκίνη 9, 54624 Θεσσαλονίκη",
 		perMonth: "/μήνα",
@@ -100,6 +101,7 @@ const STR = {
 		ics: "ADD TO CALENDAR",
 		listing: "The property of this appointment",
 		listingCta: "View the property",
+		mapsCta: "Open map",
 		call: "In a hurry, or did something change? Call us:",
 		footer: "Four Walls Real Estate · 9 Fragkini st, 54624 Thessaloniki",
 		perMonth: "/month",
@@ -176,24 +178,49 @@ async function handlePost(request, env, id, appt, lang, ctx) {
 		resp = { action, at: new Date().toISOString() };
 		await env.LISTINGS_KV.put(`rantevou:resp:${id}`, JSON.stringify(resp), { expirationTtl: 90 * 86400 });
 		// Ειδοποίηση γραφείου μέσω Make. Αποτυχία δεν χαλάει την απάντηση του
-		// πελάτη: η καταγραφή στο KV έχει ήδη γίνει.
-		if (env.MAKE_RANTEVOU_WEBHOOK) {
-			const notify = fetch(env.MAKE_RANTEVOU_WEBHOOK, {
+		// πελάτη: η καταγραφή στο KV έχει ήδη γίνει. Όσο δεν υπάρχει
+		// αποκλειστικό σενάριο (MAKE_RANTEVOU_WEBHOOK), η ειδοποίηση περνά
+		// από το webhook της φόρμας επικοινωνίας: ο router του 6530594
+		// στέλνει ό,τι δεν είναι zitisi/anathesi/endiaferon ως απλό email
+		// στο info@, χωρίς να αγγίξει CRM, οπότε φτάνει στο γραφείο σήμερα
+		// χωρίς καμία αλλαγή στο Make.
+		let target = env.MAKE_RANTEVOU_WEBHOOK || null;
+		let payload = {
+			appointment_id: appt.id,
+			title: appt.title || "",
+			date_starting: appt.dateStarting || "",
+			action,
+			lang,
+		};
+		if (!target && env.MAKE_CONTACT_WEBHOOK) {
+			target = env.MAKE_CONTACT_WEBHOOK;
+			payload = {
+				form: "rantevou",
+				name: `Ραντεβού #${appt.id}`,
+				email: "",
+				phone: "",
+				message: [
+					action === "confirm"
+						? "Ο πελάτης ΕΠΙΒΕΒΑΙΩΣΕ το ραντεβού."
+						: "Ο πελάτης ζητά ΑΛΛΑΓΗ ΩΡΑΣ. Θέλει τηλέφωνο για νέα ώρα.",
+					appt.title ? `Ραντεβού: ${appt.title}` : "",
+					appt.dateStarting ? `Πότε: ${appt.dateStarting}` : "",
+					`Σελίδα: ${SITE_ORIGIN}/r/${appt.id}`,
+				].filter(Boolean).join("\n"),
+				page: `/r/${appt.id}`,
+			};
+		}
+		if (target) {
+			const notify = fetch(target, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					appointment_id: appt.id,
-					title: appt.title || "",
-					date_starting: appt.dateStarting || "",
-					action,
-					lang,
-				}),
+				body: JSON.stringify(payload),
 			}).then((r) => {
 				if (!r.ok) console.error(`rantevou: Make notify failed (HTTP ${r.status})`);
 			}).catch((err) => console.error("rantevou: Make notify failed", String(err)));
 			if (ctx?.waitUntil) ctx.waitUntil(notify); else await notify;
 		} else {
-			console.warn("rantevou: MAKE_RANTEVOU_WEBHOOK not configured; response logged in KV only");
+			console.warn("rantevou: no Make webhook configured; response logged in KV only");
 		}
 	}
 
@@ -264,6 +291,12 @@ async function matchListing(env, text) {
 		const feed = await env.LISTINGS_KV.get(FEED_KEY, "json");
 		const l = (feed?.listings || []).find((x) => String(x.code) === m[1]);
 		if (!l) return null;
+		// Link χάρτη μόνο με πραγματικές συντεταγμένες: όταν το CRM κρύβει τη
+		// διεύθυνση (fake/κύκλος), η «τοποθεσία» θα οδηγούσε τον πελάτη σε
+		// λάθος σημείο, οπότε καλύτερα κανένα link από ένα παραπλανητικό.
+		const maps = l.location?.lat != null && l.location?.lng != null && !l.location?.approximate
+			? `https://maps.google.com/?q=${l.location.lat},${l.location.lng}`
+			: null;
 		return {
 			code: l.code,
 			titleEl: listingTitle(l, "el"),
@@ -273,6 +306,7 @@ async function matchListing(env, text) {
 			transaction: l.transaction,
 			urlEl: canonicalUrl(l, "el"),
 			urlEn: canonicalUrl(l, "en"),
+			maps,
 		};
 	} catch {
 		return null;
@@ -379,6 +413,14 @@ function esc(s) {
 	));
 }
 
+/* Η σημείωση του ραντεβού συχνά κουβαλά ένα link (π.χ. Google Maps για το
+   σημείο συνάντησης): κάνε τα URLs πατήσιμα, όλο το υπόλοιπο μένει σκέτο
+   escaped κείμενο. */
+function escWithLinks(s) {
+	return esc(s).replace(/https?:\/\/[^\s<]+/g, (u) =>
+		`<a href="${u}" style="color:#FF1462; word-break:break-all;">${u}</a>`);
+}
+
 function page(body, status, title, extraHeaders = {}) {
 	const html = `<!DOCTYPE html>
 <html lang="el">
@@ -479,13 +521,14 @@ function detailsHtml(appt, lang, resp, pin) {
 	${respBlock}
 	<div class="row"><p class="label">${esc(S.when)}</p><p class="value">${esc(fmtWhen(appt, lang))}</p></div>
 	${appt.title ? `<div class="row"><p class="label">${esc(S.what)}</p><p class="value">${esc(appt.title)}</p></div>` : ""}
-	${appt.description ? `<div class="row"><p class="label">${esc(S.note)}</p><p style="margin:0;">${esc(appt.description)}</p></div>` : ""}
+	${appt.description ? `<div class="row"><p class="label">${esc(S.note)}</p><p style="margin:0;">${escWithLinks(appt.description)}</p></div>` : ""}
 	${l ? `<div class="listing">
 		${l.image ? `<div class="shot"><img src="${esc(l.image)}" alt=""></div>` : ""}
 		<div class="body">
 			<p class="label">${esc(S.listing)}</p>
 			<p style="margin:0 0 8px;font-weight:bold;color:#16233A;">${esc(lang === "en" ? l.titleEn : l.titleEl)}${price ? ` · ${esc(price)}` : ""}</p>
 			<a href="${esc(lang === "en" ? l.urlEn : l.urlEl)}" style="color:#FF1462;font-weight:bold;text-decoration:none;">${esc(S.listingCta)} →</a>
+			${l.maps ? ` &nbsp;·&nbsp; <a href="${esc(l.maps)}" style="color:#16233A;font-weight:bold;text-decoration:none;">${esc(S.mapsCta)} ↗</a>` : ""}
 		</div>
 	</div>` : ""}
 	<form method="POST" action="/r/${esc(appt.id)}" style="margin-top:18px;">
