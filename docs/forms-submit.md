@@ -50,6 +50,17 @@ the Make templates read (`transaction_type`, `subtype`, `address`, `tk`,
 `region`, `area`), and `data.send_to_client` stays **boolean** because the
 client-email filter compares against the text `"true"`.
 
+**One appointment, two envelopes (2026-08-06).** With «Μαζί και έντυπο
+ανάθεσης» on (the default), the katachorisi page submits **twice** through
+`FWOutbox.submit`: its own `form:"katachorisi"` payload and a second,
+fully-formed `form:"anathesi"` one — same shape the standalone ανάθεση
+sends, built by `buildAnathesiData()` + the shared `_anathesi-doc.fw.js`
+text. Nothing downstream knows the difference: each submission gets its own
+dedupe hash, its own sent-log row and its own Make branch, which is why the
+Worker and the router needed **zero** changes (precedent: the εκτίμηση
+already submits twice). The PDFs are built strictly one after the other —
+two html2canvas runs in parallel starve each other on the iPad.
+
 `prosfora` and `ektimisi` are the two entries with **no document at all**: no
 signatures, no `pdf_base64`, no `doc_html`. The προσφορά is an internal note
 that a client made an offer on a listing (see
@@ -178,7 +189,8 @@ jsPDF fails to load, but the email module's attachment mapping requires
 | branch | to | copies |
 |---|---|---|
 | anathesi / ypodeixi (πρώτο email) | `info@`: internal «ΓΙΑ ΑΡΧΕΙΟ CRM», the signed PDF plus where to file it in the CRM | none |
-| anathesi / ypodeixi (δεύτερο) | `entoleas_email` (no fallback: a blank address errors the bundle into the DLQ) | cc `submitted_by` |
+| anathesi (δεύτερο, **υπό όρους** από 2026-08-06) | `entoleas_email` — μόνο όταν `data.send_to_client` δεν είναι ρητά `false` **και** υπάρχει διεύθυνση (το `exist` στο φίλτρο του module #3 κόβει και τα παλιά DLQ errors της κενής διεύθυνσης)· payload χωρίς το πεδίο περνάει, οπότε ουρές του outbox και παλιές cached σελίδες συνεχίζουν να στέλνουν | cc `submitted_by` |
+| ypodeixi (δεύτερο) | `entoleas_email` (no fallback: a blank address errors the bundle into the DLQ) | cc `submitted_by` |
 | apodeixi (πρώτο email) | `info@`: internal «ΓΙΑ ΑΡΧΕΙΟ CRM», same shape | none |
 | apodeixi (δεύτερο) | `katavallon_email` (no fallback, same DLQ behaviour) | cc `submitted_by` |
 | katachorisi (always) | `info@` — internal «ΓΙΑ ΚΑΤΑΧΩΡΙΣΗ» reminder to enter listing+contact | none |
@@ -206,10 +218,16 @@ itself (ανάθεση: επαφή ιδιοκτήτη + ακίνητο μόλι�
 The προσφορά never mails the client: an offer is the office's information,
 and the interested party already knows what they offered.
 
-Only katachorisi has a send-to-client choice (the ΝΑΙ/ΟΧΙ on the form; the
-submit button announces it). The other three always mail the client — there
-is no second flow. The client copy and the internal reminder are different
-emails; katachorisi is the only branch that can send both.
+Two forms now carry a send-to-client choice: katachorisi's ΝΑΙ/ΟΧΙ (or, in
+the combined flow, the «Αντίγραφα στον ιδιοκτήτη» τρίπτυχο «Όχι / Μόνο
+ανάθεση / Και τα δύο», which sets `send_to_client` on **each** of the two
+payloads: the ανάθεση gets `true` on «Μόνο ανάθεση» ή «Και τα δύο», η
+καταχώριση μόνο στο «Και τα δύο») and the ανάθεση itself, whose standalone
+page always sets `send_to_client:true` explicitly. Υπόδειξη and απόδειξη
+always mail the client — there is no second flow. The client copy and the
+internal reminder are different emails. Στο κοινό flow η γραμματεία
+παίρνει **δύο** ξεχωριστά emails «ΓΙΑ ΑΡΧΕΙΟ CRM»/«ΓΙΑ ΚΑΤΑΧΩΡΙΣΗ» (ένα ανά
+έντυπο), όπως αποφασίστηκε — όχι ένα με δύο συνημμένα.
 
 ### Greek grammar in the templates
 

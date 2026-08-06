@@ -38,6 +38,13 @@ payload, ώστε το create να δέσει στην υπάρχουσα καρ
 και μια δεύτερη καρτέλα με το ίδιο τηλέφωνο χαλάει και τον έλεγχο
 «τον ξέρουμε ήδη;» του [phone-lookup](pinakides.md).
 
+Από 2026-08-06 (κοινό flow καταχώρισης + ανάθεσης) το ίδιο tap γεμίζει και
+`entoleas_adt`/`entoleas_afm` από τα native `id_number`/`vat_number` της
+καρτέλας: το έντυπο ανάθεσης τα χρειάζεται για την ταυτοποίηση του εντολέα
+και μέχρι τώρα τα πετούσαμε. Το toast προειδοποιεί όταν λείπουν και τα δύο,
+γιατί χωρίς ΑΔΤ ή ΑΦΜ η προεπισκόπηση μπλοκάρει όσο ο διακόπτης της
+ανάθεσης είναι ΝΑΙ.
+
 ### Τα toast παίζουν με κλάση, όχι με inline display (2026-08-05)
 
 Το `_crm.fw.js` έχει **δικό του** toast: γράφει στο `#toast` της σελίδας και
@@ -230,6 +237,13 @@ That is the complete «Στοιχεία εντολέα» block — 7 of 7. `ekpr
 `plirexousio_imerominia` stay manual on purpose: they describe the transaction,
 not the person, and change per deal.
 
+Since 2026-08-06 the **ανάθεση** form no longer has κατοικία or the ΑΔΤ
+issue-date/authority fields (office decision: ΑΔΤ or ΑΦΜ suffices for the
+contract). Only the **υπόδειξη** still renders them; the shared `BLOCKS[0]`
+map in `_crm.fw.js` keeps all the keys and `setField()` silently skips
+whatever a page does not have — do not prune the map, or the υπόδειξη loses
+its autofill.
+
 **Custom-field ids are positional.** Deleting and recreating a field in the CRM
 gives it a new id and silently breaks the mapping — ΑΦΜ was 12, then 13, before
 it moved back to the native field. If a field reads empty for every contact,
@@ -258,7 +272,12 @@ plainly empty (`VC()`), since a gap in a table column already reads as blank.
 The μεσιτική αμοιβή is deliberately **not** autofilled from `assignment_fee`:
 that is what the owner agreed to pay on the ανάθεση, which is not necessarily
 what this client is being asked for. A wrong number on a signed contract is
-worse than a blank one.
+worse than a blank one. The same rule covers the fee widgets of the ανάθεση
+(`amoivi_pososto`, ελάχιστη αμοιβή) in both the standalone form and the
+combined katachorisi flow: they open on the office defaults (2%, 1.000 €
+under 50.000 €), never on a CRM value — and the katachorisi's own
+`assignment_fee` CRM field stays a separate, unlinked thing (see
+[forms-katachorisi-crm.md](forms-katachorisi-crm.md)).
 
 ## Known limits
 
