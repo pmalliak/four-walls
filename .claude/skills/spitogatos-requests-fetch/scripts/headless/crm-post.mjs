@@ -54,7 +54,7 @@ async function evalJson(expr, label) {
 const H = "{ 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest' }";
 const results = [];
 for (const j of jobs) {
-	const r = { leadId: j.leadId, name: j.name, contactId: j.contactId, starred: null, requestId: null, requestRaw: null, commId: null, commRaw: null };
+	const r = { leadId: j.leadId, name: j.name, contactId: j.contactId, starred: null, requestId: null, requestRaw: null, commId: null, commRaw: null, deactivated: null };
 
 	// New contacts: star the default email/phone first — POST /api/contacts never sets
 	// one, and the CRM's send-listing-email action 500s on a contact without it.
@@ -121,8 +121,25 @@ for (const j of jobs) {
 		}
 	}
 
+	// --- οι παλιές ζητήσεις που αντικατέστησε η νέα γίνονται Ανενεργές ---
+	// Μόνο ΜΕΤΑ από επιτυχημένη δημιουργία: αλλιώς μια αποτυχία θα άφηνε τον πελάτη
+	// χωρίς καμία ενεργή ζήτηση. (`change_status` = η ενέργεια του dropdown στο UI.)
+	if (r.requestId && (j.supersedes || []).length) {
+		try {
+			r.deactivated = await evalJson(`(async () => {
+				const H = ${H}, out = {};
+				for (const id of ${JSON.stringify(j.supersedes)}) {
+					const x = await fetch('/requests/view/' + id, { method: 'POST', credentials: 'include', headers: H, body: 'change_status=2' })
+						.then((v) => v.json()).catch(() => null);
+					out[id] = x && x.success ? 'ανενεργή' : 'FAIL';
+				}
+				return JSON.stringify(out);
+			})()`, `deactivate ${j.leadId}`);
+		} catch (e) { r.deactivated = { error: 'timeout' }; await reopen(e.message); }
+	}
+
 	results.push(r);
-	console.log(`  ${r.leadId} ${r.name}: request=${r.requestId ?? JSON.stringify(r.requestRaw)} comm=${r.commId ?? JSON.stringify(r.commRaw)}${r.starred ? ' star=' + JSON.stringify(r.starred) : ''}`);
+	console.log(`  ${r.leadId} ${r.name}: request=${r.requestId ?? JSON.stringify(r.requestRaw)} comm=${r.commId ?? JSON.stringify(r.commRaw)}${r.starred ? ' star=' + JSON.stringify(r.starred) : ''}${r.deactivated ? ' παλιές=' + JSON.stringify(r.deactivated) : ''}`);
 	writeFileSync(outPath, JSON.stringify(results, null, 1), 'utf8'); // survive a kill mid-run
 	await sleep(600); // pace + stay under 429s
 }

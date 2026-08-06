@@ -190,6 +190,21 @@ const normPhone = (p) => {
 	if (/^(69|2)\d{8,9}$/.test(s)) return "+30" + s;
 	return s;
 };
+// Ξένο τηλέφωνο => γλώσσα Αγγλικά· η Κύπρος (+357) είναι ελληνόφωνη (Πάνος, 2026-08-06).
+const isForeignPhone = (p) => { const s = normPhone(p); return /^\+/.test(s) && !/^\+(30|357)/.test(s); };
+
+// Επανυποβολή ίδιας ζήτησης: η νέα μένει Ενεργή, οι παλιές του ίδιου πελάτη με ίδιο
+// availability+category γίνονται Ανενεργές (το crm-post.mjs κάνει την αλλαγή).
+let requestsCache = null;
+async function activeRequestsOf(contactId) {
+	if (!requestsCache) {
+		requestsCache = [];
+		let page = 1, tp = 1;
+		do { const j = await apiGet(`/requests?page=${page}`); requestsCache = requestsCache.concat(j?.data || []); tp = j?.total_pages || 1; page++; } while (page <= tp && page < 30);
+	}
+	return requestsCache.filter((r) => String(r.status) === "1" && (r.contacts || []).map(String).includes(String(contactId)));
+}
+
 async function dedupe(phone, email) {
 	for (const key of [String(phone || "").replace(/\D/g, "").replace(/^30/, ""), email]) {
 		if (!key) continue;
@@ -294,7 +309,7 @@ for (const e of emails) {
 		const { http, body } = await apiPost("/contacts", {
 			first_name: first, last_name: last,
 			source_id: 3, is_lead: true, is_company: false, is_active: true,
-			country: "GR", language_id: 1, office_id: 1, created_by: 2, users: [2],
+			country: "GR", language_id: isForeignPhone(l.phone) ? 2 : 1, office_id: 1, created_by: 2, users: [2],
 			tags: [12, 10], // ai (πρώην claude), ΖΗΤΗΣΗ — δικό μας site, όχι spitogatos
 			phones: l.phone ? [{ type: "mobile-personal", number: normPhone(l.phone), notes: "Από τη φόρμα του site" }] : [],
 			emails: l.email ? [{ type: "personal", email: l.email, email_address: l.email, notes: "Από τη φόρμα του site" }] : [],
@@ -307,9 +322,14 @@ for (const e of emails) {
 		contactId = body.data.id;
 	}
 
+	const cat = CATEGORY[l.categoryLabel] || "residential";
+	const supersedes = contactStatus === "reused"
+		? (await activeRequestsOf(contactId)).filter((r) => r.availability === l.transaction && r.category === cat).map((r) => r.id)
+		: [];
+
 	worklist.push({
 		leadId, name: l.name, contactId, contactStatus, areas,
-		fields: requestFields(l),
+		fields: requestFields(l), supersedes,
 		/* Same as prep.mjs: API-created contacts get no default email/phone —
 		   crm-post.mjs stars these via the session. */
 		star: contactStatus === "created" ? { email: l.email || null, phone: l.phone ? normPhone(l.phone) : null } : null,
@@ -324,7 +344,7 @@ for (const e of emails) {
 		requestSource: "", requestTags: [13],
 		warnings, source: "site",
 	});
-	console.log(`${leadId} (${l.name}): contact ${contactStatus} ${contactId}, ${areas.length} περιοχές${warnings.length ? ` [${warnings.length} warn]` : ""}`);
+	console.log(`${leadId} (${l.name}): contact ${contactStatus} ${contactId}, ${areas.length} περιοχές${supersedes.length ? ` [αντικαθιστά ${supersedes.join(",")}]` : ""}${warnings.length ? ` [${warnings.length} warn]` : ""}`);
 	for (const w of warnings) console.log(`    ! ${w}`);
 }
 

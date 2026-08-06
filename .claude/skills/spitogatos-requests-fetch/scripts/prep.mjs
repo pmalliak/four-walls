@@ -108,6 +108,29 @@ function normPhone(p) {
 	return s;                                        // foreign / unknown -> leave as-is
 }
 
+// ---- γλώσσα επαφής: ξένο τηλέφωνο => Αγγλικά (Πάνος, 2026-08-06) ----
+// Ένας ενοικιαστής με γερμανικό ή ολλανδικό κινητό δεν διαβάζει τα ελληνικά έντυπα
+// και τα emails του CRM. Η Κύπρος (+357) είναι ελληνόφωνη, μένει στα Ελληνικά.
+// Το select της φόρμας δείχνει μόνο «Ελληνικά», αλλά το backend δέχεται μια χαρά
+// το `language_id: 2` και η επαφή εμφανίζει «English (UK)».
+const isForeignPhone = (p) => { const s = normPhone(p); return /^\+/.test(s) && !/^\+(30|357)/.test(s); };
+
+// ---- ζητήσεις που αντικαθίστανται ----
+// Ο ίδιος άνθρωπος ξαναϋποβάλλει σχεδόν την ίδια ζήτηση με άλλη τιμή ή τ.μ. Δεύτερη
+// εγγραφή σημαίνει δύο φορές τα ίδια ματσαρίσματα στη γραμματεία, οπότε η νέα μένει
+// Ενεργή και οι παλιές γίνονται Ανενεργές (Πάνος, 2026-08-06). «Ίδια ζήτηση» =
+// ίδιο availability + category, ώστε να μη σβήσει ένα «ζητά και κατάστημα» μια
+// άσχετη ζήτηση κατοικίας του ίδιου πελάτη.
+let requestsCache = null;
+async function activeRequestsOf(contactId) {
+	if (!requestsCache) {
+		requestsCache = [];
+		let page = 1, tp = 1;
+		do { const { body } = await apiGet(`/requests?page=${page}`); requestsCache = requestsCache.concat(body?.data || []); tp = body?.total_pages || 1; page++; } while (page <= tp && page < 30);
+	}
+	return requestsCache.filter((r) => String(r.status) === "1" && (r.contacts || []).map(String).includes(String(contactId)));
+}
+
 // ---- contact ----
 async function dedupePhone(phone) {
 	const digits = phone.replace(/\D/g, "").replace(/^30/, ""); // search on national digits
@@ -126,7 +149,7 @@ async function createContact(l) {
 	const payload = {
 		first_name: gfirst(l), last_name: glast(l),
 		source_id: 3, is_lead: true, is_company: false, is_active: true,
-		country: "GR", language_id: 1, office_id: 1, created_by: 2, users: [2], tags: [12, 9, 10],
+		country: "GR", language_id: isForeignPhone(l.telephone) ? 2 : 1, office_id: 1, created_by: 2, users: [2], tags: [12, 9, 10],
 		phones: [{ type: "mobile-personal", number: normPhone(l.telephone) }],
 		emails: [{ type: "personal", email: l.email, email_address: l.email }], notes,
 	};
@@ -200,16 +223,23 @@ for (const l of leads) {
 	const commDate = `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)} ${d.slice(11, 16)}`;
 	const comments = `Spitogatos αίτηση ζήτησης #${l.searchEnquiryId}: ${l.listingType === "rent" ? "Ενοικίαση" : "Πώληση"} — ${l.propertyType}, ~${l.livingArea} τ.μ., €${l.price}. Μήνυμα: «${(l.description || "").trim()}» ${(l.geographyIds || []).length} περιοχές. https://live.spitogatos.gr/leads/searchEnquiries?showDetailsId=${l.searchEnquiryId}`;
 
+	// Επαφή που ήταν ήδη εκεί σημαίνει επανυποβολή: κρατάμε την ιστορία, όχι δύο ενεργές.
+	const supersedes = contactStatus === "reused"
+		? (await activeRequestsOf(contactId))
+			.filter((r) => r.availability === l.listingType && r.category === (l.category || "residential"))
+			.map((r) => r.id)
+		: [];
+
 	worklist.push({
 		leadId: l.searchEnquiryId, name: `${glast(l)} ${gfirst(l)}`,
-		contactId, contactStatus, areas, fields: requestFields(l),
+		contactId, contactStatus, areas, fields: requestFields(l), supersedes,
 		/* POST /api/contacts never sets the default (star) email/phone, and the
 		   CRM's send-listing-email 500s on contacts without one — crm-post.mjs
 		   stars these values via the session (the UI's star_email/star_phone). */
 		star: contactStatus === "created" ? { email: l.email || null, phone: l.telephone ? normPhone(l.telephone) : null } : null,
 		comm: { contact_id: contactId, date: commDate, comments }, warnings,
 	});
-	console.log(`lead ${id} (${glast(l)} ${gfirst(l)}): contact ${contactStatus} ${contactId}, ${areas.length} areas${warnings.length ? " [" + warnings.length + " warn]" : ""}`);
+	console.log(`lead ${id} (${glast(l)} ${gfirst(l)}): contact ${contactStatus} ${contactId}, ${areas.length} areas${supersedes.length ? ` [αντικαθιστά ζητήσεις ${supersedes.join(",")}]` : ""}${warnings.length ? " [" + warnings.length + " warn]" : ""}`);
 }
 
 writeFileSync(worklistPath, JSON.stringify(worklist, null, 1));

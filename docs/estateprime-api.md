@@ -387,6 +387,24 @@ Field reference (from request 17/18):
   come straight from the lead's structured fields and free-text message. Source
   Spitogatos.gr, assigned to Μάνος, tags ai + spitogatos, contact linked.
 
+### Αλλαγή κατάστασης ζήτησης: `POST /requests/view/{id}` (mapped 2026-08-06)
+
+Το dropdown «Ενεργή / Ανενεργή» στη σελίδα της ζήτησης κάνει same-origin
+`POST /requests/view/{id}` με **`change_status=1|2`** (session cookie, no CSRF,
+urlencoded), απαντά `{"success":true}`. Δεν υπάρχει τίποτα αντίστοιχο στο public
+API (`PUT` 403, `PATCH` ψεύτικο 200). Το χρησιμοποιεί το `crm-post.mjs` για να
+απενεργοποιεί την προηγούμενη ζήτηση όταν ο ίδιος πελάτης ξαναϋποβάλλει σχεδόν
+την ίδια (δες το SKILL του spitogatos-requests-fetch). Επαληθεύτηκε στις
+ζητήσεις 188/147/41/37.
+
+### Γλώσσα επαφής: το `language_id: 2` δουλεύει, απλώς δεν φαίνεται (2026-08-06)
+
+Το `<select name="language_id">` του modal «Βασικές πληροφορίες» έχει **μόνο**
+`1=Ελληνικά`, αλλά και το `POST /api/contacts` και το `edit_contact=basics`
+δέχονται `2` και η επαφή εμφανίζει «English (UK)» (ίδια αρίθμηση με τα
+`translations` των listings). Το βάζουμε αυτόματα σε κάθε επαφή με **ξένο
+τηλέφωνο**, εκτός Κύπρου (+357, ελληνόφωνη).
+
 ### Ματσαρίσματα ζήτησης — το tab «Ακίνητα» (mapped 2026-07-27)
 
 The matchings the CRM shows under a ζήτηση live at `/requests/listings/{id}`

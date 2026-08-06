@@ -120,6 +120,19 @@ Gotchas learned 2026-08-05:
 - **Resume after a stall**: read `/api/requests` (newest first) and `/api/communication` to see
   what actually landed, drop those leads from the worklist, and seed `results.json` with them
   by hand — then `verify-log.mjs` closes the run normally.
+- **Επανυποβολή ⇒ η παλιά ζήτηση γίνεται Ανενεργή, όχι δεύτερη εγγραφή** (Πάνος, 2026-08-06).
+  Ο ίδιος άνθρωπος ξαναστέλνει σχεδόν την ίδια ζήτηση με άλλη τιμή ή τ.μ. (ο Milan Bos δύο φορές
+  σε δύο μέρες, €650 → €600). Δύο ενεργές εγγραφές σημαίνουν διπλά ματσαρίσματα στο digest της
+  γραμματείας. `prep.mjs`: όταν η επαφή βρεθεί με dedupe, γεμίζει `supersedes` με τις **ενεργές**
+  ζητήσεις της που έχουν **ίδιο `availability` + `category`** (όχι όλες: ένας που ζητά και
+  κατάστημα δεν πρέπει να χάσει τη ζήτηση κατοικίας). `crm-post.mjs`: **αφού** περάσει η νέα,
+  `POST /requests/view/{id}` με `change_status=2` σε κάθε παλιά — ποτέ πριν, αλλιώς μια αποτυχία
+  αφήνει τον πελάτη χωρίς καμία ενεργή ζήτηση. Ίδια λογική και στο `site-requests.mjs` (7β).
+- **Γλώσσα επαφής**: ξένο τηλέφωνο ⇒ `language_id: 2` (Αγγλικά). Το select της φόρμας δείχνει
+  **μόνο** «Ελληνικά», αλλά το backend δέχεται κανονικά το 2 και η επαφή γράφει «English (UK)».
+  Backfill σε παλιές επαφές: `headless/fix-contact-locale.mjs --ids 227,187 [--name "First Last"]
+  [--dry]` (διαβάζει το modal `show_edit=basics` και ξαναστέλνει ΟΛΟ το section, γιατί ό,τι λείπει
+  καθαρίζεται).
 - Commercial/land ζητήσεις now get a subcategory too: `prep.mjs`'s `PROP_TYPE` maps
   `office/store/warehouse/hotel/commercial_building/hall/industrial_space/craft_space/plot/parcel`
   (slug-identical to the CRM). Before that a warehouse lead stored category only, which the
@@ -175,7 +188,11 @@ price,livingArea,floorNumber(all|1_plus),rooms,elevator,description,dateSubmitte
 
 **3. Build the leads input JSON.** For each detail, add `greek_first`/`greek_last`: **transliterate
 romanized Greek names to Greek script** with accents (Panagiota Vliali→Παναγιώτα Βλιάλη); leave already-Greek
-names as-is; keep genuinely-foreign names Latin. Also set `latin_name` = original. Save as `leads.json`.
+names as-is; keep genuinely-foreign names Latin. **Εξαίρεση: ξένο τηλέφωνο ⇒ άσε το όνομα ΛΑΤΙΝΙΚΑ**
+όπως το έγραψε ο ίδιος (Πάνος, 2026-08-06) — ένα «Eleni Mpaltatzides» με γερμανικό κινητό ζει στο
+εξωτερικό και το μεταγραμμένο «Ελένη Μπαλτατζίδου» δεν είναι το όνομα που ξέρει. Το `prep.mjs` βάζει
+μόνο του `language_id: 2` (Αγγλικά) σε ξένο τηλέφωνο· η **Κύπρος (+357) μένει στα Ελληνικά**.
+Also set `latin_name` = original. Save as `leads.json`.
 **Scoping** (Panos, 2026-07-24): process **rent AND sale**, **residential AND commercial AND land**
 (επαγγελματικοί χώροι και γη ΜΑΣ ΕΝΔΙΑΦΕΡΟΥΝ), including `unspecified` type and broad searches.
 **Μεσιτικά γραφεία (agencies) ΔΕΝ κρατιούνται** — `prep.mjs` τα φιλτράρει αυτόματα
