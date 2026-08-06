@@ -37,6 +37,7 @@ deeper, one topic per file:
 | [site-request-form.md](site-request-form.md) | Ζήτηση + ανάθεση + ενδιαφέρον για ακίνητο από το site (`/request`, `/list-property`, `/properties/<κωδικός>`): φόρμες → Worker (αυτόματη επαφή+επικοινωνία στο CRM) → Make → email στη γραμματεία, tags, εκκρεμείς αποφάσεις |
 | [request-closed.md](request-closed.md) | «Ολοκλήρωσα την αναζήτηση»: matchings email → `/request-closed` → Worker (βρίσκει επαφή + ενεργές ζητήσεις στο CRM) → Make → email to info@ |
 | [request-matchings.md](request-matchings.md) | Νέα ακίνητα σε ζητήσεις: σάρωση του tab «Ακίνητα» όλων των ενεργών ζητήσεων → digest email στη γραμματεία |
+| [rantevou.md](rantevou.md) | Σελίδα ραντεβού `/r/<id>` για τα SMS του CRM: πύλη 4 ψηφίων, επιβεβαίωση/αλλαγή, .ics, κάρτα ακινήτου από `#κωδικό` στον τίτλο |
 | [photo-enhance.md](photo-enhance.md) | AI photo enhancement: enhance.html → Worker/R2 → Make (Gemini "Nano Banana") → Google Drive + email; the edit toggles and Make build recipe |
 | [zadarma-calls.md](zadarma-calls.md) | Κλήσεις Zadarma → επικοινωνίες στο CRM: δύο σενάρια (εισερχόμενες/εξερχόμενες), self-attaching webhooks, το mapping εσωτερικών σε συμβούλους, γιατί δεν φτιάχνονται επαφές |
 | [pinakides.md](pinakides.md) | «Πινακίδα», lead από φωτογραφία πινακίδας: `pinakida.html` → Worker/R2 (Gemini vision + reverse geocode) → ένα email ανά βόλτα· γιατί το EXIF GPS λείπει τόσο συχνά και πώς κλειδώνει η τοποθεσία πάνω στον δρόμο· το έτοιμο σώμα CRM που μένει να ποστάρει το Make |

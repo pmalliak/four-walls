@@ -45,6 +45,7 @@ import { handleFormSubmit } from "./lib/forms.mjs";
 import { handlePhotoApi, servePhotoFile, applyWatermark, servePhotoZip } from "./lib/photos.mjs";
 import { handleLeadApi, serveLeadFile } from "./lib/leads.mjs";
 import { handleLeadReply } from "./lib/lead-reply.mjs";
+import { handleRantevou } from "./lib/rantevou.mjs";
 import { handleRequestClosed } from "./lib/request-closed.mjs";
 import { handlePropertyRequest } from "./lib/property-request.mjs";
 import { handlePropertyAssignment } from "./lib/property-assignment.mjs";
@@ -276,6 +277,14 @@ export default {
 		// fetches it and sends it — see docs/spitogatos-leads.md.
 		if (pathname === "/api/lead-reply") {
 			return handleLeadReply(request, env, url);
+		}
+		// Σελίδα ραντεβού από τα SMS του CRM: /r/<id ραντεβού>. Δημόσιο URL
+		// με αύξοντα αριθμό (τα SMS πρότυπα του EstatePrime δεν χωρούν τυχαίο
+		// token), γι' αυτό η ίδια η σελίδα είναι η πύλη: τίποτα δεν φαίνεται
+		// πριν δοθούν τα 4 τελευταία ψηφία του κινητού της επαφής. Βλ.
+		// worker/lib/rantevou.mjs και docs/rantevou.md.
+		if (/^\/r\/\d+(\/ics)?$/.test(pathname)) {
+			return handleRantevou(request, env, url, pathname, ctx);
 		}
 		// «Μία φορά»: το πρώτο κάλεσμα με ένα κλειδί παίρνει first:true, τα
 		// επόμενα false. Το χρησιμοποιούν τα σενάρια που στέλνουν σε πελάτη
