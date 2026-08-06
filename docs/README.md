@@ -35,7 +35,7 @@ deeper, one topic per file:
 | [valuation.md](valuation.md) | Εκτίμηση αξίας ακινήτου: φόρμα → Worker (AI ×2, συγκριτικά, τιμές περιοχών) → report στο info@ και απλοποιημένο PDF στον ιδιοκτήτη· το `ANTHROPIC_API_KEY`· το autocomplete περιοχής/διεύθυνσης (`tools/build-streets.mjs`) |
 | [forms-katachorisi-crm.md](forms-katachorisi-crm.md) | Καταχώριση ακινήτου: CRM-aligned schema (πεδία/slugs 1:1 με το EstatePrime), το `crm` payload, area ids, ο δρόμος για το auto-create |
 | [site-request-form.md](site-request-form.md) | Ζήτηση + ανάθεση + ενδιαφέρον για ακίνητο από το site (`/request`, `/list-property`, `/properties/<κωδικός>`): φόρμες → Worker (αυτόματη επαφή+επικοινωνία στο CRM) → Make → email στη γραμματεία, tags, εκκρεμείς αποφάσεις |
-| [request-closed.md](request-closed.md) | «Ολοκλήρωσα την αναζήτηση»: matchings email → `/request-closed` → Worker → Make → email to info@ |
+| [request-closed.md](request-closed.md) | «Ολοκλήρωσα την αναζήτηση»: matchings email → `/request-closed` → Worker (βρίσκει επαφή + ενεργές ζητήσεις στο CRM) → Make → email to info@ |
 | [request-matchings.md](request-matchings.md) | Νέα ακίνητα σε ζητήσεις: σάρωση του tab «Ακίνητα» όλων των ενεργών ζητήσεων → digest email στη γραμματεία |
 | [photo-enhance.md](photo-enhance.md) | AI photo enhancement: enhance.html → Worker/R2 → Make (Gemini "Nano Banana") → Google Drive + email; the edit toggles and Make build recipe |
 | [zadarma-calls.md](zadarma-calls.md) | Κλήσεις Zadarma → επικοινωνίες στο CRM: δύο σενάρια (εισερχόμενες/εξερχόμενες), self-attaching webhooks, το mapping εσωτερικών σε συμβούλους, γιατί δεν φτιάχνονται επαφές |

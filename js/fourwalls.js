@@ -461,6 +461,10 @@
     var payload = {
       request_id: requestId,
       contact_id: contactId,
+      // Το ίδιο αναγνωριστικό και σε δικό του πεδίο: ο Worker ψάχνει με
+      // αυτό την επαφή στο CRM, ώστε το email στο info@ να βγάζει
+      // σύνδεσμο επαφής και τις ενεργές ζητήσεις της.
+      client_ref: optRef,
       reason: checked ? checked.value : "",
       comment: comment,
       page: window.location.pathname + window.location.search,
