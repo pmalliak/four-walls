@@ -429,6 +429,97 @@
 												"key": 199013,
 												"handleErrors": true
 											}
+										},
+										{
+											"id": 30,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/tasks",
+												"data": "{\"title\": \"{{ifempty(11.task_title; \"Πινακίδα: κάλεσε \" + 11.search)}}\", \"description\": \"{{11.task_body}}\", \"created_by\": 1, \"users\": [1], \"priority\": \"normal\", \"status_id\": 1, \"category_id\": 2, \"contacts\": [{{14.data.data.id}}]}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 1030,
+													"mapper": {},
+													"module": "builtin:Ignore",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 2400,
+															"y": 150
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 2100,
+													"y": 0,
+													"name": "CRM: Υποχρέωση (νέα επαφή)"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
 										}
 									],
 									"type": "condition",
@@ -516,6 +607,97 @@
 													"x": 1500,
 													"y": 300,
 													"name": "EstatePrime: Επικοινωνία (υπάρχουσα)"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
+										},
+										{
+											"id": 31,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/tasks",
+												"data": "{\"title\": \"{{ifempty(11.task_title; \"Πινακίδα: κάλεσε \" + 11.search)}}\", \"description\": \"{{11.task_body}}\", \"created_by\": 1, \"users\": [1], \"priority\": \"normal\", \"status_id\": 1, \"category_id\": 2, \"contacts\": [{{12.data.data[1].id}}]}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 1031,
+													"mapper": {},
+													"module": "builtin:Ignore",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 2100,
+															"y": 450
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 1800,
+													"y": 300,
+													"name": "CRM: Υποχρέωση (υπάρχουσα)"
 												},
 												"parameters": [
 													{

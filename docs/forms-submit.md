@@ -37,9 +37,18 @@ string is a contract between each form's `CONFIG.id` and the scenario's filters.
   "pdf_base64": "…",
   // added server-side, overwriting anything the client sent:
   "submitted_by": "someone@four-walls.gr",   // from the Access JWT; null on local dev
-  "received_at": "…"                          // our clock, for audit
+  "received_at": "…",                         // our clock, for audit
+  "pdf_url": "https://four-walls.gr/api/forms/file/…?exp=&sig="  // see below
 }
 ```
+
+Το **`pdf_url`** μπαίνει από τον Worker λίγο πριν την προώθηση: το ίδιο
+PDF ακουμπάει στο R2 και παίρνει υπογεγραμμένο link 90 ημερών
+([forms-archive.mjs](../worker/lib/forms-archive.mjs)). Υπάρχει επειδή η
+υποχρέωση «αρχειοθέτησε αυτό το έντυπο» στο CRM **δεν μπορεί να κουβαλήσει
+συνημμένο**, μόνο σύνδεσμο. Λείπει όταν το έντυπο δεν έχει PDF (προσφορά,
+ή καταχώριση που έχασε το jsPDF) ή αν γκρινιάξει το R2, οπότε το task
+δείχνει πίσω στο email. Ολη η ιστορία: [crm-tasks.md](crm-tasks.md).
 
 `katachorisi` also sends `summary`, `ref`, `schema: "crm-v1"` and a `crm`
 object — its fields mirror the EstatePrime listing schema 1:1 so property

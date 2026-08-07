@@ -661,6 +661,97 @@
 												"key": 199013,
 												"handleErrors": true
 											}
+										},
+										{
+											"id": 80,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/tasks",
+												"data": "{\"title\": \"Ανάθεση Spitogatos: κάλεσε {{ifempty(3.name; \"τον ιδιοκτήτη\")}} {{3.phoneRaw}}\", \"description\": \"<p><b>{{3.dealType}} · {{3.propType}}</b><br>{{3.region}}{{if(length(3.area) > 0; \" · \" + 3.area + \" τ.μ.\"; \"\")}}{{if(length(3.price) > 0; \" · \" + 3.price; \"\")}}<br>Διαθεσιμότητα: {{3.availability}}<br>Τηλέφωνο: {{3.phoneRaw}}<br>Email: {{3.clientEmail}}</p>{{if(length(3.message) > 0; \"<p>Μήνυμα: \" + 3.message + \"</p>\"; \"\")}}{{if(length(3.leadUrl) > 0; \"<p><a href='\" + 3.leadUrl + \"'>Το lead στο Spitogatos Live</a></p>\"; \"\")}}\", \"created_by\": 1, \"users\": [1], \"priority\": \"high\", \"status_id\": 1, \"category_id\": 2, \"due_date\": \"{{formatDate(now; \"YYYY-MM-DD\"; \"Europe/Athens\")}}\", \"contacts\": [{{40.data.data.id}}]}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 1080,
+													"mapper": {},
+													"module": "builtin:Resume",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 2700,
+															"y": 150
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 2400,
+													"y": 0,
+													"name": "CRM: Υποχρέωση (νέα επαφή)"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
 										}
 									],
 									"type": "condition",
@@ -839,6 +930,97 @@
 													"x": 1800,
 													"y": 900,
 													"name": "EstatePrime: Απάντηση (υπάρχουσα)"
+												},
+												"parameters": [
+													{
+														"name": "key",
+														"type": "keychain:basicauth",
+														"label": "Key",
+														"required": true
+													},
+													{
+														"name": "handleErrors",
+														"type": "boolean",
+														"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+														"required": true
+													}
+												]
+											},
+											"parameters": {
+												"key": 199013,
+												"handleErrors": true
+											}
+										},
+										{
+											"id": 81,
+											"mapper": {
+												"qs": [],
+												"url": "https://fourwalls.estateprime.gr/api/tasks",
+												"data": "{\"title\": \"Ανάθεση Spitogatos: κάλεσε {{ifempty(3.name; \"τον ιδιοκτήτη\")}} {{3.phoneRaw}}\", \"description\": \"<p><b>{{3.dealType}} · {{3.propType}}</b><br>{{3.region}}{{if(length(3.area) > 0; \" · \" + 3.area + \" τ.μ.\"; \"\")}}{{if(length(3.price) > 0; \" · \" + 3.price; \"\")}}<br>Διαθεσιμότητα: {{3.availability}}<br>Τηλέφωνο: {{3.phoneRaw}}<br>Email: {{3.clientEmail}}</p>{{if(length(3.message) > 0; \"<p>Μήνυμα: \" + 3.message + \"</p>\"; \"\")}}{{if(length(3.leadUrl) > 0; \"<p><a href='\" + 3.leadUrl + \"'>Το lead στο Spitogatos Live</a></p>\"; \"\")}}\", \"created_by\": 1, \"users\": [1], \"priority\": \"high\", \"status_id\": 1, \"category_id\": 2, \"due_date\": \"{{formatDate(now; \"YYYY-MM-DD\"; \"Europe/Athens\")}}\", \"contacts\": [{{45.data.data[1].id}}]}",
+												"gzip": true,
+												"method": "post",
+												"headers": [],
+												"timeout": "",
+												"useMtls": false,
+												"authPass": "",
+												"authUser": "",
+												"bodyType": "raw",
+												"contentType": "application/json",
+												"serializeUrl": false,
+												"shareCookies": false,
+												"parseResponse": true,
+												"followRedirect": true,
+												"useQuerystring": false,
+												"followAllRedirects": false,
+												"rejectUnauthorized": true
+											},
+											"module": "http:ActionSendDataBasicAuth",
+											"onerror": [
+												{
+													"id": 1081,
+													"mapper": {},
+													"module": "builtin:Resume",
+													"version": 1,
+													"metadata": {
+														"designer": {
+															"x": 2700,
+															"y": 450
+														}
+													},
+													"parameters": {}
+												}
+											],
+											"version": 3,
+											"metadata": {
+												"restore": {
+													"expect": {
+														"qs": {
+															"mode": "chose"
+														},
+														"method": {
+															"mode": "chose",
+															"label": "POST"
+														},
+														"headers": {
+															"mode": "chose"
+														},
+														"bodyType": {
+															"label": "Raw"
+														},
+														"contentType": {
+															"label": "JSON (application/json)"
+														}
+													},
+													"parameters": {
+														"key": {
+															"label": "Estate Prime Auth"
+														}
+													}
+												},
+												"designer": {
+													"x": 2400,
+													"y": 300,
+													"name": "CRM: Υποχρέωση (υπάρχουσα)"
 												},
 												"parameters": [
 													{

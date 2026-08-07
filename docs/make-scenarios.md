@@ -197,6 +197,7 @@ Make:
 
 | Σενάριο | Doc |
 |---|---|
+| Υποχρεώσεις στο CRM (όσα σενάρια γεννούν task) | [crm-tasks.md](crm-tasks.md) |
 | Έντυπα — υποβολή φόρμας | [forms-submit.md](forms-submit.md), [forms-prosfora.md](forms-prosfora.md) |
 | Spitogatos — ανάθεση / ενδιαφέρον | [spitogatos-leads.md](spitogatos-leads.md) |
 | Site — φόρμα επικοινωνίας / ολοκλήρωση αναζήτησης | [request-closed.md](request-closed.md) |

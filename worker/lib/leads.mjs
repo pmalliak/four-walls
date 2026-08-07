@@ -840,13 +840,31 @@ function crmFor(l, meta) {
 		`Φωτογραφία (ισχύει 30 ημέρες): ${l.url}`,
 	].filter(Boolean).join(" · "), 900);
 
+	/* Η υποχρέωση που γεννά μια πινακίδα: κάποιος πρέπει να πάρει αυτό το
+	   τηλέφωνο. Το κείμενο γράφεται εδώ, όπου υπάρχουν διεύθυνση, τύπος και
+	   τιμή, κι όχι με formula μέσα στο Make. Το description του EstatePrime
+	   δέχεται HTML, οπότε η φωτογραφία μπαίνει ως σύνδεσμος. */
+	const callNumber = (phones.find((p) => p.digits.startsWith("69")) || phones[0]);
+	const taskTitle = makeSafe(
+		`Πινακίδα: κάλεσε ${callNumber.display}${given && given !== "—" ? " · " + given : ""}`, 190);
+	const taskBody = makeSafe([
+		`<p><b>${what || "Πινακίδα"}</b>${specs ? " (" + specs + ")" : ""}<br>`,
+		`${given}<br>`,
+		`Τηλέφωνο: ${phones.map((p) => p.display).join(" / ")}`,
+		l.contact_name ? `<br>Ζητήστε: ${l.contact_name}` : "",
+		l.sign_text ? `<br>Πινακίδα: ${l.sign_text}` : "",
+		`</p><p><a href='${l.url}'>Δες τη φωτογραφία</a> (ισχύει 30 ημέρες)</p>`,
+	].filter(Boolean).join(""), 1500);
+
 	return {
 		/* Ό,τι χρειάζεται το Make για να ψάξει πρώτα — η μοναδικότητα του
 		   τηλεφώνου στο CRM είναι το dedupe, ο Worker απλώς δίνει το κλειδί.
 		   Προτιμάται το ΚΙΝΗΤΟ όταν η πινακίδα έχει δύο νούμερα: το σταθερό
 		   μπορεί να είναι της πολυκατοικίας ή του μαγαζιού από κάτω και να
 		   ταιριάξει σε λάθος επαφή· το 69άρι είναι ενός ανθρώπου. */
-		search: (phones.find((p) => p.digits.startsWith("69")) || phones[0]).digits,
+		search: callNumber.digits,
+		task_title: taskTitle,
+		task_body: taskBody,
 		known_contact_id: phones.find((p) => p.crm)?.crm?.id ?? null,
 		contact_json: JSON.stringify(contact),
 		comments,

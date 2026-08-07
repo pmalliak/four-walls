@@ -42,6 +42,7 @@ import { robotsResponse, sitemapResponse, serveListingPage, isProdHost } from ".
 import { requireAccess, isLocalDev, json } from "./lib/access.mjs";
 import { contactsIndex, contactDetail, listingsIndex } from "./lib/crm.mjs";
 import { handleFormSubmit } from "./lib/forms.mjs";
+import { serveFormPdf } from "./lib/forms-archive.mjs";
 import { handlePhotoApi, servePhotoFile, applyWatermark, servePhotoZip } from "./lib/photos.mjs";
 import { handleLeadApi, serveLeadFile } from "./lib/leads.mjs";
 import { handleLeadReply } from "./lib/lead-reply.mjs";
@@ -265,6 +266,12 @@ export default {
 		// (Zoho/Gmail) — apex, χωρίς Access, με HMAC + 30 ημέρες λήξη.
 		if (pathname.startsWith("/api/leads/file/")) {
 			return serveLeadFile(request, env, url);
+		}
+		// Το υπογεγραμμένο PDF ενός εντύπου, όπως το ανοίγει η γραμματεία από
+		// το task «αρχειοθέτησε…» μέσα στο CRM. Apex χωρίς Access, HMAC με
+		// λήξη 90 ημερών. Βλ. worker/lib/forms-archive.mjs.
+		if (pathname.startsWith("/api/forms/file/")) {
+			return serveFormPdf(request, env, url);
 		}
 		if (pathname === "/api/contact") {
 			return handleContact(request, env);

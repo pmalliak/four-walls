@@ -18,6 +18,7 @@
 
 import { json } from "./access.mjs";
 import { renderDocPdf } from "./pdfrender.mjs";
+import { archiveFormPdf } from "./forms-archive.mjs";
 import { VALUATION_REQ_PREFIX, VALUATION_TTL_SECONDS, markValuationSent } from "./valuation.mjs";
 import { logSent } from "./sent-log.mjs";
 
@@ -184,6 +185,18 @@ export async function handleFormSubmit(request, env, email) {
 		dedupeKey = null;
 		console.warn(`forms: dedupe unavailable, forwarding anyway: ${String(err)}`);
 	}
+
+	// Το PDF παίρνει διεύθυνση πριν φύγει: το task «αρχειοθέτησε το
+	// έντυπο» δεν μπορεί να κουβαλήσει συνημμένο (το EstatePrime δεν
+	// δέχεται), οπότε κουβαλάει αυτό το link. Fail-open, βλ. forms-archive.
+	// Δείχνει στο apex, όπως και οι φωτογραφίες: το forms.four-walls.gr
+	// έχει Access μπροστά και το κατέβασμα γίνεται μέσα από το CRM.
+	const u = new URL(request.url);
+	const publicOrigin = u.hostname === "localhost" || u.hostname === "127.0.0.1"
+		? u.origin
+		: `https://${u.hostname.replace(/^forms\./, "")}`;
+	const pdfUrl = await archiveFormPdf(env, payload, hash, publicOrigin);
+	if (pdfUrl) payload.pdf_url = pdfUrl;
 
 	const fwd = await fetch(env.MAKE_FORMS_WEBHOOK, {
 		method: "POST",

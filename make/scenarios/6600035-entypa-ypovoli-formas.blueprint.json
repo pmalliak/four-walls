@@ -307,6 +307,97 @@
 							}
 						},
 						{
+							"id": 30,
+							"mapper": {
+								"qs": [],
+								"url": "https://fourwalls.estateprime.gr/api/tasks",
+								"data": "{\"title\": \"Αρχειοθέτησε την ανάθεση: {{replace(replace(1.data.entoleas_onomatepwnymo; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}\", \"description\": \"<p><b>Υπογεγραμμένη ανάθεση</b><br>Εντολέας: {{replace(replace(1.data.entoleas_onomatepwnymo; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}<br>Ακίνητο: {{replace(replace(1.data.akinito_typos; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}} {{replace(replace(1.data.akinito_odos; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}, {{replace(replace(1.data.akinito_perioxi; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}<br>Αρχειοθετείται στην επαφή του ιδιοκτήτη και στο ακίνητο μόλις καταχωριστεί.</p>{{if(length(1.pdf_url) > 0; \"<p><a href='\" + 1.pdf_url + \"'>Άνοιγμα PDF</a> (ισχύει 90 ημέρες)</p>\"; \"<p>Το PDF είναι συνημμένο στο email «ΓΙΑ ΑΡΧΕΙΟ CRM».</p>\")}}\", \"created_by\": 1, \"users\": [1], \"priority\": \"normal\", \"status_id\": 1, \"category_id\": 4, \"due_date\": \"{{formatDate(now; \"YYYY-MM-DD\"; \"Europe/Athens\")}}\", \"contacts\": []}",
+								"gzip": true,
+								"method": "post",
+								"headers": [],
+								"timeout": "",
+								"useMtls": false,
+								"authPass": "",
+								"authUser": "",
+								"bodyType": "raw",
+								"contentType": "application/json",
+								"serializeUrl": false,
+								"shareCookies": false,
+								"parseResponse": true,
+								"followRedirect": true,
+								"useQuerystring": false,
+								"followAllRedirects": false,
+								"rejectUnauthorized": true
+							},
+							"module": "http:ActionSendDataBasicAuth",
+							"onerror": [
+								{
+									"id": 1030,
+									"mapper": {},
+									"module": "builtin:Resume",
+									"version": 1,
+									"metadata": {
+										"designer": {
+											"x": 1200,
+											"y": 150
+										}
+									},
+									"parameters": {}
+								}
+							],
+							"version": 3,
+							"metadata": {
+								"restore": {
+									"expect": {
+										"qs": {
+											"mode": "chose"
+										},
+										"method": {
+											"mode": "chose",
+											"label": "POST"
+										},
+										"headers": {
+											"mode": "chose"
+										},
+										"bodyType": {
+											"label": "Raw"
+										},
+										"contentType": {
+											"label": "JSON (application/json)"
+										}
+									},
+									"parameters": {
+										"key": {
+											"label": "Estate Prime Auth"
+										}
+									}
+								},
+								"designer": {
+									"x": 900,
+									"y": 0,
+									"name": "CRM: Υποχρέωση · ανάθεση"
+								},
+								"parameters": [
+									{
+										"name": "key",
+										"type": "keychain:basicauth",
+										"label": "Key",
+										"required": true
+									},
+									{
+										"name": "handleErrors",
+										"type": "boolean",
+										"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"key": 199013,
+								"handleErrors": true
+							}
+						},
+						{
 							"id": 3,
 							"filter": {
 								"name": "ανάθεση · και στον εντολέα;",
@@ -892,6 +983,97 @@
 							}
 						},
 						{
+							"id": 31,
+							"mapper": {
+								"qs": [],
+								"url": "https://fourwalls.estateprime.gr/api/tasks",
+								"data": "{\"title\": \"Αρχειοθέτησε την υπόδειξη: {{replace(replace(1.data.entoleas_onomatepwnymo; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}\", \"description\": \"<p><b>Υπογεγραμμένη υπόδειξη</b><br>Πελάτης: {{replace(replace(1.data.entoleas_onomatepwnymo; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}<br>Ακίνητα: {{replace(replace(1.data.akinito_1_kodikos; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}} {{replace(replace(1.data.akinito_2_kodikos; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}} {{replace(replace(1.data.akinito_3_kodikos; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}<br>Αρχειοθετείται στην επαφή του πελάτη.</p>{{if(length(1.pdf_url) > 0; \"<p><a href='\" + 1.pdf_url + \"'>Άνοιγμα PDF</a> (ισχύει 90 ημέρες)</p>\"; \"<p>Το PDF είναι συνημμένο στο email «ΓΙΑ ΑΡΧΕΙΟ CRM».</p>\")}}\", \"created_by\": 1, \"users\": [1], \"priority\": \"normal\", \"status_id\": 1, \"category_id\": 4, \"due_date\": \"{{formatDate(now; \"YYYY-MM-DD\"; \"Europe/Athens\")}}\", \"contacts\": []}",
+								"gzip": true,
+								"method": "post",
+								"headers": [],
+								"timeout": "",
+								"useMtls": false,
+								"authPass": "",
+								"authUser": "",
+								"bodyType": "raw",
+								"contentType": "application/json",
+								"serializeUrl": false,
+								"shareCookies": false,
+								"parseResponse": true,
+								"followRedirect": true,
+								"useQuerystring": false,
+								"followAllRedirects": false,
+								"rejectUnauthorized": true
+							},
+							"module": "http:ActionSendDataBasicAuth",
+							"onerror": [
+								{
+									"id": 1031,
+									"mapper": {},
+									"module": "builtin:Resume",
+									"version": 1,
+									"metadata": {
+										"designer": {
+											"x": 1200,
+											"y": 450
+										}
+									},
+									"parameters": {}
+								}
+							],
+							"version": 3,
+							"metadata": {
+								"restore": {
+									"expect": {
+										"qs": {
+											"mode": "chose"
+										},
+										"method": {
+											"mode": "chose",
+											"label": "POST"
+										},
+										"headers": {
+											"mode": "chose"
+										},
+										"bodyType": {
+											"label": "Raw"
+										},
+										"contentType": {
+											"label": "JSON (application/json)"
+										}
+									},
+									"parameters": {
+										"key": {
+											"label": "Estate Prime Auth"
+										}
+									}
+								},
+								"designer": {
+									"x": 900,
+									"y": 300,
+									"name": "CRM: Υποχρέωση · υπόδειξη"
+								},
+								"parameters": [
+									{
+										"name": "key",
+										"type": "keychain:basicauth",
+										"label": "Key",
+										"required": true
+									},
+									{
+										"name": "handleErrors",
+										"type": "boolean",
+										"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"key": 199013,
+								"handleErrors": true
+							}
+						},
+						{
 							"id": 4,
 							"filter": {
 								"name": "υπόδειξη",
@@ -1465,6 +1647,97 @@
 								"account": 8845630,
 								"accountImap": 8845636,
 								"saveAfterSent": true
+							}
+						},
+						{
+							"id": 32,
+							"mapper": {
+								"qs": [],
+								"url": "https://fourwalls.estateprime.gr/api/tasks",
+								"data": "{\"title\": \"Αρχειοθέτησε την απόδειξη: {{replace(replace(1.data.katavallon_geniki; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}\", \"description\": \"<p><b>Απόδειξη είσπραξης</b><br>Καταβάλλων: {{replace(replace(1.data.katavallon_geniki; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}<br>Ποσό: {{replace(replace(1.data.poso_arithmitikos; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}<br>Αιτιολογία: {{replace(replace(1.data.aitiologia; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}<br>Αρχειοθετείται στην επαφή του καταβάλλοντα και στο ακίνητο.</p>{{if(length(1.pdf_url) > 0; \"<p><a href='\" + 1.pdf_url + \"'>Άνοιγμα PDF</a> (ισχύει 90 ημέρες)</p>\"; \"<p>Το PDF είναι συνημμένο στο email «ΓΙΑ ΑΡΧΕΙΟ CRM».</p>\")}}\", \"created_by\": 1, \"users\": [1], \"priority\": \"normal\", \"status_id\": 1, \"category_id\": 4, \"due_date\": \"{{formatDate(now; \"YYYY-MM-DD\"; \"Europe/Athens\")}}\", \"contacts\": []}",
+								"gzip": true,
+								"method": "post",
+								"headers": [],
+								"timeout": "",
+								"useMtls": false,
+								"authPass": "",
+								"authUser": "",
+								"bodyType": "raw",
+								"contentType": "application/json",
+								"serializeUrl": false,
+								"shareCookies": false,
+								"parseResponse": true,
+								"followRedirect": true,
+								"useQuerystring": false,
+								"followAllRedirects": false,
+								"rejectUnauthorized": true
+							},
+							"module": "http:ActionSendDataBasicAuth",
+							"onerror": [
+								{
+									"id": 1032,
+									"mapper": {},
+									"module": "builtin:Resume",
+									"version": 1,
+									"metadata": {
+										"designer": {
+											"x": 1200,
+											"y": 750
+										}
+									},
+									"parameters": {}
+								}
+							],
+							"version": 3,
+							"metadata": {
+								"restore": {
+									"expect": {
+										"qs": {
+											"mode": "chose"
+										},
+										"method": {
+											"mode": "chose",
+											"label": "POST"
+										},
+										"headers": {
+											"mode": "chose"
+										},
+										"bodyType": {
+											"label": "Raw"
+										},
+										"contentType": {
+											"label": "JSON (application/json)"
+										}
+									},
+									"parameters": {
+										"key": {
+											"label": "Estate Prime Auth"
+										}
+									}
+								},
+								"designer": {
+									"x": 900,
+									"y": 600,
+									"name": "CRM: Υποχρέωση · απόδειξη"
+								},
+								"parameters": [
+									{
+										"name": "key",
+										"type": "keychain:basicauth",
+										"label": "Key",
+										"required": true
+									},
+									{
+										"name": "handleErrors",
+										"type": "boolean",
+										"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"key": 199013,
+								"handleErrors": true
 							}
 						},
 						{
@@ -2044,6 +2317,97 @@
 							}
 						},
 						{
+							"id": 33,
+							"mapper": {
+								"qs": [],
+								"url": "https://fourwalls.estateprime.gr/api/tasks",
+								"data": "{\"title\": \"Καταχώρισε στο CRM: {{replace(replace(1.summary; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}\", \"description\": \"<p><b>Νέο ακίνητο προς καταχώριση</b><br>{{replace(replace(1.summary; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}<br>Ιδιοκτήτης: {{replace(replace(1.data.owner_name; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}} · {{replace(replace(1.data.owner_phone; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}<br>Μπαίνει ακίνητο + επαφή στο EstatePrime.</p>{{if(length(1.pdf_url) > 0; \"<p><a href='\" + 1.pdf_url + \"'>Άνοιγμα PDF</a> (ισχύει 90 ημέρες)</p>\"; \"<p>Το PDF είναι συνημμένο στο email «ΓΙΑ ΑΡΧΕΙΟ CRM».</p>\")}}\", \"created_by\": 1, \"users\": [1], \"priority\": \"normal\", \"status_id\": 1, \"category_id\": 2, \"due_date\": \"{{formatDate(now; \"YYYY-MM-DD\"; \"Europe/Athens\")}}\", \"contacts\": []}",
+								"gzip": true,
+								"method": "post",
+								"headers": [],
+								"timeout": "",
+								"useMtls": false,
+								"authPass": "",
+								"authUser": "",
+								"bodyType": "raw",
+								"contentType": "application/json",
+								"serializeUrl": false,
+								"shareCookies": false,
+								"parseResponse": true,
+								"followRedirect": true,
+								"useQuerystring": false,
+								"followAllRedirects": false,
+								"rejectUnauthorized": true
+							},
+							"module": "http:ActionSendDataBasicAuth",
+							"onerror": [
+								{
+									"id": 1033,
+									"mapper": {},
+									"module": "builtin:Resume",
+									"version": 1,
+									"metadata": {
+										"designer": {
+											"x": 1200,
+											"y": 1050
+										}
+									},
+									"parameters": {}
+								}
+							],
+							"version": 3,
+							"metadata": {
+								"restore": {
+									"expect": {
+										"qs": {
+											"mode": "chose"
+										},
+										"method": {
+											"mode": "chose",
+											"label": "POST"
+										},
+										"headers": {
+											"mode": "chose"
+										},
+										"bodyType": {
+											"label": "Raw"
+										},
+										"contentType": {
+											"label": "JSON (application/json)"
+										}
+									},
+									"parameters": {
+										"key": {
+											"label": "Estate Prime Auth"
+										}
+									}
+								},
+								"designer": {
+									"x": 900,
+									"y": 900,
+									"name": "CRM: Υποχρέωση · καταχώριση"
+								},
+								"parameters": [
+									{
+										"name": "key",
+										"type": "keychain:basicauth",
+										"label": "Key",
+										"required": true
+									},
+									{
+										"name": "handleErrors",
+										"type": "boolean",
+										"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"key": 199013,
+								"handleErrors": true
+							}
+						},
+						{
 							"id": 15,
 							"filter": {
 								"name": "και στον ιδιοκτήτη;",
@@ -2611,6 +2975,97 @@
 								"account": 8845630,
 								"accountImap": 8845636,
 								"saveAfterSent": true
+							}
+						},
+						{
+							"id": 34,
+							"mapper": {
+								"qs": [],
+								"url": "https://fourwalls.estateprime.gr/api/tasks",
+								"data": "{\"title\": \"Καταγραψε την προσφορά: {{replace(replace(1.summary; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}\", \"description\": \"<p><b>Νέα προσφορά πελάτη</b><br>{{replace(replace(1.summary; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}<br>Ενδιαφερόμενος: {{replace(replace(1.data.contact_name; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}} · {{replace(replace(1.data.contact_phone; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}<br>Ακίνητο: {{replace(replace(1.data.listing_code; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}} {{replace(replace(1.data.listing_address; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}<br>Ποσό: {{replace(replace(1.data.amount; \"/[\\x00-\\x1F\\x7F\\x5C]/g\"; space); \"/\\x22/g\"; \"'\")}}<br>Καταχωρείται στις Προσφορές του CRM.</p>{{if(length(1.pdf_url) > 0; \"<p><a href='\" + 1.pdf_url + \"'>Άνοιγμα PDF</a> (ισχύει 90 ημέρες)</p>\"; \"<p>Το PDF είναι συνημμένο στο email «ΓΙΑ ΑΡΧΕΙΟ CRM».</p>\")}}\", \"created_by\": 1, \"users\": [1], \"priority\": \"normal\", \"status_id\": 1, \"category_id\": 4, \"due_date\": \"{{formatDate(now; \"YYYY-MM-DD\"; \"Europe/Athens\")}}\", \"contacts\": []}",
+								"gzip": true,
+								"method": "post",
+								"headers": [],
+								"timeout": "",
+								"useMtls": false,
+								"authPass": "",
+								"authUser": "",
+								"bodyType": "raw",
+								"contentType": "application/json",
+								"serializeUrl": false,
+								"shareCookies": false,
+								"parseResponse": true,
+								"followRedirect": true,
+								"useQuerystring": false,
+								"followAllRedirects": false,
+								"rejectUnauthorized": true
+							},
+							"module": "http:ActionSendDataBasicAuth",
+							"onerror": [
+								{
+									"id": 1034,
+									"mapper": {},
+									"module": "builtin:Resume",
+									"version": 1,
+									"metadata": {
+										"designer": {
+											"x": 1200,
+											"y": 1350
+										}
+									},
+									"parameters": {}
+								}
+							],
+							"version": 3,
+							"metadata": {
+								"restore": {
+									"expect": {
+										"qs": {
+											"mode": "chose"
+										},
+										"method": {
+											"mode": "chose",
+											"label": "POST"
+										},
+										"headers": {
+											"mode": "chose"
+										},
+										"bodyType": {
+											"label": "Raw"
+										},
+										"contentType": {
+											"label": "JSON (application/json)"
+										}
+									},
+									"parameters": {
+										"key": {
+											"label": "Estate Prime Auth"
+										}
+									}
+								},
+								"designer": {
+									"x": 900,
+									"y": 1200,
+									"name": "CRM: Υποχρέωση · προσφορά"
+								},
+								"parameters": [
+									{
+										"name": "key",
+										"type": "keychain:basicauth",
+										"label": "Key",
+										"required": true
+									},
+									{
+										"name": "handleErrors",
+										"type": "boolean",
+										"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+										"required": true
+									}
+								]
+							},
+							"parameters": {
+								"key": 199013,
+								"handleErrors": true
 							}
 						}
 					]

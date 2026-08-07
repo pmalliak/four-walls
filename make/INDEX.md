@@ -5,16 +5,16 @@
 
 | ID | Σενάριο | Ενεργό | Χρονισμός | Modules | Αρχείο |
 |---|---|---|---|---|---|
-| `6405443` | Spitogatos - Αίτηση ανάθεσης | ναι | άμεσα (webhook/mailhook) | 24 | [6405443-spitogatos-aitisi-anathesis.blueprint.json](scenarios/6405443-spitogatos-aitisi-anathesis.blueprint.json) |
-| `6530594` | Site - Φόρμα επικοινωνίας | ναι | άμεσα (webhook/mailhook) | 48 | [6530594-site-forma-epikoinonias.blueprint.json](scenarios/6530594-site-forma-epikoinonias.blueprint.json) |
-| `6600035` | Έντυπα — υποβολή φόρμας | ναι | άμεσα (webhook/mailhook) | 15 | [6600035-entypa-ypovoli-formas.blueprint.json](scenarios/6600035-entypa-ypovoli-formas.blueprint.json) |
-| `6604242` | Spitogatos - Ενδιαφέρον για ακίνητο | ναι | άμεσα (webhook/mailhook) | 21 | [6604242-spitogatos-endiaferon-gia-akinito.blueprint.json](scenarios/6604242-spitogatos-endiaferon-gia-akinito.blueprint.json) |
+| `6405443` | Spitogatos - Αίτηση ανάθεσης | ναι | άμεσα (webhook/mailhook) | 28 | [6405443-spitogatos-aitisi-anathesis.blueprint.json](scenarios/6405443-spitogatos-aitisi-anathesis.blueprint.json) |
+| `6530594` | Site - Φόρμα επικοινωνίας | ναι | άμεσα (webhook/mailhook) | 66 | [6530594-site-forma-epikoinonias.blueprint.json](scenarios/6530594-site-forma-epikoinonias.blueprint.json) |
+| `6600035` | Έντυπα — υποβολή φόρμας | ναι | άμεσα (webhook/mailhook) | 25 | [6600035-entypa-ypovoli-formas.blueprint.json](scenarios/6600035-entypa-ypovoli-formas.blueprint.json) |
+| `6604242` | Spitogatos - Ενδιαφέρον για ακίνητο | ναι | άμεσα (webhook/mailhook) | 25 | [6604242-spitogatos-endiaferon-gia-akinito.blueprint.json](scenarios/6604242-spitogatos-endiaferon-gia-akinito.blueprint.json) |
 | `6683649` | Site - Ολοκλήρωση αναζήτησης | ναι | άμεσα (webhook/mailhook) | 2 | [6683649-site-oloklirosi-anazitisis.blueprint.json](scenarios/6683649-site-oloklirosi-anazitisis.blueprint.json) |
 | `6688477` | Photos — AI enhance | ναι | άμεσα (webhook/mailhook) | 21 | [6688477-photos-ai-enhance.blueprint.json](scenarios/6688477-photos-ai-enhance.blueprint.json) |
-| `6722234` | CRM - Νέα ακίνητα σε ζητήσεις | ναι | άμεσα (webhook/mailhook) | 2 | [6722234-crm-nea-akinita-se-zitiseis.blueprint.json](scenarios/6722234-crm-nea-akinita-se-zitiseis.blueprint.json) |
+| `6722234` | CRM - Νέα ακίνητα σε ζητήσεις | ναι | άμεσα (webhook/mailhook) | 4 | [6722234-crm-nea-akinita-se-zitiseis.blueprint.json](scenarios/6722234-crm-nea-akinita-se-zitiseis.blueprint.json) |
 | `6762737` | Εκτίμηση — φρεσκάρισμα τιμών περιοχών | ναι | monthly 09:00 1 | 2 | [6762737-ektimisi-freskarisma-timon-periochon.blueprint.json](scenarios/6762737-ektimisi-freskarisma-timon-periochon.blueprint.json) |
 | `6775485` | Φύλακας — ό,τι δεν στάλθηκε | ναι | άμεσα (webhook/mailhook) | 2 | [6775485-fylakas-o-ti-den-stalthike.blueprint.json](scenarios/6775485-fylakas-o-ti-den-stalthike.blueprint.json) |
-| `6786126` | Πινακίδες | ναι | άμεσα (webhook/mailhook) | 13 | [6786126-pinakides.blueprint.json](scenarios/6786126-pinakides.blueprint.json) |
+| `6786126` | Πινακίδες | ναι | άμεσα (webhook/mailhook) | 17 | [6786126-pinakides.blueprint.json](scenarios/6786126-pinakides.blueprint.json) |
 | `6828361` | Zadarma - Εξερχόμενες κλήσεις | ναι | άμεσα (webhook/mailhook) | 7 | [6828361-zadarma-exerchomenes-kliseis.blueprint.json](scenarios/6828361-zadarma-exerchomenes-kliseis.blueprint.json) |
 | `6847367` | Zadarma - Εισερχόμενες κλήσεις | ναι | άμεσα (webhook/mailhook) | 7 | [6847367-zadarma-eiserchomenes-kliseis.blueprint.json](scenarios/6847367-zadarma-eiserchomenes-kliseis.blueprint.json) |
 
@@ -35,9 +35,11 @@
         40  http:ActionSendDataBasicAuth · EstatePrime: Δημιουργία επαφής · [onerror: builtin:Ignore]
         55  http:ActionSendDataBasicAuth · EstatePrime: Επικοινωνία (νέα επαφή) · [onerror: builtin:Ignore]
         57  http:ActionSendDataBasicAuth · EstatePrime: Απάντηση (νέα επαφή) · [onerror: builtin:Ignore]
+        80  http:ActionSendDataBasicAuth · CRM: Υποχρέωση (νέα επαφή) · [onerror: builtin:Resume]
       ├─ condition «Υπάρχουσα επαφή»
         56  http:ActionSendDataBasicAuth · EstatePrime: Επικοινωνία (υπάρχουσα) · [onerror: builtin:Ignore]
         58  http:ActionSendDataBasicAuth · EstatePrime: Απάντηση (υπάρχουσα) · [onerror: builtin:Ignore]
+        81  http:ActionSendDataBasicAuth · CRM: Υποχρέωση (υπάρχουσα) · [onerror: builtin:Resume]
       ├─ else
         65  placeholder:Placeholder
   ├─ route 2
@@ -68,11 +70,14 @@
         33  http:ActionSendDataBasicAuth · CRM: Δημιουργία επαφής (ΖΗΤΗΣΗ) · [onerror: builtin:Resume]
         34  http:ActionSendDataBasicAuth · CRM: Επικοινωνία (νέα επαφή) · [onerror: builtin:Resume]
         36  zoho-mail:sendMail · Email ζήτησης (νέα επαφή) · [onerror: builtin:Ignore]
+        90  http:ActionSendDataBasicAuth · CRM: Υποχρέωση (νέα επαφή) · [onerror: builtin:Resume]
       ├─ condition «Υπάρχουσα επαφή»
         35  http:ActionSendDataBasicAuth · CRM: Επικοινωνία (υπάρχουσα επαφή) · [onerror: builtin:Resume]
         38  zoho-mail:sendMail · Email ζήτησης (υπάρχουσα επαφή) · [onerror: builtin:Ignore]
+        91  http:ActionSendDataBasicAuth · CRM: Υποχρέωση (υπάρχουσα) · [onerror: builtin:Resume]
       ├─ else
         40  zoho-mail:sendMail · Email ζήτησης (χωρίς επαφή) · [onerror: builtin:Ignore]
+        92  http:ActionSendDataBasicAuth · CRM: Υποχρέωση (χωρίς επαφή) · [onerror: builtin:Resume]
   ├─ route 2
     41  http:ActionSendDataBasicAuth · CRM: Αναζήτηση επαφής · [φίλτρο: Μόνο αναθέσεις] · [onerror: builtin:Resume]
     42  builtin:BasicIfElse
@@ -80,11 +85,14 @@
         43  http:ActionSendDataBasicAuth · CRM: Δημιουργία επαφής (ΑΝΑΘΕΣΗ) · [onerror: builtin:Resume]
         44  http:ActionSendDataBasicAuth · CRM: Επικοινωνία (νέα επαφή) · [onerror: builtin:Resume]
         46  zoho-mail:sendMail · Email ανάθεσης (νέα επαφή) · [onerror: builtin:Ignore]
+        93  http:ActionSendDataBasicAuth · CRM: Υποχρέωση (νέα επαφή) · [onerror: builtin:Resume]
       ├─ condition «Υπάρχουσα επαφή»
         45  http:ActionSendDataBasicAuth · CRM: Επικοινωνία (υπάρχουσα επαφή) · [onerror: builtin:Resume]
         48  zoho-mail:sendMail · Email ανάθεσης (υπάρχουσα επαφή) · [onerror: builtin:Ignore]
+        94  http:ActionSendDataBasicAuth · CRM: Υποχρέωση (υπάρχουσα) · [onerror: builtin:Resume]
       ├─ else
         50  zoho-mail:sendMail · Email ανάθεσης (χωρίς επαφή) · [onerror: builtin:Ignore]
+        95  http:ActionSendDataBasicAuth · CRM: Υποχρέωση (χωρίς επαφή) · [onerror: builtin:Resume]
   ├─ route 3
     2   zoho-mail:sendMail · Email στον Πάνο · [φίλτρο: Κανονική επικοινωνία]
   ├─ route 4
@@ -94,11 +102,14 @@
         62  http:ActionSendDataBasicAuth · CRM: Δημιουργία επαφής (ΕΝΔΙΑΦΕΡΟΝ) · [onerror: builtin:Resume]
         63  http:ActionSendDataBasicAuth · CRM: Επικοινωνία (νέα επαφή) · [onerror: builtin:Resume]
         64  zoho-mail:sendMail · Email ενδιαφέροντος (νέα επαφή) · [onerror: builtin:Ignore]
+        96  http:ActionSendDataBasicAuth · CRM: Υποχρέωση (νέα επαφή) · [onerror: builtin:Resume]
       ├─ condition «Υπάρχουσα επαφή»
         65  http:ActionSendDataBasicAuth · CRM: Επικοινωνία (υπάρχουσα επαφή) · [onerror: builtin:Resume]
         66  zoho-mail:sendMail · Email ενδιαφέροντος (υπάρχουσα επαφή) · [onerror: builtin:Ignore]
+        97  http:ActionSendDataBasicAuth · CRM: Υποχρέωση (υπάρχουσα) · [onerror: builtin:Resume]
       ├─ else
         67  zoho-mail:sendMail · Email ενδιαφέροντος (χωρίς επαφή) · [onerror: builtin:Ignore]
+        98  http:ActionSendDataBasicAuth · CRM: Υποχρέωση (χωρίς επαφή) · [onerror: builtin:Resume]
 ```
 
 ## Έντυπα — υποβολή φόρμας `6600035`
@@ -112,18 +123,23 @@
 2   builtin:BasicRouter · Ποιο έντυπο;
   ├─ route 1
     24  email:ActionSendEmail · Αρχείο CRM · ανάθεση · [φίλτρο: ανάθεση]
+    30  http:ActionSendDataBasicAuth · CRM: Υποχρέωση · ανάθεση · [onerror: builtin:Resume]
     3   email:ActionSendEmail · Email · ανάθεση · [φίλτρο: ανάθεση · και στον εντολέα;]
   ├─ route 2
     25  email:ActionSendEmail · Αρχείο CRM · υπόδειξη · [φίλτρο: υπόδειξη]
+    31  http:ActionSendDataBasicAuth · CRM: Υποχρέωση · υπόδειξη · [onerror: builtin:Resume]
     4   email:ActionSendEmail · Email · υπόδειξη · [φίλτρο: υπόδειξη]
   ├─ route 3
     26  email:ActionSendEmail · Αρχείο CRM · απόδειξη · [φίλτρο: απόδειξη]
+    32  http:ActionSendDataBasicAuth · CRM: Υποχρέωση · απόδειξη · [onerror: builtin:Resume]
     6   email:ActionSendEmail · Email · απόδειξη · [φίλτρο: απόδειξη]
   ├─ route 4
     5   email:ActionSendEmail · Υπενθύμιση · γραφείο · [φίλτρο: καταχώριση]
+    33  http:ActionSendDataBasicAuth · CRM: Υποχρέωση · καταχώριση · [onerror: builtin:Resume]
     15  email:ActionSendEmail · Αντίγραφο · ιδιοκτήτης · [φίλτρο: και στον ιδιοκτήτη;]
   ├─ route 5
     16  email:ActionSendEmail · Προσφορά · γραφείο · [φίλτρο: προσφορά]
+    34  http:ActionSendDataBasicAuth · CRM: Υποχρέωση · προσφορά · [onerror: builtin:Resume]
   ├─ route 6
     20  http:ActionSendData · Site: φτιάξε το report εκτίμησης · [φίλτρο: εκτίμηση]
     23  builtin:BasicRouter · Γραφείο ή ιδιοκτήτης;
@@ -152,8 +168,10 @@
       ├─ condition «Νέα επαφή»
         21  http:ActionSendDataBasicAuth · EstatePrime: Δημιουργία επαφής · [onerror: builtin:Ignore]
         22  http:ActionSendDataBasicAuth · EstatePrime: Επικοινωνία (νέα επαφή) · [onerror: builtin:Ignore]
+        70  http:ActionSendDataBasicAuth · CRM: Υποχρέωση (νέα επαφή) · [onerror: builtin:Resume]
       ├─ condition «Υπάρχουσα επαφή»
         23  http:ActionSendDataBasicAuth · EstatePrime: Επικοινωνία (υπάρχουσα επαφή) · [onerror: builtin:Ignore]
+        71  http:ActionSendDataBasicAuth · CRM: Υποχρέωση (υπάρχουσα) · [onerror: builtin:Resume]
       ├─ else
         29  placeholder:Placeholder
   ├─ route 2
@@ -214,6 +232,7 @@
 ```
 1   gateway:CustomWebHook · Νέα ακίνητα σε ζητήσεις
 2   zoho-mail:sendMail · Email στο info@
+3   http:ActionSendDataBasicAuth · CRM: Υποχρέωση (ημερήσια) · [onerror: builtin:Resume]
 ```
 
 ## Εκτίμηση — φρεσκάρισμα τιμών περιοχών `6762737`
@@ -255,8 +274,10 @@
       ├─ condition «Νέα επαφή»
         14  http:ActionSendDataBasicAuth · EstatePrime: Δημιουργία επαφής · [onerror: builtin:Ignore]
         15  http:ActionSendDataBasicAuth · EstatePrime: Επικοινωνία (νέα επαφή) · [onerror: builtin:Ignore]
+        30  http:ActionSendDataBasicAuth · CRM: Υποχρέωση (νέα επαφή) · [onerror: builtin:Ignore]
       ├─ condition «Υπάρχουσα επαφή»
         16  http:ActionSendDataBasicAuth · EstatePrime: Επικοινωνία (υπάρχουσα) · [onerror: builtin:Ignore]
+        31  http:ActionSendDataBasicAuth · CRM: Υποχρέωση (υπάρχουσα) · [onerror: builtin:Ignore]
       ├─ else
         17  placeholder:Placeholder
 ```

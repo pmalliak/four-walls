@@ -583,6 +583,9 @@ it actually filters, so **re-filter client-side** rather than trusting it.
 
 ## Tasks / υποχρεώσεις (probed 2026-08-07, POST verified)
 
+Σε χρήση από 07/08/2026: τα σενάρια του Make γράφουν υποχρεώσεις δίπλα
+στα email τους, δες [crm-tasks.md](crm-tasks.md).
+
 Το `TaskInput` schema **δεν είναι στο yaml** (κομμένο), αλλά το endpoint
 απαντά καθαρά. Live shape ενός task:
 

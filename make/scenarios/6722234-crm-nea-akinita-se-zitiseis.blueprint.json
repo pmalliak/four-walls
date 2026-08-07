@@ -181,6 +181,97 @@
 			"parameters": {
 				"__IMTCONN__": 8711103
 			}
+		},
+		{
+			"id": 3,
+			"mapper": {
+				"qs": [],
+				"url": "https://fourwalls.estateprime.gr/api/tasks",
+				"data": "{\"title\": \"Ματσαρίσματα ζητήσεων {{formatDate(now; \"DD/MM\"; \"Europe/Athens\")}}: {{1.total_new}} νέα σε {{1.requests}} ζητήσεις\", \"description\": \"{{1.task_body}}\", \"created_by\": 1, \"users\": [1], \"priority\": \"normal\", \"status_id\": 1, \"category_id\": 3, \"due_date\": \"{{formatDate(now; \"YYYY-MM-DD\"; \"Europe/Athens\")}}\", \"contacts\": []}",
+				"gzip": true,
+				"method": "post",
+				"headers": [],
+				"timeout": "",
+				"useMtls": false,
+				"authPass": "",
+				"authUser": "",
+				"bodyType": "raw",
+				"contentType": "application/json",
+				"serializeUrl": false,
+				"shareCookies": false,
+				"parseResponse": true,
+				"followRedirect": true,
+				"useQuerystring": false,
+				"followAllRedirects": false,
+				"rejectUnauthorized": true
+			},
+			"module": "http:ActionSendDataBasicAuth",
+			"onerror": [
+				{
+					"id": 1003,
+					"mapper": {},
+					"module": "builtin:Resume",
+					"version": 1,
+					"metadata": {
+						"designer": {
+							"x": 900,
+							"y": 150
+						}
+					},
+					"parameters": {}
+				}
+			],
+			"version": 3,
+			"metadata": {
+				"restore": {
+					"expect": {
+						"qs": {
+							"mode": "chose"
+						},
+						"method": {
+							"mode": "chose",
+							"label": "POST"
+						},
+						"headers": {
+							"mode": "chose"
+						},
+						"bodyType": {
+							"label": "Raw"
+						},
+						"contentType": {
+							"label": "JSON (application/json)"
+						}
+					},
+					"parameters": {
+						"key": {
+							"label": "Estate Prime Auth"
+						}
+					}
+				},
+				"designer": {
+					"x": 600,
+					"y": 0,
+					"name": "CRM: Υποχρέωση (ημερήσια)"
+				},
+				"parameters": [
+					{
+						"name": "key",
+						"type": "keychain:basicauth",
+						"label": "Key",
+						"required": true
+					},
+					{
+						"name": "handleErrors",
+						"type": "boolean",
+						"label": "Evaluate all states as errors (except for 2xx and 3xx)",
+						"required": true
+					}
+				]
+			},
+			"parameters": {
+				"key": 199013,
+				"handleErrors": true
+			}
 		}
 	],
 	"name": "CRM - Νέα ακίνητα σε ζητήσεις",

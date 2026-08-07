@@ -131,6 +131,21 @@ function criteriaLine(r) {
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+/* Το ίδιο περιεχόμενο, λιτό, για το description της ημερήσιας υποχρέωσης
+   στο CRM. Ένα task τη μέρα, όχι ένα ανά ματσάρισμα: η κατάσταση «Νέο»
+   στο tab «Ακίνητα» ΕΙΝΑΙ ήδη η λίστα εκκρεμοτήτων και αδειάζει μόνη της
+   όταν δουλέψει ο άνθρωπος — δεύτερο task ανά γραμμή θα ζητούσε την ίδια
+   δουλειά δύο φορές. Το task λέει μόνο «η σημερινή παρτίδα δουλεύτηκε».
+   Χωρίς εισαγωγικά: το κείμενο μπαίνει σε JSON string μέσα στο Make. */
+function buildTaskBody(items, totalNew) {
+	const rows = items.map((it) => `<li><a href='${CRM}/requests/listings/${it.request.id}'>Ζήτηση ${it.request.id} · ${esc(it.contact)}</a>`
+		+ ` (${it.listings.length}): ${esc(it.listings.map((l) => l.code).join(', '))}</li>`).join('');
+	return (`<p><b>${totalNew} νέα ακίνητα</b> περιμένουν χαρακτηρισμό σε ${items.length} `
+		+ `${items.length === 1 ? 'ζήτηση' : 'ζητήσεις'}.</p><ul>${rows}</ul>`
+		+ '<p>Κάθε ματσάρισμα γίνεται «Προτεινόμενο» ή «Απορριφθέν» μέσα στο CRM. '
+		+ 'Κλείσε την υποχρέωση όταν αδειάσει η λίστα.</p>').replace(/"/g, "'");
+}
+
 function buildEmail(items, totalNew, failedCount = 0) {
 	const blocks = items.map((it) => `
 <tr><td style="padding:0 20px 18px 20px;">
@@ -244,7 +259,11 @@ async function main() {
 		if (!hook) throw new Error('Λείπει το MAKE_MATCHINGS_WEBHOOK από το .dev.vars');
 		const res = await fetch(hook, {
 			method: 'POST', headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ subject, html, total_new: totalNew, requests: items.length, sent_at: new Date().toISOString() }),
+			body: JSON.stringify({
+				subject, html, total_new: totalNew, requests: items.length,
+				task_body: buildTaskBody(items, totalNew),
+				sent_at: new Date().toISOString(),
+			}),
 		});
 		console.log(`\nMake webhook → ${res.status} ${(await res.text()).slice(0, 80)}`);
 		return res.ok ? 0 : 1;
