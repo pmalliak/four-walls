@@ -7,4 +7,4 @@
 
 
 Δείτε ή επιβεβαιώστε το ραντεβού σας:
-https://four-walls.gr/r/{{ appointment.id }}
+https://four-walls.gr/r/{{ appointment.id }}{% if appointment.address.latitude %}?a={{ appointment.address.latitude }},{{ appointment.address.longitude }}{% endif %}

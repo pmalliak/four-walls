@@ -219,6 +219,11 @@ Since **06/08/2026 all four messages end with the appointment-page link**
 (`https://four-walls.gr/r/{{ appointment.id }}` — see
 [../docs/rantevou.md](../docs/rantevou.md)), where the client confirms or
 asks to reschedule; the validator accepts a variable in the URL path.
+Since **07/08/2026 the link also carries the meeting point** — inside the
+existing `address.latitude` guard it appends
+`?a={{ latitude }},{{ longitude }}`, because the public API never returns
+the appointment address, so the SMS template is the only carrier. The page
+trusts the coords only after a correct pin.
 They live in **Ρυθμίσεις → SMS → Πρότυπα** (editor
 `/settings/sms/view/{slug}/{lang}` — `new_appointment` / `appointment_reminder`,
 lang `1` = Ελληνικά, `2` = English (UK)); endpoint details in

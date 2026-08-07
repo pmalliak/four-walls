@@ -9,8 +9,18 @@
    πριν δοθούν τα 4 τελευταία ψηφία του κινητού της επαφής, με όριο
    προσπαθειών ανά ραντεβού και λήξη μετά το ραντεβού. Η σελίδα δεν
    περιέχει κανένα προσωπικό στοιχείο του πελάτη, μόνο ό,τι έγραψε το
-   γραφείο: τίτλο, ώρα, σημείωση, και την κάρτα ακινήτου αν ο τίτλος ή
-   η περιγραφή αναφέρει κωδικό (#123) που υπάρχει στο feed.
+   γραφείο: μέρα και ώρα, τίτλο, σημείωση, σημείο συνάντησης. Ακίνητα
+   ΔΕΝ εμφανίζονται σκόπιμα: ένα ραντεβού μπορεί να αφορά πολλά ή κανένα
+   (απόφαση Πάνου 07/08/2026).
+
+   ΤΟ ΣΗΜΕΙΟ ΣΥΝΑΝΤΗΣΗΣ έρχεται από το ΙΔΙΟ το SMS: το /api/calendar δεν
+   επιστρέφει τη διεύθυνση του ραντεβού (ελέγχθηκε και με POST, αγνοείται),
+   τη διεύθυνση όμως την ξέρει το SMS πρότυπο του CRM
+   (appointment.address), οπότε το link του SMS κουβαλά το στίγμα ως
+   ?a=<lat>,<lng> όταν υπάρχει. Για να μην μπορεί κάποιος να «δηλητηριάσει»
+   τον χάρτη πραγματικού ραντεβού με πλαστό ?a=, το στίγμα αποθηκεύεται
+   (KV rantevou:coords:<id>) ΜΟΝΟ μετά από σωστό pin, δηλαδή μόνο από τον
+   πραγματικό παραλήπτη του SMS.
 
      GET  /r/<id>        πύλη (ή στοιχεία, αν υπάρχει έγκυρο cookie)
      POST /r/<id>        pin=ψηφία  -> στοιχεία + cookie
@@ -32,9 +42,7 @@
    ===================================================================== */
 
 import { apiConfig } from "./estateprime.mjs";
-import { canonicalUrl, listingTitle, fmtNumber } from "./seo.mjs";
 
-const FEED_KEY = "listings.json"; // ίδιο με worker/index.mjs
 const CACHE_TTL = 600;            // δευτ. cache ραντεβού στο KV
 const NEG_TTL = 300;              // δευτ. cache για id που δεν βρέθηκε
 const TRIES_MAX = 8;              // προσπάθειες pin ανά ραντεβού ανά ώρα
@@ -73,12 +81,10 @@ const STR = {
 		changeAsked: "Το σημειώσαμε. Θα επικοινωνήσουμε μαζί σας για νέα ώρα.",
 		respondedSwap: "Αλλάξατε γνώμη; Πατήστε το άλλο κουμπί και θα ενημερωθούμε.",
 		ics: "ΠΡΟΣΘΗΚΗ ΣΤΟ ΗΜΕΡΟΛΟΓΙΟ",
-		listing: "Το ακίνητο του ραντεβού",
-		listingCta: "Δείτε το ακίνητο",
-		mapsCta: "Στον χάρτη",
+		meet: "Σημείο συνάντησης",
+		mapBtn: "ΑΝΟΙΓΜΑ ΣΤΟΝ ΧΑΡΤΗ",
 		call: "Αν βιάζεστε ή κάτι άλλαξε, καλέστε μας:",
 		footer: "Four Walls Real Estate · Φραγκίνη 9, 54624 Θεσσαλονίκη",
-		perMonth: "/μήνα",
 	},
 	en: {
 		docTitle: "Your appointment · Four Walls Real Estate",
@@ -99,12 +105,10 @@ const STR = {
 		changeAsked: "Noted. We will contact you to arrange a new time.",
 		respondedSwap: "Changed your mind? Press the other button and we will know.",
 		ics: "ADD TO CALENDAR",
-		listing: "The property of this appointment",
-		listingCta: "View the property",
-		mapsCta: "Open map",
+		meet: "Meeting point",
+		mapBtn: "OPEN THE MAP",
 		call: "In a hurry, or did something change? Call us:",
 		footer: "Four Walls Real Estate · 9 Fragkini st, 54624 Thessaloniki",
-		perMonth: "/month",
 	},
 };
 
@@ -140,37 +144,48 @@ export async function handleRantevou(request, env, url, pathname, ctx) {
 		if (!appt || appt.missing) return notFound();
 		const pin = url.searchParams.get("p") || "";
 		if (!authed && !(await pinOk(env, id, appt, pin))) return notFound();
-		return icsResponse(appt, lang);
+		return icsResponse(appt, lang, await storedCoords(env, id));
 	}
 
 	if (request.method === "POST") {
-		return handlePost(request, env, id, appt, lang, ctx);
+		return handlePost(request, env, id, appt, lang, ctx, url);
 	}
 
 	if (authed && appt && !appt.missing) {
 		const resp = await env.LISTINGS_KV.get(`rantevou:resp:${id}`, "json");
-		return page(detailsHtml(appt, lang, resp, appt.pin || ""), 200, S.docTitle);
+		return page(detailsHtml(appt, lang, resp, appt.pin || "", await storedCoords(env, id)), 200, S.docTitle);
 	}
-	return page(gateHtml(id, lang, null), 200, S.docTitle);
+	return page(gateHtml(id, lang, null, url.searchParams.get("a")), 200, S.docTitle);
 }
 
-async function handlePost(request, env, id, appt, lang, ctx) {
+async function handlePost(request, env, id, appt, lang, ctx, url) {
 	const S = STR[lang];
 	let form;
 	try { form = await request.formData(); } catch { form = new Map(); }
 	const pin = String(form.get("pin") || "").replace(/\D/g, "").slice(0, 4);
 	const action = String(form.get("action") || "");
+	const rawA = url?.searchParams.get("a") || null;
 
 	// Το όριο προσπαθειών μετράει ΚΑΘΕ λάθος pin, και για ανύπαρκτα id:
 	// αλλιώς η πύλη γίνεται μαντείο για το ποια ραντεβού υπάρχουν.
 	const triesKey = `rantevou:tries:${id}`;
 	const tries = Number(await env.LISTINGS_KV.get(triesKey)) || 0;
 	if (tries >= TRIES_MAX) {
-		return page(gateHtml(id, lang, S.gateLocked), 429, S.docTitle);
+		return page(gateHtml(id, lang, S.gateLocked, rawA), 429, S.docTitle);
 	}
 	if (!appt || appt.missing || !(await pinOk(env, id, appt, pin))) {
 		await env.LISTINGS_KV.put(triesKey, String(tries + 1), { expirationTtl: 3600 });
-		return page(gateHtml(id, lang, S.gateWrong), 200, S.docTitle);
+		return page(gateHtml(id, lang, S.gateWrong, rawA), 200, S.docTitle);
+	}
+
+	// Σωστό pin: αν το link κουβαλά στίγμα (?a= από το SMS πρότυπο), τώρα
+	// είναι η στιγμή που το εμπιστευόμαστε και το κρατάμε για τις επόμενες
+	// επισκέψεις (cookie, .ics), που δεν θα έχουν το query string.
+	const coords = parseCoords(rawA);
+	if (coords) {
+		const end = athensToUtcMs(appt.dateEnding || appt.dateStarting);
+		const ttl = Math.max(3600, end ? Math.floor((end + GRACE_MS - Date.now()) / 1000) : 3600);
+		await env.LISTINGS_KV.put(`rantevou:coords:${id}`, JSON.stringify(coords), { expirationTtl: ttl });
 	}
 
 	let resp = await env.LISTINGS_KV.get(`rantevou:resp:${id}`, "json");
@@ -225,7 +240,23 @@ async function handlePost(request, env, id, appt, lang, ctx) {
 	}
 
 	const headers = await cookieHeaders(env, id, appt);
-	return page(detailsHtml(appt, lang, resp, pin), 200, STR[lang].docTitle, headers);
+	return page(detailsHtml(appt, lang, resp, pin, coords || await storedCoords(env, id)), 200, STR[lang].docTitle, headers);
+}
+
+/* Το στίγμα του σημείου συνάντησης, όπως ήρθε από το ?a= του SMS link.
+   Δεκτό μόνο «lat,lng» με λογικές τιμές, οτιδήποτε άλλο αγνοείται. */
+function parseCoords(raw) {
+	const m = String(raw || "").match(/^(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)$/);
+	if (!m) return null;
+	const lat = Number(m[1]);
+	const lng = Number(m[2]);
+	if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+	if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+	return { lat, lng };
+}
+
+async function storedCoords(env, id) {
+	return env.LISTINGS_KV.get(`rantevou:coords:${id}`, "json");
 }
 
 /* ---------------------------------------------------------------------
@@ -267,7 +298,6 @@ async function loadAppointment(env, id) {
 				dateEnding: ev.date_ending || ev.date_starting || "",
 				pin,
 				lang,
-				listing: await matchListing(env, `${ev.title || ""} ${ev.description || ""}`),
 			};
 		}
 	} catch (err) {
@@ -280,37 +310,6 @@ async function loadAppointment(env, id) {
 		expirationTtl: record.missing ? NEG_TTL : CACHE_TTL,
 	});
 	return record;
-}
-
-/* «#117» ή «κωδ. 117» στον τίτλο ή στην περιγραφή -> κάρτα ακινήτου από το
-   feed. Χωρίς αναφορά κωδικού η σελίδα απλώς δεν δείχνει κάρτα. */
-async function matchListing(env, text) {
-	const m = text.match(/#\s*(\d{2,})/) || text.match(/κωδ\.?\s*(\d{2,})/i);
-	if (!m) return null;
-	try {
-		const feed = await env.LISTINGS_KV.get(FEED_KEY, "json");
-		const l = (feed?.listings || []).find((x) => String(x.code) === m[1]);
-		if (!l) return null;
-		// Link χάρτη μόνο με πραγματικές συντεταγμένες: όταν το CRM κρύβει τη
-		// διεύθυνση (fake/κύκλος), η «τοποθεσία» θα οδηγούσε τον πελάτη σε
-		// λάθος σημείο, οπότε καλύτερα κανένα link από ένα παραπλανητικό.
-		const maps = l.location?.lat != null && l.location?.lng != null && !l.location?.approximate
-			? `https://maps.google.com/?q=${l.location.lat},${l.location.lng}`
-			: null;
-		return {
-			code: l.code,
-			titleEl: listingTitle(l, "el"),
-			titleEn: listingTitle(l, "en"),
-			image: Array.isArray(l.images) && l.images[0] ? l.images[0] : null,
-			price: l.price,
-			transaction: l.transaction,
-			urlEl: canonicalUrl(l, "el"),
-			urlEn: canonicalUrl(l, "en"),
-			maps,
-		};
-	} catch {
-		return null;
-	}
 }
 
 /* ---------------------------------------------------------------------
@@ -437,9 +436,11 @@ function page(body, status, title, extraHeaders = {}) {
 	.card { background:#fff; border-radius:10px; box-shadow:0 2px 10px rgba(22,35,58,.08); padding:26px 22px; }
 	h1 { font-size:20px; color:#16233A; margin:0 0 14px; }
 	p { line-height:1.55; }
-	.row { margin:0 0 12px; }
+	.row { margin:0 0 14px; }
 	.label { font-size:11px; letter-spacing:.08em; color:#8a93a3; text-transform:uppercase; margin:0 0 2px; }
 	.value { font-size:17px; color:#16233A; font-weight:bold; margin:0; }
+	.when { font-size:22px; color:#16233A; font-weight:bold; margin:0; line-height:1.3; }
+	.maplink { display:inline-block; margin-top:6px; color:#FF1462; font-weight:bold; text-decoration:none; }
 	.btn { display:block; text-align:center; padding:13px 18px; border-radius:8px; border:0; width:100%;
 		font-size:14px; font-weight:bold; letter-spacing:.04em; cursor:pointer; text-decoration:none;
 		box-sizing:border-box; margin:0 0 10px; font-family:inherit; }
@@ -451,10 +452,6 @@ function page(body, status, title, extraHeaders = {}) {
 	input[type=text]:focus { outline:none; border-color:#FF1462; }
 	.error { background:#fdecf2; color:#b00040; border-radius:8px; padding:10px 14px; font-size:14px; }
 	.ok { background:#eaf7ef; color:#1a6b3c; border-radius:8px; padding:12px 14px; font-size:15px; }
-	.listing { border:1px solid #e6e9ef; border-radius:10px; overflow:hidden; margin:18px 0 6px; }
-	.listing .shot { background:#16233A; text-align:center; }
-	.listing .shot img { max-width:100%; max-height:240px; vertical-align:middle; }
-	.listing .body { padding:12px 14px; }
 	.footer { text-align:center; font-size:12px; color:#8a93a3; margin-top:22px; line-height:1.6; }
 	.footer a { color:#8a93a3; }
 	.call { text-align:center; font-size:14px; margin-top:18px; }
@@ -482,13 +479,17 @@ function callBlock(S) {
 	<p class="footer">${esc(S.footer)}</p>`;
 }
 
-function gateHtml(id, lang, error) {
+function gateHtml(id, lang, error, rawA) {
 	const S = STR[lang];
+	// Το ?a= (στίγμα από το SMS) πρέπει να επιζήσει του POST της πύλης,
+	// γι' αυτό μένει πάνω στο action. Μπαίνει μόνο αν είναι έγκυρο στίγμα,
+	// ώστε το action να μην γίνεται όχημα για σκουπίδια.
+	const keepA = parseCoords(rawA) ? `?a=${encodeURIComponent(rawA)}` : "";
 	return `<div class="card">
 	<h1>${esc(S.docTitle.split(" · ")[0])}</h1>
 	<p>${esc(S.gateLead)}</p>
 	${error ? `<p class="error">${esc(error)}</p>` : ""}
-	<form method="POST" action="/r/${esc(id)}">
+	<form method="POST" action="/r/${esc(id)}${keepA}">
 		<input type="text" name="pin" inputmode="numeric" autocomplete="one-time-code"
 			pattern="[0-9]{4}" maxlength="4" placeholder="${esc(S.gatePlaceholder)}" required>
 		<button class="btn btn-pink" type="submit">${esc(S.gateBtn)}</button>
@@ -505,13 +506,9 @@ function expiredHtml(S) {
 ${callBlock(S)}`;
 }
 
-function detailsHtml(appt, lang, resp, pin) {
+function detailsHtml(appt, lang, resp, pin, coords) {
 	const S = STR[lang];
 	const cat = CATEGORIES[appt.categoryId]?.[lang] || CATEGORIES[6][lang];
-	const l = appt.listing;
-	const price = l && l.price != null
-		? `€${fmtNumber(l.price, lang)}${l.transaction === "rent" ? S.perMonth : ""}`
-		: "";
 	const respBlock = resp
 		? `<p class="ok">${esc(resp.action === "confirm" ? S.confirmed : S.changeAsked)}</p>
 		   <p style="font-size:13px;color:#8a93a3;">${esc(S.respondedSwap)}</p>`
@@ -519,18 +516,11 @@ function detailsHtml(appt, lang, resp, pin) {
 	return `<div class="card">
 	<h1>${esc(cat)}</h1>
 	${respBlock}
-	<div class="row"><p class="label">${esc(S.when)}</p><p class="value">${esc(fmtWhen(appt, lang))}</p></div>
+	<div class="row"><p class="label">${esc(S.when)}</p><p class="when">${esc(fmtWhen(appt, lang))}</p></div>
+	${coords ? `<div class="row"><p class="label">${esc(S.meet)}</p>
+		<a class="maplink" href="https://maps.google.com/?q=${coords.lat},${coords.lng}">${esc(S.mapBtn)} ↗</a></div>` : ""}
 	${appt.title ? `<div class="row"><p class="label">${esc(S.what)}</p><p class="value">${esc(appt.title)}</p></div>` : ""}
 	${appt.description ? `<div class="row"><p class="label">${esc(S.note)}</p><p style="margin:0;">${escWithLinks(appt.description)}</p></div>` : ""}
-	${l ? `<div class="listing">
-		${l.image ? `<div class="shot"><img src="${esc(l.image)}" alt=""></div>` : ""}
-		<div class="body">
-			<p class="label">${esc(S.listing)}</p>
-			<p style="margin:0 0 8px;font-weight:bold;color:#16233A;">${esc(lang === "en" ? l.titleEn : l.titleEl)}${price ? ` · ${esc(price)}` : ""}</p>
-			<a href="${esc(lang === "en" ? l.urlEn : l.urlEl)}" style="color:#FF1462;font-weight:bold;text-decoration:none;">${esc(S.listingCta)} →</a>
-			${l.maps ? ` &nbsp;·&nbsp; <a href="${esc(l.maps)}" style="color:#16233A;font-weight:bold;text-decoration:none;">${esc(S.mapsCta)} ↗</a>` : ""}
-		</div>
-	</div>` : ""}
 	<form method="POST" action="/r/${esc(appt.id)}" style="margin-top:18px;">
 		<input type="hidden" name="pin" value="${esc(pin)}">
 		${!resp || resp.action !== "confirm" ? `<button class="btn btn-pink" type="submit" name="action" value="confirm">${esc(S.confirmBtn)}</button>` : ""}
@@ -557,8 +547,7 @@ function icsLocal(s) {
 	return `${p.y}${pad(p.mo)}${pad(p.d)}T${pad(p.h)}${pad(p.mi)}00`;
 }
 
-function icsResponse(appt, lang) {
-	const S = STR[lang];
+function icsResponse(appt, lang, coords) {
 	const cat = CATEGORIES[appt.categoryId]?.[lang] || CATEGORIES[6][lang];
 	const pad = (n) => String(n).padStart(2, "0");
 	const now = new Date();
@@ -598,6 +587,9 @@ function icsResponse(appt, lang) {
 		times,
 		`SUMMARY:${icsEsc(summary)}`,
 		appt.description ? `DESCRIPTION:${icsEsc(appt.description)}` : "",
+		// Το στίγμα ανοίγει πλοήγηση από το ίδιο το ημερολόγιο του κινητού.
+		coords ? `LOCATION:${icsEsc(`https://maps.google.com/?q=${coords.lat},${coords.lng}`)}` : "",
+		coords ? `GEO:${coords.lat};${coords.lng}` : "",
 		`URL:${SITE_ORIGIN}/r/${appt.id}`,
 		`CONTACT:Four Walls Real Estate ${PHONE_DISPLAY}`,
 		"END:VEVENT",

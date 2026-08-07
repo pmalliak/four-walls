@@ -502,6 +502,22 @@ documents/emails (see [forms-submit.md](forms-submit.md)); the stock EstatePrime
 originals are backed up in `%LOCALAPPDATA%\FourWalls\estateprime-template-backups\`.
 The English (lang 2) variants still hold the stock EstatePrime content.
 
+## Calendar / ραντεβού (probed 2026-08-06, POST verified 2026-08-07)
+
+- `GET /calendar?page=N` + `GET /calendar/{id}` — τα ραντεβού του ημερολογίου
+  (το `/appointments` ΔΕΝ υπάρχει). Πεδία: `id, store_id, full_day,
+  date_starting, date_ending, status_id, category_id, contacts[], users[],
+  title, description, is_online, remote_meeting`. **Χωρίς** διεύθυνση/
+  συντεταγμένες και χωρίς σύνδεση με ακίνητο — γι' αυτό η σελίδα ραντεβού
+  ([rantevou.md](rantevou.md)) διαβάζει τον κωδικό ακινήτου από τον τίτλο.
+- `POST /calendar` **δουλεύει** (αχαρτογράφητο στο spec): JSON με `title,
+  description, date_starting, date_ending, category_id, contacts[], users[]`
+  **συν τα υποχρεωτικά `status_id, created_by, store_id`** (τα ζητάει ένα-ένα
+  με 400). Επιστρέφει `{status:200, created_id}`. Χρήσιμο για μελλοντικό
+  flow υπενθυμίσεων εκτός CRM (π.χ. Viber μέσω Make).
+- `DELETE /calendar/{id}` δουλεύει επίσης: `{status:200, deleted_id}`
+  (επαληθεύτηκε 2026-08-07 στο δοκιμαστικό ραντεβού #21).
+
 ## SMS templates (internal web endpoints, mapped 2026-07-25)
 
 `/settings/sms#tab-templates` lists the system SMS templates by **slug** (not
@@ -565,8 +581,62 @@ records. And `listing_id` is documented as a **body** param: it is accepted in
 the query string and returns `200`, but with an empty table there is no proof
 it actually filters, so **re-filter client-side** rather than trusting it.
 
+## Tasks / υποχρεώσεις (probed 2026-08-07, POST verified)
+
+Το `TaskInput` schema **δεν είναι στο yaml** (κομμένο), αλλά το endpoint
+απαντά καθαρά. Live shape ενός task:
+
+```
+id, title, description (HTML), created_by, date_created, date_updated,
+due_date (YYYY-MM-DD ή null), status_id, category_id, priority
+("low"|"normal"|"high"), project_id, is_star, users[], contacts[], tags[]
+```
+
+- `POST /tasks` → `{status:200, created_id:"8"}`. **Υποχρεωτικά (τα ζητάει
+  ένα-ένα με 400, με αυτή τη σειρά): `title`, `created_by`, `users[]`,
+  `priority`, `status_id`.** Το `store_id` **δεν** χρειάζεται εδώ (αντίθετα
+  με το `/calendar`). Προαιρετικά: `description, category_id, due_date,
+  contacts[], tags[]`.
+- **Συνημμένο σε task δεν υπάρχει.** Δοκιμάστηκαν `files`, `file_ids`,
+  `attachments`, `listing_id`, `listing_ids` στο POST: γίνονται δεκτά με 200
+  και **αγνοούνται σιωπηλά** (το GET του task δεν τα επιστρέφει). Το μόνο
+  που κρατά ένα task είναι `users[]`, `contacts[]`, `tags[]`. Ένα PDF
+  μπαίνει στο task μόνο ως **link μέσα στο `description`** (δέχεται HTML).
+- `GET /tasks?page=N`, `GET /tasks/{id}`, `DELETE /tasks/{id}` (soft-delete,
+  μετά 404). **Δεν υπάρχει PUT/PATCH**: ένα task το κλείνει άνθρωπος μέσα
+  στο CRM, δεν το κλείνει αυτοματισμός (εκτός αν χαρτογραφηθεί το internal
+  `/tasks/view/{id}`, ίδιο pattern με τις επαφές και τις ζητήσεις παραπάνω).
+- Καμία σύνδεση με **ακίνητο** (μόνο `contacts[]`), όπως και στο ημερολόγιο,
+  άρα ο κωδικός ακινήτου μπαίνει στον τίτλο.
+- `GET /tasks/statuses` → `1 Σε εκκρεμότητα · 2 Σε εξέλιξη · 3 Σε παύση ·
+  4 Ολοκληρωμένο · 5 Ακυρώθηκε`.
+- `GET /tasks/categories` → `1 Συμβόλαια · 2 Αναθέσεις · 3 Ζητήσεις ·
+  4 Διάφορα`. `tags` και `custom-fields` είναι άδεια.
+- Χρήστες (`GET /users`): **1 = Αφεντούλα** (info@), **2 = Μάνος** (manos@).
+- Προσοχή: το `priority` γυρίζει **string** στο GET, ενώ το spec το
+  τεκμηριώνει ως `1|2|3` στα φίλτρα του GET. Στο POST περνάει string.
+
+## Files / αρχεία (probed 2026-08-07, read-only in practice)
+
+`GET /files?page=N` επιστρέφει `id, file_name, url, size, date_created,
+user_id, contact_id, listing_id, folder_id`. Το `url` δείχνει σε
+`https://files.estateprime.gr/<account-hash>/files/<opaque>.pdf`.
+
+- **Δεν γράφεται από το API.** `POST /files` απαντά **`200` με άδειο σώμα**
+  και **δεν δημιουργεί τίποτα** (επαληθεύτηκε: το πλήθος έμεινε 3). Μην το
+  εκλάβεις ως επιτυχία. Το spec εκθέτει μόνο `get`.
+- Τα paths `/files/categories` και `/files/types` **δεν υπάρχουν**: γυρίζουν
+  αυτούσια τη λίστα αρχείων (το suffix αγνοείται), οπότε ένα `200` εκεί δεν
+  σημαίνει ότι το endpoint είναι πραγματικό. `GET /files/folders` υπάρχει
+  και είναι άδειο.
+- Τα 3 αρχεία μέσα (2026-08-07) είναι υπογεγραμμένα PDF εντύπων που ανέβασε
+  **με το χέρι** η γραμματεία (`user_id: 1`) από τα «ΓΙΑ ΑΡΧΕΙΟ CRM» email
+  του σεναρίου εντύπων, βλ. [forms-submit.md](forms-submit.md).
+- Για upload χωρίς άνθρωπο θα χρειαστεί το **internal web endpoint με
+  session cookie** (ίδιο pattern με τα document templates), αχαρτογράφητο.
+
 ## Other resources (exist, unused)
 
-Calendar, Communication, Contracts, Expenses, External Listings, Files,
-Incomes, Knowledge Base, Locations, Reminders (POST only), Requests,
-Tasks, Users, Webmail. Support: tech@estateprime.gr.
+Communication, Contracts, Expenses, External Listings, Incomes,
+Knowledge Base, Locations, Reminders (POST only), Webmail.
+Support: tech@estateprime.gr.
