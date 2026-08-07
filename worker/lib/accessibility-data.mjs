@@ -1426,5 +1426,68 @@ export const ACCESSIBILITY = {
 				]
 			}
 		}
+	},
+	"134": {
+		"lat": 40.6332434,
+		"lng": 22.9448795,
+		"profile": "home",
+		"scores": {
+			"transit": {
+				"band": "excellent",
+				"type": "metro",
+				"m": 174,
+				"also": [
+					{
+						"type": "bus",
+						"m": 48
+					}
+				]
+			},
+			"errands": {
+				"band": "excellent",
+				"type": "bakery",
+				"m": 18,
+				"also": [
+					{
+						"type": "pharmacy",
+						"m": 36
+					},
+					{
+						"type": "supermarket",
+						"m": 50
+					}
+				]
+			},
+			"education": {
+				"band": "excellent",
+				"type": "kindergarten",
+				"m": 24,
+				"also": [
+					{
+						"type": "school",
+						"m": 53
+					},
+					{
+						"type": "college",
+						"m": 447
+					}
+				]
+			},
+			"leisure": {
+				"band": "excellent",
+				"type": "dining",
+				"m": 10,
+				"also": [
+					{
+						"type": "park",
+						"m": 58
+					},
+					{
+						"type": "gym",
+						"m": 259
+					}
+				]
+			}
+		}
 	}
 };
