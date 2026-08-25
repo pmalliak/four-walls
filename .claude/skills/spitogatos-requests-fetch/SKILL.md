@@ -107,7 +107,12 @@ Gotchas learned 2026-08-24:
   though it says "phone"). The lead then lands in `skipped` and is silently lost. `dedupeContact`
   falls back to an email search and, when it matches that way, emits a **warning** that the stored
   contact still carries the old number, so the office rings the number the lead actually used.
-  Seen with Βασίλης Καστάνης (contact 148, lead 511239).
+  Seen with Βασίλης Καστάνης (contact 148, lead 511239). Fix the stale number with
+  **`headless/add-contact-phone.mjs --id 148 --phone +30… --star`** (`--dry` first): it reads the
+  `show_edit=phones` modal, re-sends the whole section with a `new_phone[]` row appended, then
+  stars the new number so the CRM calls the one the lead actually used. Careful if you edit it:
+  the in-page code lives in a template literal, so node eats backslashes before the browser sees
+  them, which is why that file uses string methods instead of regexes inside the eval.
 - **A dead Edge kills crm-post at the first eval** (`ECONNREFUSED 127.0.0.1:9222`), which is the
   *safe* failure: nothing was posted. Re-run `ensure-apps.ps1` and, before re-posting, read
   `/api/requests` back and compare the highest id against the last one you know landed. Only
