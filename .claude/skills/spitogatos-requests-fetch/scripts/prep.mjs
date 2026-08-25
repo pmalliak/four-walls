@@ -135,11 +135,20 @@ async function activeRequestsOf(contactId) {
 }
 
 // ---- contact ----
-async function dedupePhone(phone) {
-	const digits = phone.replace(/\D/g, "").replace(/^30/, ""); // search on national digits
-	const { body } = await apiGet("/contacts?search=" + encodeURIComponent(digits));
-	const arr = body && body.data;
-	return Array.isArray(arr) && arr.length ? arr[0].id : null;
+// Dedupe on phone FIRST, then on email. The CRM enforces uniqueness on both, so a
+// customer who changed mobile is invisible to a phone-only lookup and the create
+// then 400s with «… is already in use», so the lead is dropped instead of being
+// attached to the person it belongs to. Seen 2026-08-24: Βασίλης Καστάνης kept
+// bilakosk75@gmail.com on contact 148 but submitted from a new number.
+async function dedupeContact(phone, email) {
+	const digits = (phone || "").replace(/\D/g, "").replace(/^30/, ""); // search on national digits
+	for (const [term, by] of [[digits, "phone"], [email, "email"]]) {
+		if (!term) continue;
+		const { body } = await apiGet("/contacts?search=" + encodeURIComponent(term));
+		const arr = body && body.data;
+		if (Array.isArray(arr) && arr.length) return { id: arr[0].id, by };
+	}
+	return null;
 }
 async function createContact(l) {
 	const notes = [
@@ -209,9 +218,13 @@ for (const l of leads) {
 	if (looksLikeAgency(l)) { skipped.push({ id, why: `μεσιτικό γραφείο (${l.firstName} ${l.lastName} / ${l.email}) — δεν δημιουργείται` }); continue; }
 
 	const warnings = [];
-	// dedupe by phone (existing contact -> reuse; a new ζήτηση/comm are still added)
-	let contactId = await dedupePhone(l.telephone);
+	// dedupe by phone, then email (existing contact -> reuse; a new ζήτηση/comm are still added)
+	const found = await dedupeContact(l.telephone, l.email);
+	let contactId = found && found.id;
 	let contactStatus = contactId ? "reused" : "created";
+	// A match on email alone means the number on file is stale: say so, the office
+	// should ring the number the lead just used, not the old one.
+	if (found && found.by === "email") warnings.push(`επαφή βρέθηκε από το email, όχι από το τηλέφωνο: το lead δίνει ${normPhone(l.telephone)}, έλεγξε αν η επαφή ${contactId} κρατά παλιό κινητό`);
 	if (!contactId) {
 		const c = await createContact(l);
 		if (c.http !== 200 || !c.id) { skipped.push({ id, why: `contact create failed: ${c.http} ${c.err || ""}` }); continue; }

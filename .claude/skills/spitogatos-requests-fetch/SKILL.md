@@ -36,6 +36,7 @@ From the repo root (order matters; each is a no-op if already done/logged in):
 0. `powershell -ExecutionPolicy Bypass -File .claude/skills/spitogatos-requests-fetch/scripts/ensure-apps.ps1`
    — starts Spark + Edge; see step 0 in the Procedure.
 1. `node …/headless/enumerate.mjs 2026/07/10 <processed.json> enquiries.json` — Spark CLI email sweep (step 1).
+   No Spark? `node …/headless/enumerate-dash.mjs fresh.json` reads the same leads off the dashboard.
 2. `node …/headless/crm-login.mjs` + `node …/headless/sg-login.mjs` — log in via Bitwarden CLI creds
    (item ids pinned in `bw.mjs`). Spitogatos 2FA code is auto-read from Spark. Remember-me is ticked,
    so the profile keeps both sessions across runs.
@@ -67,16 +68,50 @@ Gotchas learned 2026-07-27:
 - **Spark Desktop dead ⇒ enumerate from the dashboard**: if Spark won't start (2026-07-27 it
   refused to launch from any shell — instant silent exit 0, no log/crash — yet opened fine when
   Panos clicked it), `ensure-apps.ps1` says so and exits 1. Ask Panos to click the icon; if that
-  is not an option, re-run it with `-SkipSpark`, then
-  open `live.spitogatos.gr/leads/searchEnquiries` in the CDP tab and capture the
-  page's OWN `GET /api/search-enquiries?page=1&perPage=25&…` XHR via Network events (one page-load,
-  human-identical — NOT a bulk sweep). Page 1 covers ~25 leads ≈ several days; confirm the oldest
-  rows overlap `processed.json` so there is no gap, and cross-check with `enumerate.mjs` once Spark
-  is back. The list rows lack `rooms/floorNumber/elevator` detail — still run sg-fetch(-nav) per id.
+  is not an option, re-run it with `-SkipSpark`, then run **`headless/enumerate-dash.mjs`**
+  (see the 2026-08-20 entry below). It captures the page's OWN
+  `GET /api/search-enquiries?page=N&perPage=25&…` XHRs via Network events (human-identical page
+  loads, NOT a bulk sweep). Page 1 covers ~25 leads ≈ several days; the script keeps clicking
+  «next» until the rows overlap `processed.json` so there is no gap. Cross-check with
+  `enumerate.mjs` once Spark is back. The list rows lack `rooms/floorNumber/elevator` detail and
+  carry area *names* rather than `geographyIds`, so still run sg-fetch(-nav) per id.
 - **CRM eval fetches got slow, not stuck**: crm-post now takes ~30s per lead (Cloudflare), ~8min
   for 15 — let it finish. Before assuming a hang or re-posting, read back
   `GET /api/requests` (needs `Content-Type: application/json` even on GET, else 415) to see what
   actually landed — a re-run of an already-landed POST would duplicate the ζήτηση.
+
+Gotchas learned 2026-08-20:
+- **Spark refuses a shell launch, but starts fine from explorer.exe.** `Start-Process` on
+  `Spark Desktop.exe` left no process at all (the 2026-07-27 symptom again), yet
+  `Start-Process explorer.exe -ArgumentList '<path>'` brought it up and the CLI answered
+  immediately. explorer is what a desktop double-click goes through, which is exactly the launch
+  Panos does by hand. `ensure-apps.ps1` now retries that way on its own, so **do not ask Panos to
+  click the icon before the retry has failed too**.
+- **The dashboard SPA ignores `?page=N` on the page URL.** It re-requests page=1 every time, so
+  navigating per page silently gives you the same 25 rows over and over (looks like 5 pages of
+  data, is really one). Walk back in time by clicking the real arrow,
+  `button.pagination--next:not(.is--disabled)`. `headless/enumerate-dash.mjs` does this and stops
+  at the first overlap with `processed.json`.
+- **The list rows key the lead as `searchEnquiryId`, not `id`.** An overlap check against
+  `processed.json` on `r.id` silently never matches and walks the pager to its limit.
+- **Same person, same ζήτηση, twice in one window ⇒ drop the older one before prep.** `prep.mjs`
+  fills `supersedes` from the CRM's *existing* active requests, so two resubmits inside the SAME
+  batch both come through as new (the first one is not in the CRM yet when the second is prepped).
+  Check the fetched details for duplicate `telephone` values first and keep only the newest,
+  recording the older in `skipped_duplicates` (2026-08-20: Αθανασιάδου 509990 → 510275).
+
+Gotchas learned 2026-08-24:
+- **Dedupe now checks phone THEN email.** The CRM enforces uniqueness on both, but prep only
+  looked up the phone, so a customer who changed mobile came back as a NEW contact and the create
+  died with `400 Phone number <their email> is already in use` (the message names the email even
+  though it says "phone"). The lead then lands in `skipped` and is silently lost. `dedupeContact`
+  falls back to an email search and, when it matches that way, emits a **warning** that the stored
+  contact still carries the old number, so the office rings the number the lead actually used.
+  Seen with Βασίλης Καστάνης (contact 148, lead 511239).
+- **A dead Edge kills crm-post at the first eval** (`ECONNREFUSED 127.0.0.1:9222`), which is the
+  *safe* failure: nothing was posted. Re-run `ensure-apps.ps1` and, before re-posting, read
+  `/api/requests` back and compare the highest id against the last one you know landed. Only
+  re-post when none of the batch's contacts already carry a new ζήτηση.
 
 ## Auth split (important)
 - **`/api/*`** (contacts, locations, requests-read, verification) = **HTTP Basic** → run from **node**.

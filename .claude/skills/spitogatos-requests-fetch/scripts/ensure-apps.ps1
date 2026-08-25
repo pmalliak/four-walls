@@ -88,6 +88,16 @@ if ($SkipSpark) {
 	} else {
 		Say '+' 'Spark: starting minimized...'
 		Start-Process -FilePath $SPARK_EXE -WindowStyle Minimized | Out-Null
+		Start-Sleep -Seconds 3
+		# Spark sometimes exits instantly and silently when launched from a shell
+		# (2026-07-27, again 2026-08-20). Handing the path to explorer.exe makes the
+		# launch look like a desktop double-click, and that one works. Verified
+		# 2026-08-20, after the direct Start-Process left no process at all.
+		if (@(Get-Process -Name 'Spark Desktop' -ErrorAction SilentlyContinue).Count -eq 0) {
+			Say ' ' '  direct launch died. Retrying via explorer.exe (desktop-click equivalent)...'
+			Start-Process explorer.exe -ArgumentList "`"$SPARK_EXE`"" | Out-Null
+			Start-Sleep -Seconds 12
+		}
 		if (Minimize-Proc 'Spark Desktop') { Say ' ' '  window minimized.' }
 		else { Say ' ' '  no window appeared yet (tray start?) — continuing.' }
 	}
