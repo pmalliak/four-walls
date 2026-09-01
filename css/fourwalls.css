@@ -813,6 +813,15 @@
    focus ring, leaving keyboard users nothing to follow. */
 #fw-thumbs button:focus-visible { outline-color: #1C3457; }
 
+/* The rail carries one indicator per slide, because Bootstrap's carousel
+   assumes it does (listings.fw.js), but the panel has room for five. The
+   rest are marked [hidden] there and taken out of the flow (and the tab
+   order) here, the same trick the phone rule below already plays on the
+   fifth thumb. Hiding them costs the carousel nothing: it looks its
+   indicators up in the DOM, where they still are. Spacing is the flex
+   `gap` below, which skips them, so nothing shifts. */
+#fw-thumbs button[hidden] { display: none; }
+
 /* Thumbnail column, desktop only (below lg the theme lays it out as a strip
    under the photo). The theme stacks the thumbs from the top with a fixed
    25px gap while the white panel is stretched to the height of the photo

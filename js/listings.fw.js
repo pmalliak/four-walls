@@ -38,6 +38,14 @@
 	   forever). images/no-photo.fw.svg is a 16:9 branded panel instead. */
 	var NO_PHOTO = "images/no-photo.fw.svg";
 
+	/* Detail-page gallery: how many photos the inline carousel carries, and
+	   how many of its thumbs the panel beside it shows. MAX_SHOTS is the
+	   count for BOTH slides and indicators (see the gallery block); only
+	   the first VISIBLE_THUMBS thumbs are drawn. Every photo is in the
+	   fullscreen gallery behind the «φωτογραφίες» button regardless. */
+	var MAX_SHOTS = 8;
+	var VISIBLE_THUMBS = 5;
+
 	/* «Επιλεγμένο ακίνητο του μήνα» (index) — normally driven by the CRM:
 	   the listing tagged FEATURED_TAG in EstatePrime arrives in the feed
 	   with featured:true (see worker/lib/estateprime.mjs). This code (the
@@ -959,9 +967,17 @@
 
 		/* gallery */
 		var photos = l.images.length ? l.images : [NO_PHOTO];
+		/* One list drives the slides AND the thumb rail. Bootstrap's carousel
+		   assumes every slide has an indicator: _setActiveIndicatorElement()
+		   guards the incoming indicator but dereferences the outgoing .active
+		   one. Eight slides against five thumbs meant that sliding past photo
+		   five left the rail with nothing active, and the slide after that threw
+		   «Cannot read properties of null (reading 'classList')». Three users
+		   hit it swiping a listing on the phone (Bugsnag, 21-22/08/2026). */
+		var shown = photos.slice(0, MAX_SHOTS);
 		var inner = document.getElementById("fw-gallery");
 		inner.textContent = "";
-		photos.slice(0, 8).forEach(function (src, i) {
+		shown.forEach(function (src, i) {
 			var item = el("div", "carousel-item" + (i === 0 ? " active" : ""));
 			var img = document.createElement("img");
 			img.src = src;
@@ -974,14 +990,17 @@
 		});
 		var thumbs = document.getElementById("fw-thumbs");
 		thumbs.textContent = "";
-		/* Five, not four: at 16:9 that is what fills the white panel beside
-		   the photo without leaving a gap under the last one (fourwalls.css). */
-		photos.slice(0, 5).forEach(function (src, i) {
+		/* Five are visible: at 16:9 that is what fills the white panel beside
+		   the photo without leaving a gap under the last one (fourwalls.css).
+		   The rest are rendered hidden so the carousel always has an indicator
+		   to hand over to, per the note on `shown` above. */
+		shown.forEach(function (src, i) {
 			var b = document.createElement("button");
 			b.type = "button";
 			b.setAttribute("data-bs-target", "#media_slider");
 			b.setAttribute("data-bs-slide-to", String(i));
 			if (i === 0) { b.className = "active"; b.setAttribute("aria-current", "true"); }
+			if (i >= VISIBLE_THUMBS) b.hidden = true;
 			b.setAttribute("aria-label", STR.photoN(i + 1));
 			var img = document.createElement("img");
 			img.src = src;
