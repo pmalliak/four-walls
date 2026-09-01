@@ -181,6 +181,12 @@ kitchen units and worktop, built-in appliances, fitted wardrobes, radiators,
 A/C units, boilers, wired-in light fittings, doors, frames, skirting, and
 every surface.
 
+The line is drawn by **whether it could be carried out**, never by size, and
+that has to be said in those words: a full-height wardrobe standing flush
+against a wall reads as built-in to the model and stayed put on the first
+real batch. Only a unit set into a recess with no sides or back of its own,
+or screwed into a fitted run, counts as built in; when in doubt it goes.
+
 **No disclaimer overlay.** Unlike staging, this invents nothing: it shows the
 property as it will actually be handed over. What it *does* is uncover
 surfaces the furniture was hiding, so two clauses guard the honesty of that:
@@ -196,6 +202,16 @@ the same way they did for `render_finished`:
   it lists as present must still be there afterwards" then forbids the job.
   The clearing variant splits the inventory in two: furnishings go,
   everything fixed stays. It takes precedence over the `adding` variant.
+  **Pass 1's own sections had to be split first** (fixed 01/09/2026, after a
+  free-standing wardrobe survived a clear-out): the survey files everything
+  under `FIXTURES AND FITTINGS: every permanent item **and every significant
+  piece of furniture**`, and pass 2 keeps whatever it finds there, so the
+  wardrobe was protected by the very grounding meant to keep the edit honest.
+  `composeInventoryPrompt()` now swaps that heading for a strictly
+  build-in-only one and adds a second `FURNITURE AND MOVABLE ITEMS` section
+  whenever `empty_room` is on, and the edit prompt points at the two sections
+  by name instead of asking the model to judge "loose" for itself. Every
+  other batch gets the survey byte for byte unchanged.
 - the **HARD RULES**, which forbid removing any permanent feature. A sentence
   now draws the boundary where the model reads it last: clearing covers loose
   furnishings only, and the emptied surfaces keep their marks and wear.

@@ -112,6 +112,16 @@ const DEFAULT_TIER = "nb2";
    fixture seen in a reference tends to bleed into the edit. */
 // NOTE: no double quotes anywhere in this string — Make interpolates it
 // into a hand-written JSON body, and a stray " would break the request.
+//
+// The survey's own section headings are load-bearing, because pass 2 keeps
+// whatever pass 1 filed under fixtures. Lumping "every significant piece of
+// furniture" in with the permanent items is right for a normal retouch and
+// wrong for «άδειασμα»: a free-standing wardrobe recorded as a fixture came
+// back untouched from a cleared room (reported 2026-09-01). When clearing,
+// the survey draws the movable/fixed line itself, in two sections.
+const INVENTORY_FIXTURES_DEFAULT = "FIXTURES AND FITTINGS: every permanent item and every significant piece of furniture, each with its type, style, material, colour and finish.";
+const INVENTORY_FIXTURES_CLEARING = "FIXTURES AND FITTINGS: every item that is part of the building itself and stays behind when the occupier moves out, meaning anything plumbed in, wired into the electrics, screwed or bolted to the structure, or built into a recess with no sides or back of its own. Give each one its type, style, material, colour and finish. Anything that merely stands on the floor or hangs from a hook goes in the FURNITURE section instead, however large, heavy or neatly fitted it looks.";
+const INVENTORY_MOVABLES = "FURNITURE AND MOVABLE ITEMS: list here, separately, everything that is NOT part of the building and would leave on the van if the occupier moved out today: sofas, armchairs, chairs, stools, coffee and dining tables, desks, beds and mattresses, chests of drawers, shelving and bookcases, sideboards, TV units, free-standing wardrobes and cupboards, rugs and mats, curtains and blinds with their poles and rails, cushions and bed linen, towels, pictures, hung mirrors, clocks, plants, ornaments, books, televisions, plug-in lamps, and any fridge, washing machine, dishwasher or cooker that simply stands in place rather than being built in. Judge each item by whether it could be carried out of the room, NEVER by its size: a full-height wardrobe standing flush against a wall, or one filling a wall end to end, is furniture and belongs in this list. If you are genuinely unsure whether something is built in, put it here and say why you were unsure.";
 const INVENTORY_PROMPT = [
 	"You are surveying ONE photograph of a property for a real-estate listing, so that a photo editor can retouch it WITHOUT changing anything that is really there. Be precise and exhaustive; plain text only, no markdown.",
 	"Use exactly these labelled sections, each on its own line:",
@@ -122,11 +132,24 @@ const INVENTORY_PROMPT = [
 	"VIEWPOINT: where the camera is and how the room sits in the frame — say whether the shot is straight on or from an angle, roughly how oblique, which walls are seen face on and which recede, and whether the camera is low, at eye level or high.",
 	"OPENINGS AND EMPTY SPACES: every doorway, opening, pass-through, recess, alcove and niche, and every deliberately empty gap — a slot left for a fridge, washing machine, dishwasher, oven or boiler, an open space under a worktop, an unfitted run of wall. For each one say where it is, roughly how big, and that it is currently open and empty. These gaps are part of the property and must survive the edit exactly as they are.",
 	"SURFACES: every visible surface — floor, walls, ceiling, tiling, splashback, worktops, stair treads — naming for each one its material, finish and pattern, its colour, and the format or layout where it applies. Say for example: floor in large 60x60 grey marble-effect porcelain tiles with soft white veining, laid straight; walls in matt ivory paint; splashback in small white gloss metro tiles with grey grout.",
-	"FIXTURES AND FITTINGS: every permanent item and every significant piece of furniture, each with its type, style, material, colour and finish. Be especially exact about small metalwork and lighting, because that is what gets silently redesigned: for every tap say whether it is a single-lever mixer or two separate taps, whether it is mounted on the basin, on the worktop or on the wall, its spout shape and its finish. For a shower, list its parts one by one and say which of them exist: a hand shower on a hose, a sliding rail, a fixed overhead or rain head, a bath spout, a thermostatic bar, a glass screen or curtain, the tray or tub. If the shower has only a wall mixer and a hand shower and NO overhead or rain head, say exactly that. Do the same for light fittings (shape, arm count, material, shade, warm or cool light), door and cupboard handles, radiators, sockets and switches, window frames, curtains or blinds, and the kitchen or bathroom units. Say for example: brushed-nickel single-lever basin mixer with a curved spout, mounted on the basin; chrome wall mixer with a hand shower on a 60 cm sliding rail and no overhead head; three-arm black metal ceiling pendant with opal glass globes.",
+	INVENTORY_FIXTURES_DEFAULT + " Be especially exact about small metalwork and lighting, because that is what gets silently redesigned: for every tap say whether it is a single-lever mixer or two separate taps, whether it is mounted on the basin, on the worktop or on the wall, its spout shape and its finish. For a shower, list its parts one by one and say which of them exist: a hand shower on a hose, a sliding rail, a fixed overhead or rain head, a bath spout, a thermostatic bar, a glass screen or curtain, the tray or tub. If the shower has only a wall mixer and a hand shower and NO overhead or rain head, say exactly that. Do the same for light fittings (shape, arm count, material, shade, warm or cool light), door and cupboard handles, radiators, sockets and switches, window frames, curtains or blinds, and the kitchen or bathroom units. Say for example: brushed-nickel single-lever basin mixer with a curved spout, mounted on the basin; chrome wall mixer with a hand shower on a 60 cm sliding rail and no overhead head; three-arm black metal ceiling pendant with opal glass globes.",
 	"ABSENT: name explicitly whichever of these are NOT in the room, so the editor knows not to invent them: bathtub, shower, toilet, bidet, basin, kitchen counter, cooker or hob, extractor hood, fireplace, radiator, air-conditioning unit, balcony door.",
 	"GLASS AND MIRRORS: list every glass or mirrored surface — shower screen, mirror, glazed door, window — and say what is reflected in it or seen through it. A reflection belongs to the glass; it is not a real object standing in the room, and it must be reproduced as the same reflection, not turned into something solid.",
+	"__MOVABLES__",
 	"Three cautions. Natural pattern is not dirt: veining in marble or stone, grain in wood, speckle in terrazzo, variation between tiles and visible grout lines are all features of the material — record them as such rather than as stains. If the room is unfinished or mid-renovation, say so plainly and name what is unfinished (bare plaster, exposed cabling, missing skirting, protective film, dust or debris), because the editor must not tidy that away. And report only what is visible in this photograph: never guess at what lies out of frame, and never mention anything you cannot actually see.",
 ].join(" ");
+
+/* Pass 1's prompt depends on one option only: clearing the room needs the
+   survey to separate what leaves from what stays, since pass 2 trusts its
+   sections. Everything else gets the survey unchanged. */
+function composeInventoryPrompt(options) {
+	if (!new Set(options).has("empty_room")) {
+		return INVENTORY_PROMPT.replace(" __MOVABLES__", "");
+	}
+	return INVENTORY_PROMPT
+		.replace(INVENTORY_FIXTURES_DEFAULT, INVENTORY_FIXTURES_CLEARING)
+		.replace("__MOVABLES__", INVENTORY_MOVABLES);
+}
 
 /* Greek labels for the handoff email («Επεξεργασίες» row) — keep in sync
    with the OPTIONS array in forms/enhance.html. */
@@ -213,6 +236,7 @@ function composePrompt(options) {
 		lines.push([
 			"- EMPTY THE ROOM: show the space as it will be handed over, cleared of everything the outgoing occupier takes with them. Remove every loose, movable furnishing and every object — anything that leaves on a moving van:",
 			"  * Furniture: sofas, armchairs, chairs, stools, coffee and dining tables, desks, beds and mattresses, free-standing wardrobes and cupboards, chests of drawers, shelving, bookcases, sideboards, TV units.",
+			"  A WARDROBE OR CUPBOARD THAT MERELY STANDS THERE IS FURNITURE AND IT GOES, whatever its size: full height, flush against the wall, matching the paint, or filling the wall from end to end changes nothing. Only a unit genuinely built into the structure stays — one set into a recess with no sides or back of its own, or screwed to the wall as part of a fitted run. Decide by whether two people could carry it out, never by how large it is or how well it fits its wall, and when in doubt take it out.",
 			"  * Appliances and electronics that are NOT built in: free-standing fridge, washing machine, dishwasher, free-standing cooker, microwave, heaters, televisions, computers and every small countertop appliance.",
 			"  * Textiles and decor: rugs and mats, curtains and blinds together with their poles and rails, cushions, bed linen, towels, pictures, hung mirrors, clocks, plants, ornaments, books and every personal object.",
 			"  * Lighting that is not wired in: floor lamps, table lamps, plug-in fittings and their cables.",
@@ -271,7 +295,7 @@ function composePrompt(options) {
 	lines.push(
 		"VERIFIED INVENTORY OF THIS EXACT PHOTOGRAPH, from a prior inspection of it — treat it as ground truth and trust it over your own expectations of what such a room usually contains: __INVENTORY__",
 		on.has("empty_room")
-			? "That inventory records what stands in the room right now; it is not a limit on the edits authorised above. Anything it lists as absent really is missing from the property: never present it as an existing feature" + (adding ? " and never add it unless an instruction above explicitly asks you to." : ", never add it.") + " Whatever it lists that is a loose furnishing, appliance or object is exactly what you are asked to clear out above, so it must be gone from the result. Everything else it lists — every fixture, fitting, installation, built-in unit and sanitary item — must still be there afterwards, as the very same item, same type, style and material as described. The surfaces it describes are binding: keep every tile, marble or stone pattern, floor covering, worktop and wall finish exactly as it is, and carry that same surface on into the areas the removed furniture was covering."
+			? "That inventory records what stands in the room right now; it is not a limit on the edits authorised above. Anything it lists as absent really is missing from the property: never present it as an existing feature" + (adding ? " and never add it unless an instruction above explicitly asks you to." : ", never add it.") + " Its FURNITURE AND MOVABLE ITEMS section lists exactly what you are asked to clear out above: every single item on that list must be gone from the result, however large it is or however built-in it may look. Its FIXTURES AND FITTINGS section is what stays: each of those must still be there afterwards, as the very same item, same type, style and material as described. The surfaces it describes are binding: keep every tile, marble or stone pattern, floor covering, worktop and wall finish exactly as it is, and carry that same surface on into the areas the removed furniture was covering."
 			: adding
 			? "That inventory records the property's true condition; it is not a limit on the edits authorised above. Anything it lists as absent really is missing from the property, so never present it as an existing feature and never add it unless an instruction above explicitly asks you to. Whatever it lists as present must still be there afterwards, as the very same item — same type, style and material as described. The surfaces it describes are binding except where an instruction above explicitly asks you to finish them: otherwise keep every tile, marble or stone pattern, floor covering, worktop and wall finish exactly as it is — do not re-tile, re-pattern, polish or otherwise restyle a single surface."
 			: "Whatever that inventory lists as absent does not exist here: never add it. Whatever it lists as present must still be there afterwards, as the very same item — same type, style and material as described. The surfaces it describes are binding too: keep every tile, marble or stone pattern, floor covering, worktop and wall finish exactly as it is — do not re-tile, re-pattern, polish or otherwise restyle a single surface.",
@@ -462,7 +486,7 @@ async function initBatch(request, env, url, email) {
 		ai: options.some((o) => AI_OPTIONS.has(o)),
 		watermark: options.includes("watermark"),
 		prompt: composePrompt(options),
-		inventory_prompt: INVENTORY_PROMPT,
+		inventory_prompt: composeInventoryPrompt(options),
 		count,
 	};
 	await env.PHOTO_BUCKET.put(`photos/${batchId}/meta.json`, JSON.stringify(meta), {
