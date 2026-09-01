@@ -85,7 +85,7 @@ through windows").
 
 | Piece | File | Role |
 |-------|------|------|
-| Form | [forms/enhance.html](../forms/enhance.html) | Property picker (reuses `/api/crm/listings`), 7 edit toggles, client-side downscale to 3840px + HEIC→JPEG, 3-step upload with progress |
+| Form | [forms/enhance.html](../forms/enhance.html) | Property picker (reuses `/api/crm/listings`), 10 edit toggles, client-side downscale to 3840px + HEIC→JPEG, 3-step upload with progress |
 | Ingest | [worker/lib/photos.mjs](../worker/lib/photos.mjs) | `init`/`upload`/`finalize` API, R2 staging, HMAC-signed download URLs, **prompt composition from option keys** |
 | Routes | [worker/index.mjs](../worker/index.mjs) | Staff API gated by Access on `forms.*`; public `/api/photos/file/` served on the apex, guarded by signature |
 | Config | [wrangler.toml](../wrangler.toml) | `PHOTO_BUCKET` R2 binding + `MAKE_PHOTO_WEBHOOK` / `PHOTO_SIGN_KEY` secrets |
@@ -108,6 +108,7 @@ and reviewable. Two options change the property's *true condition* and are
 | `repair_damage` | Επιδιόρθωση φθορών | **off** | **actively tells the model to PRESERVE every crack/stain/wear** |
 | `finish_works` | Αποπεράτωση εργασιών σε εξέλιξη | **off** | (see the three-way clause below) |
 | `render_finished` | Απεικόνιση ολοκληρωμένου χώρου | **off** | (see the three-way clause below) |
+| `empty_room` | Άδειασμα χώρου | **off** | omits (see below) |
 | `virtual_staging` | Εικονική επίπλωση κενών χώρων | **off** | tells the model to add nothing not physically present |
 | `watermark` | Λογότυπο κάτω δεξιά | **on** | not a prompt fragment at all — see below |
 | `works_notice` | Σήμανση εργασιών σε εξέλιξη | on, offered only while `finish_works` is ticked | overlay, not a prompt fragment |
@@ -115,8 +116,10 @@ and reviewable. Two options change the property's *true condition* and are
 | `render_notice` | Σήμανση απεικόνισης | **forced on** with `render_finished`, not removable | overlay, not a prompt fragment |
 
 The table order is the form's order, and the form's order is deliberate: the
-four flagged options run from least to most invention — repairs, finishing
-works, a full visualisation, then furniture. `blur_windows` and
+five flagged options run from least to most invention — repairs, finishing
+works, a full visualisation, emptying, then furniture. Emptying sits next to
+staging because they are the two halves of the same job, and ahead of it
+because clearing a room invents less than furnishing one. `blur_windows` and
 `remove_people` are safe edits but still start **off**: blurring the view
 throws away a selling point when the view *is* the selling point, and most
 photos have nobody in them to remove.
@@ -159,6 +162,56 @@ default one says *"identify each room's type from its visible fixtures"* and
 having its surfaces finished — so the model staged nothing while the notice
 was still stamped on. The shell variant tells it to read the intended use
 from size, position, openings and rough-ins instead.
+
+### Άδειασμα χώρου (`empty_room`)
+
+The mirror image of `virtual_staging`, added 01/09/2026 for **lets**: the
+tenant moves out with everything they own, so the listing photo should show
+the flat as the next tenant will receive it, bare. Off by default and flagged,
+because a cleared room is a claim about what the property includes.
+
+The whole option turns on one line, **what counts as movable**: whatever
+leaves on the van goes, whatever is screwed to the building stays. Out go
+furniture, rugs, curtains and their rails, plug-in lamps, TVs, personal
+effects, and (the office's call) the **free-standing white goods** — fridge,
+washing machine, dishwasher, free-standing cooker — with their space left
+open and empty at its true size, which is what the existing "AN EMPTY GAP
+STAYS AN EMPTY GAP" rule already protects. Stays: sanitary ware and taps,
+kitchen units and worktop, built-in appliances, fitted wardrobes, radiators,
+A/C units, boilers, wired-in light fittings, doors, frames, skirting, and
+every surface.
+
+**No disclaimer overlay.** Unlike staging, this invents nothing: it shows the
+property as it will actually be handed over. What it *does* is uncover
+surfaces the furniture was hiding, so two clauses guard the honesty of that:
+the revealed floor or wall must continue the surrounding material, colour,
+pattern, direction **and age** (never a fresh, cleaner patch where the sofa
+was), and any stain, crack, damp patch, pipe, socket or fitting behind a
+removed object must end up **visible**, not carried off with it.
+
+Three clauses elsewhere in the prompt would otherwise cancel the option out,
+the same way they did for `render_finished`:
+
+- the **inventory** clause. Pass 1 dutifully records the sofa, and "whatever
+  it lists as present must still be there afterwards" then forbids the job.
+  The clearing variant splits the inventory in two: furnishings go,
+  everything fixed stays. It takes precedence over the `adding` variant.
+- the **HARD RULES**, which forbid removing any permanent feature. A sentence
+  now draws the boundary where the model reads it last: clearing covers loose
+  furnishings only, and the emptied surfaces keep their marks and wear.
+- the **"preserve every object you keep"** example list, which anchored the
+  rule with *"a sofa that exact sofa"* — the one thing being taken out. Under
+  `empty_room` the anchor becomes a kitchen unit.
+
+`declutter` is **dropped** from the prompt when this is on (its "tidy and
+neatly arrange whatever furniture remains" is the exact opposite instruction,
+and it is on by default), and the form unticks it so the handoff email does
+not list an edit that never ran. Emptying removes the clutter anyway.
+
+Ticking `virtual_staging` **as well** is a valid combination, "clear the old
+furniture, stage it fresh": the clearing clause then reads "cleared FIRST and
+furnished from scratch, none of what was removed may reappear", and the
+staging disclaimer applies as usual.
 
 ### Two-pass inventory (grounding)
 

@@ -83,7 +83,7 @@ const SAFE_FRAGMENTS = {
    applyWatermark() below, AFTER Gemini, via the Cloudflare Images binding. */
 const AI_OPTIONS = new Set([
 	...Object.keys(SAFE_FRAGMENTS), "repair_damage", "virtual_staging",
-	"finish_works", "render_finished",
+	"finish_works", "render_finished", "empty_room",
 ]);
 /* `staging_notice` is an overlay too, not an AI edit: when a room has been
    virtually furnished the photo should SAY so, so the form offers it
@@ -137,6 +137,7 @@ const OPTION_LABELS_EL = {
 	blur_windows: "Θόλωμα θέας παραθύρων",
 	remove_people: "Αφαίρεση ανθρώπων & αντανακλάσεων",
 	repair_damage: "Επιδιόρθωση φθορών",
+	empty_room: "Άδειασμα χώρου",
 	virtual_staging: "Εικονική επίπλωση κενών χώρων",
 	staging_notice: "Σήμανση εικονικής επίπλωσης",
 	finish_works: "Αποπεράτωση εργασιών σε εξέλιξη",
@@ -148,6 +149,11 @@ const OPTION_LABELS_EL = {
 
 function composePrompt(options) {
 	const on = new Set(options);
+	// The rule below is anchored with examples, and a sofa is the wrong
+	// anchor when the sofa is exactly what the office asked to take out.
+	const keepExample = on.has("empty_room")
+		? "a kitchen unit that exact unit"
+		: "a sofa that exact sofa";
 	const lines = [
 		"You are a professional real-estate photo editor preparing this photograph for a property listing.",
 		// It once answered a portrait photo with a landscape three-panel
@@ -174,11 +180,17 @@ function composePrompt(options) {
 		// — one shower tray becomes a nicer shower tray, a tap becomes a
 		// different tap. That is a misrepresentation even though nothing was
 		// added or removed, so it is stated before any of the edits.
-		"PRESERVE EVERY OBJECT YOU KEEP, EXACTLY AS PHOTOGRAPHED: same type, model, shape, size, material, colour, finish, pattern and position. Never swap, restyle, modernise, upgrade or 'improve' anything that is already in the room — a shower stays that exact shower, a tap that exact tap, a tile that exact tile, a sofa that exact sofa, a light fitting that exact light fitting, a door handle that exact door handle. This applies just as strictly to surfaces: the marble or stone veining, the wood grain, the tile layout and its grout lines are the material's own pattern, NOT dirt to be cleaned away — reproduce them faithfully. Your only permitted changes are the ones listed below; everything else must survive the edit unchanged and recognisable as the same physical object.",
+		"PRESERVE EVERY OBJECT YOU KEEP, EXACTLY AS PHOTOGRAPHED: same type, model, shape, size, material, colour, finish, pattern and position. Never swap, restyle, modernise, upgrade or 'improve' anything that is already in the room — a shower stays that exact shower, a tap that exact tap, a tile that exact tile, " + keepExample + ", a light fitting that exact light fitting, a door handle that exact door handle. This applies just as strictly to surfaces: the marble or stone veining, the wood grain, the tile layout and its grout lines are the material's own pattern, NOT dirt to be cleaned away — reproduce them faithfully. Your only permitted changes are the ones listed below; everything else must survive the edit unchanged and recognisable as the same physical object.",
 	];
 
 	for (const key of Object.keys(SAFE_FRAGMENTS)) {
-		if (on.has(key)) lines.push("- " + SAFE_FRAGMENTS[key]);
+		if (!on.has(key)) continue;
+		// «Tidy and neatly arrange whatever furniture remains» is the exact
+		// opposite of clearing the room, and declutter is on by default — so
+		// when the room is being emptied its fragment is dropped rather than
+		// left to contradict the one below. Emptying removes the clutter too.
+		if (key === "declutter" && on.has("empty_room")) continue;
+		lines.push("- " + SAFE_FRAGMENTS[key]);
 	}
 
 	// Damage — the honesty clamp. Off (the default) must actively preserve.
@@ -190,6 +202,28 @@ function composePrompt(options) {
 		: on.has("render_finished")
 		? "- Beyond the finishing authorised above, hide nothing: structural cracks, damp patches, water staining and any defect in the fabric of the building must remain clearly visible in the result."
 		: "- Preserve ALL visible damage exactly as it is: cracks, stains, water marks, peeling paint, scuffs and wear must remain clearly visible and unaltered. Do not hide or repair any defect.");
+
+	// Emptying — the mirror image of staging, for a let where the tenant
+	// leaves with everything they own. The line that matters is WHAT COUNTS
+	// AS MOVABLE: whatever goes on the van comes out (white goods included,
+	// per the office), whatever is screwed to the building stays. Placed
+	// before the staging block so "clear the room" is read before "furnish
+	// it", which is the order the two run in when both are ticked.
+	if (on.has("empty_room")) {
+		lines.push([
+			"- EMPTY THE ROOM: show the space as it will be handed over, cleared of everything the outgoing occupier takes with them. Remove every loose, movable furnishing and every object — anything that leaves on a moving van:",
+			"  * Furniture: sofas, armchairs, chairs, stools, coffee and dining tables, desks, beds and mattresses, free-standing wardrobes and cupboards, chests of drawers, shelving, bookcases, sideboards, TV units.",
+			"  * Appliances and electronics that are NOT built in: free-standing fridge, washing machine, dishwasher, free-standing cooker, microwave, heaters, televisions, computers and every small countertop appliance.",
+			"  * Textiles and decor: rugs and mats, curtains and blinds together with their poles and rails, cushions, bed linen, towels, pictures, hung mirrors, clocks, plants, ornaments, books and every personal object.",
+			"  * Lighting that is not wired in: floor lamps, table lamps, plug-in fittings and their cables.",
+			"  KEEP EVERY FIXED PART OF THE PROPERTY exactly as photographed — everything that is still there after the move: bathtub, shower tray and screen, basin, toilet, bidet and every tap; kitchen units, worktop, sink, splashback and built-in appliances; fitted and built-in wardrobes; radiators, air-conditioning units, water heaters, boilers, fireplaces; ceiling and wall light fittings that are wired in; doors, door frames, skirting, window frames; and every floor, wall and ceiling surface.",
+			"  WHAT THE FURNITURE HID IS REVEALED, NOT INVENTED: continue each floor, wall and ceiling behind and beneath a removed object as the SAME material, colour, pattern, direction and age as the surface visible around it — the same tiles in the same layout with their grout lines running on, the same boards in the same direction, the same paint in the same tone. Never render the revealed area as fresh, new, cleaner, smoother or better maintained than the rest of the room.",
+			"  AND NOTHING LEAVES WITH THE FURNITURE THAT BELONGS TO THE PROPERTY: if a stain, crack, damp patch, hole, worn patch, pipe, cable, socket, switch, radiator or any fitting is behind or beside something you remove, it must be visible in the result, not removed along with it. Where an appliance stood, leave its space open and empty at its true size — never close it up, panel it over or fill it with a unit.",
+			on.has("virtual_staging")
+				? "  The room is cleared FIRST and furnished from scratch afterwards: none of the furniture, textiles or objects removed here may reappear in the staged result."
+				: "  The room must end up UNFURNISHED, not merely tidier: do not leave one token piece behind, do not replace anything you remove with a smaller or neater version of it, and add nothing of your own.",
+		].join("\n"));
+	}
 
 	// Staging — off (the default) must add nothing. When on, the spec is
 	// deliberately detailed: v1's one-liner staged rooms too sparsely (a
@@ -227,10 +261,18 @@ function composePrompt(options) {
 	// something: on a shell the survey lists floors, paint and furniture as
 	// absent, and the model then refuses to stage or finish anything. Carve
 	// the sanctioned additions out instead of dropping the grounding.
+	// Same trap in the other direction for «άδειασμα»: the survey dutifully
+	// records the sofa, and "whatever it lists as present must still be
+	// there afterwards" then forbids the entire job. The clearing variant
+	// splits the inventory in two — furnishings go, everything fixed stays —
+	// and takes precedence, since emptying is the more easily cancelled of
+	// the two instructions.
 	const adding = on.has("virtual_staging") || on.has("finish_works") || on.has("render_finished");
 	lines.push(
 		"VERIFIED INVENTORY OF THIS EXACT PHOTOGRAPH, from a prior inspection of it — treat it as ground truth and trust it over your own expectations of what such a room usually contains: __INVENTORY__",
-		adding
+		on.has("empty_room")
+			? "That inventory records what stands in the room right now; it is not a limit on the edits authorised above. Anything it lists as absent really is missing from the property: never present it as an existing feature" + (adding ? " and never add it unless an instruction above explicitly asks you to." : ", never add it.") + " Whatever it lists that is a loose furnishing, appliance or object is exactly what you are asked to clear out above, so it must be gone from the result. Everything else it lists — every fixture, fitting, installation, built-in unit and sanitary item — must still be there afterwards, as the very same item, same type, style and material as described. The surfaces it describes are binding: keep every tile, marble or stone pattern, floor covering, worktop and wall finish exactly as it is, and carry that same surface on into the areas the removed furniture was covering."
+			: adding
 			? "That inventory records the property's true condition; it is not a limit on the edits authorised above. Anything it lists as absent really is missing from the property, so never present it as an existing feature and never add it unless an instruction above explicitly asks you to. Whatever it lists as present must still be there afterwards, as the very same item — same type, style and material as described. The surfaces it describes are binding except where an instruction above explicitly asks you to finish them: otherwise keep every tile, marble or stone pattern, floor covering, worktop and wall finish exactly as it is — do not re-tile, re-pattern, polish or otherwise restyle a single surface."
 			: "Whatever that inventory lists as absent does not exist here: never add it. Whatever it lists as present must still be there afterwards, as the very same item — same type, style and material as described. The surfaces it describes are binding too: keep every tile, marble or stone pattern, floor covering, worktop and wall finish exactly as it is — do not re-tile, re-pattern, polish or otherwise restyle a single surface.",
 	);
@@ -251,9 +293,16 @@ function composePrompt(options) {
 	// Repeated at the very end because it is the rule that fails first: once
 	// the model re-frames the shot, every other rule quietly goes with it.
 	const cameraRule = "And the camera never moves: same viewpoint, angle, distance and framing as the original photograph.";
+	// "Never remove any permanent feature" and "empty the room" are only
+	// compatible if the boundary between them is spelled out where the model
+	// reads it last — otherwise it either strips out the fitted wardrobe or
+	// keeps the sofa, and both have shipped in other prompts.
+	const clearingRule = on.has("empty_room")
+		? " Clearing the room, authorised above, covers loose furnishings, free-standing appliances and objects ONLY: nothing in this list leaves with them, and the emptied floors and walls keep the exact surfaces, marks and wear they already have."
+		: "";
 	lines.push(on.has("render_finished")
-		? "HARD RULES: never add, remove, resize, relocate or reinterpret any part of the building itself — walls, columns, beams, doors, balcony doors, windows, other openings, staircases, level changes, ceiling heights, room dimensions or the layout. Finishing the SURFACES of what is already there is authorised above; changing what is there is not. " + noEquipment + " An unfinished bathroom or kitchen is handed over tiled and empty, not fitted out. " + gapsStay + " A window stays a window; a door stays a door; an opening stays exactly the size and shape it is. " + windowRule + " The edited photo must not misrepresent the property itself. " + cameraRule
-		: "HARD RULES: never add, remove, resize, relocate or reinterpret any permanent feature — walls, doors, balcony doors, windows, other openings, floors, ceilings, stairs, built-in cabinetry, or any plumbing/installed equipment (bathtub, shower, basin, toilet, bidet, radiator, fireplace, kitchen counter, sink, oven, hob, extractor hood, air-conditioning unit). Never REPLACE an existing one with a different type, model or style, and never ADD A PART to something that is already there: if a shower has only a wall mixer and a hand shower, do NOT give it an overhead or rain head; do not add a second tap, an extra radiator panel, another cupboard door or an extra lamp to a fitting. If a bathroom has no bathtub the edited photo must still have no bathtub, and if it has a corner shower tray that exact tray must still be there — not a nicer one. " + gapsStay + " A window stays a window; a door stays a door. " + windowRule + " The edited photo must not misrepresent the property. " + cameraRule);
+		? "HARD RULES: never add, remove, resize, relocate or reinterpret any part of the building itself — walls, columns, beams, doors, balcony doors, windows, other openings, staircases, level changes, ceiling heights, room dimensions or the layout. Finishing the SURFACES of what is already there is authorised above; changing what is there is not. " + noEquipment + " An unfinished bathroom or kitchen is handed over tiled and empty, not fitted out. " + gapsStay + " A window stays a window; a door stays a door; an opening stays exactly the size and shape it is. " + windowRule + clearingRule + " The edited photo must not misrepresent the property itself. " + cameraRule
+		: "HARD RULES: never add, remove, resize, relocate or reinterpret any permanent feature — walls, doors, balcony doors, windows, other openings, floors, ceilings, stairs, built-in cabinetry, or any plumbing/installed equipment (bathtub, shower, basin, toilet, bidet, radiator, fireplace, kitchen counter, sink, oven, hob, extractor hood, air-conditioning unit). Never REPLACE an existing one with a different type, model or style, and never ADD A PART to something that is already there: if a shower has only a wall mixer and a hand shower, do NOT give it an overhead or rain head; do not add a second tap, an extra radiator panel, another cupboard door or an extra lamp to a fitting. If a bathroom has no bathtub the edited photo must still have no bathtub, and if it has a corner shower tray that exact tray must still be there — not a nicer one. " + gapsStay + " A window stays a window; a door stays a door. " + windowRule + clearingRule + " The edited photo must not misrepresent the property. " + cameraRule);
 	return lines.join("\n");
 }
 
@@ -368,9 +417,16 @@ async function initBatch(request, env, url, email) {
 		return json({ error: "bad_count", max: MAX_FILES }, 400);
 	}
 
-	const options = Array.isArray(body?.options)
+	let options = Array.isArray(body?.options)
 		? [...new Set(body.options.filter((o) => KNOWN_OPTIONS.has(o)))]
 		: [];
+	// Emptying the room subsumes decluttering it and composePrompt() drops the
+	// declutter fragment, so drop the key itself here too — otherwise the
+	// handoff email lists an edit that was never in the prompt. The form
+	// unticks it as well; this is the guard for a hand-crafted payload.
+	if (options.includes("empty_room")) {
+		options = options.filter((o) => o !== "declutter");
+	}
 
 	// Unknown/absent tier silently falls back to the cheap default — a typo
 	// must never buy the expensive model.

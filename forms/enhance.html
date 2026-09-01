@@ -182,10 +182,14 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 		{key:"blur_windows",    label:"Θόλωμα θέας παραθύρων",              desc:"Κάνει τη θέα έξω από τα παράθυρα φωτεινή και θολή, ώστε να μην αναγνωρίζεται από ποιο κτίριο είναι η φωτογραφία.", on:false},
 		{key:"remove_people",   label:"Αφαίρεση ανθρώπων & αντανακλάσεων",  desc:"Σβήνει άτομα και κατοικίδια, καθώς και την αντανάκλαση του φωτογράφου σε καθρέφτες και τζάμια.", on:false},
 		/* Ordered by how far each one moves the photo from reality:
-		   repairs → finishing works → a full visualisation → furniture. */
+		   repairs → finishing works → a full visualisation → emptying →
+		   furniture. Emptying sits next to staging because they are the two
+		   halves of the same job, and before it because clearing a room
+		   invents less than furnishing one. */
 		{key:"repair_damage",   label:"Επιδιόρθωση φθορών",                 desc:"Κλείνει ρωγμές, σβήνει λεκέδες και μπογιά που ξεφλουδίζει. Βάλ' το μόνο αν οι φθορές θα αποκατασταθούν όντως — αλλιώς η φωτογραφία κρύβει πραγματικό πρόβλημα.", on:false, warn:true},
 		{key:"finish_works",    label:"Αποπεράτωση εργασιών σε εξέλιξη",    desc:"Κρύβει καλώδια, μπάζα, μεμβράνες και ημιτελείς λεπτομέρειες — η διάταξη και τα υλικά μένουν ως έχουν", on:false, warn:true},
 		{key:"render_finished", label:"Απεικόνιση ολοκληρωμένου χώρου",     desc:"Για γυμνό σκελετό: δάπεδα, βαφή, κουφώματα, πλακάκια — τα τελειώματα είναι επινοημένα, μπαίνει υποχρεωτικά σήμανση", on:false, warn:true},
+		{key:"empty_room",      label:"Άδειασμα χώρου",                     desc:"Για ενοικιαζόμενα που θα παραδοθούν άδεια: βγάζει όλα τα έπιπλα, χαλιά, κουρτίνες, ελεύθερα φωτιστικά, ψυγείο και πλυντήριο, μαζί με κάθε προσωπικό αντικείμενο. Μένουν όσα είναι στερεωμένα στο κτίριο: μπανιέρα, ντουζιέρα, νιπτήρας, λεκάνη, κουζίνα, εντοιχισμένες ντουλάπες, καλοριφέρ, κλιματιστικά.", on:false, warn:true},
 		{key:"virtual_staging", label:"Εικονική επίπλωση κενών χώρων",      desc:"Βάζει έπιπλα και διακοσμητικά σε άδειο χώρο (καναπέ, κρεβάτι, χαλιά, κουρτίνες, φωτιστικά). Δεν αλλάζει τοίχους, πλακάκια ή δάπεδα.", on:false, warn:true}
 	];
 	var MAX_EDGE = 3840, MAX_FILES = 60;
@@ -450,6 +454,13 @@ body{font-family:'Manrope','Segoe UI',Arial,sans-serif;color:var(--ink);font-siz
 	$("aiToggle").onchange = syncAi;
 	$("aiGroup").addEventListener("change", function(e){
 		if (e.target.checked && !$("aiToggle").checked) { $("aiToggle").checked = true; }
+		/* Emptying the room subsumes decluttering it, and the Worker drops the
+		   declutter fragment anyway — untick it here too so the handoff email
+		   does not list an edit that was never applied. */
+		if (e.target.dataset.key === "empty_room" && e.target.checked) {
+			var dc = document.querySelector('#aiGroup input[data-key="declutter"]');
+			if (dc) dc.checked = false;
+		}
 		syncAi();
 	});
 	syncAi();
