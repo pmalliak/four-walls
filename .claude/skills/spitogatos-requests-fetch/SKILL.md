@@ -31,7 +31,7 @@ environment first, `.dev.vars` only as a fallback, so the all-on-PC mode below s
 | step | where | command |
 |---|---|---|
 | 1 enumerate | cloud | `node scripts/enumerate-zoho.mjs <yyyy/MM/dd> state/processed.json enquiries.json` (Zoho, whole account: the mail moved to **Archive** by 2026-10) |
-| 2 login | PC, by hand | Panos logs in to Spitogatos in the Edge :9222 (remember me). At the 2FA step the cloud runs `node scripts/zoho-2fa.mjs` and hands him the code. The CRM session usually survives; if not, he logs in there too. |
+| 2 login | PC, by hand | `node scripts/headless/login-status.mjs` (read-only) says which site needs it; Panos logs in to Spitogatos in the Edge :9222 (remember me). At the 2FA step the cloud runs `node scripts/zoho-2fa.mjs` and hands him the code. The CRM session usually survives; if not, he logs in there too. |
 | 3 details | PC | `node scripts/headless/sg-fetch-nav.mjs enquiries.json details.json` |
 | 4 leads + prep | cloud | `leads.json` by hand, then `prep.mjs` (creates contacts over `/api`) |
 | — approval | cloud | **show Panos the worklist (name, ζήτηση, area) and get a yes before step 5** |
