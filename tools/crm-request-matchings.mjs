@@ -10,39 +10,39 @@
 //   node tools/crm-request-matchings.mjs --send     # στέλνει το email μέσω Make
 //   node tools/crm-request-matchings.mjs --request 135 --send   # μόνο μία ζήτηση
 //
+// Μοιρασμένο σε cloud + PC (το PC χωρίς κανένα secret, SKILL.md βήμα 7):
+//   cloud: … --requests-out req.json                     # ενεργές ζητήσεις από το /api
+//   PC:    … --requests-in req.json --matches-out m.json  # μόνο η σάρωση στον Edge
+//   cloud: … --requests-in req.json --matches-in m.json --send   # επαφές + digest
+//
 // Δύο πηγές, δύο τρόποι αυθεντικοποίησης (δες docs/request-matchings.md):
-//   • λίστα ζητήσεων + επαφές → public API, Basic auth (.dev.vars)
+//   • λίστα ζητήσεων + επαφές → public API, Basic auth (env ή .dev.vars)
 //   • τα ματσαρίσματα         → POST /listings, session cookie, μέσω του
 //     αφιερωμένου Edge στο :9222 (δεν υπάρχουν στο public API)
 
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { Tab, sleep } from '../.claude/skills/spitogatos-requests-fetch/scripts/headless/cdp.mjs';
+import { env, estateprime } from '../.claude/skills/spitogatos-requests-fetch/scripts/lib/env.mjs';
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CRM = 'https://fourwalls.estateprime.gr';
 const CHUNK = 20; // ζητήσεις ανά in-page eval
 const IN_PAGE_CONCURRENCY = 4;
 
 const argv = process.argv.slice(2);
 const SEND = argv.includes('--send');
-const ONLY = (() => {
-	const i = argv.indexOf('--request');
+const opt = (name) => {
+	const i = argv.indexOf(name);
 	return i >= 0 ? argv[i + 1] : null;
-})();
+};
+const ONLY = opt('--request');
+const REQ_IN = opt('--requests-in'), REQ_OUT = opt('--requests-out');
+const MATCH_IN = opt('--matches-in'), MATCH_OUT = opt('--matches-out');
+const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
+const writeJson = (p, v) => writeFileSync(p, JSON.stringify(v, null, 1), 'utf8');
 
-// ── secrets ─────────────────────────────────────────────────────────────────
-function devVars() {
-	const out = {};
-	for (const line of readFileSync(resolve(ROOT, '.dev.vars'), 'utf8').split(/\r?\n/)) {
-		const m = line.match(/^([A-Z0-9_]+)\s*=\s*"?(.*?)"?\s*$/);
-		if (m) out[m[1]] = m[2];
-	}
-	return out;
-}
-const VARS = devVars();
-const BASIC = 'Basic ' + Buffer.from(`${VARS.ESTATEPRIME_API_KEY}:${VARS.ESTATEPRIME_API_SECRET}`).toString('base64');
+// ── secrets (περιβάλλον πρώτα, .dev.vars δεύτερο: scripts/lib/env.mjs) ──────
+// Η σάρωση (--matches-out) δεν θέλει κανένα: γίνεται με το session του Edge.
+const EP = estateprime();
 
 // Το tab.close() του cdp.mjs κλείνει μόνο το WebSocket — το tab μένει ανοιχτό.
 // Σε καθημερινό run αυτό συσσωρεύει tabs στον Edge, που τελικά μπλοκάρει το
@@ -53,9 +53,8 @@ async function closeTab(tab) {
 }
 
 async function api(path) {
-	const r = await fetch(CRM + '/api' + path, {
-		headers: { Authorization: BASIC, 'Content-Type': 'application/json' },
-	});
+	if (!EP) throw new Error('Λείπει το ESTATEPRIME_API_KEY/SECRET: αυτό το κομμάτι τρέχει στο cloud (--requests-out / --matches-in).');
+	const r = await fetch(EP.base + path, { headers: EP.headers });
 	if (!r.ok) throw new Error(`API ${path} → ${r.status}`);
 	return r.json();
 }
@@ -194,13 +193,74 @@ ${blocks}
 // Καμία `process.exit()` όσο το tab είναι ανοιχτό: το exit παρακάμπτει το
 // `finally` και αφήνει το tab πίσω. Επέστρεψε exit code, καθάρισε, μετά βγες.
 async function main() {
-	const requests = await activeRequests();
+	const requests = REQ_IN ? readJson(REQ_IN) : await activeRequests();
 	console.log(`Ενεργές ζητήσεις: ${requests.length}`);
+	if (REQ_OUT) { writeJson(REQ_OUT, requests); console.log(`→ ${REQ_OUT}`); return 0; }
 	if (!requests.length) return 0;
 
-	// openActive, όχι open: ένα tab που περνάει στο παρασκήνιο το παγώνει ο Edge
-	// (σταματούν timers και fetch), και η σάρωση κρεμάει για πάντα — το evaluate
-	// περιμένει promise που δεν λύνεται ποτέ.
+	const { matches, failed } = MATCH_IN ? readJson(MATCH_IN) : await sweep(requests);
+	const ids = requests.map((r) => r.id);
+	// Χωρίς αυτό, ένα ληγμένο session κάνει κάθε σάρωση να σκάει, το digest
+	// βγάζει «καμία εκκρεμότητα» και η μέρα μοιάζει ήσυχη ενώ δεν κοίταξε κανείς.
+	if (failed.length) console.warn(`⚠ απέτυχαν ${failed.length}/${ids.length} ζητήσεις:`, failed.slice(0, 3));
+	if (failed.length > ids.length / 4)
+		throw new Error(`Απέτυχε το ${Math.round((100 * failed.length) / ids.length)}% των σαρώσεων — πιθανότατα έληξε το session του CRM στον Edge. Δεν στέλνεται digest (θα ήταν ψευδώς άδειο).`);
+	if (MATCH_OUT) { writeJson(MATCH_OUT, { matches, failed }); console.log(`→ ${MATCH_OUT}`); return 0; }
+
+	const hits = requests
+		.filter((r) => Array.isArray(matches[r.id]) && matches[r.id].length)
+		.sort((a, b) => String(b.date_created).localeCompare(String(a.date_created)));
+
+	const items = [];
+	for (const r of hits) {
+		let contact = '—', phone = '';
+		const cid = (r.contacts || [])[0];
+		if (cid) {
+			try {
+				const c = (await api(`/contacts/${cid}`)).data;
+				contact = c.full_name || [c.first_name, c.last_name].filter(Boolean).join(' ') || `Επαφή ${cid}`;
+				phone = (c.phones || []).map((p) => p.number).filter(Boolean)[0] || '';
+			} catch { contact = `Επαφή ${cid}`; }
+		}
+		items.push({ request: r, contact, phone, listings: matches[r.id] });
+	}
+
+	const totalNew = items.reduce((n, it) => n + it.listings.length, 0);
+	console.log(`\nΖητήσεις με «Νέα» ακίνητα: ${items.length} · σύνολο ακινήτων: ${totalNew}`);
+	for (const it of items)
+		console.log(`  #${it.request.id} ${it.contact} → ${it.listings.map((l) => l.code).join(', ')}`);
+
+	if (!totalNew) { console.log('\nΚαμία εκκρεμότητα — δεν στέλνεται email.'); return 0; }
+
+	const html = buildEmail(items, totalNew, failed.length);
+	const subject = `ΝΕΑ ΑΚΙΝΗΤΑ ΣΕ ΖΗΤΗΣΕΙΣ · ${totalNew} σε ${items.length} ${items.length === 1 ? 'ζήτηση' : 'ζητήσεις'}`;
+
+	if (!SEND) {
+		console.log('\n(dry run — πρόσθεσε --send για αποστολή)');
+		console.log('subject:', subject);
+		return 0;
+	}
+	const hook = env('MAKE_MATCHINGS_WEBHOOK');
+	if (!hook) throw new Error('Λείπει το MAKE_MATCHINGS_WEBHOOK (περιβάλλον ή .dev.vars· το URL είναι στο Make, hook 3457244)');
+	const res = await fetch(hook, {
+		method: 'POST', headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			subject, html, total_new: totalNew, requests: items.length,
+			task_body: buildTaskBody(items, totalNew),
+			sent_at: new Date().toISOString(),
+		}),
+	});
+	console.log(`\nMake webhook → ${res.status} ${(await res.text()).slice(0, 80)}`);
+	return res.ok ? 0 : 1;
+}
+
+// Η σάρωση στον Edge: το μόνο κομμάτι που θέλει το session του CRM.
+// openActive, όχι open: ένα tab που περνάει στο παρασκήνιο το παγώνει ο Edge
+// (σταματούν timers και fetch), και η σάρωση κρεμάει για πάντα — το evaluate
+// περιμένει promise που δεν λύνεται ποτέ.
+// Καμία `process.exit()` όσο το tab είναι ανοιχτό: το exit παρακάμπτει το
+// `finally` και αφήνει το tab πίσω.
+async function sweep(requests) {
 	const tab = await Tab.openActive(CRM + '/requests');
 	try {
 		await sleep(4000);
@@ -214,59 +274,8 @@ async function main() {
 			Object.assign(matches, await tab.eval(SWEEP(chunk, IN_PAGE_CONCURRENCY), { timeoutMs: 180000 }));
 			console.log(`  σαρώθηκαν ${Math.min(i + CHUNK, ids.length)}/${ids.length}`);
 		}
-
-		// Χωρίς αυτό, ένα ληγμένο session κάνει κάθε σάρωση να σκάει, το digest
-		// βγάζει «καμία εκκρεμότητα» και η μέρα μοιάζει ήσυχη ενώ δεν κοίταξε κανείς.
 		const failed = Object.entries(matches).filter(([, v]) => v && v.error);
-		if (failed.length) console.warn(`⚠ απέτυχαν ${failed.length}/${ids.length} ζητήσεις:`, failed.slice(0, 3));
-		if (failed.length > ids.length / 4)
-			throw new Error(`Απέτυχε το ${Math.round((100 * failed.length) / ids.length)}% των σαρώσεων — πιθανότατα έληξε το session του CRM στον Edge. Δεν στέλνεται digest (θα ήταν ψευδώς άδειο).`);
-
-		const hits = requests
-			.filter((r) => Array.isArray(matches[r.id]) && matches[r.id].length)
-			.sort((a, b) => String(b.date_created).localeCompare(String(a.date_created)));
-
-		const items = [];
-		for (const r of hits) {
-			let contact = '—', phone = '';
-			const cid = (r.contacts || [])[0];
-			if (cid) {
-				try {
-					const c = (await api(`/contacts/${cid}`)).data;
-					contact = c.full_name || [c.first_name, c.last_name].filter(Boolean).join(' ') || `Επαφή ${cid}`;
-					phone = (c.phones || []).map((p) => p.number).filter(Boolean)[0] || '';
-				} catch { contact = `Επαφή ${cid}`; }
-			}
-			items.push({ request: r, contact, phone, listings: matches[r.id] });
-		}
-
-		const totalNew = items.reduce((n, it) => n + it.listings.length, 0);
-		console.log(`\nΖητήσεις με «Νέα» ακίνητα: ${items.length} · σύνολο ακινήτων: ${totalNew}`);
-		for (const it of items)
-			console.log(`  #${it.request.id} ${it.contact} → ${it.listings.map((l) => l.code).join(', ')}`);
-
-		if (!totalNew) { console.log('\nΚαμία εκκρεμότητα — δεν στέλνεται email.'); return 0; }
-
-		const html = buildEmail(items, totalNew, failed.length);
-		const subject = `ΝΕΑ ΑΚΙΝΗΤΑ ΣΕ ΖΗΤΗΣΕΙΣ · ${totalNew} σε ${items.length} ${items.length === 1 ? 'ζήτηση' : 'ζητήσεις'}`;
-
-		if (!SEND) {
-			console.log('\n(dry run — πρόσθεσε --send για αποστολή)');
-			console.log('subject:', subject);
-			return 0;
-		}
-		const hook = VARS.MAKE_MATCHINGS_WEBHOOK;
-		if (!hook) throw new Error('Λείπει το MAKE_MATCHINGS_WEBHOOK από το .dev.vars');
-		const res = await fetch(hook, {
-			method: 'POST', headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				subject, html, total_new: totalNew, requests: items.length,
-				task_body: buildTaskBody(items, totalNew),
-				sent_at: new Date().toISOString(),
-			}),
-		});
-		console.log(`\nMake webhook → ${res.status} ${(await res.text()).slice(0, 80)}`);
-		return res.ok ? 0 : 1;
+		return { matches, failed };
 	} finally {
 		await closeTab(tab);
 	}

@@ -14,6 +14,7 @@
 //
 // Usage: node prep.mjs <leads.json> <worklist.json> <processed.json>
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { requireEstateprime } from "./lib/env.mjs";
 
 const [, , leadsPath, worklistPath, processedPath] = process.argv;
 if (!leadsPath || !worklistPath || !processedPath) {
@@ -21,28 +22,8 @@ if (!leadsPath || !worklistPath || !processedPath) {
 	process.exit(1);
 }
 
-// ---- credentials (.dev.vars at repo root, gitignored) ----
-function loadVars() {
-	const v = {};
-	for (const p of [".dev.vars", "../../../../.dev.vars"]) {
-		if (existsSync(p)) {
-			for (const line of readFileSync(p, "utf8").split(/\r?\n/)) {
-				const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*"?([^"#]*?)"?\s*$/);
-				if (m) v[m[1]] = m[2];
-			}
-			break;
-		}
-	}
-	return v;
-}
-const vars = loadVars();
-const SUB = vars.ESTATEPRIME_SUBDOMAIN || "fourwalls";
-const base = `https://${SUB}.estateprime.gr/api`;
-const H = {
-	Authorization: "Basic " + Buffer.from(vars.ESTATEPRIME_API_KEY + ":" + vars.ESTATEPRIME_API_SECRET).toString("base64"),
-	"Content-Type": "application/json",
-};
-if (!vars.ESTATEPRIME_API_KEY) { console.error("MISSING ESTATEPRIME_API_KEY/SECRET in .dev.vars"); process.exit(1); }
+// ---- credentials (environment first, .dev.vars fallback — see lib/env.mjs) ----
+const { base, headers: H } = requireEstateprime();
 
 async function apiGet(path) { const r = await fetch(base + path, { headers: H }); return { http: r.status, body: await r.json().catch(() => null) }; }
 async function apiPost(path, obj) { const r = await fetch(base + path, { method: "POST", headers: H, body: JSON.stringify(obj) }); return { http: r.status, body: await r.json().catch(() => null) }; }

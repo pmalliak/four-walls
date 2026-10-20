@@ -19,7 +19,32 @@ spitogatos + CRM — either the in-app `Claude_Browser`, or (preferred since 202
 Deep field maps & the "why" live in [docs/estateprime-api.md](../../../docs/estateprime-api.md) and
 [docs/estateprime-crm-ui.md](../../../docs/estateprime-crm-ui.md) — read them if anything below is unclear.
 
-## Preconditions
+## Cloud + PC split (default since 2026-10-20, no secrets on the PC)
+Panos's rule: **no `.dev.vars`, no Bitwarden, no Spark**. The cloud session holds every secret
+in its environment (`ESTATEPRIME_*`, `ZOHO_*`) and does everything that talks to `/api`, Zoho
+or Make. The PC (Remote Control, folder four-walls, dedicated Edge :9222) only does what bot
+protection forbids from a cloud IP: the Spitogatos detail pages and the CRM `/*/form` posts.
+Files move between the two through the Remote Control session (the PC writes JSON, the cloud
+reads it back, and the other way round). Scripts read secrets via `scripts/lib/env.mjs`:
+environment first, `.dev.vars` only as a fallback, so the all-on-PC mode below still works.
+
+| step | where | command |
+|---|---|---|
+| 1 enumerate | cloud | `node scripts/enumerate-zoho.mjs <yyyy/MM/dd> state/processed.json enquiries.json` (Zoho, whole account: the mail moved to **Archive** by 2026-10) |
+| 2 login | PC, by hand | Panos logs in to Spitogatos in the Edge :9222 (remember me). At the 2FA step the cloud runs `node scripts/zoho-2fa.mjs` and hands him the code. The CRM session usually survives; if not, he logs in there too. |
+| 3 details | PC | `node scripts/headless/sg-fetch-nav.mjs enquiries.json details.json` |
+| 4 leads + prep | cloud | `leads.json` by hand, then `prep.mjs` (creates contacts over `/api`) |
+| — approval | cloud | **show Panos the worklist (name, ζήτηση, area) and get a yes before step 5** |
+| 5 post | PC | `node scripts/headless/crm-post.mjs worklist.json results.json`. With no key on the PC a hung eval cannot be checked there, so it **stops with exit 2** and marks the lead «unknown»: read `/api/requests` from the cloud, adopt or drop it, re-run the rest. |
+| 6 verify | cloud | `verify-log.mjs`, then commit `processed.json` (from the cloud) |
+| 7 digest | cloud → PC → cloud | `node tools/crm-request-matchings.mjs --requests-out req.json` · PC: `--requests-in req.json --matches-out m.json` · cloud: `--requests-in req.json --matches-in m.json --send`. The webhook URL is not in the env: read it from Make (hook 3457244, MCP `hooks_get`) and pass it inline as `MAKE_MATCHINGS_WEBHOOK=… node …`. |
+| 7β site | cloud, then PC | `site-requests.mjs` now reads info@ over Zoho too; its worklist goes through step 5 on the PC |
+
+Network: the cloud needs `fourwalls.estateprime.gr`, `mail.zoho.com`, `accounts.zoho.com` and
+`hook.eu1.make.com`. **Never add a proxy-injected secret for `fourwalls.estateprime.gr`**: it
+overrides our Basic header and every `/api` call returns 401 (2026-10-20).
+
+## Preconditions (all-on-PC mode)
 - `.dev.vars` at repo root with `ESTATEPRIME_API_KEY` / `_SECRET` (+ `_SUBDOMAIN`), and — for
   headless mode — a fresh `BW_SESSION` (Panos runs `bw unlock --raw` and pastes it there).
 - `node` on PATH (fallback `& "C:\Program Files\nodejs\node.exe"`).

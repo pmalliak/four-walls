@@ -8,18 +8,18 @@
 // linked communication. Idempotent through processed.json, so running it after
 // she has already filed one is safe — see «already processed» in the output.
 //
-// Input : the office mailbox (Spark CLI) + processed.json
+// Input : the office mailbox (info@ via the Zoho API, lib/zoho.mjs) + processed.json
 // Output: worklist.json in the SAME shape prep.mjs emits, so steps 5-6 of
 //         SKILL.md (crm-post.mjs, verify-log.mjs) work unchanged.
 //
 // Usage: node site-requests.mjs <after yyyy/MM/dd> <processed.json> <worklist.json> [--dry]
 //        --dry reads and parses the emails but creates NO contact, so you can
 //        see what a batch would do before it touches the CRM.
-import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
+import { requireEstateprime } from "./lib/env.mjs";
+import { zohoSession, zohoSearch, zohoHtml, htmlToText, athens, sinceArg } from "./lib/zoho.mjs";
 
-const SPARK = "C:\\Users\\panos\\AppData\\Local\\Programs\\SparkDesktop\\resources\\app.asar.unpacked\\node_modules\\@readdle\\sparkcore-win\\bin\\Release\\SparkCore.bundle\\spark.exe";
 const args = process.argv.slice(2);
 const DRY = args.includes("--dry");
 const [after, processedPath, worklistPath] = args.filter((a) => !a.startsWith("--"));
@@ -28,64 +28,27 @@ if (!after || !processedPath || !worklistPath) {
 	process.exit(1);
 }
 
-/* ---- credentials (.dev.vars at repo root, gitignored) ---- */
-function loadVars() {
-	const v = {};
-	for (const p of [".dev.vars", "../../../../.dev.vars"]) {
-		if (existsSync(p)) {
-			for (const line of readFileSync(p, "utf8").split(/\r?\n/)) {
-				const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*"?([^"#]*?)"?\s*$/);
-				if (m) v[m[1]] = m[2];
-			}
-			break;
-		}
-	}
-	return v;
-}
-const vars = loadVars();
-if (!vars.ESTATEPRIME_API_KEY) { console.error("MISSING ESTATEPRIME_API_KEY/SECRET in .dev.vars"); process.exit(1); }
-const base = `https://${vars.ESTATEPRIME_SUBDOMAIN || "fourwalls"}.estateprime.gr/api`;
-const H = {
-	Authorization: "Basic " + Buffer.from(`${vars.ESTATEPRIME_API_KEY}:${vars.ESTATEPRIME_API_SECRET}`).toString("base64"),
-	"Content-Type": "application/json",
-};
+/* ---- credentials (environment first, .dev.vars fallback — lib/env.mjs) ---- */
+const { base, headers: H } = requireEstateprime();
 const apiGet = async (p) => (await fetch(base + p, { headers: H })).json().catch(() => null);
 const apiPost = async (p, o) => {
 	const r = await fetch(base + p, { method: "POST", headers: H, body: JSON.stringify(o) });
 	return { http: r.status, body: await r.json().catch(() => null) };
 };
 
-const spark = (args) => {
-	const r = spawnSync(SPARK, args, { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
-	if (r.status !== 0) throw new Error(`spark ${args.join(" ")} failed: ${r.stderr}`);
-	return r.stdout;
-};
-
 /* ---- 1. find the «ΝΕΑ ΖΗΤΗΣΗ» emails -------------------------------------
-   Spark's subject: filter matches Latin only (SKILL.md, 2026-07-29), so we
-   scope by sender and grep the listing ourselves. The mail is sent by the
-   office to itself, so from == to == info@four-walls.gr.
-
-   `--in <account>` covers EVERY folder of that account, Sent included, which
-   is why the same ζήτηση can come back twice (see the leadId comment below).
-   Narrowing to `:Inbox` would kill the duplicates but is the fragile choice:
-   the Zoho filter that files Spitogatos mail into `Inbox/Spitogatos` already
-   proved that mail moves out of the Inbox without anyone telling us, and a
-   skill that then silently sees nothing is worse than one that sees a lead
-   twice and keeps it once. Note the copies are not even consistent — of the
-   two test ζητήσεις on 2026-07-29, one had an Inbox+Sent pair and the other
-   only an Inbox copy.                                                       */
-const emails = [];
-for (let page = 1; page <= 20; page++) {
-	const out = spark(["search", "--filter", `from:info@four-walls.gr after:${after}`,
-		"--in", "info@four-walls.gr", "--page", String(page), "--page-size", "100", "--order", "descending"]);
-	for (const line of out.split("\n")) {
-		const m = line.match(/^\s*(\d+)\s+\S+@\S+\s+.*?(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\s+(.+?)\s*$/);
-		if (m && m[3].includes("ΝΕΑ ΖΗΤΗΣΗ")) emails.push({ emailId: m[1], date: m[2] });
-	}
-	const pm = out.match(/Page (\d+) of (\d+)/);
-	if (!pm || Number(pm[1]) >= Number(pm[2])) break;
-}
+   The office mails itself (from == to == info@four-walls.gr). We search the
+   WHOLE account by subject word (a sender search returns every reply the
+   office ever sent) and keep only ΝΕΑ ΖΗΤΗΣΗ from info@ ourselves.
+   A folder listing would be the fragile choice: Spitogatos mail already moved
+   Inbox → Inbox/Spitogatos → Archive without anyone telling us, and a skill
+   that then silently sees nothing is worse than one that sees a lead twice
+   (Inbox + Sent copies) and keeps it once (see the leadId comment below).
+   Until 2026-10-20 this read the Spark CLI; Zoho works from the cloud too. */
+const zoho = await zohoSession();
+const emails = (await zohoSearch(zoho, "subject:ΖΗΤΗΣΗ", sinceArg(after)))
+	.filter((m) => String(m.subject || "").includes("ΝΕΑ ΖΗΤΗΣΗ") && /info@four-walls\.gr/i.test(m.fromAddress || ""))
+	.map((m) => ({ emailId: m.messageId, date: athens(m.receivedTime), msg: m }));
 console.log(`«ΝΕΑ ΖΗΤΗΣΗ» emails in window: ${emails.length}`);
 
 /* ---- 2. parse one email --------------------------------------------------
@@ -100,8 +63,9 @@ const FIELD = (text, label) => {
 };
 const digits = (s) => (String(s || "").match(/\d+/) || [""])[0];
 
-function parseEmail(emailId, date) {
-	const text = spark(["thread", emailId]);
+async function parseEmail(e) {
+	const { emailId, date } = e;
+	const text = htmlToText(await zohoHtml(zoho, e.msg));
 	const wants = FIELD(text, "Ζητάει");                       // «Ενοικίαση · Κατοικία · Διαμέρισμα»
 	const parts = wants.split("·").map((s) => s.trim()).filter(Boolean);
 	const priceLine = FIELD(text, "Τιμή");                     // «έως 600 €» | «300 – 600 €»
@@ -271,13 +235,13 @@ const worklist = [];
 const skipped = [];
 const seen = new Set();
 for (const e of emails) {
-	const l = parseEmail(e.emailId, e.date);
+	const l = await parseEmail(e);
 	if (!l.name || (!l.phone && !l.email)) {
 		skipped.push({ id: `site-${e.emailId}`, why: "email δεν διαβάστηκε (όνομα/επικοινωνία λείπουν)" });
 		continue;
 	}
 
-	/* The office mails itself, so Spark lists every ζήτηση twice (Sent and
+	/* The office mails itself, so the mailbox holds every ζήτηση twice (Sent and
 	   Inbox copies, different ids). Keying on the email id would file the
 	   same ζήτηση twice — key on what the lead actually is instead, which
 	   also keeps leadIds stable if the mailbox is ever re-indexed. */

@@ -49,6 +49,17 @@ node tools/crm-request-matchings.mjs --send          # στέλνει το email
 node tools/crm-request-matchings.mjs --request 135   # μόνο μία ζήτηση
 ```
 
+Μοιρασμένο σε cloud και PC, ώστε το PC να μη χρειάζεται κανένα secret
+(από 2026-10-20, δες το SKILL.md του `spitogatos-requests-fetch`):
+
+```bash
+node tools/crm-request-matchings.mjs --requests-out req.json                          # cloud: ενεργές ζητήσεις (/api)
+node tools/crm-request-matchings.mjs --requests-in req.json --matches-out m.json      # PC: μόνο η σάρωση στον Edge
+MAKE_MATCHINGS_WEBHOOK=… node tools/crm-request-matchings.mjs --requests-in req.json --matches-in m.json --send   # cloud: digest
+```
+
+Τα secrets διαβάζονται από το περιβάλλον πρώτα και από το `.dev.vars` μετά.
+
 Προϋπόθεση: ο Edge στο `:9222` **συνδεδεμένος στο CRM**. Αν έχει πέσει το
 session, το script σταματά με μήνυμα αντί να στείλει άδειο digest.
 

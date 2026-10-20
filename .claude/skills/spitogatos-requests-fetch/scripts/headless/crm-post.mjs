@@ -9,9 +9,15 @@
 // reopen a fresh tab and read the CRM back over /api instead of blindly re-POSTing, so a
 // call that DID land is adopted rather than duplicated.
 //
+// No EstatePrime key on this machine (the cloud + PC split, SKILL.md): the posts work the
+// same, but a timeout cannot be checked from here, so the run STOPS at the first one with
+// exit 2 and marks that lead «unknown». The cloud session then reads /api, adopts or drops
+// it, and re-runs the rest. Never re-post an «unknown» lead blind.
+//
 // Usage: node crm-post.mjs <worklist.json> <out results.json>
 import { Tab, sleep } from './cdp.mjs';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { estateprime } from '../lib/env.mjs';
 
 const [inPath, outPath] = process.argv.slice(2);
 if (!inPath || !outPath) { console.error('usage: node crm-post.mjs <worklist.json> <results.json>'); process.exit(1); }
@@ -22,18 +28,13 @@ const CRM = 'https://fourwalls.estateprime.gr';
 const EVAL_MS = 120000;
 
 // ---- read-back over /api (HTTP Basic, node) — the recovery path after a hung eval ----
-function loadVars() {
-	const v = {};
-	for (const p of ['.dev.vars', '../../../../../.dev.vars']) {
-		if (existsSync(p)) { for (const line of readFileSync(p, 'utf8').split(/\r?\n/)) { const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*"?([^"#]*?)"?\s*$/); if (m) v[m[1]] = m[2]; } break; }
-	}
-	return v;
-}
-const vars = loadVars();
-const API = { Authorization: 'Basic ' + Buffer.from(vars.ESTATEPRIME_API_KEY + ':' + vars.ESTATEPRIME_API_SECRET).toString('base64'), 'Content-Type': 'application/json' };
-const apiGet = async (p) => (await fetch(`${CRM}/api` + p, { headers: API }).then((r) => r.json()).catch(() => null));
+const API = estateprime();
+if (!API) console.log('no EstatePrime key here: a hung eval stops the run for the cloud to check');
+const apiGet = async (p) => (await fetch(API.base + p, { headers: API.headers }).then((r) => r.json()).catch(() => null));
 // newest-first page 1 is enough: we only ever look for something created seconds ago.
-const newest = async (resource) => ((await apiGet('/' + resource + '?page=1'))?.data) || [];
+const newest = async (resource) => (API && (await apiGet('/' + resource + '?page=1'))?.data) || [];
+const UNKNOWN = { error: 'eval timeout, unknown: no /api here to check, verify from the cloud before any re-post' };
+let stop = false;
 
 // ---- the tab we drive (ours, activated, replaced whenever it stops answering) ----
 let tab = await Tab.openActive(CRM + '/requests');
@@ -93,7 +94,8 @@ for (const j of jobs) {
 		await reopen(e.message);
 		// Did it land anyway? Adopt it — a blind retry would create a second ζήτηση.
 		const hit = (await newest('requests')).find((x) => Number(x.id) > beforeReq && (x.contacts || []).map(String).includes(String(j.contactId)));
-		if (hit) { r.requestId = hit.id; r.requestRaw = { recovered: 'after eval timeout' }; }
+		if (!API) { r.requestRaw = UNKNOWN; stop = true; }
+		else if (hit) { r.requestId = hit.id; r.requestRaw = { recovered: 'after eval timeout' }; }
 		else r.requestRaw = { error: 'eval timeout, nothing landed' };
 	}
 
@@ -116,7 +118,8 @@ for (const j of jobs) {
 		} catch (e) {
 			await reopen(e.message);
 			const hit = (await newest('communication')).find((x) => String(x.request_id) === String(r.requestId));
-			if (hit) { r.commId = hit.id; r.commRaw = { recovered: 'after eval timeout' }; }
+			if (!API) { r.commRaw = UNKNOWN; stop = true; }
+			else if (hit) { r.commId = hit.id; r.commRaw = { recovered: 'after eval timeout' }; }
 			else r.commRaw = { error: 'eval timeout, nothing landed' };
 		}
 	}
@@ -146,9 +149,10 @@ for (const j of jobs) {
 	results.push(r);
 	console.log(`  ${r.leadId} ${r.name}: request=${r.requestId ?? JSON.stringify(r.requestRaw)} comm=${r.commId ?? JSON.stringify(r.commRaw)}${r.starred ? ' star=' + JSON.stringify(r.starred) : ''}${r.deactivated ? ' παλιές=' + JSON.stringify(r.deactivated) : ''}`);
 	writeFileSync(outPath, JSON.stringify(results, null, 1), 'utf8'); // survive a kill mid-run
+	if (stop) { console.log('STOPPED at an unverifiable timeout (' + r.leadId + '): check /api from the cloud, then re-run the rest'); break; }
 	await sleep(600); // pace + stay under 429s
 }
 
 writeFileSync(outPath, JSON.stringify(results, null, 1), 'utf8');
 await tab.destroy().catch(() => {});
-process.exit(0);
+process.exit(stop ? 2 : 0);
