@@ -7,8 +7,10 @@
    or the repo.
 
    Token lookup, first hit wins:
-     1. BUGSNAG_AUTH_TOKEN in .dev.vars (manual override / offline).
-     2. Bitwarden Secrets Manager: the secret named «Bugsnag Claude PC
+     1. BUGSNAG_AUTH_TOKEN already in the environment (cloud sessions get
+        it from the environment's secrets).
+     2. BUGSNAG_AUTH_TOKEN in .dev.vars (manual override / offline).
+     3. Bitwarden Secrets Manager: the secret named «Bugsnag Claude PC
         Token», read with `bws` using the BW_ACCESS_TOKEN from .dev.vars.
         Note the name mismatch: the CLI wants BWS_ACCESS_TOKEN.
 
@@ -62,16 +64,17 @@ function fromSecretsManager(accessToken) {
 }
 
 const vars = devVars();
-const token = vars.BUGSNAG_AUTH_TOKEN || fromSecretsManager(vars.BW_ACCESS_TOKEN);
+const token = process.env.BUGSNAG_AUTH_TOKEN || vars.BUGSNAG_AUTH_TOKEN || fromSecretsManager(vars.BW_ACCESS_TOKEN);
 
 const env = { ...process.env };
 if (token) env.BUGSNAG_AUTH_TOKEN = token;
-else console.error(`[mcp-smartbear] no token found (.dev.vars or «${SECRET_NAME}») — Bugsnag tools disabled`);
+else console.error(`[mcp-smartbear] no token found (env, .dev.vars or «${SECRET_NAME}») — Bugsnag tools disabled`);
 if (vars.BUGSNAG_PROJECT_API_KEY) env.BUGSNAG_PROJECT_API_KEY = vars.BUGSNAG_PROJECT_API_KEY;
 
 /* npx sits next to the node binary running this script, so the launcher
-   works even when node is missing from a fresh shell's PATH. */
-const npx = join(dirname(process.execPath), 'npx.cmd');
+   works even when node is missing from a fresh shell's PATH. Windows ships
+   it as npx.cmd, everywhere else it is plain npx. */
+const npx = join(dirname(process.execPath), process.platform === 'win32' ? 'npx.cmd' : 'npx');
 const child = spawn(`"${npx}" -y @smartbear/mcp@latest`, { env, stdio: 'inherit', shell: true });
 
 child.on('exit', (code, signal) => process.exit(signal ? 1 : code ?? 0));

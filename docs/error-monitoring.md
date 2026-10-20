@@ -66,17 +66,23 @@ Invoke-WebRequest -Uri 'https://notify.bugsnag.com/' -Method Post -ContentType '
 | Πελάτης | Πού | Πώς παίρνει το token |
 |---------|-----|----------------------|
 | **VS Code** (Copilot) | `%APPDATA%\Code\User\mcp.json`, entry `smartbear` | ρωτάει τον χρήστη (`${input:bugsnag_auth_token}`) |
-| **Claude Code** | [.mcp.json](../.mcp.json) στη ρίζα του repo | από το `.dev.vars`, μέσω [tools/mcp-smartbear.mjs](../tools/mcp-smartbear.mjs) |
+| **Claude Code** | [.mcp.json](../.mcp.json) στη ρίζα του repo | από το περιβάλλον, το `.dev.vars` ή το Bitwarden, μέσω [tools/mcp-smartbear.mjs](../tools/mcp-smartbear.mjs) |
 
 Το `.mcp.json` δείχνει σε έναν μικρό launcher,
 [tools/mcp-smartbear.mjs](../tools/mcp-smartbear.mjs), που βρίσκει το
 token και μετά παραδίδει το stdio στο `npx @smartbear/mcp`. Έτσι το
 token δεν μπαίνει ποτέ ούτε στο repo ούτε σε αρχείο ρυθμίσεων.
+Το `.mcp.json` καλεί σκέτο `node`, ώστε να δουλεύει και στο PC και στο
+cloud. Στο PC το `node` λείπει από το PATH μόνο σε shells που ήταν ήδη
+ανοιχτά πριν την εγκατάστασή του, ενώ ένα Claude Code που ξεκινά από την
+αρχή το βρίσκει.
 
 Ψάχνει με αυτή τη σειρά, πρώτη επιτυχία κερδίζει:
 
-1. `BUGSNAG_AUTH_TOKEN` στο `.dev.vars` (χειροκίνητη παράκαμψη).
-2. **Bitwarden Secrets Manager**, το secret «Bugsnag Claude PC Token»
+1. `BUGSNAG_AUTH_TOKEN` ήδη στο περιβάλλον. Έτσι το παίρνουν τα cloud
+   sessions του Claude Code, από τα secrets του environment.
+2. `BUGSNAG_AUTH_TOKEN` στο `.dev.vars` (χειροκίνητη παράκαμψη).
+3. **Bitwarden Secrets Manager**, το secret «Bugsnag Claude PC Token»
    στο project «Four Walls», μέσω `bws` με το `BW_ACCESS_TOKEN` του
    `.dev.vars`. Αυτός είναι ο κανονικός δρόμος: μία πηγή αλήθειας, ο
    κωδικός δεν κάθεται σε δεύτερο αρχείο.

@@ -1,7 +1,7 @@
 {
 	"mcpServers": {
 		"smartbear": {
-			"command": "C:\\Program Files\\nodejs\\node.exe",
+			"command": "node",
 			"args": ["tools/mcp-smartbear.mjs"]
 		}
 	}
