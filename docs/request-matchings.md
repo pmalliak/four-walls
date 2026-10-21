@@ -55,7 +55,7 @@ node tools/crm-request-matchings.mjs --request 135   # μόνο μία ζήτη�
 ```bash
 node tools/crm-request-matchings.mjs --requests-out req.json                          # cloud: ενεργές ζητήσεις (/api)
 node tools/crm-request-matchings.mjs --requests-in req.json --matches-out m.json      # PC: μόνο η σάρωση στον Edge
-MAKE_MATCHINGS_WEBHOOK=… node tools/crm-request-matchings.mjs --requests-in req.json --matches-in m.json --send   # cloud: digest
+NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt MAKE_MATCHINGS_WEBHOOK=… node tools/crm-request-matchings.mjs --requests-in req.json --matches-in m.json --send   # cloud: digest (Node fetch through the cloud proxy)
 ```
 
 Τα secrets διαβάζονται από το περιβάλλον πρώτα και από το `.dev.vars` μετά.

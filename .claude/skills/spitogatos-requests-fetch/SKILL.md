@@ -37,7 +37,7 @@ environment first, `.dev.vars` only as a fallback, so the all-on-PC mode below s
 | — approval | cloud | **show Panos the worklist (name, ζήτηση, area) and get a yes before step 5** |
 | 5 post | PC | `node scripts/headless/crm-post.mjs worklist.json results.json`. With no key on the PC a hung eval cannot be checked there, so it **stops with exit 2** and marks the lead «unknown»: read `/api/requests` from the cloud, adopt or drop it, re-run the rest. |
 | 6 verify | cloud | `verify-log.mjs`, then commit `processed.json` (from the cloud) |
-| 7 digest | cloud → PC → cloud | `node tools/crm-request-matchings.mjs --requests-out req.json` · PC: `--requests-in req.json --matches-out m.json` · cloud: `--requests-in req.json --matches-in m.json --send`. The webhook URL is not in the env: read it from Make (hook 3457244, MCP `hooks_get`) and pass it inline as `MAKE_MATCHINGS_WEBHOOK=… node …`. |
+| 7 digest | cloud → PC → cloud | `node tools/crm-request-matchings.mjs --requests-out req.json` · PC: `--requests-in req.json --matches-out m.json` · cloud: `--requests-in req.json --matches-in m.json --send`. The webhook URL is not in the env: read it from Make (hook 3457244, MCP `hooks_get`) and pass it inline as `MAKE_MATCHINGS_WEBHOOK=… node …`. Node's `fetch` ignores the cloud proxy, so the `--send` run also needs `NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt` (without them it fails with `fetch failed`, ENOTFOUND). The PC sweep only needs the request ids, so `[{"id":…}]` is enough to send it. |
 | 7β site | cloud, then PC | `site-requests.mjs` now reads info@ over Zoho too; its worklist goes through step 5 on the PC |
 
 Network: the cloud needs `fourwalls.estateprime.gr`, `mail.zoho.com`, `accounts.zoho.com` and
