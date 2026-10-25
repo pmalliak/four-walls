@@ -9,20 +9,12 @@
 //
 // Usage: node verify-log.mjs <results.json> <processed.json>
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { requireEstateprime } from "./lib/env.mjs";
 
 const [, , resultsPath, processedPath] = process.argv;
 if (!resultsPath || !processedPath) { console.error("usage: node verify-log.mjs <results.json> <processed.json>"); process.exit(1); }
 
-function loadVars() {
-	const v = {};
-	for (const p of [".dev.vars", "../../../../.dev.vars"]) {
-		if (existsSync(p)) { for (const line of readFileSync(p, "utf8").split(/\r?\n/)) { const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*"?([^"#]*?)"?\s*$/); if (m) v[m[1]] = m[2]; } break; }
-	}
-	return v;
-}
-const vars = loadVars();
-const base = `https://${vars.ESTATEPRIME_SUBDOMAIN || "fourwalls"}.estateprime.gr/api`;
-const H = { Authorization: "Basic " + Buffer.from(vars.ESTATEPRIME_API_KEY + ":" + vars.ESTATEPRIME_API_SECRET).toString("base64"), "Content-Type": "application/json" };
+const { base, headers: H } = requireEstateprime();
 
 // GET /requests and /communication single endpoints can 500 — read via the paginated list.
 async function listAll(resource) {
