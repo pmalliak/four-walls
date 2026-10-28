@@ -96,10 +96,17 @@ export class Tab {
 		await tab.send('Page.enable').catch(() => {});
 		await tab.send('Page.bringToFront').catch(() => {});
 		await tab.send('Page.setWebLifecycleState', { state: 'active' }).catch(() => {});
+		// A fresh tab is about:blank and already "complete" before the navigation commits;
+		// an eval there has no origin, so relative fetches fail. Wait for the target origin too.
+		const origin = new URL(url).origin;
 		const t0 = Date.now();
 		while (Date.now() - t0 < waitMs) {
 			await sleep(500);
-			try { if ((await tab.eval('document.readyState')) === 'complete') return tab; } catch { /* mid-navigation */ }
+			try {
+				const st = await tab.eval('JSON.stringify([document.readyState, location.origin])');
+				const [ready, at] = JSON.parse(st);
+				if (ready === 'complete' && at === origin) return tab;
+			} catch { /* mid-navigation */ }
 		}
 		throw new Error('openActive timeout: ' + url);
 	}
