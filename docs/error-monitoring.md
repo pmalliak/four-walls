@@ -97,3 +97,13 @@ account → Personal auth tokens). Χωρίς αυτό ο server ξεκινά κ
 `BW_ACCESS_TOKEN`, και ένα machine account χωρίς πρόσβαση στο project
 επιστρέφει **κενή λίστα με exit 0**, όχι σφάλμα. Άκυρο token, αντίθετα,
 σκάει με exit 1.
+
+## Θόρυβος που φιλτράρεται
+
+Το site ([js/bugsnag.fw.js](../js/bugsnag.fw.js), `onError`) **δεν στέλνει**
+σφάλματα των οποίων όλα τα frames δείχνουν στο URL της σελίδας χωρίς αριθμό
+γραμμής. Αυτά είναι scripts που βάζει ο ίδιος ο browser (μετάφραση σελίδας
+του Chrome σε iOS, extensions), όχι δικός μας κώδικας: τα δικά μας αρχεία
+έχουν πάντα γραμμή. Πρώτη περίπτωση: 28/10/2026, `RangeError: Maximum call
+stack size exceeded` στο `/properties/2400013` από Chrome iOS με τη σελίδα
+μεταφρασμένη στα αγγλικά (`FONT > FONT` στα breadcrumbs).

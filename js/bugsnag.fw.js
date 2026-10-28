@@ -15,6 +15,17 @@
 		releaseStage: prod ? 'production' : 'development',
 		enabledReleaseStages: ['production'],
 		collectUserIp: false,
+		/* Browser-injected scripts (Chrome iOS page translation, extensions)
+		   report frames that point at the page URL with no line numbers.
+		   Our own code always has line numbers, so drop those events. */
+		onError: function (event) {
+			var frames = (event.errors && event.errors[0] && event.errors[0].stacktrace) || [];
+			var page = location.href.split('#')[0];
+			var injected = frames.length && frames.every(function (f) {
+				return !f.lineNumber && (!f.file || f.file.split('#')[0] === page);
+			});
+			if (injected) return false;
+		},
 		metadata: {
 			page: {
 				path: location.pathname,
