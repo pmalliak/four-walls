@@ -11,6 +11,7 @@ env.feed.listings = [{ ...property, images: ['https://four-walls.gr/images/listi
 delete env.IMAGES;
 delete env.META_PAGE_ACCESS_TOKEN;
 const files = new Map([
+	['/forms/fourwalls-logo-light.svg', ['../forms/fourwalls-logo-light.svg', 'image/svg+xml']],
 	['/forms/fourwalls-logo.svg', ['../forms/fourwalls-logo.svg', 'image/svg+xml']],
 	['/forms/social', ['../forms/social.html', 'text/html; charset=utf-8']],
 	['/forms/social.fw.js', ['../forms/social.fw.js', 'text/javascript; charset=utf-8']],
@@ -18,7 +19,7 @@ const files = new Map([
 ]);
 env.ASSETS.fetch = async request => {
 	const rawPath = new URL(request.url).pathname;
-	const pathname = rawPath === '/fourwalls-logo.svg' ? '/forms/fourwalls-logo.svg' : rawPath;
+	const pathname = ['/fourwalls-logo.svg', '/fourwalls-logo-light.svg'].includes(rawPath) ? '/forms' + rawPath : rawPath;
 	if (pathname === '/forms/social.html') return new Response(null, { status: 307, headers: { Location: '/forms/social' } });
 	const file = files.get(pathname);
 	return file ? new Response(await readFile(new URL(file[0], import.meta.url)), { headers: { 'Content-Type': file[1] } }) : new Response('Not Found', { status: 404 });
@@ -32,7 +33,7 @@ createServer(async (req, res) => {
 		const chunks = []; for await (const chunk of req) chunks.push(chunk);
 		const request = new Request(url, { method: req.method, headers: req.headers, body: ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(chunks) });
 		env.feed.generatedAt = new Date().toISOString();
-		const response = url.pathname === '/fourwalls-logo.svg' ? await env.ASSETS.fetch(request) : await handleSocial(request, env, url);
+		const response = ['/fourwalls-logo.svg', '/fourwalls-logo-light.svg'].includes(url.pathname) ? await env.ASSETS.fetch(request) : await handleSocial(request, env, url);
 		res.writeHead(response.status, Object.fromEntries(response.headers));
 		res.end(Buffer.from(await response.arrayBuffer()));
 	} catch { res.writeHead(500); res.end('Preview error'); }

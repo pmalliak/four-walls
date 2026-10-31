@@ -10,7 +10,8 @@
 </head>
 <body>
 	<a class="skip-link" href="#workspace">Μετάβαση στο περιεχόμενο</a>
-	<header><div class="studio-brand"><a href="/" aria-label="Four Walls · Εργαλεία γραφείου"><img src="/fourwalls-logo.svg" alt="Four Walls Real Estate" width="110" height="80"></a><strong>Δημοσιεύσεις</strong></div><div class="account"><span id="identity">Σύνδεση…</span><a class="office-link" href="/">Εργαλεία γραφείου ↗</a></div></header>
+	<aside class="rail studio-rail" aria-label="Four Walls workspace"><a class="sidebar-logo" href="/" aria-label="Four Walls · Εργαλεία γραφείου"><img src="/fourwalls-logo-light.svg" alt="Four Walls Real Estate" width="176" height="129"></a><div class="sidebar-current">Social studio</div><a class="sidebar-home" href="/">← Εργαλεία γραφείου</a></aside>
+	<header><strong>Social studio</strong><span id="identity">Σύνδεση…</span></header>
 	<main>
 		<div class="heading page-heading" id="dashboard"><div><h1>Δημοσιεύσεις ακινήτων</h1><p>Δημιουργία, έγκριση και προγραμματισμός.</p></div><div class="heading-tools"><span id="today" class="today"></span><button id="refresh" type="button"><span aria-hidden="true">↻</span> Ανανέωση</button></div></div>
 		<div class="metrics" aria-label="Σύνοψη δημοσιεύσεων"><button class="metric" data-filter="" type="button"><span>Σύνολο δημοσιεύσεων <i>↗</i></span><strong id="metric-total">—</strong><small>Όλο το περιεχόμενο του γραφείου</small></button><button class="metric" data-filter="draft" type="button"><span>Πρόχειρα <i>✎</i></span><strong id="metric-draft">—</strong><small>Προσχέδια για επεξεργασία</small></button><button class="metric" data-filter="pending" type="button"><span>Προς έγκριση <i>◷</i></span><strong id="metric-pending">—</strong><small>Αναμονή έγκρισης περιεχομένου</small></button><button class="metric accent" data-filter="scheduled" type="button"><span>Προγραμματισμένες <i>↗</i></span><strong id="metric-scheduled">—</strong><small>Σε αναμονή δημοσίευσης</small></button></div>
@@ -18,7 +19,7 @@
 		<p id="message" role="status" aria-live="polite"></p>
 		<div class="workspace" id="workspace">
 			<aside>
-				<section id="composer"><h2>Νέα δημοσίευση</h2><label for="property-search">Αναζήτηση κωδικού ή περιοχής</label><input id="property-search" type="search" placeholder="π.χ. Καλαμαριά"><label for="property">Ακίνητο από EstatePrime</label><select id="property"></select><label for="new-channel">Κανάλι</label><select id="new-channel"><option value="instagram">Instagram</option><option value="facebook">Facebook Page</option><option value="marketplace">Marketplace · χειροκίνητα</option></select><button id="create" class="primary" type="button">Δημιουργία προσχεδίου</button><small id="feed-time"></small></section>
+				<section id="composer"><h2>Νέα δημοσίευση</h2><input id="property" type="hidden"><span class="field-label">Ακίνητο από EstatePrime</span><button id="choose-property" class="property-choice" type="button" aria-haspopup="dialog"><span id="property-selection">Επιλέξτε ακίνητο</span><span class="change-property">Αναζήτηση ακινήτων ↗</span></button><label for="new-channel">Κανάλι</label><select id="new-channel"><option value="instagram">Instagram</option><option value="facebook">Facebook Page</option><option value="marketplace">Marketplace · χειροκίνητα</option></select><button id="create" class="primary" type="button">Δημιουργία προσχεδίου</button><small id="feed-time"></small></section>
 				<section id="queue"><h2>Δημοσιεύσεις <span id="queue-count" class="queue-count">0</span></h2><label for="filter">Κατάσταση</label><select id="filter"><option value="">Όλες</option><option value="draft">Πρόχειρα</option><option value="pending">Προς έγκριση</option><option value="approved">Εγκεκριμένες</option><option value="scheduled">Προγραμματισμένες</option><option value="published">Δημοσιευμένες</option><option value="blocked">Μη διαθέσιμες / αλλαγμένες</option><option value="needs_review">Χρειάζονται έλεγχο</option></select><div id="posts"></div></section>
 			</aside>
 			<section id="empty"><h2>Επιλέξτε ή δημιουργήστε μια δημοσίευση</h2><p>Ανοίξτε μια υπάρχουσα δημοσίευση από τη λίστα ή επιλέξτε ακίνητο για ένα νέο προσχέδιο.</p></section>
@@ -37,5 +38,6 @@
 			</section>
 		</div>
 	</main>
+	<dialog id="property-dialog" aria-labelledby="picker-title"><div class="picker-heading"><div><h2 id="picker-title">Επιλογή ακινήτου</h2><p>Δείτε φωτογραφία και στοιχεία πριν επιλέξετε.</p></div><button id="close-picker" type="button" aria-label="Κλείσιμο επιλογής ακινήτου">✕</button></div><label for="property-search">Κωδικός, τίτλος ή περιοχή</label><input id="property-search" type="search" placeholder="π.χ. 4W-123 ή Καλαμαριά" autocomplete="off"><p id="property-results-count" role="status" aria-live="polite"></p><div id="property-results" class="property-results"></div></dialog>
 </body>
 </html>
