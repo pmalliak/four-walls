@@ -207,13 +207,14 @@ export async function handleSocial(request, env, url) {
 			const checkpoint = (kind, detail) => statement(env,
 				'INSERT INTO social_events(post_id,revision,kind,actor,detail,created_at) VALUES(?,?,?,?,?,?)',
 				post.id, post.revision, kind, actor, detail, now()).run();
-			stage = 'test_meta';
+			stage = 'render_images';
 			try {
 				// Draft renders are test-only; approval and clean-photo review stay
 				// mandatory for publishing. Do not promote these assets or status.
 				const assets = post.status === 'draft' ? await renderSocialImages(env, post) : JSON.parse(post.assets);
 				check(assets.length >= 1 && assets.length <= 10, 'invalid_media_count');
 				const urls = await Promise.all(assets.map(key => signedMediaUrl(env, key)));
+				stage = 'test_meta';
 				const result = await testMeta(env, post, urls, checkpoint);
 				await checkpoint(result.result, result.id);
 			} catch (error) {

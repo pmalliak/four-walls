@@ -16,7 +16,7 @@ export async function testMeta(env, post, urls, checkpoint) {
 		const url = new URL(`https://graph.facebook.com/${env.META_GRAPH_VERSION}/${path}`);
 		if (method === 'GET') url.search = new URLSearchParams(fields).toString();
 		const res = await fetch(url, { method, headers: { Authorization: `Bearer ${env.META_PAGE_ACCESS_TOKEN}` },
-			body: method === 'GET' ? undefined : new URLSearchParams(fields), signal: AbortSignal.timeout(20000), redirect: 'error' });
+			body: method === 'GET' ? undefined : new URLSearchParams(fields), signal: AbortSignal.timeout(20000), redirect: 'manual' });
 		const body = await res.json();
 		check(res.ok && !body.error, `meta_http_${res.status}`, 502);
 		return body;
