@@ -141,15 +141,46 @@ test('missing CRM titles use public Greek labels and stable feed/direct CRM fing
 });
 test('Worker guards HTML, script and API aliases on public hosts including encoded names', async () => {
 	for (const host of ['four-walls.gr', 'dev.four-walls.gr', 'test.workers.dev', 'forms.evil.test']) {
-		for (const path of ['/social', '/forms/social.html', '/forms/%73ocial.html', '/social.fw.js', '/api/social/posts']) {
+		for (const path of ['/social', '/forms/social.html', '/forms/%73ocial.html', '/social.fw.js', '/social-design.mjs', '/forms/social-design.mjs', '/social-assets/logo-social.svg', '/forms/social-assets/NotoSans.ttf', '/api/social/posts']) {
 			const res = await worker.fetch(new Request(`https://${host}${path}`), { CRM_DEV_BYPASS: '1' }, {});
 			assert.equal(res.status, 404, `${host}${path}`);
 		}
 	}
-	for (const path of ['/social', '/social.fw.css', '/api/social/posts']) {
+	for (const path of ['/social', '/social.fw.css', '/social-design.mjs', '/social-assets/logo-social.svg', '/api/social/posts']) {
 		const res = await worker.fetch(new Request(`https://forms.four-walls.gr${path}`), { ACCESS_TEAM_DOMAIN: 'team', ACCESS_AUD: 'aud', CRM_DEV_BYPASS: '1' }, {});
 		assert.equal(res.status, 401);
 	}
+});
+
+test('shared preview module and font assets use the authenticated asset boundary', async () => {
+	const env = environment(), fetched = [];
+	env.ASSETS.fetch = async request => { fetched.push(new URL(request.url).pathname); return new Response('asset'); };
+	for (const [path, target] of [
+		['/social-design.mjs', '/forms/social-design.mjs'],
+		['/social-assets/NotoSerifDisplay-SemiBold.ttf', '/images/social/NotoSerifDisplay-SemiBold.ttf'],
+		['/forms/social-assets/logo-social.svg', '/images/social/logo-social.svg'],
+	]) {
+		const response = await worker.fetch(new Request(`${origin}${path}`), env, {});
+		assert.equal(response.status, 200);
+		assert.equal(fetched.at(-1), target);
+		assert.equal(response.headers.get('Cache-Control'), 'private, no-store');
+		if (path.endsWith('.mjs')) assert.match(response.headers.get('Content-Type'), /javascript/);
+	}
+	const count = fetched.length;
+	for (const path of ['/social-assets/private.json', '/social-assets/.dev.vars', '/social-assets/subdir/file.png']) {
+		assert.equal((await worker.fetch(new Request(`${origin}${path}`), env, {})).status, 404);
+	}
+	assert.equal(fetched.length, count);
+});
+
+test('cover type is public CRM data and survives repeated projection without changing authored title', async () => {
+	const input = { ...property, category: 'residential', subcategory: 'apartment' };
+	const projected = publicProperty(input);
+	assert.equal(projected.typeLabel, 'Διαμέρισμα');
+	assert.equal(projected.title, property.title);
+	assert.deepEqual(publicProperty(projected), projected);
+	assert.equal(await fingerprint(input), await fingerprint(projected));
+	assert.notEqual(await fingerprint(input), await fingerprint({ ...input, subcategory: 'office' }));
 });
 test('mutations require same origin and JSON; no DB fails closed', async () => {
 	const env = environment();

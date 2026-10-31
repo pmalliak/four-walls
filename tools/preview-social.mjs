@@ -8,7 +8,8 @@ const env = environment();
 env.SAMPLE_DATA = '1';
 env.feed.source = 'sample';
 const previewPhotos = ['img_42.jpg', 'img_41.jpg', 'img_40.jpg'].map(name => `https://four-walls.gr/images/listing/${name}`);
-env.feed.listings = [{ ...property, images: previewPhotos, originalImages: previewPhotos }];
+const previewProperty = process.argv[3] ? JSON.parse(await readFile(process.argv[3], 'utf8')) : { ...property, images: previewPhotos };
+env.feed.listings = [{ ...previewProperty, originalImages: previewProperty.images }];
 delete env.IMAGES;
 delete env.META_PAGE_ACCESS_TOKEN;
 const files = new Map([
@@ -19,12 +20,14 @@ const files = new Map([
 	['/forms/social', ['../forms/social.html', 'text/html; charset=utf-8']],
 	['/forms/social.fw.js', ['../forms/social.fw.js', 'text/javascript; charset=utf-8']],
 	['/forms/social.fw.css', ['../forms/social.fw.css', 'text/css; charset=utf-8']],
+	['/forms/social-design.mjs', ['../forms/social-design.mjs', 'text/javascript; charset=utf-8']],
+	['/forms/social-font-metrics.mjs', ['../forms/social-font-metrics.mjs', 'text/javascript; charset=utf-8']],
 ]);
 env.ASSETS.fetch = async request => {
 	const rawPath = new URL(request.url).pathname;
 	const pathname = /^\/(fourwalls-(?:symbol|logo(?:-light)?)\.svg|gordita-bold\.woff2)$/.test(rawPath) ? `/forms${rawPath}` : rawPath;
-	const art = pathname.match(/^\/images\/social\/((?:logo-vertical|(?:editorial|architectural|neighbourhood)-(?:cover|photo|facts|cta)(?:-square)?)\.png)$/);
-	if (art) return new Response(await readFile(new URL(`../images/social/${art[1]}`, import.meta.url)), { headers: { 'Content-Type': 'image/png' } });
+	const art = pathname.match(/^\/images\/social\/([A-Za-z0-9-]+\.(png|svg|ttf))$/);
+	if (art) return new Response(await readFile(new URL(`../images/social/${art[1]}`, import.meta.url)), { headers: { 'Content-Type': { png: 'image/png', svg: 'image/svg+xml', ttf: 'font/ttf' }[art[2]] } });
 	if (pathname === '/forms/social.html') return new Response(null, { status: 307, headers: { Location: '/forms/social' } });
 	const file = files.get(pathname);
 	return file ? new Response(await readFile(new URL(file[0], import.meta.url)), { headers: { 'Content-Type': file[1] } }) : new Response('Not Found', { status: 404 });
