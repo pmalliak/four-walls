@@ -2,6 +2,17 @@
 import { buildSocialDesign } from '/social-design.mjs';
 import { normalizeSocialCrop, defaultSocialCrop, photoCropPercent, sourceCropBox } from '/social-crop.mjs';
 const $ = id => document.getElementById(id);
+const { Modal, Carousel } = window.bootstrap;
+const dialogTriggers = new Map();
+function showDialog(id, trigger = document.activeElement) {
+	dialogTriggers.set(id, trigger);
+	Modal.getOrCreateInstance($(id)).show();
+}
+function hideDialog(id) { Modal.getOrCreateInstance($(id)).hide(); }
+for (const id of ['property-dialog', 'design-dialog', 'image-viewer']) {
+	$(id).addEventListener('hidden.bs.modal', () => { const trigger = dialogTriggers.get(id); if (trigger?.isConnected) trigger.focus({ preventScroll: true }); });
+}
+$('property-dialog').addEventListener('shown.bs.modal', () => $('property-search').focus());
 const labels = { draft: 'Πρόχειρο', pending: 'Προς έγκριση', approved: 'Εγκεκριμένο', scheduled: 'Προγραμματισμένο', publishing: 'Σε δημοσίευση', published: 'Δημοσιευμένο', blocked: 'Χρειάζεται ενημέρωση', needs_review: 'Έλεγχος στο Meta', cancelled: 'Ακυρωμένο' };
 const channels = { instagram: 'Instagram', facebook: 'Facebook Page', marketplace: 'Marketplace' };
 const eventLabels = { edited: 'Αποθηκεύτηκαν αλλαγές', submitted: 'Δημιουργήθηκαν εικόνες για έγκριση', claimed: 'Έναρξη δημοσίευσης', property_observed: 'Έλεγχος CRM', marketplace_exported: 'Λήψη πακέτου Marketplace', meta_created: 'Δημιουργία μέσου Meta', publication_requested: 'Αποστολή δημοσίευσης', manually_resolved: 'Χειροκίνητη επιβεβαίωση' };
@@ -58,7 +69,7 @@ let platformItems = [];
 const editable = () => active && ['draft', 'pending', 'approved', 'scheduled', 'blocked'].includes(active.status);
 const deletable = () => active && (editable() || active.status === 'cancelled') && !active.remote_id;
 const propertyTitle = p => p?.title?.trim() ? p.title : `Ακίνητο${p?.area ? ` ${p.area} τ.μ.` : ''}${p?.location?.area || p?.location?.city ? `, ${p.location.area || p.location.city}` : ''}`;
-const el = (tag, text, className) => { const n = document.createElement(tag); if (text != null) n.textContent = text; if (className) n.className = className; return n; };
+const el = (tag, text, className) => { const n = document.createElement(tag); if (text != null) n.textContent = text; if (className) n.className = className; if (tag === 'button') n.classList.add('btn', className?.includes('primary') ? 'btn-primary' : 'btn-outline-secondary'); if (tag === 'textarea') n.classList.add('form-control'); return n; };
 const selectedProperty = () => bootstrap?.feed.listings.find(p => p.id === $('property').value);
 const currentProperty = () => bootstrap?.feed.listings.find(p => p.id === active?.property_id);
 const extraSlides = () => Number(creative.includeFacts) + Number(creative.includeCta);
@@ -296,8 +307,8 @@ function renderPresets(container, property, selectedId, choose, format = 'portra
 			}));
 			$('choose-design').hidden = container === 'presets' && !editable();
 			$('choose-design').textContent = preset.id === selectedId ? 'Διατήρηση αυτού του προτύπου' : 'Επιλογή αυτού του προτύπου';
-			$('choose-design').onclick = () => { if (busy || (container === 'presets' && !editable())) return; choose(preset.id); $('design-dialog').close(); $(button.id)?.focus({ preventScroll: true }); };
-			$('design-dialog').showModal();
+			$('choose-design').onclick = () => { if (busy || (container === 'presets' && !editable())) return; choose(preset.id); hideDialog('design-dialog'); $(button.id)?.focus({ preventScroll: true }); };
+			showDialog('design-dialog');
 		};
 		option.append(button, enlarge); return option;
 	}));
@@ -323,7 +334,7 @@ function propertyOptions() {
 		const button = el('button', null, 'property-result'); button.type = 'button'; button.disabled = busy;
 		button.setAttribute('aria-pressed', String(p.id === $('property').value));
 		button.append(propertyContent(p), el('span', p.id === $('property').value ? '✓ Επιλεγμένο' : 'Επιλογή ακινήτου', 'property-select-label'));
-		button.onclick = () => { if (busy) return; $('property').value = p.id; $('property-dialog').close(); propertyOptions(); $('empty').scrollIntoView({ block: 'start' }); };
+		button.onclick = () => { if (busy) return; $('property').value = p.id; hideDialog('property-dialog'); propertyOptions(); $('empty').scrollIntoView({ block: 'start' }); };
 		return button;
 	}));
 	if (!matches.length) $('property-results').append(el('p', 'Δεν βρέθηκαν ακίνητα με διαθέσιμες πρωτότυπες φωτογραφίες. Δοκιμάστε άλλο κωδικό ή περιοχή.'));
@@ -494,6 +505,34 @@ function photoGrid() {
 	}));
 	cropPanel();
 }
+let previewCarousel, onViewerSlide;
+function openImageViewer(plan, index, property, trigger) {
+	previewCarousel?.dispose();
+	$('viewer-slides').replaceChildren(...plan.map((slide, i) => {
+		const item = el('div', null, 'carousel-item' + (i === index ? ' active' : ''));
+		item.setAttribute('role', 'group'); item.setAttribute('aria-label', (i + 1) + ' / ' + plan.length + ': ' + slide.label);
+		const frame = el('div', null, 'viewer-frame');
+		frame.append(miniature(creative.preset, property, slide.photo, slide.kind, $('template').value, creative.destination || 'message', creative.crop));
+		item.append(frame); return item;
+	}));
+	$('viewer-jumps').replaceChildren(...plan.map((slide, i) => {
+		const button = el('button', String(i + 1), 'viewer-jump'); button.type = 'button';
+		button.setAttribute('aria-label', 'Εικόνα ' + (i + 1) + ': ' + slide.label);
+		button.onclick = () => previewCarousel.to(i); return button;
+	}));
+	const update = i => {
+		$('viewer-position').textContent = (i + 1) + ' / ' + plan.length + ' · ' + plan[i].label;
+		[...$('viewer-jumps').children].forEach((button, n) => { if(n === i) button.setAttribute('aria-current', 'true'); else button.removeAttribute('aria-current'); });
+	};
+	$('preview-carousel').querySelectorAll('[data-bs-slide]').forEach(button => { button.hidden = plan.length < 2; });
+	if (onViewerSlide) $('preview-carousel').removeEventListener('slid.bs.carousel', onViewerSlide);
+	onViewerSlide = event => update(event.to);
+	$('preview-carousel').addEventListener('slid.bs.carousel', onViewerSlide);
+	previewCarousel = new Carousel($('preview-carousel'), { interval: false, ride: false, keyboard: true, touch: true, wrap: true });
+	update(index); showDialog('image-viewer', trigger);
+}
+$('image-viewer').addEventListener('shown.bs.modal', () => $('preview-carousel').focus());
+$('image-viewer').addEventListener('hidden.bs.modal', () => { previewCarousel?.dispose(); previewCarousel = null; $('viewer-slides').replaceChildren(); });
 function layoutPreview() {
 	if (!active) return;
 	const p = currentProperty() || active.snapshot, plan = [];
@@ -504,7 +543,10 @@ function layoutPreview() {
 	if (selected.length && creative.includeCta) plan.push({ kind: 'cta', label: 'Επικοινωνία' });
 	$('layout-preview').replaceChildren(...plan.map((slide, i) => {
 		const item = el('figure', null, `layout-item${creative.preset === 'classic' ? '' : 'design-layout'}`);
-		item.append(miniature(creative.preset, p, slide.photo, slide.kind, $('template').value, creative.destination || 'message'), el('figcaption', `${i + 1}. ${slide.label}`)); return item;
+		const enlarge = el('button', null, 'layout-enlarge'); enlarge.type = 'button'; enlarge.setAttribute('aria-label', `Μεγέθυνση εικόνας ${i + 1}: ${slide.label}`);
+		enlarge.append(miniature(creative.preset, p, slide.photo, slide.kind, $('template').value, creative.destination || 'message', creative.crop));
+		enlarge.onclick = () => openImageViewer(plan, i, p, enlarge);
+		item.append(enlarge, el('figcaption', `${i + 1}. ${slide.label}`)); return item;
 	}));
 	if (!plan.length) $('layout-preview').append(el('p', 'Επιλέξτε φωτογραφίες για να δείτε τη σειρά της δημοσίευσης.'));
 }
@@ -618,9 +660,9 @@ async function action(name, fields = {}) {
 $('refresh').onclick = () => task(async () => { if (dirty) throw new Error('Αποθηκεύστε τις αλλαγές ή επιλέξτε «Κλείσιμο χωρίς αποθήκευση» πριν την ανανέωση.'); await reload(); }, 'Ανανέωση δεδομένων…', 'Τα δεδομένα ενημερώθηκαν.');
 $('property-search').oninput = propertyOptions; $('filter').onchange = postList;
 $('new-channel').onchange = starterPreview;
-$('choose-property').onclick = () => { propertyOptions(); $('property-dialog').showModal(); $('property-search').focus(); };
-$('close-picker').onclick = () => $('property-dialog').close();
-$('close-design').onclick = () => $('design-dialog').close();
+$('choose-property').onclick = () => { propertyOptions(); showDialog('property-dialog'); };
+$('close-picker').onclick = () => hideDialog('property-dialog');
+$('close-design').onclick = () => hideDialog('design-dialog');
 $('today').textContent = new Intl.DateTimeFormat('el-GR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 document.querySelectorAll('.metric').forEach(b => { b.onclick = () => { $('filter').value = b.dataset.filter; postList(); $('queue').scrollIntoView({ block: 'start' }); }; });
 $('close-editor').onclick = () => { closeEditor(); message('Το προσχέδιο διατηρεί την τελευταία αποθηκευμένη έκδοσή του.', 'success'); };
