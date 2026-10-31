@@ -19,11 +19,21 @@ async function api(path, method = 'GET', body) {
 	if (!response.ok) throw apiError(data);
 	return data;
 }
+let messageTimer;
+function showMessage(text, kind = 'error') {
+ clearTimeout(messageTimer);
+ $('message').hidden = false;
+ $('message').dataset.kind = kind;
+ $('message-text').textContent = text;
+ $('dismiss-message').hidden = kind === 'pending';
+ if (kind === 'success') messageTimer = setTimeout(() => { $('message').hidden = true; }, 5000);
+}
+$('dismiss-message').onclick = () => { clearTimeout(messageTimer); $('message').hidden = true; };
 async function task(work) {
 	if (busy) return;
-	busy = true; $('message').textContent = 'Εκτέλεση…'; controls();
-	try { await work(); $('message').textContent = 'Ολοκληρώθηκε.'; }
-	catch (e) { $('message').textContent = e.message; }
+	busy = true; showMessage('Εκτέλεση…', 'pending'); controls();
+	try { await work(); showMessage('Ολοκληρώθηκε.', 'success'); }
+	catch (e) { showMessage(e.message); }
 	finally { busy = false; controls(); }
 }
 function controls() {
@@ -111,7 +121,7 @@ function photoGrid() {
 		const img = el('img'); img.src = url; img.alt = `Φωτογραφία ακινήτου ${i + 1}`; img.loading = 'lazy'; img.referrerPolicy = 'no-referrer';
 		const index = selected.indexOf(url); b.setAttribute('aria-pressed', String(index >= 0));
 		b.append(img, el('span', index >= 0 ? `Επιλογή ${index + 1}` : 'Επιλογή'));
-		b.onclick = () => { if (!editable() || busy) return; if (index >= 0) selected.splice(index, 1); else if (selected.length < 10) selected.push(url); else { $('message').textContent = 'Έως 10 φωτογραφίες ανά δημοσίευση.'; return; } dirty = true; photoGrid(); controls(); };
+		b.onclick = () => { if (!editable() || busy) return; if (index >= 0) selected.splice(index, 1); else if (selected.length < 10) selected.push(url); else { showMessage('Έως 10 φωτογραφίες ανά δημοσίευση.'); return; } dirty = true; photoGrid(); controls(); };
 		return b;
 	}));
 	$('order').replaceChildren(...selected.map((url, i) => {

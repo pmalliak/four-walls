@@ -107,7 +107,7 @@ test('unpublished creations can be deleted with their history, including without
 		await env.SOCIAL_DB.prepare('UPDATE social_posts SET status=? WHERE id=?').bind(status, post.id).run();
 		const feedTime = env.feed.generatedAt;
 		env.feed.generatedAt = '2020-01-01';
-		const response = await call(env, `/posts/${post.id}`, 'DELETE', { revision: post.revision });
+		const response = await worker.fetch(new Request(`${origin}/api/social/posts/${post.id}`, { method: 'DELETE', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify({ revision: post.revision }) }), env, {});
 		assert.equal(response.status, 200, status);
 		assert.deepEqual(await response.json(), { deleted: true });
 		assert.equal(await getPost(env, post.id), null);

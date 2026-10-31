@@ -315,3 +315,12 @@ main{padding:30px 32px;max-width:1440px}
 .sidebar-wordmark{font-family:SocialGordita,'Segoe UI',sans-serif;font-weight:700;font-size:22px;letter-spacing:.3px;white-space:nowrap}
 
 @media(max-width:850px){.studio-rail .sidebar-logo{gap:8px}.studio-rail .sidebar-logo img{width:54px;height:58px}.sidebar-wordmark{font-size:20px}}
+
+/* Feedback stays visible even when the editor is below the fold. */
+#message{position:fixed;right:24px;bottom:max(24px,env(safe-area-inset-bottom));z-index:1000;display:flex;align-items:center;gap:16px;width:max-content;max-width:min(520px,calc(100vw - 32px));max-height:40dvh;overflow:auto;box-sizing:border-box;margin:0;padding:16px 18px;border:1px solid #e8b9c5;border-left:4px solid #b42346;border-radius:12px;background:#fff5f7;color:#831d36;box-shadow:0 8px 32px #172e4e26;font-size:14px;line-height:1.5}
+#message[hidden]{display:none}
+#message[data-kind=success]{background:#f0faf4;border-color:#a7d8b8;color:#20603b}
+#message[data-kind=pending]{background:#f4f7fc;border-color:#b8c8dd;color:#1c3457}
+#message-text{overflow-wrap:anywhere}
+#dismiss-message{flex-shrink:0;min-width:44px;min-height:44px;padding:8px;border:0;background:transparent;color:inherit;font-size:18px}
+@media(max-width:540px){#message{right:16px;bottom:max(16px,env(safe-area-inset-bottom));width:calc(100vw - 32px)}}
