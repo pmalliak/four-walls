@@ -1,4 +1,5 @@
 'use strict';
+import { buildSocialDesign } from '/social-design.mjs';
 const $ = id => document.getElementById(id);
 const labels = { draft: 'Πρόχειρο', pending: 'Προς έγκριση', approved: 'Εγκεκριμένο', scheduled: 'Προγραμματισμένο', publishing: 'Σε δημοσίευση', published: 'Δημοσιευμένο', blocked: 'Χρειάζεται ενημέρωση', needs_review: 'Έλεγχος στο Meta', cancelled: 'Ακυρωμένο' };
 const channels = { instagram: 'Instagram', facebook: 'Facebook Page', marketplace: 'Marketplace' };
@@ -137,7 +138,7 @@ function controls() {
 	$('destination').disabled = !canEdit || busy;
 	$('copy-link').disabled = busy || !websiteLink(); $('add-link').disabled = busy || !canEdit || !websiteLink();
 	for (const id of ['include-facts', 'include-cta']) $(id).disabled = !canEdit || busy || creative.preset === 'classic';
-	document.querySelectorAll('#presets button,.photo').forEach(b => { b.disabled = busy || !canEdit; });
+	document.querySelectorAll('#presets .preset,.photo').forEach(b => { b.disabled = busy || !canEdit; });
 	document.querySelectorAll('.order-controls button').forEach(b => { b.disabled = busy || !canEdit || b.dataset.unavailable === 'true'; });
 	$('save').hidden = !canEdit; $('save').disabled = busy || !dirty || !validSelection();
 	$('submit').hidden = active.status !== 'draft'; $('submit').disabled = busy || dirty || !validSelection() || !photosConfirmedClean;
@@ -169,23 +170,54 @@ function imageElement(url, className, alt = '') {
 	img.onerror = () => { img.hidden = true; };
 	return img;
 }
-// Deliberately an indicative HTML preview. Approval uses only the rendered,
-// immutable images returned by the Worker, never this browser composition.
+const svgElement = (tag, attributes = {}) => {
+	const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+	for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, String(value));
+	return node;
+};
+const designAsset = path => path.replace(/^\/images\/social\//, '/social-assets/');
+function designMiniature(preset, property, photo, kind, format, destination) {
+	const height = format === 'square' ? 1080 : 1350;
+	const p = property || {};
+	const paths = { property: `/properties/${encodeURIComponent(p.code || p.id || '')}`, request: '/request', sell: '/list-property' };
+	const link = destination === 'message' ? null : { shortUrl: `four-walls.gr${paths[destination] || ''}` };
+	const design = buildSocialDesign({ preset, kind: kind === 'photo-only' ? 'photo' : kind, height, property: p, destination, channel: active?.channel || $('new-channel').value, link });
+	const card = el('div', null, `design-artwork${format === 'square' ? ' square' : ''}`);
+	card.setAttribute('aria-hidden', 'true');
+	const loading = el('span', 'Φόρτωση προεπισκόπησης…', 'design-loading');
+	let pendingImages = 0, imageFailed = false;
+	const layer = attributes => {
+		const image = svgElement('image', { ...attributes, visibility: 'hidden' });
+		pendingImages++;
+		image.onload = () => { image.removeAttribute('visibility'); pendingImages--; if (!pendingImages && !imageFailed) loading.hidden = true; };
+		image.onerror = () => { imageFailed = true; loading.textContent = 'Δεν φορτώθηκε η προεπισκόπηση. Πατήστε Ανανέωση για να δοκιμάσετε ξανά.'; };
+		return image;
+	};
+	const svg = svgElement('svg', { viewBox: `0 0 1080 ${height}`, width: 1080, height, focusable: 'false' });
+	svg.append(svgElement('rect', { width: 1080, height, fill: '#fbf8f1' }));
+	if (design.photo) {
+		const box = { x: design.photo.left, y: design.photo.top, width: design.photo.width, height: design.photo.height };
+		svg.append(photo ? layer({ ...box, href: photo, preserveAspectRatio: 'xMidYMid slice' }) : svgElement('rect', { ...box, fill: '#dce3e9' }));
+	}
+	svg.append(layer({ href: designAsset(design.frame), width: 1080, height }));
+	svg.append(layer({ href: designAsset(design.logo.file), x: design.logo.left, y: design.logo.top, width: design.logo.width, height: design.logo.height ?? design.logo.width * 100 / 175.7, preserveAspectRatio: 'xMinYMin meet' }));
+	for (const line of design.texts) {
+		const text = svgElement('text', { x: line.left + (line.align === 'right' ? line.width : 0), y: line.top, fill: line.color, 'font-size': line.size, 'font-family': line.font === 'serif' ? 'SocialSerif' : 'SocialSans', 'font-weight': line.font === 'sans' ? 400 : 600, 'text-anchor': line.align === 'right' ? 'end' : 'start', 'dominant-baseline': 'hanging' });
+		text.textContent = line.text; svg.append(text);
+	}
+	card.append(svg, loading); return card;
+}
+// New designs share artwork, typography and layout with the Worker. Approval
+// still uses the immutable final images, including their actual photo crops.
 function miniature(preset, property, photo, kind = 'cover', format = 'portrait', destination = 'property') {
+	if (preset !== 'classic') return designMiniature(preset, property, photo, kind, format, destination);
 	const p = property || { title: 'Επιλέξτε ακίνητο', location: {} };
 	const card = el('div', null, `mini-slide ${preset} ${kind} ${format === 'square' ? 'square' : ''}`);
 	card.setAttribute('aria-hidden', 'true');
 	if (photo && ['cover', 'photo-only'].includes(kind)) card.append(imageElement(photo, 'mini-photo'));
 	else if (['cover', 'photo-only'].includes(kind)) card.append(el('span', null, 'mini-photo'));
 	card.append(el('span', null, 'mini-decoration'));
-	if (preset !== 'classic') {
-		const origin = ['localhost', '127.0.0.1'].includes(location.hostname) ? '' : 'https://four-walls.gr';
-		const frame = imageElement(`${origin}/images/social/${preset}-${kind === 'photo-only' ? 'photo' : kind}${format === 'square' ? '-square' : ''}.png`, 'mini-frame');
-		card.classList.add('has-frame');
-		frame.onerror = () => { frame.hidden = true; card.classList.remove('has-frame'); };
-		card.append(frame);
-	}
-	const logo = imageElement('/fourwalls-logo.svg', 'mini-logo'); card.append(logo);
+	card.append(imageElement('/fourwalls-logo.svg', 'mini-logo'));
 	const copy = el('div', null, 'mini-copy');
 	if (kind === 'cta') {
 		const prompts = { property: ['Δείτε το ακίνητο', `Φωτογραφίες και πληροφορίες · four-walls.gr/properties/${p.code || p.id || ''}`], request: ['Ψάχνετε ακίνητο;', 'Συμπληρώστε το αίτημά σας · four-walls.gr/request'], sell: ['Θέλετε να πουλήσετε;', 'Στείλτε τα στοιχεία του ακινήτου · four-walls.gr/list-property'], message: ['Θέλετε να το δείτε;', `Στείλτε μας μήνυμα με τον κωδικό ${p.code || 'του ακινήτου'}.`] };
@@ -205,6 +237,7 @@ function miniature(preset, property, photo, kind = 'cover', format = 'portrait',
 }
 function renderPresets(container, property, selectedId, choose, format = 'portrait') {
 	$(container).replaceChildren(...presets.map(preset => {
+		const option = el('div', null, 'preset-option');
 		const button = el('button', null, 'preset'); button.type = 'button'; button.id = `${container}-${preset.id}`;
 		button.setAttribute('aria-pressed', String(preset.id === selectedId));
 		button.setAttribute('aria-label', `${preset.number} ${preset.name}. ${preset.description}`);
@@ -212,7 +245,23 @@ function renderPresets(container, property, selectedId, choose, format = 'portra
 		const name = el('span', null, 'preset-name'); name.append(el('span', preset.name), el('b', preset.number));
 		button.append(name, el('span', preset.description, 'preset-description'), el('span', preset.id === selectedId ? '✓ Επιλεγμένο' : 'Επιλογή προτύπου', 'preset-mark'));
 		button.onclick = () => { if (busy) return; choose(preset.id); $(button.id)?.focus({ preventScroll: true }); };
-		return button;
+		const enlarge = el('button', 'Μεγέθυνση', 'preset-enlarge'); enlarge.type = 'button';
+		enlarge.setAttribute('aria-label', `Μεγέθυνση προτύπου ${preset.name}`);
+		enlarge.onclick = () => {
+			if (busy) return;
+			$('design-title').textContent = `${preset.number} · ${preset.name}`;
+			$('design-description').textContent = preset.description;
+			const destination = container === 'presets' ? creative.destination || 'message' : 'property';
+			const photo = container === 'presets' ? selected[0] : property?.images?.[0];
+			$('design-slides').replaceChildren(...[['cover', 'Εξώφυλλο'], ['facts', 'Στοιχεία ακινήτου'], ['cta', 'Τελική κάρτα']].map(([kind, label]) => {
+				const figure = el('figure'); figure.append(miniature(preset.id, property, photo, kind, format, destination), el('figcaption', label)); return figure;
+			}));
+			$('choose-design').hidden = container === 'presets' && !editable();
+			$('choose-design').textContent = preset.id === selectedId ? 'Διατήρηση αυτού του προτύπου' : 'Επιλογή αυτού του προτύπου';
+			$('choose-design').onclick = () => { if (busy || (container === 'presets' && !editable())) return; choose(preset.id); $('design-dialog').close(); $(button.id)?.focus({ preventScroll: true }); };
+			$('design-dialog').showModal();
+		};
+		option.append(button, enlarge); return option;
 	}));
 }
 function starterPreview() {
@@ -354,7 +403,7 @@ function layoutPreview() {
 	});
 	if (selected.length && creative.includeCta) plan.push({ kind: 'cta', label: 'Επικοινωνία' });
 	$('layout-preview').replaceChildren(...plan.map((slide, i) => {
-		const item = el('figure', null, 'layout-item');
+		const item = el('figure', null, `layout-item${creative.preset === 'classic' ? '' : 'design-layout'}`);
 		item.append(miniature(creative.preset, p, slide.photo, slide.kind, $('template').value, creative.destination || 'message'), el('figcaption', `${i + 1}. ${slide.label}`)); return item;
 	}));
 	if (!plan.length) $('layout-preview').append(el('p', 'Επιλέξτε φωτογραφίες για να δείτε τη σειρά της δημοσίευσης.'));
@@ -474,6 +523,7 @@ $('property-search').oninput = propertyOptions; $('filter').onchange = postList;
 $('new-channel').onchange = starterPreview;
 $('choose-property').onclick = () => { propertyOptions(); $('property-dialog').showModal(); $('property-search').focus(); };
 $('close-picker').onclick = () => $('property-dialog').close();
+$('close-design').onclick = () => $('design-dialog').close();
 $('today').textContent = new Intl.DateTimeFormat('el-GR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 document.querySelectorAll('.metric').forEach(b => { b.onclick = () => { $('filter').value = b.dataset.filter; postList(); $('queue').scrollIntoView({ block: 'start' }); }; });
 $('close-editor').onclick = () => { closeEditor(); message('Το προσχέδιο διατηρεί την τελευταία αποθηκευμένη έκδοσή του.', 'success'); };

@@ -87,13 +87,16 @@ export async function handleSocial(request, env, url) {
 		if (!url.pathname.startsWith('/api/social/')) {
 			stage = 'serve_asset';
 			const name = url.pathname.replace(/^\/forms/, '');
-			const allowed = ['/social', '/social.html', '/social.fw.js', '/social.fw.css'];
-			check(allowed.includes(name), 'not_found', 404);
+			const allowed = ['/social', '/social.html', '/social.fw.js', '/social.fw.css', '/social-design.mjs', '/social-font-metrics.mjs'];
+			const designAsset = name.match(/^\/social-assets\/([A-Za-z0-9-]+\.(?:png|svg|ttf))$/);
+			check(allowed.includes(name) || designAsset, 'not_found', 404);
 			check(request.method === 'GET', 'method_not_allowed', 405);
 			// Keep clean paths clean: Assets redirects .html to the extensionless
 			// URL, so rewriting /social to .html would redirect back to itself.
-			const response = await env.ASSETS.fetch(new Request(new URL(`/forms${name}`, url), request));
+			const assetPath = designAsset ? `/images/social/${designAsset[1]}` : `/forms${name}`;
+			const response = await env.ASSETS.fetch(new Request(new URL(assetPath, url), request));
 			const headers = new Headers(response.headers);
+			if (name.endsWith('.mjs')) headers.set('Content-Type', 'text/javascript; charset=utf-8');
 			const location = headers.get('Location');
 			if (location?.startsWith('/forms/')) headers.set('Location', location.slice(6));
 			headers.set('Cache-Control', 'private, no-store');

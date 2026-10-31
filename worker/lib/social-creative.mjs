@@ -1,5 +1,6 @@
 // Versioned design choices are saved with the draft and therefore covered by
 // its revision/approval. Keep this module independent of request/storage code.
+import { buildSocialDesign } from '../../forms/social-design.mjs';
 export const SOCIAL_PRESETS = ['classic', 'editorial', 'architectural', 'neighbourhood'];
 export const SOCIAL_DESTINATIONS = ['property', 'request', 'sell', 'message'];
 
@@ -54,11 +55,8 @@ export function buildSlidePlan(post) {
 // A shared geometry contract keeps the authored PNG frame and the renderer in
 // agreement. All positions are real output pixels, never browser dimensions.
 export function slideLayout(preset, kind, height) {
-	const portrait = height === 1350;
-	if (kind === 'photo') return { photo: { left: 48, top: 48, width: 984, height: height - 240 } };
-	if (kind !== 'cover') return {};
-	if (preset === 'neighbourhood') return { photo: { left: 64, top: 350, width: 740, height: portrait ? 730 : 460 }, titleTop: 72, titleWidth: 910, titleSize: 58, titleChars: 31, locationTop: 240, priceTop: height - 205, codeTop: height - 115, logo: { left: 860, top: height - 180, width: 152 } };
-	return { photo: { left: preset === 'editorial' ? 0 : 54, top: preset === 'editorial' ? 0 : 64, width: preset === 'editorial' ? 1080 : 972, height: height - (preset === 'editorial' ? 390 : 445) }, titleTop: height - 354, titleWidth: 920, titleSize: 58, titleChars: 31, locationTop: height - 186, priceTop: height - 126, codeTop: height - 48, logo: { left: 65, top: 84, width: 150 } };
+	const { photo, logo } = buildSocialDesign({ preset, kind, height });
+	return { photo, logo };
 }
 
 // The text binding does not wrap. Draw bounded lines separately; the renderer

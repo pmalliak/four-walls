@@ -314,6 +314,31 @@ throughput, resumable processing and automated token renewal are future work.
 The dashboard lists the 100 most recently updated posts; older history remains
 in D1. There are no background notifications in this MVP: staff inspect the queue.
 
+The preset chooser and its enlargement dialog use the same pure composition
+module as the image renderer (`forms/social-design.mjs`). Text wraps using
+advance widths from the exact self-hosted fonts, so short and long Greek fields
+share the same line breaks in both views. The browser loads design modules,
+fonts and artwork through the authenticated social asset routes. Preview
+loading failures are shown explicitly; the generated JPEG remains the final
+approval target.
+
+The compact portrait logo retains the original outlined symbol and name,
+without the small Real Estate tagline. Architectural uses this stacked mark;
+Editorial and Neighbourhood use its horizontal variant. Pencil illustrations
+follow the website's existing illustration style. They are generic decoration,
+not representations of the listed home. Source notes and generation prompts
+are in `images/social/ARTWORK.txt`. No image-generation API runs when staff
+creates a post; the Worker combines these reusable assets with selected CRM
+photos and public property facts.
+
+For design QA with a public-property fixture, run
+`node tools/preview-social.mjs 5175 path/to/public-property.json`. This preview
+uses in-memory data and always disables publishing. Review cover, details,
+photo and CTA slides at both output sizes, including a long location, missing
+price and each destination. Then verify representative JPEGs through the real
+Cloudflare Images binding before merging through Workers Builds. The design
+refinement needs no additional migration or publishing-switch change.
+
 Emergency stop: set `SOCIAL_LIVE_PUBLISH=0`. Keep D1/R2 for audit and recovery;
 do not delete published history or reset `publishing` rows to `scheduled`.
 CRM availability can change in the final milliseconds between verification and
