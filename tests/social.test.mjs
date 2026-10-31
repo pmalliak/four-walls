@@ -39,6 +39,7 @@ test('unpublished tests use real Meta preparation endpoints without publishing, 
 			const fields = Object.fromEntries(options.body || []);
 			calls.push({ url: String(url), method: options.method, fields });
 			assert.equal(options.headers.Authorization, 'Bearer SECRET-META-TOKEN');
+			assert.equal(options.redirect, 'manual');
 			assert.ok(!String(url).includes('media_publish'));
 			if (channel === 'facebook' && options.method === 'POST') assert.equal(fields.published, 'false');
 			assert.equal(fields.scheduled_publish_time, undefined);
