@@ -41,7 +41,10 @@ export function buildSocialDesign({ preset = 'architectural', kind = 'cover', he
 	const result = { frame: `${ASSET}${preset}-${kind}${square ? '-square' : ''}.png`, photo: null, logo: null, texts: [] };
 	const type = clean(property.typeLabel) || 'Ακίνητο';
 	const size = amount(property.area), area = size ? `${size} τ.μ.` : '';
-	const city = clean(property.location?.city), region = clean(property.location?.area) || city;
+	// Drop only the CRM's administrative suffix in artwork. Saved facts and
+	// editable captions retain the original EstatePrime location.
+	const city = clean(property.location?.city).replace(/\s+-\s+(?:Δήμος|Περιφ\/κοί δήμοι)$/u, '');
+	const region = clean(property.location?.area) || city;
 	const code = clean(property.code || property.id);
 	const price = typeof property.price === 'number' && Number.isFinite(property.price) && property.price > 0 ? `€${property.price.toLocaleString('el-GR')}${property.transaction === 'rent' ? '/μήνα' : ''}` : 'Κατόπιν επικοινωνίας';
 	const sale = { sale: 'ΠΡΟΣ ΠΩΛΗΣΗ', rent: 'ΠΡΟΣ ΕΝΟΙΚΙΑΣΗ', shortterm: 'ΒΡΑΧΥΧΡΟΝΙΑ ΜΙΣΘΩΣΗ', auction: 'ΔΗΜΟΠΡΑΣΙΑ' }[property.transaction] || 'ΑΚΙΝΗΤΟ';

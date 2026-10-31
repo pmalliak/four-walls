@@ -247,6 +247,7 @@ test('shared preview module and font assets use the authenticated asset boundary
 	env.ASSETS.fetch = async request => { fetched.push(new URL(request.url).pathname); return new Response('asset'); };
 	for (const [path, target] of [
 		['/social-design.mjs', '/forms/social-design.mjs'],
+		['/social-font-metrics.mjs', '/forms/social-font-metrics.mjs'],
 		['/social-assets/NotoSerifDisplay-SemiBold.ttf', '/images/social/NotoSerifDisplay-SemiBold.ttf'],
 		['/forms/social-assets/logo-social.svg', '/images/social/logo-social.svg'],
 	]) {
