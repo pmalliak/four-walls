@@ -100,6 +100,55 @@ test('social clean URL serves HTML without a canonical redirect loop', async () 
 	const response = await worker.fetch(new Request(new URL(redirect.headers.get('Location'), origin)), env, {});
 	assert.equal(response.status, 200);
 });
+test('unpublished creations can be deleted with their history, including without a fresh feed', async () => {
+	const env = environment();
+	for (const status of ['draft', 'pending', 'approved', 'scheduled', 'blocked', 'cancelled']) {
+		const post = await create(env);
+		await env.SOCIAL_DB.prepare('UPDATE social_posts SET status=? WHERE id=?').bind(status, post.id).run();
+		const feedTime = env.feed.generatedAt;
+		env.feed.generatedAt = '2020-01-01';
+		const response = await call(env, `/posts/${post.id}`, 'DELETE', { revision: post.revision });
+		assert.equal(response.status, 200, status);
+		assert.deepEqual(await response.json(), { deleted: true });
+		assert.equal(await getPost(env, post.id), null);
+		assert.deepEqual((await env.SOCIAL_DB.prepare('SELECT * FROM social_events WHERE post_id=?').bind(post.id).all()).results, []);
+		assert.equal((await call(env, `/posts/${post.id}`)).status, 404);
+		env.feed.generatedAt = feedTime;
+	}
+	assert.deepEqual((await (await call(env, '/posts')).json()).posts, []);
+});
+
+test('deletion rejects published, publishing, uncertain, stale and cross-origin requests', async () => {
+	const env = environment();
+	const post = await create(env);
+	for (const status of ['published', 'publishing', 'needs_review']) {
+		await env.SOCIAL_DB.prepare('UPDATE social_posts SET status=? WHERE id=?').bind(status, post.id).run();
+		assert.equal((await call(env, `/posts/${post.id}`, 'DELETE', { revision: post.revision })).status, 409);
+	}
+	await env.SOCIAL_DB.prepare("UPDATE social_posts SET status='draft', remote_id='123' WHERE id=?").bind(post.id).run();
+	assert.equal((await call(env, `/posts/${post.id}`, 'DELETE', { revision: post.revision })).status, 409);
+	await env.SOCIAL_DB.prepare('UPDATE social_posts SET remote_id=NULL WHERE id=?').bind(post.id).run();
+	assert.equal((await call(env, `/posts/${post.id}`, 'DELETE', { revision: 0 })).status, 409);
+	assert.equal((await call(env, `/posts/${post.id}`, 'DELETE', { revision: post.revision }, { Origin: 'https://evil.test' })).status, 403);
+	assert.equal((await call(env, `/posts/${post.id}`, 'DELETE', { revision: post.revision }, { 'Content-Type': 'text/plain' })).status, 415);
+	assert.ok(await getPost(env, post.id));
+	assert.equal((await (await call(env, `/posts/${post.id}/history`)).json()).length, 1);
+});
+
+test('a scheduler claim racing deletion preserves the creation and history', async () => {
+	const env = environment();
+	const post = await create(env);
+	await env.SOCIAL_DB.prepare("UPDATE social_posts SET status='scheduled' WHERE id=?").bind(post.id).run();
+	const batch = env.SOCIAL_DB.batch.bind(env.SOCIAL_DB);
+	env.SOCIAL_DB.batch = async statements => {
+		await env.SOCIAL_DB.prepare("UPDATE social_posts SET status='publishing', revision=revision+1 WHERE id=?").bind(post.id).run();
+		return batch(statements);
+	};
+	assert.equal((await call(env, `/posts/${post.id}`, 'DELETE', { revision: post.revision })).status, 409);
+	assert.equal((await getPost(env, post.id)).status, 'publishing');
+	assert.equal((await (await call(env, `/posts/${post.id}/history`)).json()).length, 1);
+});
+
 test('draft editing, rendering, role approval, stale revision, and approval invalidation', async t => {
 	const env = environment(); mockPhotos(t);
 	let post = await create(env);

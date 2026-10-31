@@ -6,6 +6,8 @@ const errors = { social_database_not_configured: 'Η βάση δημοσιεύσ
 let bootstrap, posts = [], active, selected = [], dirty = false, busy = false;
 const editable = () => active && ['draft', 'pending', 'approved', 'scheduled', 'blocked'].includes(active.status);
 const propertyTitle = p => p.title?.trim() ? p.title : `Ακίνητο${p.area ? ` ${p.area} τ.μ.` : ''}${p.location?.area || p.location?.city ? `, ${p.location.area || p.location.city}` : ''}`;
+const deletable = () => active && (editable() || active.status === 'cancelled') && !active.remote_id;
+errors.post_not_deletable = 'Η δημιουργία δεν μπορεί να διαγραφεί επειδή έχει δημοσιευτεί ή εκκρεμεί το αποτέλεσμα δημοσίευσης.';
 const el = (tag, text, className) => { const n = document.createElement(tag); if (text != null) n.textContent = text; if (className) n.className = className; return n; };
 function apiError(data) {
 	const message = errors[data.error] || `Η ενέργεια δεν ολοκληρώθηκε (${data.error}).`;
@@ -34,6 +36,7 @@ function controls() {
 	$('submit').hidden = active.status !== 'draft'; $('submit').disabled = busy || dirty;
 	$('approve').hidden = active.status !== 'pending' || !bootstrap.canApprove; $('approve').disabled = busy || dirty;
 	$('cancel').hidden = !editable();
+	$('delete').hidden = !deletable();
 	$('scheduling').hidden = active.status !== 'approved' || active.channel === 'marketplace'; $('schedule').disabled = busy || dirty;
 	$('package').hidden = active.status !== 'approved' || active.channel !== 'marketplace'; $('package').disabled = busy || dirty;
 	$('resolution').hidden = active.status !== 'needs_review' || !bootstrap.canApprove;
@@ -164,6 +167,17 @@ $('save').onclick = () => task(async () => {
 	await reload();
 });
 for (const name of ['submit', 'approve', 'cancel']) $(name).onclick = () => task(() => action(name));
+$('delete').onclick = () => {
+	if (busy || !deletable()) return;
+	if (!window.confirm('Να διαγραφεί οριστικά αυτή η δημιουργία και το ιστορικό της; Θα χαθούν και τυχόν μη αποθηκευμένες αλλαγές.')) return;
+	return task(async () => {
+		await api(`/posts/${active.id}`, 'DELETE', { revision: active.revision });
+		posts = posts.filter(post => post.id !== active.id);
+		active = null; selected = []; dirty = false;
+		$('editor').hidden = true; $('empty').hidden = false;
+		postList(); $('create').focus();
+	});
+};
 $('timezone').textContent = `Ημερομηνία και ώρα (${Intl.DateTimeFormat().resolvedOptions().timeZone})`;
 $('schedule').onclick = () => task(async () => {
 	const at = new Date($('schedule-time').value);
