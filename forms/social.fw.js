@@ -27,7 +27,7 @@ async function task(work) {
 function controls() {
 	document.querySelectorAll('button').forEach(b => { b.disabled = busy; });
 	$('create').disabled = busy || !$('property').value;
-	if (!active) { $('create').disabled = busy || !bootstrap?.feed.listings.length; return; }
+	if (!active) return;
 	$('caption').disabled = $('template').disabled = !editable() || busy;
 	$('save').hidden = !editable();
 	$('save').disabled = busy || !dirty;
@@ -42,17 +42,36 @@ function controls() {
 	$('count').textContent = `${$('caption').value.length} / 2200${dirty ? ' · Μη αποθηκευμένες αλλαγές' : ''}`;
 }
 function propertyOptions() {
+	if (!bootstrap) return;
 	const q = $('property-search').value.toLocaleLowerCase('el');
 	$('property').replaceChildren(...bootstrap.feed.listings.filter(p => `${p.code} ${propertyTitle(p)} ${p.location.area} ${p.location.city}`.toLocaleLowerCase('el').includes(q)).map(p => {
 		const option = el('option', `${p.code} · ${propertyTitle(p)}`); option.value = p.id; return option;
 	}));
 	$('create').disabled = !$('property').value || busy;
+	propertyPreview();
+}
+function propertyPreview() {
+	const property = bootstrap?.feed.listings.find(p => p.id === $('property').value);
+	const image = $('featured-image');
+	image.hidden = true; $('property-art').hidden = false;
+	$('featured-title').textContent = property ? propertyTitle(property) : 'Ο χώρος σας. Η ιστορία σας.';
+	image.onload = () => { image.hidden = false; $('property-art').hidden = true; };
+	image.onerror = () => { image.hidden = true; $('property-art').hidden = false; };
+	if (property?.images?.[0]) { image.alt = propertyTitle(property); image.referrerPolicy = 'no-referrer'; image.src = property.images[0]; }
+	else image.removeAttribute('src');
 }
 function postList() {
+	$('metric-total').textContent = posts.length;
+	for (const status of ['draft', 'pending', 'scheduled']) $('metric-' + status).textContent = posts.filter(p => p.status === status).length;
 	const visible = posts.filter(p => !$('filter').value || p.status === $('filter').value);
+	$('queue-count').textContent = visible.length;
+	document.querySelectorAll('.metric').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.filter === $('filter').value)));
 	$('posts').replaceChildren(...visible.map(p => {
 		const b = el('button', null, 'post'); b.type = 'button'; b.setAttribute('aria-current', String(active?.id === p.id));
-		b.append(el('strong', p.snapshot.code || propertyTitle(p.snapshot)), el('small', `${p.channel} · ${labels[p.status]}`));
+		const details = el('span');
+		details.append(el('strong', p.snapshot.code || propertyTitle(p.snapshot)), el('small', propertyTitle(p.snapshot)), el('small', `${p.channel} · ${labels[p.status]}`));
+		if (p.snapshot.images?.[0]) { const img = el('img', null, 'post-thumb'); img.src = p.snapshot.images[0]; img.alt = ''; img.loading = 'lazy'; img.referrerPolicy = 'no-referrer'; img.onerror = () => { img.hidden = true; }; b.append(img); }
+		b.append(details);
 		b.onclick = () => task(async () => { if (dirty) throw new Error('Αποθηκεύστε τις αλλαγές πριν επιλέξετε άλλη δημοσίευση.'); await openPost(p.id); });
 		return b;
 	}));
@@ -106,6 +125,10 @@ async function action(name, fields = {}) {
 }
 $('refresh').onclick = () => task(async () => { if (dirty) throw new Error('Αποθηκεύστε τις αλλαγές πριν την ανανέωση.'); await reload(); });
 $('property-search').oninput = propertyOptions; $('filter').onchange = postList;
+$('property').onchange = () => { propertyPreview(); controls(); };
+$('today').textContent = new Intl.DateTimeFormat('el-GR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+document.querySelectorAll('.metric').forEach(b => { b.onclick = () => { $('filter').value = b.dataset.filter; postList(); $('queue').scrollIntoView({ block: 'start' }); }; });
+document.querySelectorAll('.rail-link').forEach(link => { link.onclick = () => { document.querySelectorAll('.rail-link').forEach(item => item.classList.toggle('active', item === link)); }; });
 $('create').onclick = () => task(async () => {
 	if (dirty) throw new Error('Αποθηκεύστε πρώτα τις αλλαγές.');
 	const post = await api('/posts', 'POST', { property_id: $('property').value, channel: $('new-channel').value, template: 'square' });
@@ -127,7 +150,7 @@ $('resolve-published').onclick = () => task(() => action('resolve', { outcome: '
 $('resolve-cancelled').onclick = () => task(() => action('resolve', { outcome: 'cancelled' }));
 $('package').onclick = () => task(async () => {
 	const response = await fetch(`/api/social/posts/${active.id}/package`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ revision: active.revision }) });
-	if (!response.ok) throw apiError(await response.json());
+		if (!response.ok) throw apiError(await response.json());
 	const url = URL.createObjectURL(await response.blob());
 	const a = el('a'); a.href = url; a.download = `fourwalls-marketplace-${active.snapshot.code || active.id}.zip`; a.click();
 	setTimeout(() => URL.revokeObjectURL(url), 60000); await openPost(active.id);
