@@ -1,6 +1,7 @@
 // Versioned design choices are saved with the draft and therefore covered by
 // its revision/approval. Keep this module independent of request/storage code.
 import { buildSocialDesign } from '../../forms/social-design.mjs';
+import { normalizeSocialCrop } from '../../forms/social-crop.mjs';
 export const SOCIAL_PRESETS = ['classic', 'editorial', 'architectural', 'neighbourhood'];
 export const SOCIAL_DESTINATIONS = ['property', 'request', 'sell', 'message'];
 
@@ -9,11 +10,13 @@ export function normalizeCreative(input) {
 	if (typeof input !== 'object' || Array.isArray(input) ||
 		!SOCIAL_PRESETS.includes(input.preset) || input.version !== 1 ||
 		typeof input.includeFacts !== 'boolean' || typeof input.includeCta !== 'boolean' ||
-		Object.keys(input).some(key => !['preset', 'version', 'includeFacts', 'includeCta', 'destination'].includes(key)) ||
+		Object.keys(input).some(key => !['preset', 'version', 'includeFacts', 'includeCta', 'destination', 'crop'].includes(key)) ||
 		('destination' in input && !SOCIAL_DESTINATIONS.includes(input.destination)) ||
+		('crop' in input && !normalizeSocialCrop(input.crop)) ||
 		(input.preset === 'classic' && (input.includeFacts || input.includeCta))) return null;
 	return { preset: input.preset, version: 1, includeFacts: input.includeFacts, includeCta: input.includeCta,
-		...('destination' in input ? { destination: input.destination } : {}) };
+		...('destination' in input ? { destination: input.destination } : {}),
+		...('crop' in input ? { crop: normalizeSocialCrop(input.crop) } : {}) };
 }
 
 // All destinations belong to the public marketing site. No editable URL,

@@ -3,7 +3,7 @@
 import { measureSocialText } from './social-font-metrics.mjs';
 const NAVY = '#1C3457', PINK = '#FF0062', WHITE = '#FFFFFF';
 const ASSET = '/images/social/';
-const clean = value => String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+const clean = value => String(value ?? '').normalize('NFC').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
 const amount = value => typeof value === 'number' && Number.isFinite(value) && value > 0 ? value.toLocaleString('el-GR') : '';
 
 // Leave room for rasterizer/kerning differences between SVG and Images text.
@@ -60,25 +60,25 @@ export function buildSocialDesign({ preset = 'architectural', kind = 'cover', he
 			result.photo = { left: 0, top: 0, width: 1080, height: height - 420 };
 			result.logo = logo(false, 64, height - 120, 360);
 			add(sale, 82, height - 507, 292, 23, 'sansBold', WHITE);
-			add(type, 64, height - 440, 570, 82, 'serif');
-			add(area, 64, height - 340, 570, 82, 'serif');
+			add(type, 64, height - 440, 570, 82, 'heading');
+			add(area, 64, height - 340, 570, 82, 'heading');
 			add(city, 64, height - 210, 570, 29, 'sans', NAVY, { lines: 2 });
-			add(price, 654, height - 250, 362, 64, 'serif', NAVY, { align: 'right' });
+			add(price, 654, height - 250, 362, 64, 'heading', NAVY, { align: 'right' });
 			add(`Κωδικός ${code}`, 654, height - 150, 362, 23, 'sans', NAVY, { align: 'right' });
 		} else if (arch) {
 			result.photo = { left: 54, top: 64, width: 972, height: height - 150 };
 			result.logo = logo(true, 65, 87, 250);
-			add(type, 76, height - 392, 770, 78, 'serif');
-			add(area, 76, height - 300, 770, 78, 'serif');
+			add(type, 76, height - 392, 770, 78, 'heading');
+			add(area, 76, height - 300, 770, 78, 'heading');
 			add(city, 76, height - 192, 770, 27, 'sans', NAVY, { lines: 2 });
-			add(price, 76, height - 110, 420, 58, 'serif', PINK);
+			add(price, 76, height - 110, 420, 58, 'heading', PINK);
 			add(`Κωδικός ${code}`, 526, height - 91, 330, 22, 'sans', NAVY, { align: 'right' });
 		} else {
 			result.photo = { left: 54, top: 320, width: 740, height: height - 500 };
 			result.logo = logo(false, 54, height - 110, 360);
-			add(type, 64, 66, 545, 76, 'serif');
-			add(area, 64, 154, 545, 76, 'serif');
-			add(price, 652, 82, 364, 56, 'serif', NAVY, { align: 'right' });
+			add(type, 64, 66, 545, 76, 'heading');
+			add(area, 64, 154, 545, 76, 'heading');
+			add(price, 652, 82, 364, 56, 'heading', NAVY, { align: 'right' });
 			add(`Κωδικός ${code}`, 652, 168, 364, 22, 'sans', NAVY, { align: 'right' });
 			add(city, 64, 268, 730, 33);
 		}
@@ -86,13 +86,13 @@ export function buildSocialDesign({ preset = 'architectural', kind = 'cover', he
 		result.photo = { left: 40, top: 40, width: 1000, height: height - 240 };
 		result.logo = arch ? logo(true, 766, height - 171, 250) : logo(false, 64, height - 133, 360);
 		const left = arch ? 64 : 530, width = arch ? 670 : 486, align = arch ? {} : { align: 'right' };
-		add([type, area].filter(Boolean).join(' · '), left, height - 157, width, 34, 'serif', NAVY, align);
+		add([type, area].filter(Boolean).join(' · '), left, height - 157, width, 34, 'heading', NAVY, align);
 		add(city, left, height - 102, width, 25, 'sans', NAVY, align);
 		add(`Κωδικός ${code}`, left, height - 58, width, 23, 'sans', NAVY, align);
 	} else if (kind === 'facts') {
 		result.logo = arch ? logo(true, 64, height - 170, 250) : logo(false, 64, height - 114, 360);
-		add(type, 570, square ? 100 : 170, 446, 65, 'serif');
-		add(area, 570, square ? 185 : 262, 446, 65, 'serif');
+		add(type, 570, square ? 100 : 170, 446, 65, 'heading');
+		add(area, 570, square ? 185 : 262, 446, 65, 'heading');
 		add(city, 570, square ? 284 : 370, 446, 29, 'sans', NAVY, { lines: 2 });
 		const cells = [['ΕΜΒΑΔΟΝ', area], ['ΠΕΡΙΟΧΗ', region], ['ΤΙΜΗ', price], ['ΚΩΔΙΚΟΣ', code]];
 		for (const [index, [label, value]] of cells.entries()) {
@@ -113,8 +113,8 @@ export function buildSocialDesign({ preset = 'architectural', kind = 'cover', he
 		};
 		const target = link ? destination : 'message', copy = targets[target] || targets.message;
 		const width = neighbour ? 610 : 780;
-		add(copy[0], 64, top, width, 96, 'serif', color);
-		add(copy[1], 64, top + 118, width, 96, 'serif', color);
+		add(copy[0], 64, top, width, 96, 'heading', color);
+		add(copy[1], 64, top + 118, width, 96, 'heading', color);
 		add(copy[2], 64, top + 298, width, 38, 'sans', color, { lines: 2 });
 		if (link) {
 			const url = clean(link.shortUrl), slash = url.indexOf('/');

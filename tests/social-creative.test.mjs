@@ -173,7 +173,6 @@ test('changing an approved creative clears its approval and rendered images', as
 	const env = environment();
 	t.mock.method(globalThis, 'fetch', async () => new Response('photo', { headers: { 'Content-Type': 'image/jpeg' } }));
 	let post = await (await api(env, '/posts', 'POST', { property_id: property.id, channel: 'instagram', template: 'portrait', creative: classic })).json();
-	post = await (await api(env, `/posts/${post.id}`, 'PATCH', { revision: post.revision, channel: post.channel, template: post.template, caption: post.caption, photos: post.photos, creative: post.creative, photos_confirmed_clean: true })).json();
 	post = await (await action(env, post, 'submit')).json();
 	post = await (await action(env, post, 'approve')).json();
 	assert.equal(post.status, 'approved');
@@ -192,7 +191,7 @@ test('changing an approved creative clears its approval and rendered images', as
 	assert.equal((await action(env, saved, 'schedule', { at: new Date().toISOString() })).status, 409);
 });
 
-test('migrations preserve existing records as Classic while requiring a fresh photo review', () => {
+test('migrations preserve existing records as Classic and retain the legacy source flag default', () => {
 	const db = new DatabaseSync(':memory:');
 	try {
 		db.exec(readFileSync(new URL('../worker/migrations/0001_social.sql', import.meta.url), 'utf8'));

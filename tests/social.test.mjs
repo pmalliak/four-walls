@@ -11,7 +11,7 @@ import { signedMediaUrl, serveSocialMedia } from '../worker/lib/social-media.mjs
 import { mapListing } from '../worker/lib/estateprime.mjs';
 
 const origin = 'http://localhost:8787';
-test('draft connection test does not bypass public clean-photo review or approve the creation', async t => {
+test('draft connection test does not bypass final-image review or approve the creation', async t => {
 	const env = environment(); t.after(() => env.SOCIAL_DB.close());
 	const post = await (await call(env, '/posts', 'POST', { property_id: '123', channel: 'facebook', template: 'square', creative: { preset: 'classic', version: 1, includeFacts: false, includeCta: false } })).json();
 	t.mock.method(globalThis, 'fetch', async (url, options) => {
@@ -28,8 +28,9 @@ test('draft connection test does not bypass public clean-photo review or approve
 	assert.equal(current.remote_id, null);
 	assert.deepEqual(current.assets, []);
 	assert.equal((await action(env, current, 'schedule')).status, 409);
-	assert.equal((await action(env, current, 'submit')).status, 409);
+	assert.equal((await action(env, current, 'approve')).status, 409);
 	assert.equal((await action(env, current, 'test')).status, 409);
+	assert.equal((await action(env, current, 'submit')).status, 200);
 });
 test('unpublished tests use real Meta preparation endpoints without publishing, for one image and carousels', async t => {
 	const env = environment(); t.after(() => env.SOCIAL_DB.close());
@@ -104,15 +105,8 @@ async function call(env, path, method = 'GET', body, headers = {}) {
 	const request = new Request(`${origin}/api/social${path}`, { method, headers: { Origin: origin, 'Content-Type': 'application/json', ...headers }, body: body ? JSON.stringify(body) : undefined });
 	return handleSocial(request, env, new URL(request.url));
 }
-async function confirmPhotos(env, post) {
-	return (await call(env, `/posts/${post.id}`, 'PATCH', {
-		revision: post.revision, channel: post.channel, template: post.template, caption: post.caption,
-		photos: post.photos, creative: post.creative, photos_confirmed_clean: true,
-	})).json();
-}
 async function create(env, channel = 'instagram') {
-	const post = await (await call(env, '/posts', 'POST', { property_id: '123', channel, template: 'square', creative: { preset: 'classic', version: 1, includeFacts: false, includeCta: false } })).json();
-	return confirmPhotos(env, post);
+	return (await call(env, '/posts', 'POST', { property_id: '123', channel, template: 'square', creative: { preset: 'classic', version: 1, includeFacts: false, includeCta: false } })).json();
 }
 async function action(env, post, name, extra = {}) { return call(env, `/posts/${post.id}/${name}`, 'POST', { revision: post.revision, ...extra }); }
 function mockPhotos(t) { t.mock.method(globalThis, 'fetch', async () => new Response('photo', { headers: { 'Content-Type': 'image/jpeg' } })); }
@@ -231,12 +225,12 @@ test('missing CRM titles use public Greek labels and stable feed/direct CRM fing
 });
 test('Worker guards HTML, script and API aliases on public hosts including encoded names', async () => {
 	for (const host of ['four-walls.gr', 'dev.four-walls.gr', 'test.workers.dev', 'forms.evil.test']) {
-		for (const path of ['/social', '/forms/social.html', '/forms/%73ocial.html', '/social.fw.js', '/social-design.mjs', '/forms/social-design.mjs', '/social-assets/logo-social.svg', '/forms/social-assets/NotoSans.ttf', '/api/social/posts']) {
+		for (const path of ['/social', '/forms/social.html', '/forms/%73ocial.html', '/social.fw.js', '/social-design.mjs', '/forms/social-design.mjs', '/social-crop.mjs', '/forms/social-crop.mjs', '/forms/%73ocial-crop.mjs', '/social-assets/logo-social.svg', '/forms/social-assets/NotoSans.ttf', '/api/social/posts']) {
 			const res = await worker.fetch(new Request(`https://${host}${path}`), { CRM_DEV_BYPASS: '1' }, {});
 			assert.equal(res.status, 404, `${host}${path}`);
 		}
 	}
-	for (const path of ['/social', '/social.fw.css', '/social-design.mjs', '/social-assets/logo-social.svg', '/api/social/posts']) {
+	for (const path of ['/social', '/social.fw.css', '/social-design.mjs', '/social-crop.mjs', '/forms/social-crop.mjs', '/social-assets/logo-social.svg', '/api/social/posts']) {
 		const res = await worker.fetch(new Request(`https://forms.four-walls.gr${path}`), { ACCESS_TEAM_DOMAIN: 'team', ACCESS_AUD: 'aud', CRM_DEV_BYPASS: '1' }, {});
 		assert.equal(res.status, 401);
 	}
@@ -247,6 +241,9 @@ test('shared preview module and font assets use the authenticated asset boundary
 	env.ASSETS.fetch = async request => { fetched.push(new URL(request.url).pathname); return new Response('asset'); };
 	for (const [path, target] of [
 		['/social-design.mjs', '/forms/social-design.mjs'],
+		['/social-crop.mjs', '/forms/social-crop.mjs'],
+		['/forms/social-crop.mjs', '/forms/social-crop.mjs'],
+		['/forms/%73ocial-crop.mjs', '/forms/social-crop.mjs'],
 		['/social-font-metrics.mjs', '/forms/social-font-metrics.mjs'],
 		['/social-assets/NotoSerifDisplay-SemiBold.ttf', '/images/social/NotoSerifDisplay-SemiBold.ttf'],
 		['/forms/social-assets/logo-social.svg', '/images/social/logo-social.svg'],
@@ -334,7 +331,7 @@ test('deletion rejects published, publishing, uncertain, stale and cross-origin 
 	assert.equal((await call(env, `/posts/${post.id}`, 'DELETE', { revision: post.revision }, { Origin: 'https://evil.test' })).status, 403);
 	assert.equal((await call(env, `/posts/${post.id}`, 'DELETE', { revision: post.revision }, { 'Content-Type': 'text/plain' })).status, 415);
 	assert.ok(await getPost(env, post.id));
-	assert.deepEqual((await (await call(env, `/posts/${post.id}/history`)).json()).map(e => e.kind), ['edited', 'draft']);
+	assert.deepEqual((await (await call(env, `/posts/${post.id}/history`)).json()).map(e => e.kind), ['draft']);
 });
 
 test('a scheduler claim racing deletion preserves the creation and history', async () => {
@@ -348,7 +345,7 @@ test('a scheduler claim racing deletion preserves the creation and history', asy
 	};
 	assert.equal((await call(env, `/posts/${post.id}`, 'DELETE', { revision: post.revision })).status, 409);
 	assert.equal((await getPost(env, post.id)).status, 'publishing');
-	assert.deepEqual((await (await call(env, `/posts/${post.id}/history`)).json()).map(e => e.kind), ['edited', 'draft']);
+	assert.deepEqual((await (await call(env, `/posts/${post.id}/history`)).json()).map(e => e.kind), ['draft']);
 });
 
 test('draft editing, rendering, role approval, stale revision, and approval invalidation', async t => {
@@ -366,7 +363,7 @@ test('draft editing, rendering, role approval, stale revision, and approval inva
 	const edited = await call(env, `/posts/${post.id}`, 'PATCH', { revision: post.revision, channel: post.channel, template: 'portrait', caption: 'Νέα λεζάντα', photos: [property.images[1]] });
 	post = await edited.json(); assert.equal(post.status, 'draft'); assert.equal(post.approved_by, null); assert.deepEqual(post.assets, []);
 	const history = await (await call(env, `/posts/${post.id}/history`)).json();
-	assert.deepEqual(history.map(e => e.kind), ['edited', 'approved', 'submitted', 'edited', 'draft']);
+	assert.deepEqual(history.map(e => e.kind), ['edited', 'approved', 'submitted', 'draft']);
 });
 
 test('image submission uses Workers-supported fetch options and rejects redirects', async t => {
@@ -391,77 +388,146 @@ test('image submission uses Workers-supported fetch options and rejects redirect
 	assert.equal(post.assets.length, 1);
 });
 
-test('new drafts cannot render until the selected photos are explicitly reviewed and saved', async t => {
+test('drafts render and proceed through final-image approval without a source confirmation checkbox', async t => {
 	const env = environment(); let fetches = 0;
 	t.mock.method(globalThis, 'fetch', async () => { fetches++; return new Response('photo', { headers: { 'Content-Type': 'image/jpeg' } }); });
-	const response = await call(env, '/posts', 'POST', {
-		property_id: property.id, channel: 'instagram', template: 'square',
-		creative: { preset: 'classic', version: 1, includeFacts: false, includeCta: false },
-		// Creating a draft cannot attest that its newly shown photos were checked.
-		photos_confirmed_clean: true,
-	});
-	assert.equal(response.status, 201);
-	let post = await response.json();
+	let post = await create(env);
 	assert.equal(post.photos_confirmed_clean, false);
 	assert.equal((await getPost(env, post.id)).photos_confirmed_clean, 0);
-	const rejected = await action(env, post, 'submit');
-	assert.ok(rejected.status >= 400 && rejected.status < 500);
-	assert.equal((await rejected.json()).error, 'clean_photos_confirmation_required');
+	const rejected = await action(env, post, 'approve');
+	assert.equal(rejected.status, 409);
+	assert.equal((await rejected.json()).error, 'pending_required');
 	assert.equal(fetches, 0);
-	for (const invalid of ['true', 1, null]) {
-		const invalidSave = await call(env, `/posts/${post.id}`, 'PATCH', {
-			revision: post.revision, channel: post.channel, template: post.template, caption: post.caption,
-			photos: post.photos, creative: post.creative, photos_confirmed_clean: invalid,
-		});
-		assert.equal(invalidSave.status, 400);
-	}
-	post = await confirmPhotos(env, post);
-	assert.equal(post.photos_confirmed_clean, true);
-	assert.equal((await getPost(env, post.id)).photos_confirmed_clean, 1);
 	post = await (await action(env, post, 'submit')).json();
 	assert.equal(post.status, 'pending');
+	assert.equal(post.assets.length, 1);
 	assert.equal(fetches, 1);
+	assert.equal((await action(env, post, 'schedule', { at: new Date().toISOString() })).status, 409);
+	post = await (await action(env, post, 'approve')).json();
+	assert.equal(post.status, 'approved');
+	post = await (await action(env, post, 'schedule', { at: new Date().toISOString() })).json();
+	assert.equal(post.status, 'scheduled');
+	assert.equal(post.photos_confirmed_clean, false);
+	assert.equal((await getPost(env, post.id)).photos_confirmed_clean, 0);
 });
 
-test('editing selected photos without a new confirmation resets the review', async t => {
-	const env = environment(); let fetches = 0;
-	t.mock.method(globalThis, 'fetch', async () => { fetches++; return new Response('photo', { headers: { 'Content-Type': 'image/jpeg' } }); });
-	const original = await create(env);
-	assert.equal(original.photos_confirmed_clean, true);
+test('obsolete source confirmation inputs are ignored instead of claiming photos are clean', async () => {
+	const env = environment();
+	let post = await create(env);
+	for (const legacyValue of [true, false, 'true', 1, null]) {
+		const response = await call(env, `/posts/${post.id}`, 'PATCH', {
+			revision: post.revision, channel: post.channel, template: post.template, caption: post.caption,
+			photos: post.photos, creative: post.creative, photos_confirmed_clean: legacyValue,
+		});
+		assert.equal(response.status, 200);
+		post = await response.json();
+		assert.equal(post.photos_confirmed_clean, false);
+		assert.equal((await getPost(env, post.id)).photos_confirmed_clean, 0);
+	}
+});
+
+test('changing selected photos clears reviewed assets, approval and scheduling', async t => {
+	const env = environment();
+	let original = await approved(t, env);
+	original = await (await action(env, original, 'schedule', { at: new Date().toISOString() })).json();
 	const changed = await call(env, `/posts/${original.id}`, 'PATCH', {
 		revision: original.revision, channel: original.channel, template: original.template, caption: original.caption,
 		photos: [property.images[1]], creative: original.creative,
 	});
 	assert.equal(changed.status, 200);
 	let post = await changed.json();
+	assert.equal(post.status, 'draft');
+	assert.equal(post.revision, original.revision + 1);
+	assert.deepEqual(post.assets, []);
+	assert.equal(post.approved_by, null);
+	assert.equal(post.scheduled_at, null);
 	assert.equal(post.photos_confirmed_clean, false);
-	const rejected = await action(env, post, 'submit');
-	assert.equal((await rejected.json()).error, 'clean_photos_confirmation_required');
-	assert.equal(fetches, 0);
-	post = await confirmPhotos(env, post);
-	assert.equal((await action(env, post, 'submit')).status, 200);
-	assert.equal(fetches, 1);
+	assert.equal((await action(env, post, 'approve')).status, 409);
+	assert.equal((await action(env, post, 'schedule', { at: new Date().toISOString() })).status, 409);
+	assert.equal((await action(env, original, 'approve')).status, 409);
+	post = await (await action(env, post, 'submit')).json();
+	assert.equal(post.status, 'pending');
+	assert.equal(post.assets.length, 1);
 });
 
-test('scheduler blocks an unreviewed source before contacting Meta', async t => {
+test('scheduler publishes approved final images while the legacy source confirmation remains unset', async t => {
 	const env = environment(); let post = await approved(t, env, 'facebook');
 	post = await (await action(env, post, 'schedule', { at: new Date().toISOString() })).json();
-	// A migrated or otherwise stale approved record has no manual review proof.
-	await env.SOCIAL_DB.prepare('UPDATE social_posts SET photos_confirmed_clean=0 WHERE id=?').bind(post.id).run();
+	assert.equal((await getPost(env, post.id)).photos_confirmed_clean, 0);
 	env.SOCIAL_LIVE_PUBLISH = '1';
-	let crmCalls = 0;
+	let crmCalls = 0, publications = 0;
 	t.mock.method(globalThis, 'fetch', async url => {
-		assert.match(String(url), /estateprime/);
-		crmCalls++;
-		return Response.json({ data: rawProperty });
+		if (String(url).includes('estateprime')) { crmCalls++; return Response.json({ data: rawProperty }); }
+		if (String(url).endsWith('/feed')) publications++;
+		return Response.json({ id: '12345' });
 	});
 	await runSocialPublisher(env);
-	const blocked = await getPost(env, post.id);
-	assert.equal(blocked.status, 'blocked');
-	assert.equal(blocked.error, 'clean_photos_confirmation_required');
-	assert.equal(crmCalls, 1);
+	const published = await getPost(env, post.id);
+	assert.equal(published.status, 'published');
+	assert.equal(published.photos_confirmed_clean, 0);
+	assert.equal(publications, 1);
+	assert.equal(crmCalls, 2);
 	await runSocialPublisher(env);
-	assert.equal(crmCalls, 1);
+	assert.equal(publications, 1);
+});
+
+test('changing only a photo crop invalidates approved and scheduled rendered revisions', async t => {
+	for (const status of ['approved', 'scheduled']) {
+		const env = environment(); t.after(() => env.SOCIAL_DB.close());
+		let original = await approved(t, env, 'instagram');
+		if (status === 'scheduled') original = await (await action(env, original, 'schedule', { at: new Date().toISOString() })).json();
+		assert.equal(original.status, status);
+		assert.ok(original.assets.length > 0);
+		assert.ok(original.approved_by);
+		const crop = { landscape: 16, portrait: 10, photos: [{ url: original.photos[0], bottom: 25 }] };
+		const response = await call(env, `/posts/${original.id}`, 'PATCH', {
+			revision: original.revision, channel: original.channel, template: original.template,
+			caption: original.caption, photos: original.photos, creative: { ...original.creative, crop },
+		});
+		assert.equal(response.status, 200);
+		const saved = await response.json();
+		assert.equal(saved.revision, original.revision + 1);
+		assert.equal(saved.status, 'draft');
+		assert.deepEqual(saved.photos, original.photos);
+		assert.equal(saved.caption, original.caption);
+		assert.deepEqual(saved.creative.crop, crop);
+		assert.deepEqual(JSON.parse((await getPost(env, saved.id)).creative).crop, crop);
+		assert.deepEqual(saved.assets, []);
+		assert.equal(saved.approved_by, null);
+		assert.equal(saved.scheduled_at, null);
+		assert.equal((await action(env, saved, 'approve')).status, 409);
+		assert.equal((await action(env, saved, 'schedule', { at: new Date().toISOString() })).status, 409);
+		assert.equal((await action(env, original, 'approve')).status, 409);
+		const history = await (await call(env, `/posts/${saved.id}/history`)).json();
+		assert.equal(history[0].kind, 'edited');
+		assert.equal(history[0].revision, saved.revision);
+	}
+});
+
+test('invalid crop settings and overrides for unselected sources reject without changing the reviewed post', async t => {
+	const env = environment(); t.after(() => env.SOCIAL_DB.close());
+	const post = await approved(t, env, 'instagram');
+	const before = await getPost(env, post.id);
+	const history = await (await call(env, `/posts/${post.id}/history`)).json();
+	const base = { landscape: 16, portrait: 10, photos: [] };
+	const malformed = [
+		null, { ...base, landscape: -1 }, { ...base, portrait: 41 }, { ...base, landscape: 2.5 },
+		{ ...base, portrait: '10' }, { ...base, extra: true },
+		{ ...base, photos: [{ url: post.photos[0], bottom: 41 }] },
+		{ ...base, photos: [{ url: post.photos[0], bottom: 10 }, { url: post.photos[0], bottom: 20 }] },
+	];
+	const unselected = [property.images[1], 'https://photos.example/unselected.jpg', 'https://evil.example/private.jpg']
+		.map(url => ({ ...base, photos: [{ url, bottom: 12 }] }));
+	for (const [crop, expected] of [...malformed.map(crop => [crop, 'invalid_creative']), ...unselected.map(crop => [crop, 'invalid_photo_crop'])]) {
+		const response = await call(env, `/posts/${post.id}`, 'PATCH', {
+			revision: post.revision, channel: post.channel, template: post.template, caption: post.caption,
+			photos: post.photos, creative: { ...post.creative, crop },
+		});
+		assert.equal(response.status, 400);
+		assert.equal((await response.json()).error, expected);
+		assert.deepEqual(await getPost(env, post.id), before);
+		assert.deepEqual(await (await call(env, `/posts/${post.id}/history`)).json(), history);
+	}
 });
 
 test('rendering fetches the chosen original and never retries with a watermark', async t => {
@@ -572,7 +638,7 @@ test('two concurrent changes have one winner and one audit event', async () => {
 	const env = environment(), post = await create(env);
 	const results = await Promise.all([action(env, post, 'cancel'), action(env, post, 'cancel')]);
 	assert.deepEqual(results.map(r => r.status).sort(), [200, 409]);
-	assert.equal((await (await call(env, `/posts/${post.id}/history`)).json()).length, 3);
+	assert.equal((await (await call(env, `/posts/${post.id}/history`)).json()).length, 2);
 });
 test('feed removals invalidate approvals and never auto-reactivate them', async t => {
 	const env = environment(), post = await approved(t, env);

@@ -73,7 +73,7 @@ export default {
 		let socialPath;
 		try { socialPath = decodeURIComponent(url.pathname); }
 		catch { return new Response('Bad Request', { status: 400 }); }
-		if (/^\/(?:forms\/)?social(?:\.html|\.fw\.(?:js|css)|-(?:design|font-metrics)\.mjs)?\/?$/.test(socialPath) || /^\/(?:forms\/)?social-assets\//.test(socialPath) || socialPath.startsWith('/api/social/')) {
+		if (/^\/(?:forms\/)?social(?:\.html|\.fw\.(?:js|css)|-(?:design|font-metrics|crop)\.mjs)?\/?$/.test(socialPath) || /^\/(?:forms\/)?social-assets\//.test(socialPath) || socialPath.startsWith('/api/social/')) {
 			const socialUrl = new URL(url);
 			socialUrl.pathname = socialPath.replace(/\/$/, '');
 			return handleSocial(request, env, socialUrl);

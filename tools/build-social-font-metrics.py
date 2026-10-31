@@ -8,9 +8,10 @@ from pathlib import Path
 from fontTools.ttLib import TTFont
 
 fonts = {
+    "heading": "FourWallsWebsite-SemiBold.ttf",
     "serif": "NotoSerifDisplay-SemiBold.ttf",
-    "sans": "NotoSans.ttf",
-    "sansBold": "NotoSans-SemiBold.ttf",
+    "sans": "Manrope-Regular.ttf",
+    "sansBold": "Manrope-SemiBold.ttf",
 }
 metrics = {}
 for name, filename in fonts.items():

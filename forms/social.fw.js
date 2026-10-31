@@ -1,5 +1,6 @@
 'use strict';
 import { buildSocialDesign } from '/social-design.mjs';
+import { normalizeSocialCrop, defaultSocialCrop, photoCropPercent, sourceCropBox } from '/social-crop.mjs';
 const $ = id => document.getElementById(id);
 const labels = { draft: 'Πρόχειρο', pending: 'Προς έγκριση', approved: 'Εγκεκριμένο', scheduled: 'Προγραμματισμένο', publishing: 'Σε δημοσίευση', published: 'Δημοσιευμένο', blocked: 'Χρειάζεται ενημέρωση', needs_review: 'Έλεγχος στο Meta', cancelled: 'Ακυρωμένο' };
 const channels = { instagram: 'Instagram', facebook: 'Facebook Page', marketplace: 'Marketplace' };
@@ -16,7 +17,8 @@ const errors = {
 	property_changed_save_again: 'Τα στοιχεία ή οι φωτογραφίες άλλαξαν. Πατήστε Ανανέωση, ελέγξτε τις επιλογές σας και αποθηκεύστε ξανά.',
 	select_1_to_10_photos: 'Επιλέξτε τουλάχιστον μία φωτογραφία. Το σύνολο μαζί με τις πρόσθετες κάρτες δεν μπορεί να ξεπερνά τις 10 εικόνες.',
 	invalid_photo_selection: 'Κάποια επιλεγμένη φωτογραφία δεν είναι πλέον διαθέσιμη ως πρωτότυπη. Ανανεώστε και επιλέξτε ξανά φωτογραφίες.',
-	clean_photos_confirmation_required: 'Ελέγξτε ότι οι επιλεγμένες φωτογραφίες δεν έχουν υδατογράφημα, επιβεβαιώστε το σχετικό πεδίο και αποθηκεύστε ξανά.',
+	invalid_photo_crop: 'Ελέγξτε τις περικοπές φωτογραφιών. Το ποσοστό πρέπει να είναι από 0 έως 40%.',
+	photo_dimensions_unavailable: 'Δεν ήταν δυνατός ο έλεγχος διαστάσεων μιας φωτογραφίας. Δοκιμάστε ξανά ή επιλέξτε άλλη φωτογραφία.',
 	too_many_slides: 'Το σύνολο ξεπερνά τις 10 εικόνες. Αφαιρέστε φωτογραφίες ή απενεργοποιήστε μία πρόσθετη κάρτα.',
 	carousel_1_to_10_slides: 'Το σύνολο ξεπερνά τις 10 εικόνες. Αφαιρέστε φωτογραφίες ή απενεργοποιήστε μία πρόσθετη κάρτα.',
 	carousel_max_10_slides: 'Το σύνολο ξεπερνά τις 10 εικόνες. Αφαιρέστε φωτογραφίες ή απενεργοποιήστε μία πρόσθετη κάρτα.',
@@ -42,7 +44,9 @@ Object.assign(eventLabels, {
 	facebook_draft_verified: 'Facebook: επιβεβαιωμένο αδημοσίευτο πρόχειρο'
 });
 let bootstrap, posts = [], active, selected = [], dirty = false, busy = false;
-let creative = { ...classic }, starterPreset = 'architectural', photosConfirmedClean = false, lastInsertedLink = '', lastInsertedLabel = '';
+let creative = { ...classic }, starterPreset = 'architectural', lastInsertedLink = '', lastInsertedLabel = '';
+let cropPhoto = '', cropDimensions = null;
+const photoDimensions = new Map();
 const editable = () => active && ['draft', 'pending', 'approved', 'scheduled', 'blocked'].includes(active.status);
 const deletable = () => active && (editable() || active.status === 'cancelled') && !active.remote_id;
 const propertyTitle = p => p?.title?.trim() ? p.title : `Ακίνητο${p?.area ? ` ${p.area} τ.μ.` : ''}${p?.location?.area || p?.location?.city ? `, ${p.location.area || p.location.city}` : ''}`;
@@ -98,7 +102,6 @@ function nextStep() {
 		detail = 'Αποθηκεύστε και πατήστε «Δημιουργία εικόνων για έλεγχο». Θα χρειαστεί νέα έγκριση.';
 		if (!selected.length) detail = 'Επιλέξτε τουλάχιστον μία πρωτότυπη φωτογραφία για να αποθηκεύσετε το προσχέδιο.';
 		else if (totalSlides() > 10) detail = errors.too_many_slides;
-		else if (!photosConfirmedClean) detail = 'Ελέγξτε ότι οι φωτογραφίες δεν έχουν υδατογράφημα και επιβεβαιώστε το πεδίο κάτω από τις φωτογραφίες πριν δημιουργήσετε εικόνες.';
 	} else {
 		const states = {
 			draft: ['Ελέγξτε σχέδιο, φωτογραφίες και λεζάντα', 'Όταν είστε έτοιμοι, πατήστε «Δημιουργία εικόνων για έλεγχο». Δεν γίνεται δημοσίευση.'],
@@ -112,7 +115,6 @@ function nextStep() {
 			needs_review: ['Ελέγξτε το αποτέλεσμα στον λογαριασμό Meta', 'Η αποστολή δεν θα επαναληφθεί αυτόματα. Υπεύθυνος έγκρισης πρέπει να επιβεβαιώσει το αποτέλεσμα παρακάτω.']
 		};
 		[title, detail] = states[active.status] || ['Ελέγξτε την κατάσταση', 'Πατήστε Ανανέωση για την τελευταία ενημέρωση.'];
-		if (active.status === 'draft' && !photosConfirmedClean) { title = 'Ελέγξτε τις επιλεγμένες φωτογραφίες'; detail = 'Βεβαιωθείτε ότι δεν έχουν υδατογράφημα ή λογότυπο, επιλέξτε το σχετικό πεδίο κάτω από τις φωτογραφίες και αποθηκεύστε.'; }
 	}
 	$('next-step').replaceChildren(el('strong', title), el('span', detail));
 }
@@ -131,10 +133,13 @@ function controls() {
 	$('copy-link').disabled = busy || !websiteLink(); $('add-link').disabled = busy || !canEdit || !websiteLink();
 	for (const id of ['include-facts', 'include-cta']) $(id).disabled = !canEdit || busy || creative.preset === 'classic';
 	document.querySelectorAll('#presets .preset,.photo').forEach(b => { b.disabled = busy || !canEdit; });
-	document.querySelectorAll('.order-controls button').forEach(b => { b.disabled = busy || !canEdit || b.dataset.unavailable === 'true'; });
+	document.querySelectorAll('.order-controls button,.crop-edit').forEach(b => { b.disabled = busy || !canEdit || b.dataset.unavailable === 'true'; });
+	for (const id of ['crop-landscape', 'crop-portrait', 'apply-crops']) $(id).disabled = busy || !canEdit;
+	$('crop-photo').disabled = busy || !selected.length;
+	$('crop-bottom').disabled = busy || !canEdit || !cropDimensions;
+	$('crop-reset').disabled = busy || !canEdit || !creative.crop?.photos.some(item => item.url === cropPhoto);
 	$('save').hidden = !canEdit; $('save').disabled = busy || !dirty || !validSelection();
-	$('submit').hidden = active.status !== 'draft'; $('submit').disabled = busy || dirty || !validSelection() || !photosConfirmedClean;
-	$('clean-photos-confirm').disabled = busy || !canEdit || !selected.length;
+	$('submit').hidden = active.status !== 'draft'; $('submit').disabled = busy || dirty || !validSelection();
 	const canApprove = active.status === 'pending' && bootstrap?.canApprove;
 	$('approve').hidden = !canApprove; $('approve').disabled = busy || dirty || !$('review-confirm').checked;
 	$('review-label').hidden = !canApprove; $('review-confirm').disabled = busy || dirty;
@@ -166,8 +171,29 @@ const svgElement = (tag, attributes = {}) => {
 	for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, String(value));
 	return node;
 };
+function dimensionsFor(url) {
+	if (!photoDimensions.has(url)) photoDimensions.set(url, new Promise(resolve => {
+		const image = new Image(); image.referrerPolicy = 'no-referrer';
+		image.onload = () => resolve(image.naturalWidth && image.naturalHeight ? { width: image.naturalWidth, height: image.naturalHeight } : null);
+		image.onerror = () => resolve(null); image.src = url;
+	}));
+	return photoDimensions.get(url);
+}
+function photoSvg(url, dimensions, box, cover = false) {
+	const svg = svgElement('svg', { viewBox: `${box.left} ${box.top} ${box.width} ${box.height}`, width: box.width, height: box.height, preserveAspectRatio: cover ? 'xMidYMid slice' : 'xMidYMid meet', focusable: 'false', 'aria-hidden': 'true', overflow: 'hidden' });
+	svg.append(svgElement('image', { href: url, width: dimensions.width, height: dimensions.height }));
+	return svg;
+}
+function croppedThumbnail(url, crop, className = 'cropped-thumb') {
+	const holder = el('div', 'Φόρτωση…', className);
+	dimensionsFor(url).then(dimensions => {
+		if (!dimensions) { holder.textContent = 'Δεν φορτώθηκε η φωτογραφία'; return; }
+		holder.replaceChildren(photoSvg(url, dimensions, sourceCropBox(crop, url, dimensions.width, dimensions.height), true));
+	});
+	return holder;
+}
 const designAsset = path => path.replace(/^\/images\/social\//, '/social-assets/');
-function designMiniature(preset, property, photo, kind, format, destination) {
+function designMiniature(preset, property, photo, kind, format, destination, crop) {
 	const height = format === 'square' ? 1080 : 1350;
 	const p = property || {};
 	const paths = { property: `/properties/${encodeURIComponent(p.code || p.id || '')}`, request: '/request', sell: '/list-property' };
@@ -188,24 +214,35 @@ function designMiniature(preset, property, photo, kind, format, destination) {
 	svg.append(svgElement('rect', { width: 1080, height, fill: '#fbf8f1' }));
 	if (design.photo) {
 		const box = { x: design.photo.left, y: design.photo.top, width: design.photo.width, height: design.photo.height };
-		svg.append(photo ? layer({ ...box, href: photo, preserveAspectRatio: 'xMidYMid slice' }) : svgElement('rect', { ...box, fill: '#dce3e9' }));
+		if (photo) {
+			const viewport = svgElement('svg', { ...box, overflow: 'hidden', preserveAspectRatio: 'xMidYMid slice' });
+			pendingImages++;
+			dimensionsFor(photo).then(dimensions => {
+				if (!dimensions) { imageFailed = true; loading.textContent = 'Δεν φορτώθηκε η φωτογραφία για την προεπισκόπηση.'; return; }
+				const rect = sourceCropBox(crop, photo, dimensions.width, dimensions.height);
+				viewport.setAttribute('viewBox', `${rect.left} ${rect.top} ${rect.width} ${rect.height}`);
+				viewport.append(layer({ href: photo, width: dimensions.width, height: dimensions.height }));
+				pendingImages--;
+			});
+			svg.append(viewport);
+		} else svg.append(svgElement('rect', { ...box, fill: '#dce3e9' }));
 	}
 	svg.append(layer({ href: designAsset(design.frame), width: 1080, height }));
 	svg.append(layer({ href: designAsset(design.logo.file), x: design.logo.left, y: design.logo.top, width: design.logo.width, height: design.logo.height ?? design.logo.width * 100 / 175.7, preserveAspectRatio: 'xMinYMin meet' }));
 	for (const line of design.texts) {
-		const text = svgElement('text', { x: line.left + (line.align === 'right' ? line.width : 0), y: line.top, fill: line.color, 'font-size': line.size, 'font-family': line.font === 'serif' ? 'SocialSerif' : 'SocialSans', 'font-weight': line.font === 'sans' ? 400 : 600, 'text-anchor': line.align === 'right' ? 'end' : 'start', 'dominant-baseline': 'hanging' });
+		const text = svgElement('text', { x: line.left + (line.align === 'right' ? line.width : 0), y: line.top, fill: line.color, 'font-size': line.size, 'font-family': line.font === 'heading' ? 'SocialHeading' : line.font === 'serif' ? 'SocialSerif' : 'SocialSans', 'font-weight': line.font === 'sans' ? 400 : 600, 'text-anchor': line.align === 'right' ? 'end' : 'start', 'dominant-baseline': 'hanging' });
 		text.textContent = line.text; svg.append(text);
 	}
 	card.append(svg, loading); return card;
 }
 // New designs share artwork, typography and layout with the Worker. Approval
 // still uses the immutable final images, including their actual photo crops.
-function miniature(preset, property, photo, kind = 'cover', format = 'portrait', destination = 'property') {
-	if (preset !== 'classic') return designMiniature(preset, property, photo, kind, format, destination);
+function miniature(preset, property, photo, kind = 'cover', format = 'portrait', destination = 'property', crop = creative.crop) {
+	if (preset !== 'classic') return designMiniature(preset, property, photo, kind, format, destination, crop);
 	const p = property || { title: 'Επιλέξτε ακίνητο', location: {} };
 	const card = el('div', null, `mini-slide ${preset} ${kind} ${format === 'square' ? 'square' : ''}`);
 	card.setAttribute('aria-hidden', 'true');
-	if (photo && ['cover', 'photo-only'].includes(kind)) card.append(imageElement(photo, 'mini-photo'));
+	if (photo && ['cover', 'photo-only'].includes(kind)) card.append(croppedThumbnail(photo, crop, 'mini-photo cropped-thumb'));
 	else if (['cover', 'photo-only'].includes(kind)) card.append(el('span', null, 'mini-photo'));
 	card.append(el('span', null, 'mini-decoration'));
 	card.append(imageElement('/fourwalls-logo.svg', 'mini-logo'));
@@ -232,7 +269,8 @@ function renderPresets(container, property, selectedId, choose, format = 'portra
 		const button = el('button', null, 'preset'); button.type = 'button'; button.id = `${container}-${preset.id}`;
 		button.setAttribute('aria-pressed', String(preset.id === selectedId));
 		button.setAttribute('aria-label', `${preset.number} ${preset.name}. ${preset.description}`);
-		button.append(miniature(preset.id, property, container === 'presets' ? selected[0] : property?.images?.[0], 'cover', format));
+		const crop = container === 'presets' ? creative.crop : defaultSocialCrop();
+		button.append(miniature(preset.id, property, container === 'presets' ? selected[0] : property?.images?.[0], 'cover', format, container === 'presets' ? creative.destination || 'message' : 'property', crop));
 		const name = el('span', null, 'preset-name'); name.append(el('span', preset.name), el('b', preset.number));
 		button.append(name, el('span', preset.description, 'preset-description'), el('span', preset.id === selectedId ? '✓ Επιλεγμένο' : 'Επιλογή προτύπου', 'preset-mark'));
 		button.onclick = () => { if (busy) return; choose(preset.id); $(button.id)?.focus({ preventScroll: true }); };
@@ -245,7 +283,7 @@ function renderPresets(container, property, selectedId, choose, format = 'portra
 			const destination = container === 'presets' ? creative.destination || 'message' : 'property';
 			const photo = container === 'presets' ? selected[0] : property?.images?.[0];
 			$('design-slides').replaceChildren(...[['cover', 'Εξώφυλλο'], ['facts', 'Στοιχεία ακινήτου'], ['cta', 'Τελική κάρτα']].map(([kind, label]) => {
-				const figure = el('figure'); figure.append(miniature(preset.id, property, photo, kind, format, destination), el('figcaption', label)); return figure;
+				const figure = el('figure'); figure.append(miniature(preset.id, property, photo, kind, format, destination, crop), el('figcaption', label)); return figure;
 			}));
 			$('choose-design').hidden = container === 'presets' && !editable();
 			$('choose-design').textContent = preset.id === selectedId ? 'Διατήρηση αυτού του προτύπου' : 'Επιλογή αυτού του προτύπου';
@@ -316,6 +354,65 @@ function contentChanged() {
 	dirty = true; $('review-confirm').checked = false;
 	renderEditorPresets(); layoutPreview(); linkPreview(); controls();
 }
+function ensureCrop() {
+	if (!creative.crop) creative.crop = { landscape: 0, portrait: 0, photos: [] };
+	return creative.crop;
+}
+function cropDefaults() {
+	for (const orientation of ['landscape', 'portrait']) {
+		const value = creative.crop?.[orientation] || 0;
+		$('crop-' + orientation).value = value;
+		$('crop-' + orientation + '-value').textContent = `${value}%`;
+	}
+	$('crop-legacy').hidden = Boolean(creative.crop);
+	$('apply-crops').hidden = !editable();
+}
+async function cropPhotoPreview() {
+	const url = cropPhoto;
+	$('crop-photo-settings').hidden = !url;
+	if (!url) { cropDimensions = null; return; }
+	if (cropDimensions?.url !== url) {
+		cropDimensions = null;
+		$('crop-original').textContent = $('crop-result').textContent = 'Φόρτωση φωτογραφίας…';
+		$('crop-photo-help').textContent = 'Έλεγχος διαστάσεων φωτογραφίας…';
+		controls();
+	}
+	const dimensions = await dimensionsFor(url);
+	if (cropPhoto !== url || !active) return;
+	if (!dimensions) {
+		$('crop-original').textContent = $('crop-result').textContent = 'Δεν φορτώθηκε η φωτογραφία.';
+		$('crop-photo-help').textContent = 'Επιλέξτε άλλη φωτογραφία για να ελέγξετε την περικοπή.';
+		controls(); return;
+	}
+	cropDimensions = { ...dimensions, url };
+	const { width, height } = dimensions;
+	const box = sourceCropBox(creative.crop, url, width, height), percent = photoCropPercent(creative.crop, url, width, height);
+	$('crop-bottom').value = percent; $('crop-bottom-value').textContent = `${percent}%`;
+	const original = photoSvg(url, dimensions, { left: 0, top: 0, width, height });
+	if (box.bottom) {
+		original.append(svgElement('rect', { x: 0, y: box.height, width, height: box.bottom, fill: '#ff0062', opacity: .3 }));
+		original.append(svgElement('line', { x1: 0, x2: width, y1: box.height, y2: box.height, stroke: '#ff0062', 'stroke-width': Math.max(2, width / 300) }));
+	}
+	$('crop-original').replaceChildren(original);
+	$('crop-result').replaceChildren(photoSvg(url, dimensions, box));
+	const orientation = height > width ? 'Κάθετη' : height === width ? 'Τετράγωνη' : 'Οριζόντια';
+	const custom = creative.crop?.photos.some(item => item.url === url);
+	$('crop-photo-help').textContent = `${orientation} · ${width} × ${height} px · ${custom ? 'Ξεχωριστή προσαρμογή' : 'Κοινή ρύθμιση'}. Το ροζ τμήμα αφαιρείται. Ελέγξτε τη σύνθεση στο πρότυπο παρακάτω.`;
+	controls();
+}
+function cropPanel() {
+	if (!selected.includes(cropPhoto)) cropPhoto = selected[0] || '';
+	$('crop-photo').replaceChildren(...selected.map((url, index) => {
+		const option = el('option', `${index + 1} · ${index === 0 ? 'Εξώφυλλο' : 'Φωτογραφία'}`); option.value = url; return option;
+	}));
+	$('crop-photo').value = cropPhoto;
+	cropDefaults(); cropPhotoPreview();
+}
+function cropChanged() {
+	cropDefaults(); cropPhotoPreview();
+	document.querySelectorAll('#order .order-item').forEach((item, index) => item.querySelector('.cropped-thumb')?.replaceWith(croppedThumbnail(selected[index], creative.crop)));
+	contentChanged();
+}
 function websiteLink() {
 	if (!active || !creative.destination || creative.destination === 'message') return null;
 	const p = currentProperty() || active.snapshot;
@@ -363,7 +460,6 @@ function photoGrid() {
 			if (index >= 0) selected.splice(index, 1);
 			else if (totalSlides() < 10) selected.push(url);
 			else { message(errors.too_many_slides, 'error'); return; }
-			photosConfirmedClean = false; $('clean-photos-confirm').checked = false;
 			photoGrid(); contentChanged();
 		};
 		return button;
@@ -371,7 +467,7 @@ function photoGrid() {
 	if (!photos.length) $('photos').append(el('p', 'Δεν υπάρχουν διαθέσιμες πρωτότυπες φωτογραφίες. Ελέγξτε το ακίνητο στο EstatePrime.'));
 	$('order').replaceChildren(...selected.map((url, i) => {
 		const item = el('div', null, 'order-item');
-		item.append(imageElement(url, '', `Επιλεγμένη φωτογραφία ${i + 1}`), el('span', i === 0 ? '1 · Εξώφυλλο' : `${i + 1} · Φωτογραφία`));
+		item.append(croppedThumbnail(url, creative.crop), el('span', i === 0 ? '1 · Εξώφυλλο' : `${i + 1} · Φωτογραφία`));
 		const buttons = el('div', null, 'order-controls');
 		for (const [symbol, title, unavailable, change] of [
 			['←', `Μετακίνηση φωτογραφίας ${i + 1} αριστερά`, i === 0, () => { [selected[i - 1], selected[i]] = [selected[i], selected[i - 1]]; }],
@@ -379,11 +475,15 @@ function photoGrid() {
 			['×', `Αφαίρεση φωτογραφίας ${i + 1}`, false, () => selected.splice(i, 1)]
 		]) {
 			const b = el('button', symbol); b.type = 'button'; b.title = title; b.setAttribute('aria-label', title); b.dataset.unavailable = String(unavailable);
-			b.onclick = () => { if (busy || !editable() || unavailable) return; change(); photosConfirmedClean = false; $('clean-photos-confirm').checked = false; photoGrid(); contentChanged(); };
+			b.onclick = () => { if (busy || !editable() || unavailable) return; change(); photoGrid(); contentChanged(); };
 			buttons.append(b);
 		}
-		item.append(buttons); return item;
+		const cropButton = el('button', 'Περικοπή', 'crop-edit'); cropButton.type = 'button';
+		cropButton.setAttribute('aria-label', `Περικοπή φωτογραφίας ${i + 1}`);
+		cropButton.onclick = () => { cropPhoto = url; cropPanel(); $('crop-settings').scrollIntoView({ block: 'start' }); $('crop-photo').focus({ preventScroll: true }); };
+		item.append(buttons, cropButton); return item;
 	}));
+	cropPanel();
 }
 function layoutPreview() {
 	if (!active) return;
@@ -402,7 +502,6 @@ function layoutPreview() {
 async function openPost(id) {
 	active = await api(`/posts/${id}`); selected = [...active.photos]; dirty = false;
 	creative = { ...classic, ...(active.creative || {}) };
-	photosConfirmedClean = Boolean(active.photos_confirmed_clean);
 	lastInsertedLink = active.websiteLink?.url || '';
 	lastInsertedLabel = active.websiteLink?.label || '';
 	let notice = '';
@@ -411,7 +510,6 @@ async function openPost(id) {
 		selected = selected.filter(url => originals.includes(url));
 		if (selected.length !== active.photos.length || active.snapshot.photoSource !== 'estateprime_original') {
 			dirty = true;
-			photosConfirmedClean = false;
 			notice = 'Το προσχέδιο χρειάζεται έλεγχο φωτογραφιών. Κρατήθηκαν μόνο διαθέσιμα πρωτότυπα. Επιλέξτε φωτογραφίες και αποθηκεύστε ξανά πριν δημιουργήσετε νέες εικόνες.';
 		} else if (active.status === 'blocked') dirty = true;
 	}
@@ -423,7 +521,6 @@ async function openPost(id) {
 	$('caption').value = active.caption; $('template').value = active.template;
 	$('include-facts').checked = creative.includeFacts; $('include-cta').checked = creative.includeCta;
 	$('destination').value = creative.destination || 'message';
-	$('clean-photos-confirm').checked = photosConfirmedClean;
 	$('review-confirm').checked = false;
 	$('schedule-time').value = '';
 	$('property').value = active.property_id; $('new-channel').value = active.channel; propertyOptions();
@@ -440,7 +537,7 @@ async function openPost(id) {
 	controls();
 }
 function closeEditor() {
-	active = undefined; selected = []; dirty = false; creative = { ...classic }; photosConfirmedClean = false;
+	active = undefined; selected = []; dirty = false; creative = { ...classic }; cropPhoto = ''; cropDimensions = null;
 	$('editor').hidden = true; $('empty').hidden = false;
 	postList(); starterPreview();
 }
@@ -471,7 +568,7 @@ $('new-draft').onclick = () => {
 };
 $('create').onclick = () => task(async () => {
 	if (dirty) throw new Error('Αποθηκεύστε πρώτα τις αλλαγές.');
-	const post = await api('/posts', 'POST', { property_id: $('property').value, channel: $('new-channel').value, template: 'portrait', creative: { preset: starterPreset, version: 1, includeFacts: true, includeCta: true, destination: 'property' } });
+	const post = await api('/posts', 'POST', { property_id: $('property').value, channel: $('new-channel').value, template: 'portrait', creative: { preset: starterPreset, version: 1, includeFacts: true, includeCta: true, destination: 'property', crop: defaultSocialCrop() } });
 	posts = (await api('/posts')).posts; await openPost(post.id); $('editor').scrollIntoView({ block: 'start' });
 }, 'Δημιουργία προσχεδίου…', 'Το προσχέδιο δημιουργήθηκε. Επιλέξτε φωτογραφίες και ελέγξτε τη λεζάντα.');
 $('template').oninput = contentChanged;
@@ -497,9 +594,28 @@ $('add-link').onclick = () => {
 };
 for (const [id, key] of [['include-facts', 'includeFacts'], ['include-cta', 'includeCta']]) $(id).onchange = () => { creative[key] = $(id).checked; contentChanged(); };
 $('review-confirm').onchange = controls;
-$('clean-photos-confirm').onchange = () => { photosConfirmedClean = $('clean-photos-confirm').checked; contentChanged(); };
+for (const orientation of ['landscape', 'portrait']) $('crop-' + orientation).oninput = () => {
+	if (busy || !editable()) return;
+	ensureCrop()[orientation] = Number($('crop-' + orientation).value); cropChanged();
+};
+$('apply-crops').onclick = () => { if (busy || !editable()) return; creative.crop = defaultSocialCrop(); cropChanged(); };
+$('crop-photo').onchange = () => { cropPhoto = $('crop-photo').value; cropPhotoPreview(); };
+$('crop-bottom').oninput = () => {
+	if (busy || !editable() || !cropDimensions || !selected.includes(cropPhoto)) return;
+	const crop = ensureCrop(); crop.photos = crop.photos.filter(item => item.url !== cropPhoto);
+	crop.photos.push({ url: cropPhoto, bottom: Number($('crop-bottom').value) }); cropChanged();
+};
+$('crop-reset').onclick = () => {
+	if (busy || !editable() || !creative.crop) return;
+	creative.crop.photos = creative.crop.photos.filter(item => item.url !== cropPhoto); cropChanged();
+};
 $('save').onclick = () => task(async () => {
-	await api(`/posts/${active.id}`, 'PATCH', { revision: active.revision, channel: active.channel, template: $('template').value, caption: $('caption').value, photos: selected, creative, photos_confirmed_clean: photosConfirmedClean });
+	if (creative.crop) {
+		const crop = normalizeSocialCrop({ ...creative.crop, photos: creative.crop.photos.filter(item => selected.includes(item.url)) });
+		if (!crop) throw new Error(errors.invalid_photo_crop);
+		creative.crop = crop;
+	}
+	await api(`/posts/${active.id}`, 'PATCH', { revision: active.revision, channel: active.channel, template: $('template').value, caption: $('caption').value, photos: selected, creative });
 	await reload();
 }, 'Αποθήκευση αλλαγών…', 'Οι αλλαγές αποθηκεύτηκαν. Δημιουργήστε τώρα τις εικόνες για έλεγχο.');
 $('submit').onclick = () => task(async () => { await action('submit'); $('preview').scrollIntoView({ block: 'start' }); }, 'Δημιουργία τελικών εικόνων… Μπορεί να χρειαστεί λίγο χρόνο.', 'Οι εικόνες είναι έτοιμες για έλεγχο. Δεν έχει γίνει δημοσίευση.');

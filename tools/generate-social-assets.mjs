@@ -41,7 +41,7 @@ function frame(preset, kind, height) {
 				hole = `M${p.left} ${p.top}H${p.left+p.width-r}Q${p.left+p.width} ${p.top} ${p.left+p.width} ${p.top+r}V${p.top+p.height}H${p.left}Z`;
 			}
 			body += `<path fill="url(#paper)" fill-rule="evenodd" d="M0 0H1080V${height}H0Z ${hole}"/>`;
-			if (kind === 'cover' && arch) body += `<path d="M34 57V31H778Q1048 31 1048 301V${height-25}" stroke="${navy}" stroke-width="3" fill="none"/><path d="M54 ${height-422}H758Q924 ${height-422} 924 ${height-263}V${height}H0V${height-422}Z" fill="url(#paper)"/><path d="M925 ${height-260}V${height}" stroke="${navy}" stroke-width="2.5"/><path d="M508 ${height-117}V${height-45}" stroke="${navy}" stroke-width="1.5"/><rect x="45" y="65" width="289" height="186" fill="#fff"/><path d="M45 65V251" stroke="${pink}" stroke-width="8"/>`;
+			if (kind === 'cover' && arch) body += `<path d="M34 57V31H778Q1048 31 1048 301V${height-25}" stroke="${navy}" stroke-width="3" fill="none"/><path d="M54 ${height-422}H758Q924 ${height-422} 924 ${height-263}V${height}H0V${height-422}Z" fill="url(#paper)"/><path d="M925 ${height-260}V${height}" stroke="${navy}" stroke-width="2.5"/><path d="M508 ${height-117}V${height-45}" stroke="${navy}" stroke-width="1.5"/><rect x="45" y="65" width="289" height="186" rx="28" fill="#fff"/><path d="M45 93V223" stroke="${pink}" stroke-width="8" stroke-linecap="round"/>`;
 			if (kind === 'cover' && neighbour) body += image(street, square ? 580 : 560, square ? 280 : 365, square ? 500 : 520, square ? 750 : 780) + `<path d="M64 240H177" stroke="${pink}" stroke-width="5"/>`;
 		}
 	} else if (kind === 'facts') {
