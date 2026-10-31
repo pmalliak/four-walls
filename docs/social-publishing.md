@@ -363,3 +363,44 @@ testing never marks those photos clean or approves them for public publishing.
 One attempt per saved revision is claimed before network mutations; ambiguous
 failures are not automatically retried. Check recorded IDs before editing and
 reapproving a new attempt. Deleting the local creation does not delete Meta drafts.
+
+## Platform management and statistics
+
+The **Ανάρτηση & στατιστικά στο Meta** section lists published post IDs and
+verified Facebook draft IDs from this creation's audit history. Instagram test
+containers are explicitly labelled as tests with no app link or audience stats.
+Facebook drafts link to Business Suite's draft list for the configured Page;
+published links use verified platform permalinks. Instagram needs a refresh to
+resolve its permalink (an Instagram numeric media ID is not a shortcode).
+
+Authenticated operators may refresh metadata and statistics. Approvers may edit
+Facebook text or permanently delete a Facebook post after confirmation. Media
+replacement and Instagram edits/deletions use native platform links. Server-side
+ownership verification, stored-target validation and optimistic revision claims
+precede every write. Only `message` is accepted for an edit; management never
+publishes or schedules a draft. An uncertain write locks that target against
+retries. Refresh can reconcile an uncertain edit when its text matches; uncertain
+deletions require review in Meta. Audit history is retained for linked Facebook
+creations, even after platform deletion; local and remote deletion are distinct.
+
+Statistics are fetched on request, cached in audit snapshots, and refreshed at
+most once a minute per saved target under normal sequential use. No cron polling.
+Each value retains null versus zero and independent permission/unavailable status.
+Facebook v26 uses `post_media_view`, `post_total_media_view_unique`, `post_clicks`
+and the link-click component of `post_clicks_by_type`, plus reaction/comment/share
+counts. Instagram uses likes/comments and `views`, `reach`, `saved`, `shares`.
+These are lifetime metrics where available; no unsupported reach/impressions
+fallbacks, synthetic totals or invented zeroes. Meta may update data only daily.
+
+The existing token needs `read_insights` for Facebook and
+`instagram_manage_insights` for Instagram in addition to existing scopes.
+Reauthorize the existing Four Walls assets, then refresh/store the Page token;
+never commit it. Follow any additional requirements Meta presents for the account.
+Missing scopes do not prevent existing links and Facebook management from working.
+No public post needs to be created just to validate this UI.
+
+References checked on 2026-10-31:
+- https://developers.facebook.com/documentation/pages-api/posts/
+- https://developers.facebook.com/docs/graph-api/reference/v26.0/insights
+- https://developers.facebook.com/documentation/instagram-platform/insights
+- https://developers.facebook.com/documentation/instagram-platform/reference/instagram-media/insights
