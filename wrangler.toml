@@ -89,8 +89,8 @@ crons = ["*/15 * * * *"]
 SOCIAL_LIVE_PUBLISH = "0"
 SOCIAL_META_PERMISSIONS_CONFIRMED = "0"
 # Configure approved staff emails before allowing approvals. Never a browser role.
-SOCIAL_APPROVERS = ""
-# Add SOCIAL_DB only after creating D1; see docs/social-publishing.md.
+SOCIAL_APPROVERS = "info@four-walls.gr"
+# Social D1 binding is below; setup and operations: docs/social-publishing.md.
 # META_GRAPH_VERSION, META_PAGE_ID and META_IG_USER_ID are set at setup time.
 # META_PAGE_ACCESS_TOKEN is a Worker secret, never a var or client setting.
 # "1" = feed from sample data (dev); "0" = live EstatePrime API.
@@ -164,3 +164,9 @@ MAKE_ZONE = "eu1.make.com"
 #   MAKE_DLQ_WEBHOOK         Make hook του σεναρίου «Φύλακας — ό,τι δεν
 #                            στάλθηκε» (6775485). Χωρίς τα δύο αυτά ο
 #                            φύλακας μένει σιωπηλός. Βλ. docs/dlq-watch.md.
+
+[[d1_databases]]
+binding = "SOCIAL_DB"
+database_name = "four-walls-social"
+database_id = "057d5132-f3d7-42ef-93ad-3e13dc1a21a8"
+migrations_dir = "worker/migrations"
