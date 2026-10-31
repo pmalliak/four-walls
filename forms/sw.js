@@ -24,7 +24,7 @@
    ===================================================================== */
 'use strict';
 
-var VERSION = 'fw-entypa-v46';
+var VERSION = 'fw-entypa-v47';
 var SHELL = [
 	'./', 'index.html', 'anathesi.html', 'ypodeixi.html', 'apodeixi.html', 'katachorisi.html', 'enhance.html', 'prosfora.html', 'ektimisi.html', 'pinakida.html',
 	'_crm.fw.js', '_outbox.fw.js', '_drafts.fw.js', '_errors.fw.js', '_exif.fw.js', '_anathesi-doc.fw.js', 'bugsnag.min.js', 'html2pdf.bundle.min.js',
@@ -84,7 +84,11 @@ self.addEventListener('fetch', function (e) {
 	if (req.method !== 'GET') return;
 	var url = new URL(req.url);
 	// Social approvals and previews must never survive an expired staff session.
-	if (/\/(?:forms\/)?social(?:\.html|\.fw\.(?:js|css))?\/?$/.test(url.pathname)) return;
+	// Include shared composition modules and artwork so a new template cannot
+	// render with stale fonts, geometry or crops from the offline forms cache.
+	var socialPath;
+	try { socialPath = decodeURIComponent(url.pathname); } catch (err) { return; }
+	if (/^\/(?:forms\/)?social(?:\.html|\.fw\.(?:js|css)|-(?:design|font-metrics|crop)\.mjs)?\/?$/.test(socialPath) || /^\/(?:forms\/)?social-assets\//.test(socialPath)) return;
 
 	/* API: always live, never cached (PII + the outbox owns retries). */
 	if (url.origin === self.location.origin && url.pathname.indexOf('/api/') !== -1) return;
