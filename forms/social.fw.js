@@ -141,7 +141,7 @@ function controls() {
 	$('delete').hidden = !deletable();
 	$('scheduling').hidden = active.status !== 'approved' || active.channel === 'marketplace'; $('schedule').disabled = busy || dirty;
 	$('schedule-time').disabled = busy || dirty;
-	$('meta-test').hidden = active.status !== 'approved' || active.channel === 'marketplace' || !bootstrap?.canApprove;
+	$('meta-test').hidden = !['draft', 'pending', 'approved'].includes(active.status) || active.channel === 'marketplace' || !bootstrap?.canApprove;
 	$('test').disabled = busy || dirty || !bootstrap?.canTest;
 	$('marketplace-export').hidden = active.status !== 'approved' || active.channel !== 'marketplace'; $('package').disabled = busy || dirty;
 	$('resolution').hidden = active.status !== 'needs_review' || !bootstrap?.canApprove;

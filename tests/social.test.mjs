@@ -11,6 +11,26 @@ import { signedMediaUrl, serveSocialMedia } from '../worker/lib/social-media.mjs
 import { mapListing } from '../worker/lib/estateprime.mjs';
 
 const origin = 'http://localhost:8787';
+test('draft connection test does not bypass public clean-photo review or approve the creation', async t => {
+	const env = environment(); t.after(() => env.SOCIAL_DB.close());
+	const post = await (await call(env, '/posts', 'POST', { property_id: '123', channel: 'facebook', template: 'square', creative: { preset: 'classic', version: 1, includeFacts: false, includeCta: false } })).json();
+	t.mock.method(globalThis, 'fetch', async (url, options) => {
+		if (String(url).includes('/listings/')) return Response.json({ data: rawProperty });
+		if (!String(url).includes('graph.facebook.com')) return new Response('photo', { headers: { 'Content-Type': 'image/jpeg' } });
+		return Response.json(options.method === 'GET' ? { is_published: false } : { id: '999' });
+	});
+	const response = await action(env, post, 'test');
+	assert.equal(response.status, 200);
+	const current = await response.json();
+	assert.equal(current.status, 'draft');
+	assert.equal(current.photos_confirmed_clean, false);
+	assert.equal(current.approved_by, null);
+	assert.equal(current.remote_id, null);
+	assert.deepEqual(current.assets, []);
+	assert.equal((await action(env, current, 'schedule')).status, 409);
+	assert.equal((await action(env, current, 'submit')).status, 409);
+	assert.equal((await action(env, current, 'test')).status, 409);
+});
 test('unpublished tests use real Meta preparation endpoints without publishing, for one image and carousels', async t => {
 	const env = environment(); t.after(() => env.SOCIAL_DB.close());
 	for (const channel of ['instagram', 'facebook']) for (const count of [1, 3]) {
@@ -31,11 +51,9 @@ test('unpublished tests use real Meta preparation endpoints without publishing, 
 	}
 });
 
-test('Meta test endpoint requires approval and reviewer, records IDs, and never retries an approved revision', async t => {
+test('Meta test endpoint requires reviewer, records IDs, and never retries an approved revision', async t => {
 	const env = environment(); t.after(() => env.SOCIAL_DB.close());
-	let post = await create(env);
-	assert.equal((await action(env, post, 'test')).status, 409);
-	post = await approved(t, env, 'instagram');
+	const post = await approved(t, env, 'instagram');
 	env.SOCIAL_APPROVERS = 'someone-else';
 	assert.equal((await action(env, post, 'test')).status, 403);
 	env.SOCIAL_APPROVERS = 'local-developer';
