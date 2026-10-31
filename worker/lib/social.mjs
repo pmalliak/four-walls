@@ -76,8 +76,9 @@ export async function handleSocial(request, env, url) {
 			const allowed = ['/social', '/social.html', '/social.fw.js', '/social.fw.css'];
 			check(allowed.includes(name), 'not_found', 404);
 			check(request.method === 'GET', 'method_not_allowed', 405);
-			const path = name === '/social' ? '/social.html' : name;
-			const response = await env.ASSETS.fetch(new Request(new URL(`/forms${path}`, url), request));
+			// Keep clean paths clean: Assets redirects .html to the extensionless
+			// URL, so rewriting /social to .html would redirect back to itself.
+			const response = await env.ASSETS.fetch(new Request(new URL(`/forms${name}`, url), request));
 			const headers = new Headers(response.headers);
 			const location = headers.get('Location');
 			if (location?.startsWith('/forms/')) headers.set('Location', location.slice(6));

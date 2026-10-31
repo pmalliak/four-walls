@@ -53,6 +53,26 @@ test('mutations require same origin and JSON; no DB fails closed', async () => {
 	env.feed.generatedAt = '2020-01-01';
 	assert.equal((await call(env, '/bootstrap')).status, 503);
 });
+test('social clean URL serves HTML without a canonical redirect loop', async () => {
+	const env = environment();
+	env.ASSETS.fetch = async request => {
+		const path = new URL(request.url).pathname;
+		if (path === '/forms/social.html') return new Response(null, { status: 307, headers: { Location: '/forms/social' } });
+		if (path === '/forms/social') return new Response('<h1>Social</h1>', { headers: { 'Content-Type': 'text/html' } });
+		return new Response('Not Found', { status: 404 });
+	};
+	for (const path of ['/social', '/forms/social']) {
+		const response = await worker.fetch(new Request(`${origin}${path}`), env, {});
+		assert.equal(response.status, 200);
+		assert.equal(response.headers.get('Location'), null);
+		assert.equal(await response.text(), '<h1>Social</h1>');
+	}
+	const redirect = await worker.fetch(new Request(`${origin}/social.html`), env, {});
+	assert.equal(redirect.status, 307);
+	assert.equal(redirect.headers.get('Location'), '/social');
+	const response = await worker.fetch(new Request(new URL(redirect.headers.get('Location'), origin)), env, {});
+	assert.equal(response.status, 200);
+});
 test('draft editing, rendering, role approval, stale revision, and approval invalidation', async t => {
 	const env = environment(); mockPhotos(t);
 	let post = await create(env);
