@@ -55,6 +55,9 @@ import { handleValuation, handleValuationLog, handleValuationRequest } from "./l
 import { handleAreaPricesRefresh } from "./lib/area-prices-refresh.mjs";
 import { maybeRunDlqWatch, handleDlqReport } from "./lib/dlq-watch.mjs";
 import { handleOnce } from "./lib/sent-log.mjs";
+import { handleSocial, reconcileSocial } from "./lib/social.mjs";
+import { serveSocialMedia } from "./lib/social-media.mjs";
+import { runSocialPublisher } from "./lib/social-publisher.mjs";
 
 const FEED_KEY = "listings.json";
 const DEFAULT_WEBHOOK_PATH = "/listings"; // overridden by WEBHOOK_PATH var
@@ -65,6 +68,17 @@ export default {
 		// Tolerate a trailing slash on the webhook path ("/listings/").
 		const pathname = url.pathname.replace(/\/+$/, "") || "/";
 		const webhookPath = env.WEBHOOK_PATH || DEFAULT_WEBHOOK_PATH;
+
+		// Gate social assets BEFORE hostname rewrites, including /forms aliases.
+		let socialPath;
+		try { socialPath = decodeURIComponent(url.pathname); }
+		catch { return new Response('Bad Request', { status: 400 }); }
+		if (/^\/(?:forms\/)?social(?:\.html|\.fw\.(?:js|css))?\/?$/.test(socialPath) || socialPath.startsWith('/api/social/')) {
+			const socialUrl = new URL(url);
+			socialUrl.pathname = socialPath.replace(/\/$/, '');
+			return handleSocial(request, env, socialUrl);
+		}
+		if (url.pathname.startsWith('/api/social-media/')) return serveSocialMedia(request, env, url);
 
 		// www is only an alias — permanent redirect to the apex, the
 		// canonical origin everywhere (docs/seo.md).
@@ -449,7 +463,7 @@ export default {
 	},
 
 	async scheduled(_event, env, ctx) {
-		ctx.waitUntil(regenerate(env, "cron"));
+		ctx.waitUntil(regenerate(env, "cron").then(() => runSocialPublisher(env)).catch(() => console.error('social cron failed')));
 		// Μία φορά την ημέρα (το ίδιο το module κρατάει την ημερομηνία στο
 		// KV): τι σκόνταψε στο Make και περιμένει άνθρωπο. Ποτέ δεν ρίχνει
 		// τον cron του feed, ο φύλακας είναι δευτερεύων.
@@ -688,6 +702,9 @@ async function regenerate(env, trigger) {
 	try {
 		const feed = await buildFeed(env);
 		await env.LISTINGS_KV.put(FEED_KEY, JSON.stringify(feed));
+		// Optional module: a missing/unmigrated D1 must not break the live feed.
+		try { await reconcileSocial(env, feed); }
+		catch { console.error('social reconciliation failed'); }
 		console.log(`feed regenerated (${trigger}): ${feed.count} listings, source=${feed.source}`);
 	} catch (err) {
 		console.error(`feed regeneration FAILED (${trigger}): ${err.message}`);

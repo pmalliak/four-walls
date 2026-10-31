@@ -86,6 +86,13 @@ persist = true
 crons = ["*/15 * * * *"]
 
 [vars]
+SOCIAL_LIVE_PUBLISH = "0"
+SOCIAL_META_PERMISSIONS_CONFIRMED = "0"
+# Configure approved staff emails before allowing approvals. Never a browser role.
+SOCIAL_APPROVERS = ""
+# Add SOCIAL_DB only after creating D1; see docs/social-publishing.md.
+# META_GRAPH_VERSION, META_PAGE_ID and META_IG_USER_ID are set at setup time.
+# META_PAGE_ACCESS_TOKEN is a Worker secret, never a var or client setting.
 # "1" = feed from sample data (dev); "0" = live EstatePrime API.
 SAMPLE_DATA = "0"
 # Cloudflare Access — gates the CRM pickers on forms.four-walls.gr

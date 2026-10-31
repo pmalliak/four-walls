@@ -1,0 +1,53 @@
+// Only these public facts cross the social module's browser/storage boundary.
+export function publicProperty(p) {
+	return {
+		id: String(p.id), code: p.code || '', title: p.title || '',
+		transaction: p.transaction || '', price: p.price ?? null, area: p.area ?? null,
+		location: { area: p.location?.area || '', city: p.location?.city || '' },
+		images: (p.images || []).filter(safePhoto),
+	};
+}
+
+export function safePhoto(value) {
+	try {
+		const u = new URL(value);
+		return u.protocol === 'https:' && !u.username && !u.password &&
+			!/(^localhost$|^127\.|^10\.|^192\.168\.|^169\.254\.|^172\.(1[6-9]|2\d|3[01])\.|:)/i.test(u.hostname);
+	} catch { return false; }
+}
+
+export async function fingerprint(p) {
+	const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(publicProperty(p))));
+	return [...new Uint8Array(bytes)].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+export function greekCaption(p) {
+	const transaction = { sale: 'Πωλείται', rent: 'Ενοικιάζεται', shortterm: 'Βραχυχρόνια μίσθωση', auction: 'Δημοπρασία' }[p.transaction] || 'Ακίνητο';
+	const price = p.price == null ? 'Τιμή κατόπιν επικοινωνίας' :
+		`€${Number(p.price).toLocaleString('el-GR')}${p.transaction === 'rent' ? '/μήνα' : ''}`;
+	return `${transaction} · ${p.title}\n${[p.location?.area, p.location?.city].filter(Boolean).join(', ')}\n${p.area ? `${p.area} τ.μ. · ` : ''}${price}\n\nΚωδικός: ${p.code}\nΑνακαλύψτε το με τη Four Walls.\nhttps://four-walls.gr/properties/${encodeURIComponent(p.code || p.id)}\n\n#FourWalls #Ακίνητα #Θεσσαλονίκη`;
+}
+
+export class SocialError extends Error {
+	constructor(code, status = 400) { super(code); this.status = status; }
+}
+export function check(condition, code, status = 400) {
+	if (!condition) throw new SocialError(code, status);
+}
+
+export function validateDraft(input, property) {
+	check(['instagram', 'facebook', 'marketplace'].includes(input.channel), 'invalid_channel');
+	check(['square', 'portrait'].includes(input.template), 'invalid_template');
+	check(typeof input.caption === 'string' && input.caption.trim().length > 0 && input.caption.length <= 2200, 'caption_1_to_2200');
+	check(Array.isArray(input.photos) && input.photos.length >= 1 && input.photos.length <= 10, 'select_1_to_10_photos');
+	check(new Set(input.photos).size === input.photos.length && input.photos.every(p => property.images.includes(p) && safePhoto(p)), 'invalid_photo_selection');
+	return { channel: input.channel, template: input.template, caption: input.caption.trim(), photos: input.photos };
+}
+
+export function liveReady(env) {
+	return env.SOCIAL_LIVE_PUBLISH === '1' && env.SOCIAL_META_PERMISSIONS_CONFIRMED === '1' &&
+		env.SAMPLE_DATA !== '1' && !env.CRM_DEV_BYPASS &&
+		/^v\d+\.0$/.test(env.META_GRAPH_VERSION || '') &&
+		/^\d+$/.test(env.META_PAGE_ID || '') && /^\d+$/.test(env.META_IG_USER_ID || '') &&
+		!!env.META_PAGE_ACCESS_TOKEN && !!env.PHOTO_SIGN_KEY;
+}
