@@ -307,3 +307,11 @@ main{padding:30px 32px;max-width:1440px}
 @media(max-width:1100px){body{padding-left:204px}.studio-rail{width:204px;padding:26px 16px}.sidebar-logo img{width:172px;height:126px}.workspace{grid-template-columns:260px minmax(0,1fr)}main{padding:24px}.property-results{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:850px){body{padding-left:0}.studio-rail{position:static;width:100%;padding:18px 22px;display:flex;flex-direction:row;align-items:center;gap:24px}.sidebar-logo img{width:142px;height:104px}.sidebar-current{margin-left:auto}.sidebar-home{margin:0;max-width:110px;line-height:1.6}header{height:54px;padding:0 22px}.workspace{grid-template-columns:1fr}}
 @media(max-width:540px){.studio-rail{padding:16px;gap:16px;flex-wrap:wrap}.sidebar-logo img{width:150px;height:110px}.sidebar-current{padding:12px;font-size:12px}.sidebar-home{width:100%;max-width:none;padding:0}main{padding:24px 16px}#property-dialog{padding:18px;width:calc(100% - 20px);max-height:92dvh}.property-results{grid-template-columns:1fr}.picker-heading h2{font-size:19px}}
+
+/* Live brand lettering stays legible independently of the symbol. */
+@font-face{font-family:SocialGordita;src:url('/gordita-bold.woff2') format('woff2');font-style:normal;font-weight:700;font-display:swap}
+.studio-rail .sidebar-logo{display:flex;flex-direction:column;align-items:center;gap:12px;text-decoration:none;color:#fff;line-height:1.3;padding:0 0 4px}
+.studio-rail .sidebar-logo img{width:64px;height:69px;object-fit:contain}
+.sidebar-wordmark{font-family:SocialGordita,'Segoe UI',sans-serif;font-weight:700;font-size:22px;letter-spacing:.3px;white-space:nowrap}
+
+@media(max-width:850px){.studio-rail .sidebar-logo{gap:8px}.studio-rail .sidebar-logo img{width:54px;height:58px}.sidebar-wordmark{font-size:20px}}
