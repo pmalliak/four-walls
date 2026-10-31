@@ -41,12 +41,47 @@ function controls() {
 	document.querySelectorAll('.order button').forEach((b, i) => { b.disabled = busy || !editable() || i === 0; });
 	$('count').textContent = `${$('caption').value.length} / 2200${dirty ? ' · Μη αποθηκευμένες αλλαγές' : ''}`;
 }
+const normalizeSearch = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('el');
+function propertyDetails(p) {
+	const transaction = { sale: 'Πώληση', rent: 'Ενοικίαση', shortterm: 'Βραχυχρόνια μίσθωση', auction: 'Δημοπρασία' }[p.transaction] || '';
+	const price = p.price == null ? 'Τιμή κατόπιν επικοινωνίας' : new Intl.NumberFormat('el-GR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(p.price) + (p.transaction === 'rent' ? ' / μήνα' : '');
+	return [transaction, p.area ? p.area + ' τ.μ.' : '', price].filter(Boolean).join(' · ');
+}
+function propertyContent(p) {
+	const content = el('span', null, 'property-content');
+	const media = el('span', 'Χωρίς φωτογραφία', 'property-media');
+	if (p.images?.[0]) {
+		const img = el('img'); img.src = p.images[0]; img.alt = ''; img.loading = 'lazy'; img.referrerPolicy = 'no-referrer';
+		img.onerror = () => { img.remove(); media.textContent = 'Χωρίς φωτογραφία'; };
+		media.replaceChildren(img);
+	}
+	const facts = el('span', null, 'property-facts');
+	facts.append(el('small', p.code || p.id, 'property-code'), el('strong', propertyTitle(p)), el('span', [p.location?.area, p.location?.city].filter(Boolean).join(', ')), el('span', propertyDetails(p), 'property-price'));
+	content.append(media, facts); return content;
+}
+function selectedProperty() {
+	const p = bootstrap?.feed.listings.find(p => p.id === $('property').value);
+	if (!p) { $('property').value = ''; $('property-selection').replaceChildren(el('span', 'Επιλέξτε ακίνητο')); }
+	else $('property-selection').replaceChildren(propertyContent(p));
+	$('choose-property').classList.toggle('has-selection', Boolean(p));
+}
 function propertyOptions() {
 	if (!bootstrap) return;
-	const q = $('property-search').value.toLocaleLowerCase('el');
-	$('property').replaceChildren(...bootstrap.feed.listings.filter(p => `${p.code} ${propertyTitle(p)} ${p.location.area} ${p.location.city}`.toLocaleLowerCase('el').includes(q)).map(p => {
-		const option = el('option', `${p.code} · ${propertyTitle(p)}`); option.value = p.id; return option;
+	selectedProperty();
+	const terms = normalizeSearch($('property-search').value).trim().split(/\s+/).filter(Boolean);
+	const matches = bootstrap.feed.listings.filter(p => {
+		const haystack = normalizeSearch([p.code, propertyTitle(p), p.location?.area, p.location?.city].filter(Boolean).join(' '));
+		return terms.every(term => haystack.includes(term));
+	});
+	$('property-results-count').textContent = matches.length + (matches.length === 1 ? ' ακίνητο' : ' ακίνητα') + (matches.length > 60 ? ' · Εμφανίζονται τα πρώτα 60. Περιορίστε την αναζήτηση.' : '');
+	$('property-results').replaceChildren(...matches.slice(0, 60).map(p => {
+		const button = el('button', null, 'property-result'); button.type = 'button'; button.disabled = busy;
+		button.setAttribute('aria-pressed', String(p.id === $('property').value));
+		button.append(propertyContent(p), el('span', p.id === $('property').value ? '✓ Επιλεγμένο' : 'Επιλογή ακινήτου', 'property-select-label'));
+		button.onclick = () => { if (busy) return; $('property').value = p.id; selectedProperty(); $('property-dialog').close(); controls(); };
+		return button;
 	}));
+	if (!matches.length) $('property-results').append(el('p', 'Δεν βρέθηκαν ακίνητα. Δοκιμάστε άλλο κωδικό ή περιοχή.'));
 	$('create').disabled = !$('property').value || busy;
 }
 function postList() {
@@ -114,7 +149,8 @@ async function action(name, fields = {}) {
 }
 $('refresh').onclick = () => task(async () => { if (dirty) throw new Error('Αποθηκεύστε τις αλλαγές πριν την ανανέωση.'); await reload(); });
 $('property-search').oninput = propertyOptions; $('filter').onchange = postList;
-$('property').onchange = controls;
+$('choose-property').onclick = () => { propertyOptions(); $('property-dialog').showModal(); $('property-search').focus(); };
+$('close-picker').onclick = () => $('property-dialog').close();
 $('today').textContent = new Intl.DateTimeFormat('el-GR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 document.querySelectorAll('.metric').forEach(b => { b.onclick = () => { $('filter').value = b.dataset.filter; postList(); $('queue').scrollIntoView({ block: 'start' }); }; });
 $('create').onclick = () => task(async () => {
