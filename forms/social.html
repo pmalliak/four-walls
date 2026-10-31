@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="el">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<meta name="robots" content="noindex,nofollow">
+	<title>Δημοσιεύσεις · Four Walls</title>
+	<link rel="stylesheet" href="/social.fw.css">
+	<script src="/social.fw.js" defer></script>
+</head>
+<body>
+	<header><a href="/">FOUR WALLS <span>ΕΡΓΑΛΕΙΑ ΓΡΑΦΕΙΟΥ</span></a><span id="identity"></span></header>
+	<main>
+		<div class="heading"><div><p class="eyebrow">SOCIAL MEDIA</p><h1>Κάθε ακίνητο, μια ιστορία.</h1><p>Δημιουργία, έγκριση και προγραμματισμός δημοσιεύσεων.</p></div><button id="refresh" type="button">Ανανέωση</button></div>
+		<p id="mode" class="notice">Σύνδεση με το γραφείο…</p>
+		<p id="message" role="status" aria-live="polite"></p>
+		<div class="workspace">
+			<aside>
+				<section><h2>Νέα δημοσίευση</h2><label for="property-search">Αναζήτηση κωδικού ή περιοχής</label><input id="property-search" type="search" placeholder="π.χ. Καλαμαριά"><label for="property">Ακίνητο από EstatePrime</label><select id="property"></select><label for="new-channel">Κανάλι</label><select id="new-channel"><option value="instagram">Instagram</option><option value="facebook">Facebook Page</option><option value="marketplace">Marketplace · χειροκίνητα</option></select><button id="create" class="primary" type="button">Δημιουργία προσχεδίου</button><small id="feed-time"></small></section>
+				<section><h2>Δημοσιεύσεις</h2><label for="filter">Κατάσταση</label><select id="filter"><option value="">Όλες</option><option value="draft">Πρόχειρα</option><option value="pending">Προς έγκριση</option><option value="approved">Εγκεκριμένες</option><option value="scheduled">Προγραμματισμένες</option><option value="published">Δημοσιευμένες</option><option value="blocked">Μη διαθέσιμες / αλλαγμένες</option><option value="needs_review">Χρειάζονται έλεγχο</option></select><div id="posts"></div></section>
+			</aside>
+			<section id="empty"><p class="eyebrow">ΑΠΟ ΤΟ CRM ΣΤΑ SOCIAL</p><h2>Επιλέξτε ένα ακίνητο για να ξεκινήσετε.</h2><p>Οι φωτογραφίες και τα στοιχεία έρχονται από το EstatePrime. Κάθε δημοσίευση ελέγχεται πριν προγραμματιστεί.</p><ol><li>Επιλέξτε φωτογραφίες και λεζάντα</li><li>Στείλτε για έγκριση</li><li>Προγραμματίστε τη δημοσίευση</li></ol></section>
+			<section id="editor" hidden>
+				<div class="heading"><h2 id="post-title"></h2><span id="status" class="badge"></span></div>
+				<p id="post-info"></p>
+				<label for="template">Πρότυπο Four Walls</label><select id="template"><option value="square">Τετράγωνο · 1080 × 1080</option><option value="portrait">Πορτρέτο · 1080 × 1350</option></select>
+				<label for="caption">Ελληνική λεζάντα</label><textarea id="caption" rows="8" maxlength="2200"></textarea><small id="count"></small>
+				<h3>Φωτογραφίες &amp; σειρά carousel</h3><p>Επιλέξτε έως 10. Η αρίθμηση είναι η σειρά δημοσίευσης.</p><div id="photos" class="photos"></div><div id="order" class="order"></div>
+				<div class="actions"><button id="save" type="button">Αποθήκευση αλλαγών</button><button id="submit" class="primary" type="button">Δημιουργία εικόνων &amp; αποστολή για έγκριση</button><button id="approve" class="primary" type="button">Έγκριση περιεχομένου</button><button id="cancel" type="button">Ακύρωση</button></div>
+				<div id="preview"><h3>Τελικές εικόνες</h3><p>Ελέγξτε τη λεζάντα, τις περικοπές και τη σειρά πριν εγκρίνετε.</p><div id="renders" class="renders"></div></div>
+				<div id="scheduling"><h3>Προγραμματισμός</h3><label for="schedule-time" id="timezone"></label><input id="schedule-time" type="datetime-local"><p>Εκτέλεση στον επόμενο έλεγχο ανά 15 λεπτά. Η διαθεσιμότητα ελέγχεται ξανά πριν από τη δημοσίευση.</p><button id="schedule" class="primary" type="button">Προγραμματισμός</button></div>
+				<button id="package" class="primary" type="button">Λήψη πακέτου Marketplace</button>
+				<div id="resolution" hidden><h3>Έλεγχος αποτελέσματος στο Meta</h3><p>Ελέγξτε πρώτα τη σελίδα ή τον λογαριασμό. Η εφαρμογή δεν θα επαναλάβει αυτή τη δημοσίευση.</p><label for="remote-id">Αναγνωριστικό δημοσίευσης Meta</label><input id="remote-id"><button id="resolve-published" type="button">Επιβεβαίωση δημοσίευσης</button><button id="resolve-cancelled" type="button">Επιβεβαίωση ακύρωσης</button></div>
+				<h3>Ιστορικό</h3><ol id="history" class="history"></ol>
+			</section>
+		</div>
+	</main>
+</body>
+</html>
