@@ -21,6 +21,7 @@ const files = new Map([
 	['/forms/social.fw.js', ['../forms/social.fw.js', 'text/javascript; charset=utf-8']],
 	['/forms/social.fw.css', ['../forms/social.fw.css', 'text/css; charset=utf-8']],
 	['/forms/social-design.mjs', ['../forms/social-design.mjs', 'text/javascript; charset=utf-8']],
+	['/forms/social-crop.mjs', ['../forms/social-crop.mjs', 'text/javascript; charset=utf-8']],
 	['/forms/social-font-metrics.mjs', ['../forms/social-font-metrics.mjs', 'text/javascript; charset=utf-8']],
 ]);
 env.ASSETS.fetch = async request => {

@@ -66,6 +66,7 @@ export function validateDraft(input, property) {
 	check(Array.isArray(input.photos) && input.photos.length >= 1 && input.photos.length <= 10, 'select_1_to_10_photos');
 	check(input.photos.length + Number(creative.includeFacts) + Number(creative.includeCta) <= 10, 'carousel_max_10_slides');
 	check(new Set(input.photos).size === input.photos.length && input.photos.every(p => property.images.includes(p) && safePhoto(p)), 'invalid_photo_selection');
+	check(!creative.crop || creative.crop.photos.every(item => input.photos.includes(item.url)), 'invalid_photo_crop');
 	return { channel: input.channel, template: input.template, caption: input.caption.trim(), photos: input.photos, creative };
 }
 

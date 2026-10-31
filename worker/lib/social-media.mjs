@@ -2,6 +2,7 @@ import { hmac, safeEqual } from './signing.mjs';
 import { check } from './social-model.mjs';
 import { normalizeCreative, buildSlidePlan, websiteDestination } from './social-creative.mjs';
 import { buildSocialDesign } from '../../forms/social-design.mjs';
+import { sourceCropBox } from '../../forms/social-crop.mjs';
 
 const NAVY = '#1C3457', PINK = '#FF0062';
 const stream = bytes => new Blob([bytes]).stream();
@@ -12,6 +13,24 @@ async function sourcePhoto(photo) {
 	const response = await fetch(photo, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
 	check(response.ok && /^image\//.test(response.headers.get('Content-Type') || ''), 'photo_fetch_failed', 502);
 	return response.body;
+}
+
+export async function socialPhotoInput(env, photo, crop) {
+	const source = await sourcePhoto(photo);
+	const override = crop?.photos.find(item => item.url === photo);
+	if (!crop || override?.bottom === 0 || (!override && !crop.landscape && !crop.portrait)) return env.IMAGES.input(source);
+	// Materialize orientation before trimming: Images applies trim before EXIF
+	// rotation within a graph. A bounded lossless intermediate gives the same
+	// upright bottom edge and orientation as browser naturalWidth/naturalHeight.
+	const oriented = await env.IMAGES.input(source)
+		.transform({ width: 4096, height: 4096, fit: 'scale-down' })
+		.output({ format: 'image/png' });
+	const [metadata, pixels] = oriented.response().body.tee();
+	const info = await env.IMAGES.info(metadata);
+	const box = sourceCropBox(crop, photo, info.width, info.height);
+	check(box, 'photo_dimensions_unavailable', 502);
+	const image = env.IMAGES.input(pixels);
+	return box.bottom ? image.transform({ trim: { bottom: box.bottom } }) : image;
 }
 
 async function flatten(env, canvas) {
@@ -27,7 +46,7 @@ async function finishText(env, canvas, queue) {
 	if (queue.length) canvas = await flatten(env, canvas);
 	for (const [i, item] of queue.entries()) {
 		const { text: line, font: face, size, color, width, left, top, align } = item;
-		const fontFile = { serif: 'NotoSerifDisplay-SemiBold.ttf', sans: 'NotoSans.ttf', sansBold: 'NotoSans-SemiBold.ttf' }[face];
+		const fontFile = { heading: 'FourWallsWebsite-SemiBold.ttf', serif: 'NotoSerifDisplay-SemiBold.ttf', sans: 'Manrope-Regular.ttf', sansBold: 'Manrope-SemiBold.ttf' }[face];
 		const font = new URL(`/images/social/${fontFile}`, env.SOCIAL_ASSET_ORIGIN || 'https://four-walls.gr').href;
 		const text = env.IMAGES.text(line, { font: { url: font }, size, color })
 			.transform({ width, height: Math.ceil(size * 1.35), fit: 'scale-down' });
@@ -46,7 +65,7 @@ async function renderPreset(env, post, slide, creative, height, asset) {
 	let canvas = env.IMAGES.input(stream(frame)).transform({ width: 1080, height, fit: 'cover' });
 	if (slide.photo) {
 		const box = design.photo;
-		canvas = canvas.draw(env.IMAGES.input(await sourcePhoto(slide.photo)).transform({ width: box.width, height: box.height, fit: 'cover' }), { left: box.left, top: box.top })
+		canvas = canvas.draw((await socialPhotoInput(env, slide.photo, creative.crop)).transform({ width: box.width, height: box.height, fit: 'cover' }), { left: box.left, top: box.top })
 			.draw(env.IMAGES.input(stream(frame)), { left: 0, top: 0 });
 	}
 	const logo = await asset(design.logo.file);
@@ -76,10 +95,10 @@ export async function renderSocialImages(env, post) {
 		const height = post.template === 'portrait' ? 1350 : 1080;
 		let rendered;
 		if (creative.preset === 'classic') {
-			const source = await sourcePhoto(slide.photo);
+			const source = await socialPhotoInput(env, slide.photo, creative.crop);
 			const logo = await env.ASSETS.fetch(new Request('https://four-walls.gr/images/logo/fourwalls_watermark.png'));
 			check(logo.ok, 'logo_missing', 503);
-			rendered = await env.IMAGES.input(source)
+			rendered = await source
 				.transform({ width: 1080, height: height - 180, fit: 'cover' })
 				.transform({ border: { bottom: 168, top: 0, left: 0, right: 0, color: NAVY } })
 				.transform({ border: { bottom: 12, top: 0, left: 0, right: 0, color: PINK } })

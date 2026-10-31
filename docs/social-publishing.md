@@ -63,12 +63,25 @@ stored as `originalImages` in KV. The general website feed keeps its existing
 fallback behavior. Social never falls back to `watermark_image`, including after
 a failed download, and never guesses a clean URL or removes a watermark with AI.
 `original_image` is source metadata, not image detection: if the original upload
-already includes a watermark, replace it with a clean photograph in EstatePrime.
-The editor additionally requires an explicit, saved confirmation that the selected
-photographs have no watermark or logo. It never checks this box automatically;
-changing the photo selection clears it. This is staff review of the actual pixels,
-not a claim of automatic watermark detection. Rendering and publication fail closed
-without the confirmation.
+includes footer branding, the social crop can exclude that footer from the output.
+Staff review the resulting JPEGs before approval. There is no separate clean-photo
+checkbox or automatic watermark-detection claim; the legacy confirmation field is
+not a rendering or publication gate. If branding remains inside the retained photo,
+adjust the crop or choose a suitable original in EstatePrime. Footer trimming does
+not remove a watermark across the center of a photo and does not use AI removal.
+
+New drafts created in the dashboard trim the bottom **16% of landscape/square photos** and **10% of portrait
+photos** before the preset's cover fit. Percentages refer to the displayed,
+EXIF-oriented source. The Worker first materializes its upright orientation as a
+lossless PNG, capped at 4096 pixels per side, then trims the bottom edge. The browser
+preview uses the same crop rules. The EstatePrime original remains unchanged.
+
+Staff can change each orientation default or override a selected photo from
+**0–40%**; 0 keeps its full source frame. Each override is associated with the exact
+photo URL, so it follows that photograph when reordered. Existing drafts without
+a saved crop retain their uncropped behavior until staff explicitly apply cropping.
+Saving a crop change creates a new creative revision and clears generated images,
+approval and scheduling; regenerate and approve the final images again.
 
 The closing slide/caption can direct visitors to the property page, `/request`
 (buyer/tenant enquiry), or `/list-property` (owner enquiry), or retain a direct-message
@@ -244,8 +257,16 @@ in an isolated temporary preview with no D1, R2 or Meta access. All three preset
 produced 1080×1080 and 1080×1350 JPEGs; Greek long-title wrapping, missing-price
 text and website CTA cards were checked visually. Text/art composition is flattened
 into intermediate PNG batches to respect the service's ten-transform graph limit;
-only the final JPEGs are saved to production R2. The explicit photo-review flag
-is required even when EstatePrime labels a source as an original.
+only the final JPEGs are saved to production R2. Staff review the final crop and
+branding as part of image approval; a separate photo-review checkbox is not required.
+
+Source-crop validation also used the real Images binding with public
+`recurser/exif-orientation-examples` fixtures (Landscape/Portrait, EXIF 1 and 6).
+All 16 combinations of default, explicit 0%, 40% override and legacy no-crop
+matched the upright reference pixels exactly. Default landscape output was
+1800×1008 from 1800×1200; portrait output was 1200×1620 from 1200×1800, including
+the rotated sources. This isolated check used no D1, R2 or Meta bindings and
+did not modify source images.
 
 The MVP trusts fixed domains: the dashboard/API accepts `forms.four-walls.gr`
 (plus localhost for development), and signed media URLs are generated and served
@@ -322,6 +343,15 @@ fonts and artwork through the authenticated social asset routes. Preview
 loading failures are shown explicitly; the generated JPEG remains the final
 approval target.
 
+New preset typography follows the website: Montserrat with Manrope for missing
+Greek heading glyphs, and Manrope for body text. The server and browser share
+one renamed heading font that preserves this fallback deterministically, rather
+than relying on a computer's installed fonts. Headings use weight 600; body copy
+uses 400 and emphasis uses 600. Font coverage, pinned source files, licenses and
+rebuild instructions are documented in `images/social/ARTWORK.txt`. Existing
+Noto assets remain available for compatibility; stored approved JPEGs do not
+change when fonts are updated.
+
 The compact portrait logo retains the original outlined symbol and name,
 without the small Real Estate tagline. Architectural uses this stacked mark;
 Editorial and Neighbourhood use its horizontal variant. Pencil illustrations
@@ -358,8 +388,8 @@ Instagram containers are processing tests, not drafts visible in the Instagram
 app. Facebook draft visibility in Meta's management UI must be checked separately.
 History records safe object IDs and the verified result; it never records tokens,
 signed image URLs, or raw Meta errors. The creation's status and approval stay unchanged.
-Drafts use separate test renders, even if their source images have watermarks;
-testing never marks those photos clean or approves them for public publishing.
+Drafts use separate test renders with their saved crop; testing does not approve
+those images for public publishing.
 One attempt per saved revision is claimed before network mutations; ambiguous
 failures are not automatically retried. Check recorded IDs before editing and
 reapproving a new attempt. Deleting the local creation does not delete Meta drafts.

@@ -43,14 +43,41 @@ small circular handle. It should feel like a fun architect's pencil doodle,
 intentionally simple, open and clever. Keep transparent space around the drawing.
 
 Typography:
-Noto Serif Display SemiBold is a static instance of the upright Google Fonts
-variable font, wght=600 and wdth=100. Noto Sans SemiBold uses the same coordinates
-from the existing Noto Sans variable font. Original font licenses accompany the
-TTFs. sources:
+New preset headings use FourWallsWebsite-SemiBold.ttf, a renamed OFL derivative
+matching the active website's Montserrat, Manrope fallback stack at weight 600.
+The official Montserrat v31 TTF reports Version 9.000 and does not contain the
+ordinary Greek alphabet. The official Manrope v23 TTFs report Version 4.505 and
+cover modern Greek, including accents and dialytika. Website CSS inspected on
+2026-10-31: css/style.fw.min.css uses Manrope for body copy and the explicit
+Montserrat, Manrope stack for headings. The site's Google Fonts request includes
+Manrope 400/500/600/700 and Montserrat 600/700/800.
+
+The derived heading preserves every Montserrat code point and adds only the 79
+missing Manrope code points. Montserrat's 1000-unit em is scaled exactly to the
+2000-unit Manrope em before merging; OpenType GSUB/GPOS layout is retained. The
+authoring tool verifies every resulting character advance against its source.
+Manrope-Regular.ttf and Manrope-SemiBold.ttf are unchanged official static TTFs
+at weights 400 and 600. Greek text is normalized to NFC in the shared design.
+
+Rebuild with tools/build-social-website-fonts.py (fontTools required), then run
+tools/build-social-font-metrics.py. The first tool pins SHA-256 checksums for the
+official source TTFs and optionally accepts --source-dir for offline rebuilding.
+Both are authoring tools only; no font conversion happens in production.
+OFL-Manrope.txt and OFL-Montserrat.txt accompany the original and derived fonts.
+Pinned official sources:
+https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCu170w-.ttf
+https://fonts.gstatic.com/s/manrope/v23/xn7_YHE41ni1AdIRqAuZuw1Bx9mbZk79FO_F.ttf
+https://fonts.gstatic.com/s/manrope/v23/xn7_YHE41ni1AdIRqAuZuw1Bx9mbZk4jE-_F.ttf
+Coverage and license sources:
+https://github.com/google/fonts/tree/main/ofl/montserrat
+https://github.com/google/fonts/tree/main/ofl/manrope
+
+Noto Serif Display SemiBold and Noto Sans remain available for compatibility.
+The former is an upright static instance at wght=600, wdth=100; Noto Sans
+SemiBold uses the same coordinates. Their original licenses remain included.
+Legacy sources:
 https://github.com/google/fonts/tree/main/ofl/notoserifdisplay
 https://github.com/google/fonts/tree/main/ofl/notosans
-tools/build-social-font-metrics.py generates the shared browser/Worker advance
-widths from these exact TTFs. It requires fontTools at authoring time only.
 
 Brand marks:
 The compact portrait and horizontal marks use the original outlined symbol and
