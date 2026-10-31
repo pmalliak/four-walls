@@ -322,7 +322,7 @@ Reconciliation records later changes, but does not delete existing Meta posts.
 
 ## Test without publishing
 
-After reviewing and approving a Facebook or Instagram creation, an approver can
+For a saved draft, pending or approved Facebook/Instagram creation, an approver can
 choose **Δοκιμή στο Meta**. This uploads the rendered images using the production
 Page token even while `SOCIAL_LIVE_PUBLISH=0`. The dedicated adapter never calls
 Instagram `media_publish`. Facebook photo uploads and the final draft explicitly
@@ -332,7 +332,9 @@ and has no scheduled publication time. A read-back must confirm `is_published=fa
 Instagram containers are processing tests, not drafts visible in the Instagram
 app. Facebook draft visibility in Meta's management UI must be checked separately.
 History records safe object IDs and the verified result; it never records tokens,
-signed image URLs, or raw Meta errors. The creation remains approved and unscheduled.
-One attempt per approved revision is claimed before network mutations; ambiguous
+signed image URLs, or raw Meta errors. The creation's status and approval stay unchanged.
+Drafts use separate test renders, even if their source images have watermarks;
+testing never marks those photos clean or approves them for public publishing.
+One attempt per saved revision is claimed before network mutations; ambiguous
 failures are not automatically retried. Check recorded IDs before editing and
 reapproving a new attempt. Deleting the local creation does not delete Meta drafts.
