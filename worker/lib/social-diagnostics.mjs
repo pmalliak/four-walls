@@ -1,6 +1,6 @@
 // Log only allowlisted diagnostics. Upstream exception text can contain URLs,
 // tokens, SQL parameters, captions, or CRM details, so it is never emitted.
-const stages = new Set(['authenticate', 'serve_asset', 'database_check', 'load_feed', 'list_posts', 'parse_request', 'create_draft', 'load_post', 'serialize_post', 'load_history', 'load_image', 'validate_property', 'save_post', 'render_images', 'save_submission', 'verify_crm', 'record_export', 'build_package']);
+const stages = new Set(['authenticate', 'serve_asset', 'database_check', 'load_feed', 'list_posts', 'parse_request', 'create_draft', 'load_post', 'serialize_post', 'load_history', 'load_image', 'validate_property', 'save_post', 'delete_post', 'render_images', 'save_submission', 'verify_crm', 'record_export', 'build_package']);
 const errorTypes = new Set(['Error', 'TypeError', 'RangeError', 'SyntaxError', 'TimeoutError', 'AbortError', 'ImagesError']);
 const serviceCodes = new Set(['social_database_not_configured', 'feed_missing_or_stale', 'photo_sources_pending_sync', 'crm_verification_failed', 'image_storage_not_configured', 'image_text_not_available', 'creative_asset_missing', 'photo_fetch_failed', 'logo_missing', 'render_too_large']);
 const d1Codes = ['D1_ERROR', 'D1_EXEC_ERROR', 'D1_TYPE_ERROR', 'D1_COLUMN_NOTFOUND', 'SQLITE_ERROR', 'SQLITE_BUSY', 'SQLITE_CONSTRAINT'];
@@ -29,7 +29,7 @@ export function logSocialFailure(error, request, url, stage) {
 	const errorId = crypto.randomUUID();
 	const diagnostic = {
 		event: 'social_operation_failed', errorId,
-		method: ['GET', 'POST', 'PATCH'].includes(request.method) ? request.method : 'OTHER',
+		method: ['GET', 'POST', 'PATCH', 'DELETE'].includes(request.method) ? request.method : 'OTHER',
 		operation: operation(url.pathname),
 		stage: stages.has(stage) ? stage : 'unknown',
 		errorType: errorTypes.has(error?.name) ? error.name : 'Error',

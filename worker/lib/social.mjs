@@ -75,7 +75,7 @@ export async function handleSocial(request, env, url) {
 		if (auth.denied) return auth.denied;
 		const actor = auth.email || (local ? 'local-developer' : null);
 		check(actor, 'human_session_required', 403);
-		if (!['GET', 'POST', 'PATCH'].includes(request.method)) return json({ error: 'method_not_allowed' }, 405);
+		if (!['GET', 'POST', 'PATCH', 'DELETE'].includes(request.method)) return json({ error: 'method_not_allowed' }, 405);
 		if (request.method !== 'GET') check(request.headers.get('Origin') === url.origin, 'same_origin_required', 403);
 		if (!url.pathname.startsWith('/api/social/')) {
 			stage = 'serve_asset';
@@ -150,6 +150,19 @@ export async function handleSocial(request, env, url) {
 		stage = 'parse_request';
 		const input = await bodyJSON(request);
 		check(input.revision === post.revision, 'revision_conflict_reload', 409);
+		if (request.method === 'DELETE' && !action) {
+			check([...editable, 'cancelled'].includes(post.status) && !post.remote_id, 'post_not_deletable', 409);
+			stage = 'delete_post';
+			// Both deletes share a transaction and the same guard, so a scheduler
+			// claim or concurrent edit preserves the post and its history.
+			const guard = "id = ? AND revision = ? AND status IN ('draft','pending','approved','scheduled','blocked','cancelled') AND remote_id IS NULL";
+			const results = await env.SOCIAL_DB.batch([
+				statement(env, `DELETE FROM social_events WHERE post_id IN (SELECT id FROM social_posts WHERE ${guard})`, post.id, post.revision),
+				statement(env, `DELETE FROM social_posts WHERE ${guard}`, post.id, post.revision),
+			]);
+			check(results[1].meta.changes === 1, 'revision_conflict_reload', 409);
+			return json({ deleted: true });
+		}
 		stage = 'validate_property';
 		if (request.method === 'PATCH' && !action) {
 			check(editable.includes(post.status), 'post_not_editable', 409);

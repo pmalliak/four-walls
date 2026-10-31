@@ -16,10 +16,12 @@ const errors = {
 	clean_photos_confirmation_required: 'Ελέγξτε ότι οι επιλεγμένες φωτογραφίες δεν έχουν υδατογράφημα, επιβεβαιώστε το σχετικό πεδίο και αποθηκεύστε ξανά.',
 	too_many_slides: 'Το σύνολο ξεπερνά τις 10 εικόνες. Αφαιρέστε φωτογραφίες ή απενεργοποιήστε μία πρόσθετη κάρτα.',
 	carousel_1_to_10_slides: 'Το σύνολο ξεπερνά τις 10 εικόνες. Αφαιρέστε φωτογραφίες ή απενεργοποιήστε μία πρόσθετη κάρτα.',
+	carousel_max_10_slides: 'Το σύνολο ξεπερνά τις 10 εικόνες. Αφαιρέστε φωτογραφίες ή απενεργοποιήστε μία πρόσθετη κάρτα.',
 	invalid_creative: 'Επιλέξτε ένα διαθέσιμο πρότυπο εμφάνισης.',
 	image_storage_not_configured: 'Η υπηρεσία εικόνων δεν έχει ρυθμιστεί.',
 	photo_fetch_failed: 'Δεν ήταν δυνατή η λήψη μιας πρωτότυπης φωτογραφίας. Δοκιμάστε ξανά ή επιλέξτε άλλη φωτογραφία.',
 	approver_required: 'Απαιτείται εξουσιοδοτημένος υπεύθυνος έγκρισης.',
+	post_not_deletable: 'Η δημιουργία δεν μπορεί να διαγραφεί επειδή έχει δημοσιευτεί ή εκκρεμεί το αποτέλεσμα δημοσίευσης.',
 	future_utc_time_required: 'Επιλέξτε μελλοντική ημερομηνία και ώρα.',
 	Unauthorized: 'Η σύνδεση έληξε. Ανανεώστε τη σελίδα.',
 	social_operation_failed: 'Η ενέργεια απέτυχε. Οι αλλαγές δεν επιβεβαιώθηκαν· ανανεώστε πριν δοκιμάσετε ξανά.'
@@ -33,6 +35,7 @@ const classic = { preset: 'classic', version: 1, includeFacts: false, includeCta
 let bootstrap, posts = [], active, selected = [], dirty = false, busy = false;
 let creative = { ...classic }, starterPreset = 'architectural', photosConfirmedClean = false, lastInsertedLink = '', lastInsertedLabel = '';
 const editable = () => active && ['draft', 'pending', 'approved', 'scheduled', 'blocked'].includes(active.status);
+const deletable = () => active && (editable() || active.status === 'cancelled') && !active.remote_id;
 const propertyTitle = p => p?.title?.trim() ? p.title : `Ακίνητο${p?.area ? ` ${p.area} τ.μ.` : ''}${p?.location?.area || p?.location?.city ? `, ${p.location.area || p.location.city}` : ''}`;
 const el = (tag, text, className) => { const n = document.createElement(tag); if (text != null) n.textContent = text; if (className) n.className = className; return n; };
 const selectedProperty = () => bootstrap?.feed.listings.find(p => p.id === $('property').value);
@@ -52,10 +55,19 @@ async function api(path, method = 'GET', body) {
 	if (!response.ok) throw apiError(data);
 	return data;
 }
-function message(text, state = '') { $('message').textContent = text; $('message').dataset.state = state; }
+let messageTimer;
+function message(text, kind = 'error') {
+	clearTimeout(messageTimer);
+	$('message').hidden = !text;
+	$('message').dataset.kind = kind;
+	$('message-text').textContent = text;
+	$('dismiss-message').hidden = kind === 'pending';
+	if (text && kind === 'success') messageTimer = setTimeout(() => { $('message').hidden = true; }, 5000);
+}
+$('dismiss-message').onclick = () => { clearTimeout(messageTimer); $('message').hidden = true; };
 async function task(work, pending = 'Φόρτωση…', success = '') {
 	if (busy) return;
-	busy = true; message(pending); controls();
+	busy = true; message(pending, 'pending'); controls();
 	try { await work(); message(success, 'success'); }
 	catch (e) { message(e.message, 'error'); }
 	finally { busy = false; controls(); }
@@ -118,6 +130,7 @@ function controls() {
 	$('approve').hidden = !canApprove; $('approve').disabled = busy || dirty || !$('review-confirm').checked;
 	$('review-label').hidden = !canApprove; $('review-confirm').disabled = busy || dirty;
 	$('cancel').hidden = !canEdit;
+	$('delete').hidden = !deletable();
 	$('scheduling').hidden = active.status !== 'approved' || active.channel === 'marketplace'; $('schedule').disabled = busy || dirty;
 	$('schedule-time').disabled = busy || dirty;
 	$('marketplace-export').hidden = active.status !== 'approved' || active.channel !== 'marketplace'; $('package').disabled = busy || dirty;
@@ -432,6 +445,15 @@ $('save').onclick = () => task(async () => {
 $('submit').onclick = () => task(async () => { await action('submit'); $('preview').scrollIntoView({ block: 'start' }); }, 'Δημιουργία τελικών εικόνων… Μπορεί να χρειαστεί λίγο χρόνο.', 'Οι εικόνες είναι έτοιμες για έλεγχο. Δεν έχει γίνει δημοσίευση.');
 $('approve').onclick = () => task(async () => { if (!$('review-confirm').checked) throw new Error('Επιβεβαιώστε πρώτα ότι ελέγξατε τις εικόνες και τη λεζάντα.'); await action('approve'); $(active.channel === 'marketplace' ? 'marketplace-export' : 'scheduling').scrollIntoView({ block: 'start' }); }, 'Καταχώριση έγκρισης…', 'Η έκδοση εγκρίθηκε. Δεν έχει γίνει δημοσίευση.');
 $('cancel').onclick = () => task(() => action('cancel'), 'Ακύρωση δημοσίευσης…', 'Η δημοσίευση ακυρώθηκε.');
+$('delete').onclick = () => {
+	if (busy || !deletable()) return;
+	if (!window.confirm('Να διαγραφεί οριστικά αυτή η δημιουργία και το ιστορικό της; Θα χαθούν και τυχόν μη αποθηκευμένες αλλαγές.')) return;
+	return task(async () => {
+		await api(`/posts/${active.id}`, 'DELETE', { revision: active.revision });
+		posts = posts.filter(post => post.id !== active.id);
+		closeEditor(); $('create').focus();
+	}, 'Διαγραφή δημιουργίας…', 'Η δημιουργία και το ιστορικό της διαγράφηκαν.');
+};
 $('timezone').textContent = `Ημερομηνία και ώρα (${Intl.DateTimeFormat().resolvedOptions().timeZone})`;
 $('schedule').onclick = () => task(async () => {
 	const at = new Date($('schedule-time').value);

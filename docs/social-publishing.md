@@ -115,6 +115,12 @@ and schedule approved posts. Service-token sessions without email are rejected.
 Editing any approved content returns it to draft and clears rendered assets,
 approval and schedule. Concurrent edits return 409 and require a reload.
 
+Use **Διαγραφή δημιουργίας** to permanently remove an unpublished creation and
+its history after confirmation, including scheduled or cancelled creations.
+Published posts, posts currently publishing, and uncertain Meta outcomes cannot
+be deleted. Resolve uncertain outcomes first. Deletion checks the saved revision
+atomically so a concurrent scheduler claim cannot lose a publishing record.
+
 The schedule picker displays the browser's timezone and sends UTC. Cron runs
 at the existing quarter-hour cadence, processing at most three posts per tick.
 Disabled publishing keeps schedules queued; **review overdue schedules before
