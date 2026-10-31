@@ -87,9 +87,12 @@ crons = ["*/15 * * * *"]
 
 [vars]
 SOCIAL_LIVE_PUBLISH = "0"
-SOCIAL_META_PERMISSIONS_CONFIRMED = "0"
+SOCIAL_META_PERMISSIONS_CONFIRMED = "1"
 # Configure approved staff emails before allowing approvals. Never a browser role.
-SOCIAL_APPROVERS = "info@four-walls.gr"
+SOCIAL_APPROVERS = "info@four-walls.gr,panos.malliakoudis@gmail.com"
+META_GRAPH_VERSION = "v26.0"
+META_PAGE_ID = "100240192431474"
+META_IG_USER_ID = "17841465040608221"
 # Social D1 binding is below; setup and operations: docs/social-publishing.md.
 # META_GRAPH_VERSION, META_PAGE_ID and META_IG_USER_ID are set at setup time.
 # META_PAGE_ACCESS_TOKEN is a Worker secret, never a var or client setting.

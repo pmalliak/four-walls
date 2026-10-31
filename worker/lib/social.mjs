@@ -1,7 +1,8 @@
 import { json, requireAccess } from './access.mjs';
 import { apiConfig, mapListing } from './estateprime.mjs';
-import { publicProperty, fingerprint, greekCaption, validateDraft, check, SocialError, liveReady } from './social-model.mjs';
-import { renderSocialImages } from './social-media.mjs';
+import { publicProperty, fingerprint, greekCaption, validateDraft, check, SocialError, liveReady, metaReady } from './social-model.mjs';
+import { renderSocialImages, signedMediaUrl } from './social-media.mjs';
+import { testMeta } from './social-meta-test.mjs';
 import { websiteDestination } from './social-creative.mjs';
 import { marketplacePackage } from './social-package.mjs';
 import { logSocialFailure } from './social-diagnostics.mjs';
@@ -99,7 +100,7 @@ export async function handleSocial(request, env, url) {
 		const path = url.pathname.slice('/api/social'.length);
 		if (path === '/bootstrap' && request.method === 'GET') {
 			stage = 'load_feed';
-			return json({ feed: await readFeed(env), canApprove: reviewers(env).includes(actor.toLowerCase()), live: liveReady(env), actor });
+			return json({ feed: await readFeed(env), canApprove: reviewers(env).includes(actor.toLowerCase()), live: liveReady(env), canTest: metaReady(env), actor });
 		}
 		if (path === '/posts' && request.method === 'GET') {
 			stage = 'list_posts';
@@ -124,7 +125,7 @@ export async function handleSocial(request, env, url) {
 			stage = 'serialize_post';
 			return json(serialize(post), 201);
 		}
-		const match = path.match(/^\/posts\/([a-f0-9-]{36})(?:\/(submit|approve|schedule|cancel|resolve|history|package|image\/\d))?$/);
+		const match = path.match(/^\/posts\/([a-f0-9-]{36})(?:\/(submit|approve|test|schedule|cancel|resolve|history|package|image\/\d))?$/);
 		check(match, 'not_found', 404);
 		stage = 'load_post';
 		let post = await getPost(env, match[1]);
@@ -188,6 +189,30 @@ export async function handleSocial(request, env, url) {
 			check(post.photos_confirmed_clean === 1, 'clean_photos_confirmation_required', 409);
 			stage = 'save_post';
 			post = await mutate(env, post, { status: 'approved', approved_by: actor }, actor, 'approved');
+		} else if (request.method === 'POST' && action === 'test') {
+			check(reviewers(env).includes(actor.toLowerCase()), 'approver_required', 403);
+			check(metaReady(env), 'meta_not_configured', 503);
+			check(post.status === 'approved' && post.channel !== 'marketplace', 'approved_social_post_required', 409);
+			check(!await statement(env, "SELECT id FROM social_events WHERE post_id = ? AND revision = ? AND kind = 'meta_test_started'", post.id, post.revision).first(), 'meta_test_already_attempted', 409);
+			stage = 'verify_crm';
+			await verifyLiveProperty(env, post);
+			const assets = JSON.parse(post.assets);
+			check(assets.length >= 1 && assets.length <= 10, 'invalid_media_count');
+			const urls = await Promise.all(assets.map(key => signedMediaUrl(env, key)));
+			// Claim with optimistic revision before contacting Meta. An ambiguous
+			// failure stays recorded and is never automatically retried.
+			post = await mutate(env, post, {}, actor, 'meta_test_started');
+			const checkpoint = (kind, detail) => statement(env,
+				'INSERT INTO social_events(post_id,revision,kind,actor,detail,created_at) VALUES(?,?,?,?,?,?)',
+				post.id, post.revision, kind, actor, detail, now()).run();
+			stage = 'test_meta';
+			try {
+				const result = await testMeta(env, post, urls, checkpoint);
+				await checkpoint(result.result, result.id);
+			} catch (error) {
+				await checkpoint('meta_test_failed', 'Check recorded Meta IDs before preparing a new version.');
+				throw error;
+			}
 		} else if (request.method === 'POST' && action === 'schedule') {
 			check(post.status === 'approved' && post.channel !== 'marketplace', 'approved_social_post_required', 409);
 			check(await fingerprint(await currentProperty(env, post.property_id)) === post.fingerprint, 'property_changed_reapprove', 409);

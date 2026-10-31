@@ -67,7 +67,11 @@ export function validateDraft(input, property) {
 }
 
 export function liveReady(env) {
-	return env.SOCIAL_LIVE_PUBLISH === '1' && env.SOCIAL_META_PERMISSIONS_CONFIRMED === '1' &&
+	return env.SOCIAL_LIVE_PUBLISH === '1' && metaReady(env);
+}
+
+export function metaReady(env) {
+	return env.SOCIAL_META_PERMISSIONS_CONFIRMED === '1' &&
 		env.SAMPLE_DATA !== '1' && !env.CRM_DEV_BYPASS &&
 		/^v\d+\.0$/.test(env.META_GRAPH_VERSION || '') &&
 		/^\d+$/.test(env.META_PAGE_ID || '') && /^\d+$/.test(env.META_IG_USER_ID || '') &&
