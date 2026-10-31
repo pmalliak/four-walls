@@ -6,10 +6,81 @@ import { fingerprint, greekCaption, liveReady, validateDraft, publicProperty, so
 import { handleSocial, getPost, reconcileSocial, verifyLiveProperty } from '../worker/lib/social.mjs';
 import { runSocialPublisher } from '../worker/lib/social-publisher.mjs';
 import { publishMeta } from '../worker/lib/social-meta.mjs';
+import { testMeta } from '../worker/lib/social-meta-test.mjs';
 import { signedMediaUrl, serveSocialMedia } from '../worker/lib/social-media.mjs';
 import { mapListing } from '../worker/lib/estateprime.mjs';
 
 const origin = 'http://localhost:8787';
+test('unpublished tests use real Meta preparation endpoints without publishing, for one image and carousels', async t => {
+	const env = environment(); t.after(() => env.SOCIAL_DB.close());
+	for (const channel of ['instagram', 'facebook']) for (const count of [1, 3]) {
+		const calls = []; let id = 100;
+		t.mock.method(globalThis, 'fetch', async (url, options) => {
+			const fields = Object.fromEntries(options.body || []);
+			calls.push({ url: String(url), method: options.method, fields });
+			assert.equal(options.headers.Authorization, 'Bearer SECRET-META-TOKEN');
+			assert.ok(!String(url).includes('media_publish'));
+			if (channel === 'facebook' && options.method === 'POST') assert.equal(fields.published, 'false');
+			assert.equal(fields.scheduled_publish_time, undefined);
+			return Response.json(options.method === 'GET' ? { status_code: 'FINISHED', is_published: false } : { id: String(++id) });
+		});
+		const result = await testMeta(env, { channel, caption: 'Test' }, Array(count).fill('https://four-walls.gr/image.jpg'), async () => {});
+		assert.equal(result.result, channel === 'instagram' ? 'instagram_container_ready' : 'facebook_draft_verified');
+		if (channel === 'facebook') assert.equal(calls.find(c => c.url.endsWith('/feed')).fields.unpublished_content_type, 'DRAFT');
+		assert.equal(liveReady(env), false);
+	}
+});
+
+test('Meta test endpoint requires approval and reviewer, records IDs, and never retries an approved revision', async t => {
+	const env = environment(); t.after(() => env.SOCIAL_DB.close());
+	let post = await create(env);
+	assert.equal((await action(env, post, 'test')).status, 409);
+	post = await approved(t, env, 'instagram');
+	env.SOCIAL_APPROVERS = 'someone-else';
+	assert.equal((await action(env, post, 'test')).status, 403);
+	env.SOCIAL_APPROVERS = 'local-developer';
+	let mutations = 0;
+	t.mock.method(globalThis, 'fetch', async (url, options) => {
+		if (String(url).includes('/listings/')) return Response.json({ data: rawProperty });
+		if (options.method === 'POST') { mutations++; return Response.json({ id: '555' }); }
+		return Response.json({ status_code: 'FINISHED' });
+	});
+	const response = await action(env, post, 'test');
+	assert.equal(response.status, 200);
+	const updated = await response.json();
+	assert.equal(updated.status, 'approved');
+	assert.equal(updated.remote_id, null);
+	assert.equal(updated.scheduled_at, null);
+	assert.equal((await action(env, post, 'test')).status, 409);
+	assert.equal((await action(env, updated, 'test')).status, 409);
+	assert.equal(mutations, 1);
+	const history = await (await call(env, `/posts/${post.id}/history`)).json();
+	assert.ok(history.some(e => e.kind === 'instagram_container_ready' && e.detail === '555'));
+	assert.ok(!JSON.stringify(history).includes('SECRET-META-TOKEN'));
+});
+
+test('ambiguous Meta test failure is recorded and cannot retry; stale CRM fails before Meta', async t => {
+	const env = environment(); t.after(() => env.SOCIAL_DB.close());
+	const post = await approved(t, env, 'facebook'); let calls = 0;
+	t.mock.method(globalThis, 'fetch', async url => {
+		if (String(url).includes('/listings/')) return Response.json({ data: { ...rawProperty, status: 'inactive' } });
+		calls++; throw new Error('SECRET-META-TOKEN');
+	});
+	assert.equal((await action(env, post, 'test')).status, 409);
+	assert.equal(calls, 0);
+	t.mock.method(globalThis, 'fetch', async url => {
+		if (String(url).includes('/listings/')) return Response.json({ data: rawProperty });
+		calls++; throw new Error('SECRET-META-TOKEN');
+	});
+	const response = await action(env, post, 'test');
+	assert.equal(response.status, 502);
+	assert.ok(!(await response.text()).includes('SECRET-META-TOKEN'));
+	const current = await getPost(env, post.id);
+	assert.equal((await action(env, current, 'test')).status, 409);
+	assert.equal(calls, 1);
+	const history = await (await call(env, `/posts/${post.id}/history`)).json();
+	assert.ok(history.some(e => e.kind === 'meta_test_failed'));
+});
 async function call(env, path, method = 'GET', body, headers = {}) {
 	const request = new Request(`${origin}/api/social${path}`, { method, headers: { Origin: origin, 'Content-Type': 'application/json', ...headers }, body: body ? JSON.stringify(body) : undefined });
 	return handleSocial(request, env, new URL(request.url));
