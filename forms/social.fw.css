@@ -248,3 +248,22 @@ h1{font-size:34px}
 *,*:before,*:after{animation:none!important;transition:none!important}
 .story-card{transform:none}
 .metric:hover,.story-card:hover,button.primary:hover{transform:none}}
+
+/* Single-page publishing workspace: only functional navigation. */
+body{padding-left:0}
+header{height:110px;padding:12px max(24px,calc((100vw - 1364px)/2));gap:20px}
+.studio-brand{display:flex;align-items:center;gap:28px}
+.studio-brand>a{display:block;line-height:0}
+.studio-brand img{display:block;width:110px;height:80px;object-fit:contain}
+.studio-brand>strong{border-left:1px solid var(--line);padding-left:28px;font-size:15px;font-weight:600}
+header .office-link{color:var(--navy);font-size:11px;font-weight:500;letter-spacing:0;text-decoration:none;margin-left:12px}
+main{max-width:1440px}
+h1{font-size:32px;letter-spacing:-1px;margin:8px 0 12px}
+.page-heading{margin-bottom:24px}
+.heading-tools{padding-top:8px;display:flex;align-items:center;gap:20px}
+.today{margin:0}
+#empty{padding:28px;min-height:160px;background:#fff;animation:none}
+#empty h2{font-size:17px;margin-bottom:12px}
+#empty p{font-size:13px;max-width:560px;margin:0}
+.skip-link{left:12px}
+@media(max-width:540px){header{height:96px;padding:10px 16px;gap:12px}.studio-brand{gap:12px}.studio-brand img{width:88px;height:64px}.studio-brand>strong{font-size:12px;padding-left:12px}header .office-link{font-size:10px;margin:0;max-width:90px;line-height:1.6}.heading-tools{display:block}.today{margin-bottom:12px}h1{font-size:27px}#empty{padding:22px}}

@@ -48,17 +48,6 @@ function propertyOptions() {
 		const option = el('option', `${p.code} · ${propertyTitle(p)}`); option.value = p.id; return option;
 	}));
 	$('create').disabled = !$('property').value || busy;
-	propertyPreview();
-}
-function propertyPreview() {
-	const property = bootstrap?.feed.listings.find(p => p.id === $('property').value);
-	const image = $('featured-image');
-	image.hidden = true; $('property-art').hidden = false;
-	$('featured-title').textContent = property ? propertyTitle(property) : 'Ο χώρος σας. Η ιστορία σας.';
-	image.onload = () => { image.hidden = false; $('property-art').hidden = true; };
-	image.onerror = () => { image.hidden = true; $('property-art').hidden = false; };
-	if (property?.images?.[0]) { image.alt = propertyTitle(property); image.referrerPolicy = 'no-referrer'; image.src = property.images[0]; }
-	else image.removeAttribute('src');
 }
 function postList() {
 	$('metric-total').textContent = posts.length;
@@ -125,10 +114,9 @@ async function action(name, fields = {}) {
 }
 $('refresh').onclick = () => task(async () => { if (dirty) throw new Error('Αποθηκεύστε τις αλλαγές πριν την ανανέωση.'); await reload(); });
 $('property-search').oninput = propertyOptions; $('filter').onchange = postList;
-$('property').onchange = () => { propertyPreview(); controls(); };
+$('property').onchange = controls;
 $('today').textContent = new Intl.DateTimeFormat('el-GR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 document.querySelectorAll('.metric').forEach(b => { b.onclick = () => { $('filter').value = b.dataset.filter; postList(); $('queue').scrollIntoView({ block: 'start' }); }; });
-document.querySelectorAll('.rail-link').forEach(link => { link.onclick = () => { document.querySelectorAll('.rail-link').forEach(item => item.classList.toggle('active', item === link)); }; });
 $('create').onclick = () => task(async () => {
 	if (dirty) throw new Error('Αποθηκεύστε πρώτα τις αλλαγές.');
 	const post = await api('/posts', 'POST', { property_id: $('property').value, channel: $('new-channel').value, template: 'square' });
