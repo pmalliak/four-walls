@@ -11,12 +11,14 @@ env.feed.listings = [{ ...property, images: ['https://four-walls.gr/images/listi
 delete env.IMAGES;
 delete env.META_PAGE_ACCESS_TOKEN;
 const files = new Map([
-	['/forms/social.html', ['../forms/social.html', 'text/html; charset=utf-8']],
+	['/forms/social', ['../forms/social.html', 'text/html; charset=utf-8']],
 	['/forms/social.fw.js', ['../forms/social.fw.js', 'text/javascript; charset=utf-8']],
 	['/forms/social.fw.css', ['../forms/social.fw.css', 'text/css; charset=utf-8']],
 ]);
 env.ASSETS.fetch = async request => {
-	const file = files.get(new URL(request.url).pathname);
+	const pathname = new URL(request.url).pathname;
+	if (pathname === '/forms/social.html') return new Response(null, { status: 307, headers: { Location: '/forms/social' } });
+	const file = files.get(pathname);
 	return file ? new Response(await readFile(new URL(file[0], import.meta.url)), { headers: { 'Content-Type': file[1] } }) : new Response('Not Found', { status: 404 });
 };
 const port = Number(process.argv[2] || 5174);

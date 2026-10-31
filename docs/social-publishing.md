@@ -169,7 +169,20 @@ mutations/cron claims, availability checks before and after media preparation,
 Meta payloads, interrupted/ambiguous results, signed URLs and ZIP contents.
 Cloudflare Images and external network responses are stubbed in tests.
 
-Before live activation, use a separate staging Worker/D1 and test accounts:
+The MVP trusts fixed domains: the dashboard/API accepts `forms.four-walls.gr`
+(plus localhost for development), and signed media URLs are generated and served
+on `four-walls.gr`. An unchanged deployment to a separate staging hostname or
+`workers.dev` cannot run this flow. To validate the current implementation, use
+the existing Worker with **dedicated Meta test accounts**, confirm their IDs,
+and ensure the schedule contains only approved test posts before enabling the
+publishing switches. Local preview never publishes.
+
+A separate staging Worker is future setup work: it first needs configurable,
+explicitly trusted dashboard and media origins, a matching Access application,
+and isolated D1/R2 resources. Do not disable the host or Access checks to make a
+staging hostname work.
+
+Before activating the real Four Walls social accounts:
 
 - Verify Access, D1 migration/batch behavior, R2 storage and the real Images
   output (1080×1080 and 1080×1350 JPEG; check logo, crop and image readability).
