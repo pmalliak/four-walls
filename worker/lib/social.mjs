@@ -39,7 +39,7 @@ export async function currentProperty(env, id) {
 }
 
 // Fail closed on missing/unknown status, unexpected envelope, or stale content.
-export async function verifyLiveProperty(env, post) {
+async function verifyProperty(env, post) {
 	check(env.SAMPLE_DATA !== '1', 'sample_data_cannot_publish', 409);
 	const { base, headers } = apiConfig(env);
 	const res = await fetch(`${base}/listings/${encodeURIComponent(post.property_id)}`, { headers, signal: AbortSignal.timeout(15000) });
@@ -48,8 +48,13 @@ export async function verifyLiveProperty(env, post) {
 	check(raw && !Array.isArray(raw) && String(raw.id) === post.property_id && raw.status === 'active', 'property_unavailable', 409);
 	const p = publicProperty(mapListing(raw));
 	check(await fingerprint(p) === post.fingerprint, 'property_changed_reapprove', 409);
-	check(post.photos_confirmed_clean === 1, 'clean_photos_confirmation_required', 409);
 	validateDraft({ ...post, photos: JSON.parse(post.photos), creative: JSON.parse(post.creative) }, p);
+	return p;
+}
+
+export async function verifyLiveProperty(env, post) {
+	const p = await verifyProperty(env, post);
+	check(post.photos_confirmed_clean === 1, 'clean_photos_confirmation_required', 409);
 	return p;
 }
 
@@ -192,13 +197,10 @@ export async function handleSocial(request, env, url) {
 		} else if (request.method === 'POST' && action === 'test') {
 			check(reviewers(env).includes(actor.toLowerCase()), 'approver_required', 403);
 			check(metaReady(env), 'meta_not_configured', 503);
-			check(post.status === 'approved' && post.channel !== 'marketplace', 'approved_social_post_required', 409);
+			check(['draft', 'pending', 'approved'].includes(post.status) && post.channel !== 'marketplace', 'testable_social_post_required', 409);
 			check(!await statement(env, "SELECT id FROM social_events WHERE post_id = ? AND revision = ? AND kind = 'meta_test_started'", post.id, post.revision).first(), 'meta_test_already_attempted', 409);
 			stage = 'verify_crm';
-			await verifyLiveProperty(env, post);
-			const assets = JSON.parse(post.assets);
-			check(assets.length >= 1 && assets.length <= 10, 'invalid_media_count');
-			const urls = await Promise.all(assets.map(key => signedMediaUrl(env, key)));
+			await verifyProperty(env, post);
 			// Claim with optimistic revision before contacting Meta. An ambiguous
 			// failure stays recorded and is never automatically retried.
 			post = await mutate(env, post, {}, actor, 'meta_test_started');
@@ -207,6 +209,11 @@ export async function handleSocial(request, env, url) {
 				post.id, post.revision, kind, actor, detail, now()).run();
 			stage = 'test_meta';
 			try {
+				// Draft renders are test-only; approval and clean-photo review stay
+				// mandatory for publishing. Do not promote these assets or status.
+				const assets = post.status === 'draft' ? await renderSocialImages(env, post) : JSON.parse(post.assets);
+				check(assets.length >= 1 && assets.length <= 10, 'invalid_media_count');
+				const urls = await Promise.all(assets.map(key => signedMediaUrl(env, key)));
 				const result = await testMeta(env, post, urls, checkpoint);
 				await checkpoint(result.result, result.id);
 			} catch (error) {
