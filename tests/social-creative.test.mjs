@@ -7,6 +7,8 @@ import { validateDraft, publicProperty } from '../worker/lib/social-model.mjs';
 import { handleSocial, getPost } from '../worker/lib/social.mjs';
 import { renderSocialImages } from '../worker/lib/social-media.mjs';
 import { environment, property } from './social-fixtures.mjs';
+import { buildSocialDesign } from '../forms/social-design.mjs';
+import { measureSocialText } from '../forms/social-font-metrics.mjs';
 
 const classic = { preset: 'classic', version: 1, includeFacts: false, includeCta: false };
 const creative = (preset = 'architectural', flags = {}) => ({ preset, version: 1, includeFacts: true, includeCta: true, ...flags });
@@ -307,7 +309,7 @@ test('each preset renders ordered JPEGs at both sizes using only selected origin
 				assert.match(printed, /185\.000/);
 				assert.match(printed, /Καλαμαριά/);
 				assert.ok(recorder.texts.every(item => item.options.font.url.startsWith('https://four-walls.gr/')));
-				assert.ok(assets.includes('/images/social/logo-vertical.png'));
+				assert.ok(assets.includes(`/images/social/${preset === 'architectural' ? 'logo-social' : 'logo-horizontal'}.png`));
 			}
 			assert.ok(assets.length > 0);
 		}
@@ -324,7 +326,8 @@ test('facts cards omit missing measurements and never invent a price or expose p
 		creative: JSON.stringify(creative()), snapshot: JSON.stringify(snapshot),
 	});
 	const printed = recorder.texts.map(item => item.content).join('\n');
-	assert.match(printed, /Τιμή κατόπιν επικοινωνίας/);
+	assert.match(printed, /Κατόπιν επικοινωνίας/);
+	assert.match(printed, /ΤΙΜΗ/);
 	assert.doesNotMatch(printed, /PRIVATE|ΕΜΒΑΔΟΝ|τ\.μ\.|€0|undefined|NaN/);
 });
 
@@ -343,6 +346,51 @@ test('CTA cards display the selected destination with an Instagram message fallb
 		const link = websiteDestination(post);
 		if (link) assert.ok(printed.includes(link.shortUrl));
 		else assert.match(printed, /Στείλτε μας μήνυμα/);
-		assert.equal(printed.includes('Ή ζητήστε τον σύνδεσμο'), channel === 'instagram' && destination === 'property');
+		assert.equal(printed.replace(/\s+/g, ' ').includes('Ή ζητήστε μας τον σύνδεσμο'), channel === 'instagram' && destination === 'property');
+	}
+});
+
+test('shared designs keep measured Greek text and visual boxes inside every output size', () => {
+	const profiles = [
+		{ ...property, typeLabel: 'Διαμέρισμα' },
+		{ ...property, typeLabel: 'Επαγγελματικός χώρος πολλαπλών χρήσεων', transaction: 'rent', area: 12345.75, price: 1234567,
+			location: { area: 'Ανάληψη - Μπότσαρη - Νέα Παραλία - Βούλγαρη - Ντεπώ - Μαρτίου', city: 'Θεσσαλονίκη - Περιφερειακοί δήμοι και ευρύτερη περιοχή' } },
+		{ ...property, typeLabel: '', price: null, area: null, location: {} },
+	];
+	for (const preset of ['architectural', 'editorial', 'neighbourhood']) for (const height of [1080, 1350]) {
+		for (const kind of ['cover', 'photo', 'facts', 'cta']) for (const destination of ['property', 'request', 'sell', 'message']) {
+			for (const snapshot of profiles) {
+				const context = `${preset}/${height}/${kind}/${destination}/${snapshot.typeLabel}`;
+				const link = websiteDestination({ id: 'post-id', channel: 'instagram', snapshot, creative: creative(preset, { destination }) });
+				const design = buildSocialDesign({ preset, kind, height, property: snapshot, destination, channel: 'instagram', link });
+				for (const item of design.texts) {
+					assert.ok(item.size > 0 && Number.isFinite(item.size), context);
+					assert.ok(item.left >= 0 && item.left + item.width <= 1080, `${context}: horizontal box ${item.text}`);
+					assert.ok(item.top >= 0 && item.top + Math.ceil(item.size * 1.35) <= height, `${context}: vertical box ${item.text}`);
+					assert.ok(measureSocialText(item.text, item.font) * item.size <= item.width + 0.01, `${context}: measured text overflows ${item.text}`);
+					assert.doesNotMatch(item.text, /PRIVATE|undefined|NaN/);
+				}
+				for (const box of [design.photo, design.logo].filter(Boolean)) {
+					assert.ok(box.width > 0 && box.height > 0, context);
+					assert.ok(box.left >= 0 && box.left + box.width <= 1080, `${context}: visual horizontal box`);
+					assert.ok(box.top >= 0 && box.top + box.height <= height, `${context}: visual vertical box`);
+				}
+			}
+		}
+	}
+});
+
+test('missing facts leave their icon slots empty instead of moving remaining facts into them', () => {
+	for (const preset of ['architectural', 'editorial', 'neighbourhood']) for (const height of [1080, 1350]) {
+		const full = buildSocialDesign({ preset, kind: 'facts', height, property: { ...property, typeLabel: 'Διαμέρισμα' } });
+		const missing = buildSocialDesign({ preset, kind: 'facts', height, property: { ...property, typeLabel: 'Διαμέρισμα', area: null, price: null, location: {} } });
+		assert.equal(missing.texts.some(item => item.text === 'ΕΜΒΑΔΟΝ' || item.text === 'ΠΕΡΙΟΧΗ'), false);
+		assert.equal(missing.texts.some(item => item.text.includes('τ.μ.')), false);
+		for (const label of ['ΤΙΜΗ', 'ΚΩΔΙΚΟΣ']) {
+			const before = full.texts.find(item => item.text === label), after = missing.texts.find(item => item.text === label);
+			assert.ok(before && after);
+			assert.deepEqual({ left: after.left, top: after.top }, { left: before.left, top: before.top });
+		}
+		assert.ok(missing.texts.map(item => item.text).join(' ').includes('Κατόπιν επικοινωνίας'));
 	}
 });

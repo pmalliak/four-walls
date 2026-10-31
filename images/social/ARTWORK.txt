@@ -1,0 +1,58 @@
+Four Walls social artwork
+
+The two decorative PNGs were generated with the built-in image_gen tool,
+then restyled against the website's own images/assets/ils_01.fw.svg illustration
+(rasterized only as a style reference). They are generic decorative drawings,
+not depictions of a listed property, its neighbourhood, or its condition.
+Property photography is supplied separately, unchanged, from EstatePrime.
+
+Final files: illustration-street.png and illustration-door.png.
+Format: 1024 x 1536 PNG with alpha transparency.
+
+Final prompt shared by both assets:
+Restyle and replace the decorative artwork in image1 using image2 as the EXACT
+brand style reference, not as a subject to reproduce wholesale. Image2 is the
+existing Four Walls website illustration. Match the website's flat naive
+architectural geometry, thin navy #1C3457 pencil outlines, tactile graphite
+crosshatching and scribbled shading, playful proportions, sparse hot pink
+#FF0062 accents, white/transparent open interiors. A few lines may be naturally
+doubled or imperfect like pencil on paper. Modern, funky, minimalist, high-end
+editorial graphic. Absolutely remove the old traditional watercolor style:
+no realistic stone, no ornate balconies, no flowering bougainvillea, no detailed
+foliage, no beige wash, no photorealistic perspective, no heavy old-fashioned
+doorway. Palette only navy, graphite grey, white and hot pink. Art must be light
+and airy, not dense or dark. No type, logos, labels, numbers, borders, watermark
+or paper-background rectangle. This is a reusable decorative cutout for a
+social-media template. Output tall portrait 2:3 with genuine alpha transparency,
+generous clear space.
+
+Street subject:
+A quirky cluster of three simple geometric houses and one skinny apartment
+building, playful slightly skewed roofs, irregular rectangular windows, a pink
+front door, a round pink attic window, a tiny lollipop tree, sparse scribbly
+ground strokes. It should feel like a fun architect's pencil doodle,
+intentionally simple, open and clever. Buildings sit mostly on the right and
+bottom; keep the left half transparent for compositing a photo.
+
+Door subject:
+One playfully skewed simple open doorway and an oversized pink key floating near
+it, two loose pencil steps, one tiny abstract plant made of a few curved pencil
+strokes. The door is a clean rectangular geometric shape with sparse
+crosshatched pencil shading, a single bold pink plane on its inside edge, and a
+small circular handle. It should feel like a fun architect's pencil doodle,
+intentionally simple, open and clever. Keep transparent space around the drawing.
+
+Typography:
+Noto Serif Display SemiBold is a static instance of the upright Google Fonts
+variable font, wght=600 and wdth=100. Noto Sans SemiBold uses the same coordinates
+from the existing Noto Sans variable font. Original font licenses accompany the
+TTFs. sources:
+https://github.com/google/fonts/tree/main/ofl/notoserifdisplay
+https://github.com/google/fonts/tree/main/ofl/notosans
+tools/build-social-font-metrics.py generates the shared browser/Worker advance
+widths from these exact TTFs. It requires fontTools at authoring time only.
+
+Brand marks:
+The compact portrait and horizontal marks use the original outlined symbol and
+wordmark from brand/fourwalls_logo_vertical.svg. The small REAL ESTATE tagline
+is omitted for social use. These logos are vector-derived, never AI-generated.

@@ -19,8 +19,11 @@ export function publicProperty(p) {
 	// source provenance. Legacy/general feed images may include watermarks.
 	const originals = Array.isArray(p.originalImages) ? p.originalImages :
 		p.photoSource === 'estateprime_original' && Array.isArray(p.images) ? p.images : [];
+	const mappedType = subcategoryLabel(p);
+	const typeLabel = p.photoSource === 'estateprime_original' && typeof p.typeLabel === 'string' ? p.typeLabel :
+		mappedType && mappedType !== p.subcategory && mappedType !== p.category ? mappedType : '';
 	return {
-		id: String(p.id), code: p.code || '', title: socialTitle(p),
+		id: String(p.id), code: p.code || '', title: socialTitle(p), typeLabel,
 		transaction: p.transaction || '', price: p.price ?? null, area: p.area ?? null,
 		location: { area: p.location?.area || '', city: p.location?.city || '' },
 		images: [...new Set(originals.filter(safePhoto))], photoSource: 'estateprime_original',

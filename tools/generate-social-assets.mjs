@@ -1,66 +1,75 @@
-// Rebuild the code-authored illustrations and exact brand lockup. Requires
-// sharp only at authoring time: node tools/generate-social-assets.mjs <sharp-path>
-// No image synthesis or property alteration is involved. Font files are from
-// google/fonts (GFS Didot + Noto Sans); their OFL licenses travel with the assets.
+// Build frames and exact brand variants. Sharp is an authoring-only dependency:
+// node tools/generate-social-assets.mjs <sharp-module-path>.
+// Runtime photos/text and browser previews share forms/social-design.mjs.
 import { createRequire } from 'node:module';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { slideLayout } from '../worker/lib/social-creative.mjs';
-const require = createRequire(import.meta.url);
-const sharp = require(process.argv[2] || 'sharp');
+import { fileURLToPath } from 'node:url';
+import { buildSocialDesign } from '../forms/social-design.mjs';
+const require = createRequire(import.meta.url), sharp = require(process.argv[2] || 'sharp');
 const directory = new URL('../images/social/', import.meta.url);
 await mkdir(directory, { recursive: true });
 const navy = '#1C3457', pink = '#FF0062';
-
-function keyArt(x = 700, y = 100, scale = 1) {
-	return `<g transform="translate(${x} ${y}) scale(${scale})" fill="none" stroke="${navy}" stroke-width="3"><path d="M0 10 185 72 335 20V330L185 270 0 330Z M185 72V270 M20 22V317 M40 29V310 M60 35V303 M80 42V296 M100 49V290 M120 56V283"/><path d="M245 70V120"/><g stroke="${pink}" stroke-width="5"><circle cx="245" cy="160" r="33"/><path d="M245 193V286H230V268H245V251H233"/></g></g>`;
+const street = `data:image/png;base64,${(await readFile(new URL('illustration-street.png', directory))).toString('base64')}`;
+const door = `data:image/png;base64,${(await readFile(new URL('illustration-door.png', directory))).toString('base64')}`;
+const websiteSvg = (await readFile(new URL('../images/assets/ils_01.fw.svg', import.meta.url), 'utf8'))
+	.replace('width="1800" height="778" viewBox="0 0 1800 778"', 'width="700" height="448" viewBox="0 330 700 448"');
+const websitePng = await sharp(Buffer.from(websiteSvg)).resize({ width: 1000 }).png().toBuffer();
+await writeFile(new URL('illustration-website.png', directory), websitePng);
+const website = `data:image/png;base64,${websitePng.toString('base64')}`;
+const image = (src, x, y, width, height) => `<image href="${src}" x="${x}" y="${y}" width="${width}" height="${height}"/>`;
+function room(x, y, scale) {
+	return `<g transform="translate(${x} ${y}) scale(${scale})" fill="none" stroke="${navy}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M0 8 178 75 335 20V330L180 272 0 329Z M179 75 180 272 M19 19 20 318 M40 27 40 311 M60 34 61 304 M81 41 80 297 M100 48 101 289 M121 56 122 282 M142 63 143 277"/><path d="M5 12 177 80 330 25 M5 334 178 278 331 334" opacity=".25" stroke-width="1"/><path fill="#F3F1EC" stroke="none" opacity=".7" d="M192 271V208Q192 138 245 138T296 207V312Z"/><path d="M245 64V115"/><g stroke="${pink}" stroke-width="4.4"><circle cx="245" cy="153" r="33"/><path d="M245 186V286L233 280V265L245 270V251L235 246"/><circle cx="245" cy="137" r="4"/></g></g>`;
 }
-function streetArt(height) {
-	return `<g fill="none" stroke="${navy}" stroke-width="3" stroke-linecap="round"><path d="M870 330 1080 220M870 350 1080 240M910 330V${height-290}M1044 250V${height-330}M950 340V440H1028V302M950 475V575H1028V438M950 610V710H1028V573"/><path d="M932 443H1044M932 456H1044M932 578H1044M932 591H1044M932 713H1044M932 726H1044"/><path d="M941 443V468M957 443V468M973 443V468M989 443V468M1005 443V468M1021 443V468M1037 443V468M941 578V603M957 578V603M973 578V603M989 578V603M1005 578V603M1021 578V603M1037 578V603"/><path d="M860 ${height-285}Q830 ${height-410}840 ${height-540}M840 ${height-440} 800 ${height-480}M840 ${height-470} 881 ${height-520}M840 ${height-500} 817 ${height-545}"/><path stroke="${pink}" stroke-width="18" opacity=".22" d="M802 ${height-535}Q825 ${height-600}870 ${height-550}M794 ${height-480}Q835 ${height-580}886 ${height-495}"/><path d="M834 ${height-290}H886L877 ${height-250}H844Z M916 ${height-250} 1080 ${height-330}"/></g>`;
-}
-function doorArt(height, x = 735) {
-	const y = height - 760;
-	return `<g transform="translate(${x} ${y})" fill="none" stroke="${navy}" stroke-width="4"><path fill="${navy}" d="M20 80 240 0V600L20 660Z"/><path stroke="${pink}" stroke-width="12" d="M14 665V70L250 -10"/><path stroke="#fff" opacity=".55" d="M50 104 208 50V570L50 616Z M128 80V596M51 335 209 289"/><path stroke="#fff" d="M186 332V361"/><path d="M-25 682 278 610M-45 704 300 629"/><path d="M279 573Q249 494 278 398M278 487Q239 476 230 447Q264 450 278 487M278 458Q309 442 308 411Q282 430 278 458M273 527Q237 522 231 491Q260 496 273 527M279 511Q309 496 317 468Q285 475 279 511"/><path fill="#fffaf0" d="M250 573H310L299 634H262Z"/></g>`;
+function grid(height) {
+	const y = height - 590;
+	return `<g fill="none" stroke="${navy}" stroke-width="1.5"><path opacity=".3" d="M64 ${y}H1016M64 ${y+192}H1016M64 ${y+384}H1016M540 ${y}V${y+384}"/><g stroke-width="2.5"><path d="M78 ${y+47}H114V${y+83}H78Z M81 ${y+79} 110 ${y+51}M81 ${y+57}V${y+51}H87M104 ${y+79}H110V${y+73}"/><path d="M596 ${y+84}Q571 ${y+58} 580 ${y+44}Q596 ${y+25} 612 ${y+44}Q621 ${y+58} 596 ${y+84}Z"/><circle cx="596" cy="${y+51}" r="7"/><g transform="translate(0 24)"><ellipse cx="96" cy="${y+217}" rx="19" ry="7"/><path d="M77 ${y+217}V${y+242}Q96 ${y+256} 115 ${y+242}V${y+217}M77 ${y+226}Q96 ${y+241} 115 ${y+226}M77 ${y+234}Q96 ${y+249} 115 ${y+234}"/><path d="M581 ${y+206}H610V${y+249}H581Z M588 ${y+217}H604M588 ${y+227}H604M588 ${y+237}H598"/></g></g></g>`;
 }
 function frame(preset, kind, height) {
-	const bg = preset === 'neighbourhood' ? '#FBF5EA' : '#FCFBF8';
-	const dark = preset === 'editorial' && kind === 'cta';
-	const layout = slideLayout(preset, kind, height), p = layout.photo;
-	let body = '';
+	const square = height === 1080, neighbour = preset === 'neighbourhood', arch = preset === 'architectural';
+	const paper = neighbour ? '#FFFCF7' : '#FFFFFF';
+	const { photo: p } = buildSocialDesign({ preset, kind, height });
+	let body = `<defs><linearGradient id="paper" x2=".8" y2="1"><stop stop-color="${paper}"/><stop offset="1" stop-color="${neighbour ? '#FCF9F2' : '#FEFDFB'}"/></linearGradient></defs>`;
 	if (p) {
-		if (preset === 'editorial' && kind === 'cover') {
-			body += `<defs><linearGradient id="fade" x1="0" x2="0" y1="0" y2="1"><stop stop-color="${bg}" stop-opacity="0"/><stop offset="1" stop-color="${bg}"/></linearGradient></defs><path fill="${bg}" d="M0 ${p.height}H1080V${height}H0Z"/><rect y="${p.height-90}" width="1080" height="90" fill="url(#fade)"/>`;
+		if (kind === 'cover' && preset === 'editorial') {
+			const end = height - 438;
+			body += `<defs><linearGradient id="fade" x1="0" x2="0" y1="${end-142}" y2="${end}" gradientUnits="userSpaceOnUse"><stop stop-color="${paper}" stop-opacity="0"/><stop offset="1" stop-color="${paper}"/></linearGradient></defs><rect y="${end-142}" width="1080" height="142" fill="url(#fade)"/><rect y="${end}" width="1080" height="${height-end}" fill="url(#paper)"/><rect x="64" y="${height-518}" width="330" height="54" fill="${pink}"/><path d="M64 ${height-160}H254" stroke="${pink}" stroke-width="4"/>`;
 		} else {
-			const radius = kind === 'cover' ? (preset === 'architectural' ? 230 : 240) : 0;
-			const hole = `M${p.left} ${p.top}H${p.left+p.width-radius}Q${p.left+p.width} ${p.top} ${p.left+p.width} ${p.top+radius}V${p.top+p.height}H${p.left}Z`;
-			body += `<path fill="${bg}" fill-rule="evenodd" d="M0 0H1080V${height}H0Z ${hole}"/>`;
-			if (preset === 'architectural') body += `<path d="${hole}" fill="none" stroke="${navy}" stroke-width="3"/><path d="M${p.left-12} ${p.top+90}V${p.top+280}" stroke="${pink}" stroke-width="9"/>`;
-			if (preset === 'neighbourhood' && kind === 'cover') body += streetArt(height);
+			let hole;
+			if (kind === 'cover' && neighbour) hole = `M${p.left} ${p.top+185}Q${p.left} ${p.top+105} ${p.left+185} ${p.top+63}L${p.left+p.width-215} ${p.top+4}Q${p.left+p.width} ${p.top-36} ${p.left+p.width} ${p.top+175}V${p.top+p.height}H${p.left}Z`;
+			else {
+				const r = kind === 'cover' && arch ? 248 : 0;
+				hole = `M${p.left} ${p.top}H${p.left+p.width-r}Q${p.left+p.width} ${p.top} ${p.left+p.width} ${p.top+r}V${p.top+p.height}H${p.left}Z`;
+			}
+			body += `<path fill="url(#paper)" fill-rule="evenodd" d="M0 0H1080V${height}H0Z ${hole}"/>`;
+			if (kind === 'cover' && arch) body += `<path d="M34 57V31H778Q1048 31 1048 301V${height-25}" stroke="${navy}" stroke-width="3" fill="none"/><path d="M54 ${height-422}H758Q924 ${height-422} 924 ${height-263}V${height}H0V${height-422}Z" fill="url(#paper)"/><path d="M925 ${height-260}V${height}" stroke="${navy}" stroke-width="2.5"/><path d="M508 ${height-117}V${height-45}" stroke="${navy}" stroke-width="1.5"/><rect x="45" y="65" width="289" height="186" fill="#fff"/><path d="M45 65V251" stroke="${pink}" stroke-width="8"/>`;
+			if (kind === 'cover' && neighbour) body += image(street, square ? 580 : 560, square ? 280 : 365, square ? 500 : 520, square ? 750 : 780) + `<path d="M64 240H177" stroke="${pink}" stroke-width="5"/>`;
 		}
-		if (kind === 'cover' && preset !== 'neighbourhood') body += '<rect x="46" y="63" width="189" height="151" fill="#ffffff"/>';
-		if (kind === 'cover') body += `<path d="M64 ${height-(preset === 'neighbourhood' ? 235 : 208)}H174" stroke="${pink}" stroke-width="5"/>`;
+	} else if (kind === 'facts') {
+		body += `<rect width="1080" height="${height}" fill="url(#paper)"/>`;
+		if (neighbour) body += image(street, 40, 30, square ? 325 : 470, square ? 488 : 705);
+		else if (arch) body += room(64, square ? 66 : 114, square ? 1.1 : 1.45);
+		else body += image(website, 44, square ? 78 : 170, 490, 314);
+		body += `<path d="M570 ${square ? 265 : 347}H680" stroke="${pink}" stroke-width="4"/>` + grid(height);
 	} else {
-		body += `<rect width="1080" height="${height}" fill="${dark ? navy : bg}"/>`;
-		if (kind === 'facts') {
-			if (preset === 'architectural') body += keyArt(670, 58, .9);
-			else if (preset === 'neighbourhood') body += `<g transform="translate(880 44) scale(.4)">${doorArt(760, 0)}</g>`;
-			else body += `<g fill="none" stroke="${navy}" stroke-width="3" opacity=".65"><path d="M780 -10V175Q780 265 870 265H1090M860 -10V100Q860 190 950 190H1090"/><path stroke="${pink}" stroke-width="5" d="M960 -10V265Q960 340 1035 340H1090"/></g>`;
-			for (let i=0;i<4;i++) body += `<path d="M64 ${(height === 1350 ? 435 : 350)+i*(height === 1350 ? 160 : 150)}H1016" stroke="${navy}" opacity=".2"/>`;
-		} else if (preset === 'neighbourhood') body += doorArt(height);
-		else body += `<g fill="none" stroke="${dark ? '#6A809E' : navy}" stroke-width="3" opacity=".65"><path d="M780 -20V290Q780 380 870 380H1120M890 0V${height-220}Q890 ${height-120}990 ${height-120}H1100M720 ${height}V${height-260}Q720 ${height-350}810 ${height-350}H1080"/><path d="M920 -20V180Q920 250 990 250H1100M820 ${height}V${height-340}Q820 ${height-440}920 ${height-440}H1100" stroke="${pink}" stroke-width="5"/></g>`;
-		if (dark) body += '<rect x="50" y="48" width="218" height="176" fill="#fff"/>';
-		body += `<path d="M64 ${kind === 'facts' ? 350 : (height === 1350 ? 650 : 515)}H182" stroke="${pink}" stroke-width="6"/>`;
+		const dark = preset === 'editorial', top = square ? 275 : 355;
+		body += `<rect width="1080" height="${height}" fill="${dark ? navy : 'url(#paper)'}"/>`;
+		if (neighbour) body += image(door, square ? 645 : 590, square ? 130 : 270, square ? 540 : 655, square ? 810 : 983);
+		else body += `<g fill="none" stroke="${dark ? '#6F829B' : navy}" stroke-width="3" opacity=".55"><path d="M798 -10V180Q798 330 948 330H1100M918 -10V${height-210}Q918 ${height-105} 1023 ${height-105}H1100M760 ${height}V${height-262}Q760 ${height-380} 878 ${height-380}H1100"/><path d="M928 -10V153Q928 225 1000 225H1100M850 ${height}V${height-290}Q850 ${height-450} 1010 ${height-450}H1100" stroke="${pink}" stroke-width="5" opacity="1"/></g>`;
+		body += `<path d="M64 ${top+257}H208" stroke="${pink}" stroke-width="5"/>`;
 	}
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="${height}" viewBox="0 0 1080 ${height}">${body}</svg>`;
 }
-
-for (const preset of ['editorial', 'architectural', 'neighbourhood']) {
-	for (const height of [1350, 1080]) {
-		for (const kind of ['cover', 'photo', 'facts', 'cta']) {
-			const name = `${preset}-${kind}${height === 1080 ? '-square' : ''}.png`;
-			await sharp(Buffer.from(frame(preset, kind, height))).png().toFile(new URL(name, directory).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
-		}
-	}
+for (const preset of ['editorial', 'architectural', 'neighbourhood']) for (const height of [1350, 1080]) for (const kind of ['cover', 'photo', 'facts', 'cta']) {
+	await sharp(Buffer.from(frame(preset, kind, height))).png().toFile(fileURLToPath(new URL(`${preset}-${kind}${height === 1080 ? '-square' : ''}.png`, directory)));
 }
-await sharp(await readFile(new URL('../brand/fourwalls_logo_vertical.svg', import.meta.url))).resize({ width: 500 }).png().toFile(new URL('logo-vertical.png', directory).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
-await writeFile(new URL('README.txt', directory), 'Four Walls social template assets\nGenerated from tools/generate-social-assets.mjs and the canonical brand/fourwalls_logo_vertical.svg.\nIllustrations are decorative, not drawings of a listed property or a geographic map.\nGFS Didot and Noto Sans are distributed under the included SIL Open Font Licenses.\nSources: https://github.com/google/fonts/tree/main/ofl/gfsdidot and https://github.com/google/fonts/tree/main/ofl/notosans\n');
-console.log('Generated 24 template frames and the canonical portrait logo.');
+const socialLogo = await readFile(new URL('../brand/fourwalls_logo_social.svg', import.meta.url));
+await writeFile(new URL('logo-social.svg', directory), socialLogo);
+await sharp(socialLogo).resize({ width: 750 }).png().toFile(fileURLToPath(new URL('logo-social.png', directory)));
+const horizontal = await readFile(new URL('../images/logo/fourwalls_logo.svg', import.meta.url), 'utf8');
+for (const [name, color] of [['logo-horizontal', navy], ['logo-horizontal-white', '#FFFFFF']]) {
+	const svg = horizontal.replaceAll('#000000', color);
+	await writeFile(new URL(`${name}.svg`, directory), svg);
+	await sharp(Buffer.from(svg)).resize({ width: 1080 }).png().toFile(fileURLToPath(new URL(`${name}.png`, directory)));
+}
+await writeFile(new URL('README.txt', directory), 'Four Walls social template assets\nFrames generated by tools/generate-social-assets.mjs from the same geometry used by forms/social-design.mjs.\nCompact portrait mark: brand/fourwalls_logo_social.svg, retaining original outlined paths. Horizontal marks: images/logo/fourwalls_logo.svg with navy/white wordmarks. Canonical masters unchanged.\nIllustrations are decorative, not representations of a listed property or geographic map.\nFonts are provided under their included SIL Open Font Licenses; generator preserves font files.\n');
+console.log('Generated shared-design frames and social logo variants.');
