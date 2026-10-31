@@ -150,7 +150,7 @@ check, not a claimed live integration test.
 Run with Node 24+:
 
 ```sh
-node --test tests/social.test.mjs
+node --test tests/social.test.mjs tests/social-diagnostics.test.mjs
 node --check worker/index.mjs
 node --check forms/social.fw.js
 git diff --check
@@ -201,6 +201,25 @@ Workers Builds. This implementation only prepares a feature branch and PR.
 Do **not** run `wrangler deploy` or push `main` as part of local validation.
 
 ### Operations and recovery
+
+Unexpected API failures and service errors are recorded in the Worker's
+Observability logs as `social_operation_failed`. Search for the error reference
+shown by the dashboard (`errorId`) to find the operation, processing stage and
+allowlisted provider code. Raw exception messages, credentials, request bodies,
+captions and private CRM fields are excluded. Validation errors are not logged.
+
+Photo fetches use `redirect: 'manual'` and reject non-2xx responses. Workers does
+not implement `redirect: 'error'`; Node accepts it, so a Node-only test is not
+sufficient to validate this runtime behavior. See the
+[Workers Request reference](https://developers.cloudflare.com/workers/runtime-apis/request/).
+
+Missing CRM titles are filled from public type, size and area/city fields in
+the social projection. Authored CRM titles are preserved. Drafts saved before
+this fix with blank titles may be blocked by reconciliation: save them again
+to refresh the snapshot, review their captions, regenerate images and request
+approval. Existing caption text and published history are not rewritten.
+Deploy this fix through the normal feature PR and Workers Builds path; no new
+binding, migration or publishing switch change is required.
 
 History includes actor, revision, approval, schedule, property observations,
 container/photo IDs, publish requests and final remote IDs. A conditional D1

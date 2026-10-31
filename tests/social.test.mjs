@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../worker/index.mjs';
 import { environment, property, rawProperty, publicFixture } from './social-fixtures.mjs';
-import { fingerprint, greekCaption, liveReady, validateDraft } from '../worker/lib/social-model.mjs';
+import { fingerprint, greekCaption, liveReady, validateDraft, publicProperty, socialTitle } from '../worker/lib/social-model.mjs';
 import { handleSocial, getPost, reconcileSocial, verifyLiveProperty } from '../worker/lib/social.mjs';
 import { runSocialPublisher } from '../worker/lib/social-publisher.mjs';
 import { publishMeta } from '../worker/lib/social-meta.mjs';
@@ -31,6 +31,33 @@ test('public projection excludes private fields, captions use Greek and EUR, inv
 	for (const photos of [[], ['https://evil.example/x'], [property.images[0], property.images[0]], ['http://127.0.0.1/photo']]) {
 		assert.throws(() => validateDraft({ channel: 'instagram', template: 'square', caption: 'hello', photos }, publicFixture));
 	}
+});
+
+test('missing CRM titles use public Greek labels and stable feed/direct CRM fingerprints', async t => {
+	const env = environment();
+	const untitled = { ...property, title: null, category: 'residential', subcategory: 'apartment' };
+	const expected = 'Διαμέρισμα 85 τ.μ., Καλαμαριά';
+	for (const title of [null, undefined, '', '  \n ']) {
+		const raw = { ...untitled, title }, projected = publicProperty(raw);
+		assert.equal(projected.title, expected);
+		assert.deepEqual(publicProperty(projected), projected);
+		assert.equal(await fingerprint(raw), await fingerprint(projected));
+		assert.match(greekCaption(projected), /^Πωλείται · Διαμέρισμα 85 τ\.μ\., Καλαμαριά/);
+		assert.equal(JSON.stringify(projected).includes('PRIVATE'), false);
+	}
+	assert.equal(socialTitle({ ...untitled, title: '  Τίτλος CRM  ' }), '  Τίτλος CRM  ');
+	assert.equal(socialTitle({ subcategory: 'unknown', area: -1, location: {} }), 'Ακίνητο');
+	assert.equal(socialTitle({ subcategory: 'office', area: 0, location: { city: 'Θεσσαλονίκη' } }), 'Γραφείο, Θεσσαλονίκη');
+	assert.equal(socialTitle({ subcategory: 'store', area: 1200.5 }), 'Κατάστημα 1.200,5 τ.μ.');
+	env.feed.listings = [untitled];
+	const post = await create(env);
+	assert.equal(post.snapshot.title, expected);
+	assert.match(post.caption, /Διαμέρισμα 85/);
+	let raw = { ...rawProperty, translations: [], category: 'residential', subcategory: 'apartment' };
+	t.mock.method(globalThis, 'fetch', async () => Response.json({ data: raw }));
+	await verifyLiveProperty(env, post);
+	raw = { ...raw, subcategory: 'office' };
+	await assert.rejects(() => verifyLiveProperty(env, post), /property_changed_reapprove/);
 });
 test('Worker guards HTML, script and API aliases on public hosts including encoded names', async () => {
 	for (const host of ['four-walls.gr', 'dev.four-walls.gr', 'test.workers.dev', 'forms.evil.test']) {
@@ -89,6 +116,28 @@ test('draft editing, rendering, role approval, stale revision, and approval inva
 	post = await edited.json(); assert.equal(post.status, 'draft'); assert.equal(post.approved_by, null); assert.deepEqual(post.assets, []);
 	const history = await (await call(env, `/posts/${post.id}/history`)).json();
 	assert.deepEqual(history.map(e => e.kind), ['edited', 'approved', 'submitted', 'draft']);
+});
+
+test('image submission uses Workers-supported fetch options and rejects redirects', async t => {
+	const env = environment();
+	let status = 302, fetches = 0;
+	t.mock.method(globalThis, 'fetch', async (url, options) => {
+		fetches++;
+		// Unlike Node's fetch, Workers rejects this mode before sending a request.
+		if (options.redirect === 'error') throw new TypeError('Invalid redirect value');
+		assert.equal(options.redirect, 'manual');
+		return new Response('photo', { status, headers: { 'Content-Type': 'image/jpeg', Location: 'https://elsewhere.example/photo' } });
+	});
+	let post = await create(env);
+	const rejected = await action(env, post, 'submit');
+	assert.equal(rejected.status, 502);
+	assert.equal((await rejected.json()).error, 'photo_fetch_failed');
+	assert.equal(fetches, 1);
+	assert.equal((await getPost(env, post.id)).status, 'draft');
+	status = 200;
+	post = await (await action(env, post, 'submit')).json();
+	assert.equal(post.status, 'pending');
+	assert.equal(post.assets.length, 1);
 });
 test('two concurrent changes have one winner and one audit event', async () => {
 	const env = environment(), post = await create(env);

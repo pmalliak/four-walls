@@ -5,11 +5,16 @@ const eventLabels = { edited: 'Αποθηκεύτηκαν αλλαγές', submi
 const errors = { social_database_not_configured: 'Η βάση δημοσιεύσεων δεν έχει ρυθμιστεί ακόμη.', feed_missing_or_stale: 'Ο συγχρονισμός ακινήτων δεν είναι πρόσφατος. Δοκιμάστε μετά τον επόμενο συγχρονισμό.', revision_conflict_reload: 'Η δημοσίευση άλλαξε σε άλλη συνεδρία. Πατήστε Ανανέωση.', property_unavailable: 'Το ακίνητο δεν είναι διαθέσιμο.', property_changed_reapprove: 'Τα στοιχεία άλλαξαν στο CRM. Αποθηκεύστε ξανά και ζητήστε νέα έγκριση.', property_changed_save_again: 'Τα στοιχεία άλλαξαν. Αποθηκεύστε ξανά.', select_1_to_10_photos: 'Επιλέξτε από 1 έως 10 φωτογραφίες.', image_storage_not_configured: 'Η υπηρεσία εικόνων δεν έχει ρυθμιστεί.', approver_required: 'Απαιτείται εξουσιοδοτημένος υπεύθυνος έγκρισης.', future_utc_time_required: 'Επιλέξτε μελλοντική ημερομηνία και ώρα.', Unauthorized: 'Η σύνδεση έληξε. Ανανεώστε τη σελίδα.', social_operation_failed: 'Η ενέργεια απέτυχε. Οι αλλαγές δεν επιβεβαιώθηκαν· ανανεώστε πριν δοκιμάσετε ξανά.' };
 let bootstrap, posts = [], active, selected = [], dirty = false, busy = false;
 const editable = () => active && ['draft', 'pending', 'approved', 'scheduled', 'blocked'].includes(active.status);
+const propertyTitle = p => p.title?.trim() ? p.title : `Ακίνητο${p.area ? ` ${p.area} τ.μ.` : ''}${p.location?.area || p.location?.city ? `, ${p.location.area || p.location.city}` : ''}`;
 const el = (tag, text, className) => { const n = document.createElement(tag); if (text != null) n.textContent = text; if (className) n.className = className; return n; };
+function apiError(data) {
+	const message = errors[data.error] || `Η ενέργεια δεν ολοκληρώθηκε (${data.error}).`;
+	return new Error(message + (data.errorId ? ` Κωδικός σφάλματος: ${data.errorId}` : ''));
+}
 async function api(path, method = 'GET', body) {
 	const response = await fetch(`/api/social${path}`, { method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' });
 	const data = await response.json().catch(() => ({ error: 'Unauthorized' }));
-	if (!response.ok) throw new Error(errors[data.error] || `Η ενέργεια δεν ολοκληρώθηκε (${data.error}).`);
+	if (!response.ok) throw apiError(data);
 	return data;
 }
 async function task(work) {
@@ -38,8 +43,8 @@ function controls() {
 }
 function propertyOptions() {
 	const q = $('property-search').value.toLocaleLowerCase('el');
-	$('property').replaceChildren(...bootstrap.feed.listings.filter(p => `${p.code} ${p.title} ${p.location.area}`.toLocaleLowerCase('el').includes(q)).map(p => {
-		const option = el('option', `${p.code} · ${p.title}`); option.value = p.id; return option;
+	$('property').replaceChildren(...bootstrap.feed.listings.filter(p => `${p.code} ${propertyTitle(p)} ${p.location.area} ${p.location.city}`.toLocaleLowerCase('el').includes(q)).map(p => {
+		const option = el('option', `${p.code} · ${propertyTitle(p)}`); option.value = p.id; return option;
 	}));
 	$('create').disabled = !$('property').value || busy;
 }
@@ -47,7 +52,7 @@ function postList() {
 	const visible = posts.filter(p => !$('filter').value || p.status === $('filter').value);
 	$('posts').replaceChildren(...visible.map(p => {
 		const b = el('button', null, 'post'); b.type = 'button'; b.setAttribute('aria-current', String(active?.id === p.id));
-		b.append(el('strong', p.snapshot.code || p.snapshot.title), el('small', `${p.channel} · ${labels[p.status]}`));
+		b.append(el('strong', p.snapshot.code || propertyTitle(p.snapshot)), el('small', `${p.channel} · ${labels[p.status]}`));
 		b.onclick = () => task(async () => { if (dirty) throw new Error('Αποθηκεύστε τις αλλαγές πριν επιλέξετε άλλη δημοσίευση.'); await openPost(p.id); });
 		return b;
 	}));
@@ -75,7 +80,7 @@ async function openPost(id) {
 	$('empty').hidden = true; $('editor').hidden = false;
 	$('post-title').textContent = `${active.snapshot.code} · ${active.channel}`;
 	$('status').textContent = labels[active.status];
-	$('post-info').textContent = [active.snapshot.title, active.approved_by ? `Έγκριση: ${active.approved_by}` : '', active.scheduled_at ? `Προγραμματισμός: ${new Date(active.scheduled_at).toLocaleString('el-GR')}` : '', active.remote_id ? `Meta ID: ${active.remote_id}` : '', active.error ? (errors[active.error] || active.error) : ''].filter(Boolean).join(' · ');
+	$('post-info').textContent = [propertyTitle(active.snapshot), active.approved_by ? `Έγκριση: ${active.approved_by}` : '', active.scheduled_at ? `Προγραμματισμός: ${new Date(active.scheduled_at).toLocaleString('el-GR')}` : '', active.remote_id ? `Meta ID: ${active.remote_id}` : '', active.error ? (errors[active.error] || active.error) : ''].filter(Boolean).join(' · ');
 	$('caption').value = active.caption; $('template').value = active.template;
 	photoGrid(); postList();
 	$('preview').hidden = !active.assets.length;
@@ -122,7 +127,7 @@ $('resolve-published').onclick = () => task(() => action('resolve', { outcome: '
 $('resolve-cancelled').onclick = () => task(() => action('resolve', { outcome: 'cancelled' }));
 $('package').onclick = () => task(async () => {
 	const response = await fetch(`/api/social/posts/${active.id}/package`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ revision: active.revision }) });
-	if (!response.ok) { const error = await response.json(); throw new Error(errors[error.error] || error.error); }
+	if (!response.ok) throw apiError(await response.json());
 	const url = URL.createObjectURL(await response.blob());
 	const a = el('a'); a.href = url; a.download = `fourwalls-marketplace-${active.snapshot.code || active.id}.zip`; a.click();
 	setTimeout(() => URL.revokeObjectURL(url), 60000); await openPost(active.id);

@@ -8,7 +8,9 @@ export async function renderSocialImages(env, post) {
 	const batch = crypto.randomUUID();
 	const keys = [];
 	for (const [i, photo] of JSON.parse(post.photos).entries()) {
-		const source = await fetch(photo, { redirect: 'error', signal: AbortSignal.timeout(15000) });
+		// Workers supports only manual/follow; "error" throws before any fetch.
+		// Reject redirect responses below so CRM photos cannot redirect elsewhere.
+		const source = await fetch(photo, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
 		check(source.ok && /^image\//.test(source.headers.get('Content-Type') || ''), 'photo_fetch_failed', 502);
 		const logo = await env.ASSETS.fetch(new Request('https://four-walls.gr/images/logo/fourwalls_watermark.png'));
 		check(logo.ok, 'logo_missing', 503);
