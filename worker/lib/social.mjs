@@ -224,7 +224,7 @@ export async function handleSocial(request, env, url) {
 				post.id, post.revision, kind, actor, detail, now()).run();
 			stage = 'render_images';
 			try {
-				// Draft renders are test-only; approval and clean-photo review stay
+				// Draft renders are test-only; approval and final-image review stay
 				// mandatory for publishing. Do not promote these assets or status.
 				const assets = post.status === 'draft' ? await renderSocialImages(env, post) : JSON.parse(post.assets);
 				check(assets.length >= 1 && assets.length <= 10, 'invalid_media_count');

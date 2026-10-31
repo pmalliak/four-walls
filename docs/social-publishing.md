@@ -70,7 +70,7 @@ not a rendering or publication gate. If branding remains inside the retained pho
 adjust the crop or choose a suitable original in EstatePrime. Footer trimming does
 not remove a watermark across the center of a photo and does not use AI removal.
 
-New drafts trim the bottom **16% of landscape/square photos** and **10% of portrait
+New drafts created in the dashboard trim the bottom **16% of landscape/square photos** and **10% of portrait
 photos** before the preset's cover fit. Percentages refer to the displayed,
 EXIF-oriented source. The Worker first materializes its upright orientation as a
 lossless PNG, capped at 4096 pixels per side, then trims the bottom edge. The browser
