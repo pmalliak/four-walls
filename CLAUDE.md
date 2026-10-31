@@ -67,6 +67,9 @@ localization, environment, and per-component notes).
 
 ## Conventions (do not break)
 
+- **Internal tools and admin panels:** use plain, functional Greek headings,
+  labels and instructions. Avoid slogans, catchphrases and promotional copy
+  (for example, use «Δημοσιεύσεις ακινήτων», not «Κάθε ακίνητο, μια ιστορία»).
 - **Customizations go in [css/fourwalls.css](css/fourwalls.css) +
   [js/fourwalls.js](js/fourwalls.js)**, which load *after* the theme so they
   always win. Do **not** edit the minified theme build (`css/style*.min.css`,
