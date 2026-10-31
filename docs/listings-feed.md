@@ -94,9 +94,14 @@ valuation can compute *days on market* and read it as the market's own answer
 to the asking price (see [valuation.md](valuation.md)). Live coverage is
 complete (19/19 active listings carried a valid date when checked 2026-07-31).
 
-The served feed differs from the KV shape in exactly two ways, both in
-`serveFeed()`: `listedAt` is stripped, and photoless listings are dropped from
+The served feed differs from the KV shape in two ways, both in
+`serveFeed()`: internal fields (`listedAt`, `originalImages`) are stripped, and photoless listings are dropped from
 the public copy (`count` follows). Everything else passes through untouched.
+
+`originalImages` retains only public EstatePrime `photos[].original_image`
+URLs for social publishing. Unlike the website's `images` array, it never
+falls back to `watermark_image`. It stays in KV; the protected social API
+projects it into its own `images` list. See [social-publishing.md](social-publishing.md).
 
 **`listedAt` is stripped from the served feed** (`FEED_PRIVATE_FIELDS` in
 [../worker/index.mjs](../worker/index.mjs)) and shown above only to document

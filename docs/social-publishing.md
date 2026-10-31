@@ -11,7 +11,7 @@ There is no framework or package manager to replace.
    same Access application. Guard both HTML/assets and `/api/social/*` in the
    Worker; exclude it from offline caching. Use D1 for revisioned drafts,
    approvals, scheduling, publish attempts and property-change history.
-2. Select photos only from the synchronized feed. Use an explicit public-field
+2. Select original photos only from the synchronized feed. Use an explicit public-field
    allowlist, deterministic Greek captions, square/portrait brand templates,
    Images JPEG rendering and immutable R2 assets. Edits invalidate approval.
    Export Marketplace text and photographs for manual publication only.
@@ -35,6 +35,70 @@ Already published posts stay in history; removal from Meta is an operator task.
 The MVP implements all four phases without a new runtime dependency or build
 step. New code lives in `worker/lib/social*.mjs`, `forms/social*`, and the D1
 migration. The original marketing feed and private CRM APIs are unchanged.
+
+### Creative presets and original photos
+
+Drafts offer three numbered presets: **Editorial**, **Architectural**, and
+**Neighbourhood**. The existing square/portrait choice controls output size;
+the preset controls the layout. Architectural uses the official portrait logo
+(symbol above the name), and decorative illustrations never assert a floor
+plan, view or neighbourhood fact. No AI image API is called at publication time.
+
+The design preview uses the selected property's photos and public facts. It is
+an approximate layout preview, clearly separated from the exact generated JPEGs
+reviewed for approval. Users select/reorder photos, choose optional property-facts
+and closing contact slides, edit the caption, save, then generate the final images.
+The carousel remains at most 10 slides including facts/contact slides (normally
+up to 8 photographs). Slides are ordered: cover, second photo if present, optional
+facts, remaining photos, optional contact card. Missing facts are omitted.
+
+`creative` is versioned JSON stored in D1 alongside the format and selected photos.
+Every creative edit clears approval, rendered assets and scheduling. Migration
+`0002_social_creative.sql` keeps pre-existing drafts/history on the legacy classic
+layout; new drafts default to Architectural with facts and a closing contact card.
+Previously rendered files remain immutable history.
+
+Social sources come exclusively from public EstatePrime `original_image` values,
+stored as `originalImages` in KV. The general website feed keeps its existing
+fallback behavior. Social never falls back to `watermark_image`, including after
+a failed download, and never guesses a clean URL or removes a watermark with AI.
+`original_image` is source metadata, not image detection: if the original upload
+already includes a watermark, replace it with a clean photograph in EstatePrime.
+The editor additionally requires an explicit, saved confirmation that the selected
+photographs have no watermark or logo. It never checks this box automatically;
+changing the photo selection clears it. This is staff review of the actual pixels,
+not a claim of automatic watermark detection. Rendering and publication fail closed
+without the confirmation.
+
+The closing slide/caption can direct visitors to the property page, `/request`
+(buyer/tenant enquiry), or `/list-property` (owner enquiry), or retain a direct-message
+call to action. Links are restricted to these public Four Walls destinations and
+carry `utm_source`, `utm_medium=social`, `utm_campaign` and `utm_content` tags.
+New captions contain the selected link; later changes offer an explicit insert-link
+action that preserves edited text. The selected destination and its final graphic
+are part of the saved, approved revision.
+
+Facebook Page captions can carry the URL in their post text. This module does not
+assume that a URL in an Instagram API caption is clickable: staff can copy it for
+their profile or manually use a Story link sticker. It never changes a profile or
+publishes a Story automatically. A website address drawn on a JPEG is not an
+interactive button. UTM tags support attribution in an analytics tool that records
+them; this release does not add a click-counting dashboard or change enquiry forms.
+
+After the first deployment, wait for the next successful 15-minute feed refresh
+to populate originals metadata. Until then the dashboard reports that photo
+sources are awaiting synchronization. Properties without originals are excluded
+from the social picker. The source-policy fingerprint invalidates old approvals;
+open affected drafts, review/reselect original photographs, save, regenerate and
+approve again. Removed selections are shown as an unsaved change, never silently
+saved or replaced. Published/cancelled history is retained.
+
+For this release, apply `npx.cmd wrangler d1 migrations apply four-walls-social
+--remote` **before** merging the feature PR. Then let Workers Builds deploy main;
+no new binding or publishing switch is needed. Keep live Meta publication disabled
+while validating each preset and format, long Greek titles, missing prices,
+photo ordering, and the final review/approval flow. Run all social tests with
+`node --test tests/social*.test.mjs` (or explicit filenames in PowerShell).
 
 ### Staff workflow
 
@@ -156,7 +220,7 @@ check, not a claimed live integration test.
 Run with Node 24+:
 
 ```sh
-node --test tests/social.test.mjs tests/social-diagnostics.test.mjs
+node --test tests/social.test.mjs tests/social-diagnostics.test.mjs tests/social-creative.test.mjs
 node --check worker/index.mjs
 node --check forms/social.fw.js
 git diff --check
@@ -174,6 +238,14 @@ projection, invalid photos, captions, stale feed/revisions, approvals, concurren
 mutations/cron claims, availability checks before and after media preparation,
 Meta payloads, interrupted/ambiguous results, signed URLs and ZIP contents.
 Cloudflare Images and external network responses are stubbed in tests.
+
+Preset validation on 2026-10-31 also exercised the real Cloudflare Images binding
+in an isolated temporary preview with no D1, R2 or Meta access. All three presets
+produced 1080×1080 and 1080×1350 JPEGs; Greek long-title wrapping, missing-price
+text and website CTA cards were checked visually. Text/art composition is flattened
+into intermediate PNG batches to respect the service's ten-transform graph limit;
+only the final JPEGs are saved to production R2. The explicit photo-review flag
+is required even when EstatePrime labels a source as an original.
 
 The MVP trusts fixed domains: the dashboard/API accepts `forms.four-walls.gr`
 (plus localhost for development), and signed media URLs are generated and served

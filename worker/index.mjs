@@ -658,7 +658,7 @@ function contactJson(obj, status, extraHeaders) {
    Η ταξινόμηση «Νεότερα» του site δεν χρειάζεται καν αυτό: παίρνει το
    listedRank, τη σκέτη θέση στη σειρά που παράγει ο feed builder από το
    listedAt (withListedRank στο lib/estateprime.mjs). */
-const FEED_PRIVATE_FIELDS = ["listedAt"];
+const FEED_PRIVATE_FIELDS = ["listedAt", "originalImages"];
 
 /* internal:true σερβίρει το feed ΟΠΩΣ είναι στο KV, με τα ακίνητα που δεν
    έχουν ακόμη φωτογραφίες. Το παίρνει μόνο το forms host, που είναι πίσω

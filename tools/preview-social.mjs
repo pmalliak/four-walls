@@ -7,21 +7,24 @@ import { handleSocial } from '../worker/lib/social.mjs';
 const env = environment();
 env.SAMPLE_DATA = '1';
 env.feed.source = 'sample';
-env.feed.listings = [{ ...property, images: ['https://four-walls.gr/images/listing/img_42.jpg'] }];
+const previewPhotos = ['img_42.jpg', 'img_41.jpg', 'img_40.jpg'].map(name => `https://four-walls.gr/images/listing/${name}`);
+env.feed.listings = [{ ...property, images: previewPhotos, originalImages: previewPhotos }];
 delete env.IMAGES;
 delete env.META_PAGE_ACCESS_TOKEN;
 const files = new Map([
 	['/forms/fourwalls-symbol.svg', ['../forms/fourwalls-symbol.svg', 'image/svg+xml']],
 	['/forms/gordita-bold.woff2', ['../forms/gordita-bold.woff2', 'font/woff2']],
-	['/forms/fourwalls-logo-light.svg', ['../forms/fourwalls-logo-light.svg', 'image/svg+xml']],
 	['/forms/fourwalls-logo.svg', ['../forms/fourwalls-logo.svg', 'image/svg+xml']],
+	['/forms/fourwalls-logo-light.svg', ['../forms/fourwalls-logo-light.svg', 'image/svg+xml']],
 	['/forms/social', ['../forms/social.html', 'text/html; charset=utf-8']],
 	['/forms/social.fw.js', ['../forms/social.fw.js', 'text/javascript; charset=utf-8']],
 	['/forms/social.fw.css', ['../forms/social.fw.css', 'text/css; charset=utf-8']],
 ]);
 env.ASSETS.fetch = async request => {
 	const rawPath = new URL(request.url).pathname;
-	const pathname = ['/fourwalls-logo.svg', '/fourwalls-logo-light.svg', '/fourwalls-symbol.svg', '/gordita-bold.woff2'].includes(rawPath) ? '/forms' + rawPath : rawPath;
+	const pathname = /^\/(fourwalls-(?:symbol|logo(?:-light)?)\.svg|gordita-bold\.woff2)$/.test(rawPath) ? `/forms${rawPath}` : rawPath;
+	const art = pathname.match(/^\/images\/social\/((?:logo-vertical|(?:editorial|architectural|neighbourhood)-(?:cover|photo|facts|cta)(?:-square)?)\.png)$/);
+	if (art) return new Response(await readFile(new URL(`../images/social/${art[1]}`, import.meta.url)), { headers: { 'Content-Type': 'image/png' } });
 	if (pathname === '/forms/social.html') return new Response(null, { status: 307, headers: { Location: '/forms/social' } });
 	const file = files.get(pathname);
 	return file ? new Response(await readFile(new URL(file[0], import.meta.url)), { headers: { 'Content-Type': file[1] } }) : new Response('Not Found', { status: 404 });
@@ -35,7 +38,7 @@ createServer(async (req, res) => {
 		const chunks = []; for await (const chunk of req) chunks.push(chunk);
 		const request = new Request(url, { method: req.method, headers: req.headers, body: ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(chunks) });
 		env.feed.generatedAt = new Date().toISOString();
-		const response = ['/fourwalls-logo.svg', '/fourwalls-logo-light.svg', '/fourwalls-symbol.svg', '/gordita-bold.woff2'].includes(url.pathname) ? await env.ASSETS.fetch(request) : await handleSocial(request, env, url);
+		const response = /^\/(fourwalls-(?:symbol|logo(?:-light)?)\.svg|gordita-bold\.woff2)$/.test(url.pathname) || url.pathname.startsWith('/images/social/') ? await env.ASSETS.fetch(request) : await handleSocial(request, env, url);
 		res.writeHead(response.status, Object.fromEntries(response.headers));
 		res.end(Buffer.from(await response.arrayBuffer()));
 	} catch { res.writeHead(500); res.end('Preview error'); }
