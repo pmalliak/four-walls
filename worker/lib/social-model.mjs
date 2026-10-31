@@ -1,4 +1,5 @@
 import { subcategoryLabel, fmtNumber } from './seo.mjs';
+import { normalizeCreative } from './social-creative.mjs';
 
 // CRM titles are optional. Derive a readable fallback using only public
 // listing fields, like the marketing site; preserve authored titles exactly.
@@ -14,11 +15,15 @@ export function socialTitle(p) {
 
 // Only these public facts cross the social module's browser/storage boundary.
 export function publicProperty(p) {
+	// Only the CRM originals list or an already-projected social snapshot has
+	// source provenance. Legacy/general feed images may include watermarks.
+	const originals = Array.isArray(p.originalImages) ? p.originalImages :
+		p.photoSource === 'estateprime_original' && Array.isArray(p.images) ? p.images : [];
 	return {
 		id: String(p.id), code: p.code || '', title: socialTitle(p),
 		transaction: p.transaction || '', price: p.price ?? null, area: p.area ?? null,
 		location: { area: p.location?.area || '', city: p.location?.city || '' },
-		images: (p.images || []).filter(safePhoto),
+		images: [...new Set(originals.filter(safePhoto))], photoSource: 'estateprime_original',
 	};
 }
 
@@ -50,12 +55,15 @@ export function check(condition, code, status = 400) {
 }
 
 export function validateDraft(input, property) {
+	const creative = normalizeCreative(input.creative);
+	check(creative, 'invalid_creative');
 	check(['instagram', 'facebook', 'marketplace'].includes(input.channel), 'invalid_channel');
 	check(['square', 'portrait'].includes(input.template), 'invalid_template');
 	check(typeof input.caption === 'string' && input.caption.trim().length > 0 && input.caption.length <= 2200, 'caption_1_to_2200');
 	check(Array.isArray(input.photos) && input.photos.length >= 1 && input.photos.length <= 10, 'select_1_to_10_photos');
+	check(input.photos.length + Number(creative.includeFacts) + Number(creative.includeCta) <= 10, 'carousel_max_10_slides');
 	check(new Set(input.photos).size === input.photos.length && input.photos.every(p => property.images.includes(p) && safePhoto(p)), 'invalid_photo_selection');
-	return { channel: input.channel, template: input.template, caption: input.caption.trim(), photos: input.photos };
+	return { channel: input.channel, template: input.template, caption: input.caption.trim(), photos: input.photos, creative };
 }
 
 export function liveReady(env) {

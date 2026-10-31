@@ -7,7 +7,7 @@ import { handleSocial } from '../worker/lib/social.mjs';
 const env = environment();
 env.SAMPLE_DATA = '1';
 env.feed.source = 'sample';
-env.feed.listings = [{ ...property, images: ['https://four-walls.gr/images/listing/img_42.jpg'] }];
+env.feed.listings = [{ ...property, images: ['https://four-walls.gr/images/listing/img_42.jpg'], originalImages: ['https://four-walls.gr/images/listing/img_42.jpg'] }];
 delete env.IMAGES;
 delete env.META_PAGE_ACCESS_TOKEN;
 const files = new Map([
@@ -19,6 +19,8 @@ const files = new Map([
 env.ASSETS.fetch = async request => {
 	const rawPath = new URL(request.url).pathname;
 	const pathname = rawPath === '/fourwalls-logo.svg' ? '/forms/fourwalls-logo.svg' : rawPath;
+	const art = pathname.match(/^\/images\/social\/((?:logo-vertical|(?:editorial|architectural|neighbourhood)-(?:cover|photo|facts|cta)(?:-square)?)\.png)$/);
+	if (art) return new Response(await readFile(new URL(`../images/social/${art[1]}`, import.meta.url)), { headers: { 'Content-Type': 'image/png' } });
 	if (pathname === '/forms/social.html') return new Response(null, { status: 307, headers: { Location: '/forms/social' } });
 	const file = files.get(pathname);
 	return file ? new Response(await readFile(new URL(file[0], import.meta.url)), { headers: { 'Content-Type': file[1] } }) : new Response('Not Found', { status: 404 });
@@ -32,7 +34,7 @@ createServer(async (req, res) => {
 		const chunks = []; for await (const chunk of req) chunks.push(chunk);
 		const request = new Request(url, { method: req.method, headers: req.headers, body: ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(chunks) });
 		env.feed.generatedAt = new Date().toISOString();
-		const response = url.pathname === '/fourwalls-logo.svg' ? await env.ASSETS.fetch(request) : await handleSocial(request, env, url);
+		const response = url.pathname === '/fourwalls-logo.svg' || url.pathname.startsWith('/images/social/') ? await env.ASSETS.fetch(request) : await handleSocial(request, env, url);
 		res.writeHead(response.status, Object.fromEntries(response.headers));
 		res.end(Buffer.from(await response.arrayBuffer()));
 	} catch { res.writeHead(500); res.end('Preview error'); }

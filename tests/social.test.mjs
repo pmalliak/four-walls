@@ -7,13 +7,14 @@ import { handleSocial, getPost, reconcileSocial, verifyLiveProperty } from '../w
 import { runSocialPublisher } from '../worker/lib/social-publisher.mjs';
 import { publishMeta } from '../worker/lib/social-meta.mjs';
 import { signedMediaUrl, serveSocialMedia } from '../worker/lib/social-media.mjs';
+import { mapListing } from '../worker/lib/estateprime.mjs';
 
 const origin = 'http://localhost:8787';
 async function call(env, path, method = 'GET', body, headers = {}) {
 	const request = new Request(`${origin}/api/social${path}`, { method, headers: { Origin: origin, 'Content-Type': 'application/json', ...headers }, body: body ? JSON.stringify(body) : undefined });
 	return handleSocial(request, env, new URL(request.url));
 }
-async function create(env, channel = 'instagram') { return (await call(env, '/posts', 'POST', { property_id: '123', channel, template: 'square' })).json(); }
+async function create(env, channel = 'instagram') { return (await call(env, '/posts', 'POST', { property_id: '123', channel, template: 'square', creative: { preset: 'classic', version: 1, includeFacts: false, includeCta: false } })).json(); }
 async function action(env, post, name, extra = {}) { return call(env, `/posts/${post.id}/${name}`, 'POST', { revision: post.revision, ...extra }); }
 function mockPhotos(t) { t.mock.method(globalThis, 'fetch', async () => new Response('photo', { headers: { 'Content-Type': 'image/jpeg' } })); }
 async function approved(t, env, channel) {
@@ -22,6 +23,76 @@ async function approved(t, env, channel) {
 	post = await (await action(env, post, 'submit')).json();
 	return (await action(env, post, 'approve')).json();
 }
+
+const watermark = 'https://photos.example/watermarked.jpg';
+// Simulate a revision approved before source provenance was included in the
+// snapshot/hash. Do not call the new fingerprint() to construct a legacy hash.
+async function legacyPost(env, { watermarked = false, status = 'approved', channel = 'facebook' } = {}) {
+	const post = await create(env, channel);
+	const snapshot = { ...publicFixture, images: watermarked ? [watermark] : [...publicFixture.images] };
+	delete snapshot.photoSource;
+	const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(snapshot)));
+	const hash = [...new Uint8Array(digest)].map(v => v.toString(16).padStart(2, '0')).join('');
+	await env.SOCIAL_DB.prepare('UPDATE social_posts SET snapshot=?,fingerprint=?,photos=?,status=?,approved_by=?,scheduled_at=?,assets=? WHERE id=?')
+		.bind(JSON.stringify(snapshot), hash, JSON.stringify(snapshot.images.slice(0, 1)), status, 'local-developer',
+			status === 'scheduled' ? new Date().toISOString() : null,
+			JSON.stringify([`social/${post.id}/${crypto.randomUUID()}/0.jpg`]), post.id).run();
+	return getPost(env, post.id);
+}
+
+test('CRM mapping preserves website fallback but social uses public originals only', async () => {
+	const original = property.images[0];
+	const mapped = mapListing({ ...rawProperty, photos: [
+		{ original_image: original, watermark_image: watermark, is_public: true },
+		{ watermark_image: watermark, is_public: true },
+		{ original_image: 'https://photos.example/private.jpg', is_public: false },
+		{ original_image: null, watermark_image: 'https://photos.example/second-watermark.jpg' },
+	] });
+	assert.deepEqual(mapped.images, [original, watermark, 'https://photos.example/second-watermark.jpg']);
+	assert.deepEqual(mapped.originalImages, [original]);
+	const projected = publicProperty(mapped);
+	assert.deepEqual(projected.images, [original]);
+	assert.equal(projected.photoSource, 'estateprime_original');
+	assert.deepEqual(publicProperty(projected), projected);
+	assert.equal(await fingerprint(mapped), await fingerprint(projected));
+	assert.equal(JSON.stringify(projected).includes(watermark), false);
+	assert.deepEqual(mapListing({ ...rawProperty, photos: [
+		{ original_image: '', watermark_image: watermark },
+		{ original_image: '   ', watermark_image: watermark },
+		{ original_image: 42, watermark_image: watermark },
+	] }).originalImages, []);
+});
+
+test('legacy image arrays and watermark-only listings cannot supply social photos', async () => {
+	const env = environment();
+	const { originalImages, ...legacy } = property;
+	assert.deepEqual(publicProperty(legacy).images, []);
+	assert.deepEqual(publicProperty({ ...legacy, photoSource: 'unknown' }).images, []);
+	// Explicit clean metadata is authoritative even if a conflicting marker exists.
+	assert.deepEqual(publicProperty({ ...legacy, originalImages: [], photoSource: 'estateprime_original' }).images, []);
+	env.feed.listings = [legacy];
+	for (const response of [await call(env, '/bootstrap'), await call(env, '/posts', 'POST', { property_id: '123', channel: 'instagram', template: 'square' })]) {
+		assert.equal(response.status, 503);
+		assert.equal((await response.json()).error, 'photo_sources_pending_sync');
+	}
+	env.feed.listings = [mapListing({ ...rawProperty, photos: [{ watermark_image: watermark }] })];
+	const bootstrap = await (await call(env, '/bootstrap')).json();
+	assert.deepEqual(bootstrap.feed.listings, []);
+	assert.equal((await call(env, '/posts', 'POST', { property_id: '123', channel: 'instagram', template: 'square' })).status, 409);
+});
+
+test('public listing feed retains its website photos without exposing source metadata', async () => {
+	const env = environment();
+	env.feed.listings = [{ ...property, images: [...property.images, watermark] }];
+	assert.deepEqual(env.feed.listings[0].originalImages, property.images);
+	env.LISTINGS_KV.get = async () => JSON.stringify(env.feed);
+	const response = await worker.fetch(new Request('https://four-walls.gr/data/listings.json'), env, {});
+	assert.equal(response.status, 200);
+	const feed = await response.json();
+	assert.deepEqual(feed.listings[0].images, [...property.images, watermark]);
+	assert.equal('originalImages' in feed.listings[0], false);
+	assert.equal('listedAt' in feed.listings[0], false);
+});
 
 test('public projection excludes private fields, captions use Greek and EUR, invalid photos rejected', async () => {
 	assert.equal(JSON.stringify(publicFixture).includes('PRIVATE'), false);
@@ -55,9 +126,9 @@ test('missing CRM titles use public Greek labels and stable feed/direct CRM fing
 	assert.match(post.caption, /Διαμέρισμα 85/);
 	let raw = { ...rawProperty, translations: [], category: 'residential', subcategory: 'apartment' };
 	t.mock.method(globalThis, 'fetch', async () => Response.json({ data: raw }));
-	await verifyLiveProperty(env, post);
+	await verifyLiveProperty(env, await getPost(env, post.id));
 	raw = { ...raw, subcategory: 'office' };
-	await assert.rejects(() => verifyLiveProperty(env, post), /property_changed_reapprove/);
+	await assert.rejects(async () => verifyLiveProperty(env, await getPost(env, post.id)), /property_changed_reapprove/);
 });
 test('Worker guards HTML, script and API aliases on public hosts including encoded names', async () => {
 	for (const host of ['four-walls.gr', 'dev.four-walls.gr', 'test.workers.dev', 'forms.evil.test']) {
@@ -138,6 +209,111 @@ test('image submission uses Workers-supported fetch options and rejects redirect
 	post = await (await action(env, post, 'submit')).json();
 	assert.equal(post.status, 'pending');
 	assert.equal(post.assets.length, 1);
+});
+
+test('rendering fetches the chosen original and never retries with a watermark', async t => {
+	const env = environment();
+	env.feed.listings = [mapListing({ ...rawProperty, photos: [{ original_image: property.images[0], watermark_image: watermark }] })];
+	const fetched = []; let status = 404;
+	t.mock.method(globalThis, 'fetch', async url => {
+		fetched.push(String(url));
+		return new Response('photo', { status, headers: { 'Content-Type': 'image/jpeg' } });
+	});
+	const post = await create(env);
+	const failure = await action(env, post, 'submit');
+	assert.equal(failure.status, 502);
+	assert.equal((await failure.json()).error, 'photo_fetch_failed');
+	assert.deepEqual(fetched, [property.images[0]]);
+	status = 200;
+	const submitted = await (await action(env, post, 'submit')).json();
+	assert.equal(submitted.status, 'pending');
+	assert.deepEqual(fetched, [property.images[0], property.images[0]]);
+});
+
+test('stored non-original selections cannot render or pass direct CRM verification', async t => {
+	const env = environment();
+	const post = await create(env);
+	await env.SOCIAL_DB.prepare('UPDATE social_posts SET photos=? WHERE id=?').bind(JSON.stringify([watermark]), post.id).run();
+	const stored = await getPost(env, post.id);
+	let fetched = 0;
+	t.mock.method(globalThis, 'fetch', async url => {
+		fetched++;
+		assert.match(String(url), /estateprime/);
+		return Response.json({ data: rawProperty });
+	});
+	const rejected = await action(env, stored, 'submit');
+	assert.equal(rejected.status, 400);
+	assert.equal((await rejected.json()).error, 'invalid_photo_selection');
+	assert.equal(fetched, 0);
+	await assert.rejects(() => verifyLiveProperty(env, stored), /invalid_photo_selection/);
+	assert.equal(fetched, 1);
+});
+
+test('legacy approvals require regeneration even when the old sources were originals', async t => {
+	t.mock.method(globalThis, 'fetch', async url => {
+		assert.match(String(url), /estateprime/);
+		return Response.json({ data: rawProperty });
+	});
+	for (const watermarked of [false, true]) {
+		const env = environment();
+		const pending = await legacyPost(env, { watermarked, status: 'pending' });
+		const approval = await action(env, pending, 'approve');
+		assert.equal(approval.status, 409);
+		assert.equal((await approval.json()).error, 'property_changed_reapprove');
+		const manual = await legacyPost(env, { watermarked, channel: 'marketplace' });
+		const exported = await action(env, manual, 'package');
+		assert.equal(exported.status, 409);
+		assert.equal((await exported.json()).error, 'property_changed_reapprove');
+		const scheduled = await legacyPost(env, { watermarked, status: 'scheduled' });
+		env.SOCIAL_LIVE_PUBLISH = '1';
+		await runSocialPublisher(env);
+		const blocked = await getPost(env, scheduled.id);
+		assert.equal(blocked.status, 'blocked');
+		assert.equal(blocked.error, 'property_changed_reapprove');
+	}
+});
+
+test('old watermark approvals become blocked and recover only through save render and approval', async t => {
+	const env = environment();
+	const old = await legacyPost(env, { watermarked: true });
+	await reconcileSocial(env, env.feed);
+	let post = await getPost(env, old.id);
+	assert.equal(post.status, 'blocked');
+	assert.equal(post.approved_by, null);
+	assert.equal(post.scheduled_at, null);
+	const saved = await call(env, `/posts/${post.id}`, 'PATCH', {
+		revision: post.revision, channel: post.channel, template: post.template, caption: post.caption, photos: [property.images[1]],
+	});
+	assert.equal(saved.status, 200);
+	post = await saved.json();
+	assert.equal(post.status, 'draft');
+	assert.deepEqual(post.assets, []);
+	assert.deepEqual(post.photos, [property.images[1]]);
+	assert.equal(post.snapshot.photoSource, 'estateprime_original');
+	assert.equal((await action(env, post, 'approve')).status, 409);
+	const fetched = [];
+	t.mock.method(globalThis, 'fetch', async url => {
+		fetched.push(String(url));
+		return new Response('photo', { headers: { 'Content-Type': 'image/jpeg' } });
+	});
+	post = await (await action(env, post, 'submit')).json();
+	assert.equal(post.status, 'pending');
+	assert.deepEqual(fetched, [property.images[1]]);
+	post = await (await action(env, post, 'approve')).json();
+	assert.equal(post.status, 'approved');
+});
+
+test('losing all originals blocks an approved post while website watermark photos remain', async t => {
+	const env = environment(), post = await approved(t, env);
+	env.feed.listings = [{ ...property, originalImages: [], images: [watermark] }];
+	await reconcileSocial(env, env.feed);
+	const blocked = await getPost(env, post.id);
+	assert.equal(blocked.status, 'blocked');
+	assert.equal(blocked.error, 'property_unavailable');
+	assert.equal(blocked.approved_by, null);
+	assert.equal(blocked.scheduled_at, null);
+	assert.equal((await call(env, '/bootstrap')).status, 200);
+	assert.deepEqual((await (await call(env, '/bootstrap')).json()).feed.listings, []);
 });
 test('two concurrent changes have one winner and one audit event', async () => {
 	const env = environment(), post = await create(env);
