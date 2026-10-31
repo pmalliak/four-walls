@@ -25,6 +25,8 @@ const files = new Map([
 ]);
 env.ASSETS.fetch = async request => {
 	const rawPath = new URL(request.url).pathname;
+	const vendor = rawPath.match(/^\/(?:forms\/)?vendor\/bootstrap\/((?:bootstrap(?:\.bundle)?\.min\.(?:css|js))|(?:select-chevron|check)\.svg)$/);
+	if (vendor) return new Response(await readFile(new URL('../forms/vendor/bootstrap/' + vendor[1], import.meta.url)), { headers: { 'Content-Type': vendor[1].endsWith('.css') ? 'text/css' : vendor[1].endsWith('.svg') ? 'image/svg+xml' : 'text/javascript' } });
 	const pathname = /^\/(fourwalls-(?:symbol|logo(?:-light)?)\.svg|gordita-bold\.woff2)$/.test(rawPath) ? `/forms${rawPath}` : rawPath;
 	const art = pathname.match(/^\/images\/social\/([A-Za-z0-9-]+\.(png|svg|ttf))$/);
 	if (art) return new Response(await readFile(new URL(`../images/social/${art[1]}`, import.meta.url)), { headers: { 'Content-Type': { png: 'image/png', svg: 'image/svg+xml', ttf: 'font/ttf' }[art[2]] } });
@@ -41,7 +43,7 @@ createServer(async (req, res) => {
 		const chunks = []; for await (const chunk of req) chunks.push(chunk);
 		const request = new Request(url, { method: req.method, headers: req.headers, body: ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(chunks) });
 		env.feed.generatedAt = new Date().toISOString();
-		const response = /^\/(fourwalls-(?:symbol|logo(?:-light)?)\.svg|gordita-bold\.woff2)$/.test(url.pathname) || url.pathname.startsWith('/images/social/') ? await env.ASSETS.fetch(request) : await handleSocial(request, env, url);
+		const response = /^\/(fourwalls-(?:symbol|logo(?:-light)?)\.svg|gordita-bold\.woff2)$/.test(url.pathname) || url.pathname.startsWith('/images/social/') || url.pathname.startsWith('/vendor/bootstrap/') ? await env.ASSETS.fetch(request) : await handleSocial(request, env, url);
 		res.writeHead(response.status, Object.fromEntries(response.headers));
 		res.end(Buffer.from(await response.arrayBuffer()));
 	} catch { res.writeHead(500); res.end('Preview error'); }
