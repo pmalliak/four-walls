@@ -10,7 +10,7 @@ export async function graph(env, path, fields, method = 'POST') {
 	const res = await fetch(url, {
 		method, headers: { Authorization: `Bearer ${env.META_PAGE_ACCESS_TOKEN}` },
 		body: method === 'GET' ? undefined : new URLSearchParams(fields),
-		signal: AbortSignal.timeout(20000), redirect: 'error',
+		signal: AbortSignal.timeout(20000), redirect: 'manual',
 	});
 	let body;
 	try { body = await res.json(); } catch { throw new Error('meta_invalid_response'); }

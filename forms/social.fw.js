@@ -5,6 +5,8 @@ const labels = { draft: 'Πρόχειρο', pending: 'Προς έγκριση', 
 const channels = { instagram: 'Instagram', facebook: 'Facebook Page', marketplace: 'Marketplace' };
 const eventLabels = { edited: 'Αποθηκεύτηκαν αλλαγές', submitted: 'Δημιουργήθηκαν εικόνες για έγκριση', claimed: 'Έναρξη δημοσίευσης', property_observed: 'Έλεγχος CRM', marketplace_exported: 'Λήψη πακέτου Marketplace', meta_created: 'Δημιουργία μέσου Meta', publication_requested: 'Αποστολή δημοσίευσης', manually_resolved: 'Χειροκίνητη επιβεβαίωση' };
 const errors = {
+	meta_test_already_attempted: 'Έγινε ήδη προσπάθεια δοκιμής αυτής της έκδοσης. Δείτε το ιστορικό πριν ετοιμάσετε νέα έκδοση.',
+	meta_not_configured: 'Η σύνδεση με το Meta δεν είναι έτοιμη.',
 	social_database_not_configured: 'Η βάση δημοσιεύσεων δεν έχει ρυθμιστεί ακόμη.',
 	feed_missing_or_stale: 'Ο συγχρονισμός ακινήτων δεν είναι πρόσφατος. Δοκιμάστε μετά τον επόμενο συγχρονισμό.',
 	photo_sources_pending_sync: 'Αναμένεται ο συγχρονισμός των πρωτότυπων φωτογραφιών από το EstatePrime. Δοκιμάστε ξανά μετά τον επόμενο συγχρονισμό.',
@@ -33,6 +35,12 @@ const presets = [
 	{ id: 'neighbourhood', number: '03', name: 'Neighbourhood', description: 'Θερμό φόντο και διακοσμητική εικονογράφηση γειτονιάς.' }
 ];
 const classic = { preset: 'classic', version: 1, includeFacts: false, includeCta: false };
+Object.assign(eventLabels, {
+	meta_test_started: 'Έναρξη δοκιμής χωρίς δημοσίευση', meta_test_object: 'Δοκιμαστικό μέσο Meta',
+	meta_test_failed: 'Η δοκιμή δεν ολοκληρώθηκε — ελέγξτε τα αναγνωριστικά',
+	instagram_container_ready: 'Instagram: εικόνες έτοιμες, χωρίς δημοσίευση ή πρόχειρο στην εφαρμογή',
+	facebook_draft_verified: 'Facebook: επιβεβαιωμένο αδημοσίευτο πρόχειρο'
+});
 let bootstrap, posts = [], active, selected = [], dirty = false, busy = false;
 let creative = { ...classic }, starterPreset = 'architectural', photosConfirmedClean = false, lastInsertedLink = '', lastInsertedLabel = '';
 const editable = () => active && ['draft', 'pending', 'approved', 'scheduled', 'blocked'].includes(active.status);
@@ -134,6 +142,8 @@ function controls() {
 	$('delete').hidden = !deletable();
 	$('scheduling').hidden = active.status !== 'approved' || active.channel === 'marketplace'; $('schedule').disabled = busy || dirty;
 	$('schedule-time').disabled = busy || dirty;
+	$('meta-test').hidden = !['draft', 'pending', 'approved'].includes(active.status) || active.channel === 'marketplace' || !bootstrap?.canApprove;
+	$('test').disabled = busy || dirty || !bootstrap?.canTest;
 	$('marketplace-export').hidden = active.status !== 'approved' || active.channel !== 'marketplace'; $('package').disabled = busy || dirty;
 	$('resolution').hidden = active.status !== 'needs_review' || !bootstrap?.canApprove;
 	$('remote-id').disabled = busy;
@@ -495,6 +505,10 @@ $('save').onclick = () => task(async () => {
 $('submit').onclick = () => task(async () => { await action('submit'); $('preview').scrollIntoView({ block: 'start' }); }, 'Δημιουργία τελικών εικόνων… Μπορεί να χρειαστεί λίγο χρόνο.', 'Οι εικόνες είναι έτοιμες για έλεγχο. Δεν έχει γίνει δημοσίευση.');
 $('approve').onclick = () => task(async () => { if (!$('review-confirm').checked) throw new Error('Επιβεβαιώστε πρώτα ότι ελέγξατε τις εικόνες και τη λεζάντα.'); await action('approve'); $(active.channel === 'marketplace' ? 'marketplace-export' : 'scheduling').scrollIntoView({ block: 'start' }); }, 'Καταχώριση έγκρισης…', 'Η έκδοση εγκρίθηκε. Δεν έχει γίνει δημοσίευση.');
 $('cancel').onclick = () => task(() => action('cancel'), 'Ακύρωση δημοσίευσης…', 'Η δημοσίευση ακυρώθηκε.');
+$('test').onclick = () => task(async () => {
+	try { await action('test'); }
+	finally { await openPost(active.id); document.querySelector('.history-section').open = true; }
+}, 'Δοκιμή στο Meta χωρίς δημόσια δημοσίευση…', 'Η δοκιμή ολοκληρώθηκε. Δείτε το αποτέλεσμα στο ιστορικό.');
 $('delete').onclick = () => {
 	if (busy || !deletable()) return;
 	if (!window.confirm('Να διαγραφεί οριστικά αυτή η δημιουργία και το ιστορικό της; Θα χαθούν και τυχόν μη αποθηκευμένες αλλαγές.')) return;
