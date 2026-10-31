@@ -1,3 +1,5 @@
+import { socialTitle } from './social-model.mjs';
+
 // Small STORE-only ZIP stream: JPEGs are already compressed. At most one
 // photograph is buffered at a time, keeping this within the Worker's memory.
 function crc32(bytes) {
@@ -36,7 +38,7 @@ export function zipStream(entries) {
 }
 
 export async function marketplacePackage(env, post, property) {
-	const text = `${property.title}\n${property.price == null ? 'Τιμή κατόπιν επικοινωνίας' : `EUR ${property.price}`}\n${property.location.area}, ${property.location.city}\n\n${post.caption}\n\nΔημοσιεύστε χειροκίνητα στο Facebook Marketplace. Ελέγξτε διαθεσιμότητα και κατηγορία πριν από την καταχώριση. Δεν έχει γίνει δημοσίευση από την εφαρμογή.\n`;
+	const text = `${socialTitle(property)}\n${property.price == null ? 'Τιμή κατόπιν επικοινωνίας' : `EUR ${property.price}`}\n${property.location.area}, ${property.location.city}\n\n${post.caption}\n\nΔημοσιεύστε χειροκίνητα στο Facebook Marketplace. Ελέγξτε διαθεσιμότητα και κατηγορία πριν από την καταχώριση. Δεν έχει γίνει δημοσίευση από την εφαρμογή.\n`;
 	const entries = [{ name: 'listing.txt', bytes: async () => new TextEncoder().encode(text) }];
 	for (const [i, key] of JSON.parse(post.assets).entries()) {
 		if (!await env.PHOTO_BUCKET.head(key)) throw new Error('package_image_missing');

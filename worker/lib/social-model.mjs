@@ -1,7 +1,21 @@
+import { subcategoryLabel, fmtNumber } from './seo.mjs';
+
+// CRM titles are optional. Derive a readable fallback using only public
+// listing fields, like the marketing site; preserve authored titles exactly.
+export function socialTitle(p) {
+	const title = typeof p.title === 'string' ? p.title.trim() : '';
+	if (title) return p.title;
+	const mapped = subcategoryLabel(p);
+	const type = mapped && mapped !== p.subcategory ? mapped : 'Ακίνητο';
+	const size = typeof p.area === 'number' && Number.isFinite(p.area) && p.area > 0 ? ` ${fmtNumber(p.area)} τ.μ.` : '';
+	const area = p.location?.area?.trim() || p.location?.city?.trim();
+	return `${type}${size}${area ? `, ${area}` : ''}`;
+}
+
 // Only these public facts cross the social module's browser/storage boundary.
 export function publicProperty(p) {
 	return {
-		id: String(p.id), code: p.code || '', title: p.title || '',
+		id: String(p.id), code: p.code || '', title: socialTitle(p),
 		transaction: p.transaction || '', price: p.price ?? null, area: p.area ?? null,
 		location: { area: p.location?.area || '', city: p.location?.city || '' },
 		images: (p.images || []).filter(safePhoto),
@@ -25,7 +39,7 @@ export function greekCaption(p) {
 	const transaction = { sale: 'Πωλείται', rent: 'Ενοικιάζεται', shortterm: 'Βραχυχρόνια μίσθωση', auction: 'Δημοπρασία' }[p.transaction] || 'Ακίνητο';
 	const price = p.price == null ? 'Τιμή κατόπιν επικοινωνίας' :
 		`€${Number(p.price).toLocaleString('el-GR')}${p.transaction === 'rent' ? '/μήνα' : ''}`;
-	return `${transaction} · ${p.title}\n${[p.location?.area, p.location?.city].filter(Boolean).join(', ')}\n${p.area ? `${p.area} τ.μ. · ` : ''}${price}\n\nΚωδικός: ${p.code}\nΑνακαλύψτε το με τη Four Walls.\nhttps://four-walls.gr/properties/${encodeURIComponent(p.code || p.id)}\n\n#FourWalls #Ακίνητα #Θεσσαλονίκη`;
+	return `${transaction} · ${socialTitle(p)}\n${[p.location?.area, p.location?.city].filter(Boolean).join(', ')}\n${p.area ? `${p.area} τ.μ. · ` : ''}${price}\n\nΚωδικός: ${p.code}\nΑνακαλύψτε το με τη Four Walls.\nhttps://four-walls.gr/properties/${encodeURIComponent(p.code || p.id)}\n\n#FourWalls #Ακίνητα #Θεσσαλονίκη`;
 }
 
 export class SocialError extends Error {

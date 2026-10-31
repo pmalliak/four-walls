@@ -3,6 +3,7 @@ import { apiConfig, mapListing } from './estateprime.mjs';
 import { publicProperty, fingerprint, greekCaption, validateDraft, check, SocialError, liveReady } from './social-model.mjs';
 import { renderSocialImages } from './social-media.mjs';
 import { marketplacePackage } from './social-package.mjs';
+import { logSocialFailure } from './social-diagnostics.mjs';
 
 const now = () => new Date().toISOString();
 const editable = ['draft', 'pending', 'approved', 'scheduled', 'blocked'];
@@ -61,6 +62,7 @@ async function bodyJSON(request) {
 }
 
 export async function handleSocial(request, env, url) {
+	let stage = 'authenticate';
 	try {
 		// Deliberately stricter than the legacy dev bypass: never unlock another host.
 		const local = ['localhost', '127.0.0.1'].includes(url.hostname);
@@ -72,6 +74,7 @@ export async function handleSocial(request, env, url) {
 		if (!['GET', 'POST', 'PATCH'].includes(request.method)) return json({ error: 'method_not_allowed' }, 405);
 		if (request.method !== 'GET') check(request.headers.get('Origin') === url.origin, 'same_origin_required', 403);
 		if (!url.pathname.startsWith('/api/social/')) {
+			stage = 'serve_asset';
 			const name = url.pathname.replace(/^\/forms/, '');
 			const allowed = ['/social', '/social.html', '/social.fw.js', '/social.fw.css'];
 			check(allowed.includes(name), 'not_found', 404);
@@ -87,33 +90,49 @@ export async function handleSocial(request, env, url) {
 			headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
 			return new Response(response.body, { status: response.status, headers });
 		}
+		stage = 'database_check';
 		check(env.SOCIAL_DB, 'social_database_not_configured', 503);
 		const path = url.pathname.slice('/api/social'.length);
 		if (path === '/bootstrap' && request.method === 'GET') {
+			stage = 'load_feed';
 			return json({ feed: await readFeed(env), canApprove: reviewers(env).includes(actor.toLowerCase()), live: liveReady(env), actor });
 		}
 		if (path === '/posts' && request.method === 'GET') {
+			stage = 'list_posts';
 			const rows = await statement(env, 'SELECT * FROM social_posts ORDER BY updated_at DESC LIMIT 100').all();
+			stage = 'serialize_post';
 			return json({ posts: rows.results.map(serialize) });
 		}
 		if (path === '/posts' && request.method === 'POST') {
+			stage = 'parse_request';
 			const input = await bodyJSON(request);
+			stage = 'load_feed';
 			const p = await currentProperty(env, String(input.property_id));
 			const draft = validateDraft({ ...input, caption: input.caption ?? greekCaption(p), photos: input.photos ?? p.images.slice(0, 1) }, p);
 			const id = crypto.randomUUID(), stamp = now();
+			stage = 'create_draft';
 			await statement(env, `INSERT INTO social_posts(id,property_id,channel,template,caption,photos,snapshot,fingerprint,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
 				id, p.id, draft.channel, draft.template, draft.caption, JSON.stringify(draft.photos), JSON.stringify(p), await fingerprint(p), actor, stamp, stamp).run();
-			return json(serialize(await getPost(env, id)), 201);
+			stage = 'load_post';
+			const post = await getPost(env, id);
+			stage = 'serialize_post';
+			return json(serialize(post), 201);
 		}
 		const match = path.match(/^\/posts\/([a-f0-9-]{36})(?:\/(submit|approve|schedule|cancel|resolve|history|package|image\/\d))?$/);
 		check(match, 'not_found', 404);
+		stage = 'load_post';
 		let post = await getPost(env, match[1]);
 		check(post, 'not_found', 404);
 		const action = match[2];
 		if (request.method === 'GET') {
+			stage = 'serialize_post';
 			if (!action) return json(serialize(post));
-			if (action === 'history') return json((await statement(env, 'SELECT * FROM social_events WHERE post_id = ? ORDER BY id DESC', post.id).all()).results);
+			if (action === 'history') {
+				stage = 'load_history';
+				return json((await statement(env, 'SELECT * FROM social_events WHERE post_id = ? ORDER BY id DESC', post.id).all()).results);
+			}
 			if (action?.startsWith('image/')) {
+				stage = 'load_image';
 				const key = JSON.parse(post.assets)[Number(action.split('/')[1])];
 				check(key && env.PHOTO_BUCKET, 'image_not_found', 404);
 				const object = await env.PHOTO_BUCKET.get(key);
@@ -122,47 +141,63 @@ export async function handleSocial(request, env, url) {
 			}
 			throw new SocialError('method_not_allowed', 405);
 		}
+		stage = 'parse_request';
 		const input = await bodyJSON(request);
 		check(input.revision === post.revision, 'revision_conflict_reload', 409);
+		stage = 'validate_property';
 		if (request.method === 'PATCH' && !action) {
 			check(editable.includes(post.status), 'post_not_editable', 409);
 			const p = await currentProperty(env, post.property_id);
 			const draft = validateDraft(input, p);
+			stage = 'save_post';
 			post = await mutate(env, post, { ...draft, photos: JSON.stringify(draft.photos), snapshot: JSON.stringify(p), fingerprint: await fingerprint(p), assets: '[]', status: 'draft', approved_by: null, scheduled_at: null, error: null }, actor, 'edited');
 		} else if (request.method === 'POST' && action === 'submit') {
 			check(post.status === 'draft', 'draft_required', 409);
 			const p = await currentProperty(env, post.property_id);
 			check(await fingerprint(p) === post.fingerprint, 'property_changed_save_again', 409);
+			stage = 'render_images';
 			const assets = await renderSocialImages(env, post);
+			stage = 'save_submission';
 			post = await mutate(env, post, { assets: JSON.stringify(assets), status: 'pending' }, actor, 'submitted');
 		} else if (request.method === 'POST' && action === 'approve') {
 			check(reviewers(env).includes(actor.toLowerCase()), 'approver_required', 403);
 			check(post.status === 'pending', 'pending_required', 409);
 			check(await fingerprint(await currentProperty(env, post.property_id)) === post.fingerprint, 'property_changed_reapprove', 409);
+			stage = 'save_post';
 			post = await mutate(env, post, { status: 'approved', approved_by: actor }, actor, 'approved');
 		} else if (request.method === 'POST' && action === 'schedule') {
 			check(post.status === 'approved' && post.channel !== 'marketplace', 'approved_social_post_required', 409);
 			check(typeof input.at === 'string' && /Z$/.test(input.at) && Number.isFinite(Date.parse(input.at)) && Date.parse(input.at) >= Date.now() - 60000, 'future_utc_time_required');
+			stage = 'save_post';
 			post = await mutate(env, post, { status: 'scheduled', scheduled_at: new Date(input.at).toISOString() }, actor, 'scheduled');
 		} else if (request.method === 'POST' && action === 'cancel') {
 			check(editable.includes(post.status), 'cannot_cancel', 409);
+			stage = 'save_post';
 			post = await mutate(env, post, { status: 'cancelled', scheduled_at: null }, actor, 'cancelled');
 		} else if (request.method === 'POST' && action === 'resolve') {
 			check(reviewers(env).includes(actor.toLowerCase()), 'approver_required', 403);
 			check(post.status === 'needs_review', 'review_required', 409);
 			check(['published', 'cancelled'].includes(input.outcome), 'invalid_outcome');
 			check(input.outcome !== 'published' || /^[\d_]+$/.test(input.remote_id || ''), 'remote_id_required');
+			stage = 'save_post';
 			post = await mutate(env, post, { status: input.outcome, remote_id: input.outcome === 'published' ? input.remote_id : null, error: null }, actor, 'manually_resolved', input.outcome);
 		} else if (request.method === 'POST' && action === 'package') {
 			check(post.channel === 'marketplace' && post.status === 'approved', 'approved_marketplace_required', 409);
+			stage = 'verify_crm';
 			const p = await verifyLiveProperty(env, post);
+			stage = 'record_export';
 			await statement(env, 'INSERT INTO social_events(post_id,revision,kind,actor,created_at) VALUES(?,?,?,?,?)', post.id, post.revision, 'marketplace_exported', actor, now()).run();
-			return marketplacePackage(env, post, p);
+			stage = 'build_package';
+			return await marketplacePackage(env, post, p);
 		} else throw new SocialError('method_not_allowed', 405);
+		stage = 'serialize_post';
 		return json(serialize(post));
 	} catch (error) {
 		// Upstream responses may contain secrets; never relay them or log tokens.
-		return json({ error: error instanceof SocialError ? error.message : 'social_operation_failed' }, error instanceof SocialError ? error.status : 502);
+		const expected = error instanceof SocialError;
+		const status = expected ? error.status : 502;
+		const errorId = status >= 500 ? logSocialFailure(error, request, url, stage) : undefined;
+		return json({ error: expected ? error.message : 'social_operation_failed', ...(errorId ? { errorId } : {}) }, status);
 	}
 }
 
