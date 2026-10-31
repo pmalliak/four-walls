@@ -6,6 +6,13 @@ const labels = { draft: 'Πρόχειρο', pending: 'Προς έγκριση', 
 const channels = { instagram: 'Instagram', facebook: 'Facebook Page', marketplace: 'Marketplace' };
 const eventLabels = { edited: 'Αποθηκεύτηκαν αλλαγές', submitted: 'Δημιουργήθηκαν εικόνες για έγκριση', claimed: 'Έναρξη δημοσίευσης', property_observed: 'Έλεγχος CRM', marketplace_exported: 'Λήψη πακέτου Marketplace', meta_created: 'Δημιουργία μέσου Meta', publication_requested: 'Αποστολή δημοσίευσης', manually_resolved: 'Χειροκίνητη επιβεβαίωση' };
 const errors = {
+	platform_history_must_be_preserved: 'Η δημιουργία συνδέεται με ανάρτηση Meta. Το ιστορικό της διατηρείται. Χρησιμοποιήστε τη διαγραφή από το Facebook ή την ακύρωση του τοπικού προσχεδίου.',
+	platform_action_needs_review: 'Το αποτέλεσμα προηγούμενης ενέργειας χρειάζεται έλεγχο στο Meta. Δεν θα επαναληφθεί αυτόματα. Η ανανέωση μπορεί να επιβεβαιώσει μια αλλαγή κειμένου.',
+	meta_permission_or_token_required: 'Χρειάζεται ανανέωση της σύνδεσης ή πρόσθετη άδεια στο Meta.',
+	meta_request_rejected: 'Το Meta δεν επέτρεψε την ενέργεια. Ελέγξτε την ανάρτηση και τα δικαιώματα στο Meta.',
+	meta_owner_mismatch: 'Η ανάρτηση δεν ανήκει στον συνδεδεμένο λογαριασμό.',
+	meta_draft_was_published: 'Το πρόχειρο έχει δημοσιευτεί μέσα από το Meta. Διαχειριστείτε το εκεί.',
+	platform_statistics_unavailable: 'Δεν υπάρχουν στατιστικά κοινού για αυτή τη δοκιμή ή τη διαγραμμένη ανάρτηση.',
 	meta_test_already_attempted: 'Έγινε ήδη προσπάθεια δοκιμής αυτής της έκδοσης. Δείτε το ιστορικό πριν ετοιμάσετε νέα έκδοση.',
 	meta_not_configured: 'Η σύνδεση με το Meta δεν είναι έτοιμη.',
 	social_database_not_configured: 'Η βάση δημοσιεύσεων δεν έχει ρυθμιστεί ακόμη.',
@@ -47,6 +54,7 @@ let bootstrap, posts = [], active, selected = [], dirty = false, busy = false;
 let creative = { ...classic }, starterPreset = 'architectural', lastInsertedLink = '', lastInsertedLabel = '';
 let cropPhoto = '', cropDimensions = null;
 const photoDimensions = new Map();
+let platformItems = [];
 const editable = () => active && ['draft', 'pending', 'approved', 'scheduled', 'blocked'].includes(active.status);
 const deletable = () => active && (editable() || active.status === 'cancelled') && !active.remote_id;
 const propertyTitle = p => p?.title?.trim() ? p.title : `Ακίνητο${p?.area ? ` ${p.area} τ.μ.` : ''}${p?.location?.area || p?.location?.city ? `, ${p.location.area || p.location.city}` : ''}`;
@@ -152,6 +160,7 @@ function controls() {
 	$('marketplace-export').hidden = active.status !== 'approved' || active.channel !== 'marketplace'; $('package').disabled = busy || dirty;
 	$('resolution').hidden = active.status !== 'needs_review' || !bootstrap?.canApprove;
 	$('remote-id').disabled = busy;
+	for (const control of document.querySelectorAll('#platform-targets button,#platform-targets textarea')) control.disabled = busy || dirty || control.dataset.locked === 'true';
 	$('preview-stale').hidden = !dirty;
 	$('close-editor').textContent = dirty ? 'Κλείσιμο χωρίς αποθήκευση' : 'Κλείσιμο';
 	$('count').textContent = `${$('caption').value.length} / 2200${dirty ? ' · Μη αποθηκευμένες αλλαγές' : ' · Αποθηκευμένο κείμενο'}`;
@@ -533,8 +542,61 @@ async function openPost(id) {
 	$('schedule-mode').hidden = !!bootstrap.live;
 	$('schedule-mode').textContent = 'Η αποστολή στο Meta είναι απενεργοποιημένη. Μπορείτε να ορίσετε χρόνο, αλλά η δημοσίευση θα παραμείνει σε αναμονή μέχρι την ενεργοποίηση.';
 	const events = await api(`/posts/${id}/history`);
-	$('history').replaceChildren(...events.map(e => el('li', `${new Date(e.created_at).toLocaleString('el-GR')} · ${labels[e.kind] || eventLabels[e.kind] || e.kind} · ${e.actor}${e.detail ? ` · ${e.detail}` : ''}`)));
+	$('history').replaceChildren(...events.filter(e => e.kind !== 'platform_snapshot').map(e => el('li', `${new Date(e.created_at).toLocaleString('el-GR')} · ${labels[e.kind] || eventLabels[e.kind] || e.kind} · ${e.actor}${e.detail && !e.kind.startsWith('platform_') ? ` · ${e.detail}` : ''}`)));
+	platformItems = (await api(`/posts/${id}/platform`)).targets;
+	renderPlatform();
 	controls();
+}
+
+Object.assign(eventLabels, { platform_started: 'Έναρξη αλλαγής στο Facebook', platform_edited: 'Ενημέρωση κειμένου στο Facebook', platform_deleted: 'Διαγραφή από το Facebook', platform_removed: 'Η δημοσιευμένη ανάρτηση αφαιρέθηκε', platform_rejected: 'Η ενέργεια απορρίφθηκε από το Meta', platform_uncertain: 'Απαιτείται έλεγχος αποτελέσματος στο Meta' });
+function renderPlatform() {
+	const host = $('platform-targets'); host.replaceChildren();
+	if (!platformItems.length) { host.append(el('p', 'Οι σύνδεσμοι εμφανίζονται μετά τη δοκιμή ή τη δημοσίευση. Τα στατιστικά κοινού αφορούν μόνο δημοσιευμένες αναρτήσεις.', 'help')); return; }
+	const metricLabels = { views: 'Προβολές', viewers: 'Μοναδικοί θεατές', reach: 'Απήχηση', likes: 'Μου αρέσει', reactions: 'Αντιδράσεις', comments: 'Σχόλια', shares: 'Κοινοποιήσεις', saves: 'Αποθηκεύσεις', clicks: 'Κλικ στην ανάρτηση', linkClicks: 'Κλικ συνδέσμου' };
+	for (const target of platformItems) {
+		const card = el('article', null, 'platform-card');
+		card.append(el('h4', target.deleted ? 'Διαγράφηκε από το Facebook' : target.kind === 'container' ? 'Δοκιμή Instagram — χωρίς δημοσίευση' : target.kind === 'draft' ? 'Πρόχειρο Facebook' : `Ανάρτηση ${channels[active.channel]}`), el('small', `Meta ID: ${target.id}`));
+		const actions = el('div', null, 'actions'); card.append(actions);
+		for (const [url, label] of [[target.url, `Άνοιγμα στο ${channels[active.channel]}`], [target.deleted ? null : target.manageUrl, target.kind === 'draft' ? 'Άνοιγμα προχείρων στο Meta' : 'Διαχείριση στο Meta']]) {
+			if (!url) continue;
+			const link = el('a', label); link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer'; actions.append(link);
+		}
+		if (target.kind === 'container') { card.append(el('p', 'Οι εικόνες ελέγχθηκαν στο Instagram. Η δοκιμή δεν εμφανίζεται στην εφαρμογή και δεν έχει στατιστικά κοινού.')); host.append(card); continue; }
+		if (target.deleted) { card.append(el('p', 'Το ιστορικό διατηρείται. Το τοπικό προσχέδιο δεν διαγράφηκε.')); host.append(card); continue; }
+		const refresh = el('button', 'Ανανέωση στοιχείων & στατιστικών'); refresh.type = 'button';
+		refresh.onclick = () => platformAction(target, 'refresh'); actions.append(refresh);
+		if (target.pending) card.append(el('p', errors.platform_action_needs_review, 'notice'));
+		if (target.snapshot) {
+			card.append(el('p', `Τελευταία λήψη: ${new Date(target.snapshot.fetchedAt).toLocaleString('el-GR')}`, 'help'));
+			if (!target.snapshot.published) card.append(el('p', 'Αδημοσίευτο: δεν υπάρχουν στατιστικά κοινού.'));
+			else {
+				const stats = el('dl', null, 'post-metrics');
+				for (const [key, value] of Object.entries(target.snapshot.metrics)) {
+					const group = el('div'); group.append(el('dt', metricLabels[key] || key), el('dd', value == null ? 'Μη διαθέσιμο' : value.toLocaleString('el-GR'))); stats.append(group);
+				}
+				card.append(stats, el('p', 'Τα στοιχεία μπορεί να καθυστερούν έως 24 ώρες. Μη διαθέσιμα δεδομένα δεν σημαίνουν μηδενική απόδοση. Η ανανέωση περιορίζεται σε μία λήψη ανά λεπτό.', 'help'));
+				if (Object.values(target.snapshot.issues).includes('permission_required')) card.append(el('p', `Χρειάζεται πρόσθετη άδεια στατιστικών ${active.channel === 'facebook' ? '(read_insights)' : '(instagram_manage_insights)'} στη σύνδεση Meta.`, 'notice'));
+			}
+		} else card.append(el('p', 'Πατήστε ανανέωση για τα τρέχοντα στοιχεία από το Meta.', 'help'));
+		if (active.channel === 'facebook' && bootstrap.canApprove) {
+			const edit = el('details'); edit.append(el('summary', 'Επεξεργασία κειμένου στο Facebook'));
+			const caption = el('textarea'); caption.rows = 6; caption.maxLength = 2200; caption.value = target.snapshot?.caption ?? '';
+			caption.setAttribute('aria-label', `Κείμενο Facebook ${target.id}`); caption.dataset.locked = String(!target.snapshot || !!target.pending);
+			const save = el('button', 'Αποθήκευση στο Facebook'); save.type = 'button'; save.dataset.locked = caption.dataset.locked;
+			save.onclick = () => { if (confirm(`Να ενημερωθεί το κείμενο στο Facebook;\nΑνάρτηση: ${target.id}\nΤο τοπικό προσχέδιο δεν αλλάζει.`)) platformAction(target, 'edit', caption.value); };
+			edit.append(caption, save); card.append(edit);
+			const remove = el('button', 'Διαγραφή από το Facebook'); remove.type = 'button'; remove.dataset.locked = String(!!target.pending); remove.className = 'platform-delete';
+			remove.onclick = () => { if (confirm(`Οριστική διαγραφή από το Facebook;\nΑνάρτηση: ${target.id}\nΘα αφαιρεθεί από το Facebook μαζί με τις αλληλεπιδράσεις της. Το ιστορικό στην εφαρμογή διατηρείται.`)) platformAction(target, 'delete'); };
+			card.append(remove);
+		}
+		host.append(card);
+	}
+}
+function platformAction(target, operation, caption) {
+	return task(async () => {
+		try { await api(`/posts/${active.id}/platform`, 'POST', { revision: active.revision, target_id: target.id, operation, caption, confirm_id: operation === 'refresh' ? undefined : target.id }); }
+		finally { await reload(); }
+	}, 'Επικοινωνία με το Meta…', operation === 'delete' ? 'Η ανάρτηση διαγράφηκε από το Facebook.' : operation === 'edit' ? 'Το κείμενο ενημερώθηκε στο Facebook.' : 'Τα διαθέσιμα στοιχεία ενημερώθηκαν.');
 }
 function closeEditor() {
 	active = undefined; selected = []; dirty = false; creative = { ...classic }; cropPhoto = ''; cropDimensions = null;

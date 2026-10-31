@@ -3,6 +3,7 @@ import { apiConfig, mapListing } from './estateprime.mjs';
 import { publicProperty, fingerprint, greekCaption, validateDraft, check, SocialError, liveReady, metaReady } from './social-model.mjs';
 import { renderSocialImages, signedMediaUrl } from './social-media.mjs';
 import { testMeta } from './social-meta-test.mjs';
+import { platformTargets, refreshPlatform, changeFacebook } from './social-platform.mjs';
 import { websiteDestination } from './social-creative.mjs';
 import { marketplacePackage } from './social-package.mjs';
 import { logSocialFailure } from './social-diagnostics.mjs';
@@ -131,7 +132,7 @@ export async function handleSocial(request, env, url) {
 			stage = 'serialize_post';
 			return json(serialize(post), 201);
 		}
-		const match = path.match(/^\/posts\/([a-f0-9-]{36})(?:\/(submit|approve|test|schedule|cancel|resolve|history|package|image\/\d))?$/);
+		const match = path.match(/^\/posts\/([a-f0-9-]{36})(?:\/(submit|approve|test|platform|schedule|cancel|resolve|history|package|image\/\d))?$/);
 		check(match, 'not_found', 404);
 		stage = 'load_post';
 		let post = await getPost(env, match[1]);
@@ -140,6 +141,7 @@ export async function handleSocial(request, env, url) {
 		if (request.method === 'GET') {
 			stage = 'serialize_post';
 			if (!action) return json(serialize(post));
+			if (action === 'platform') return json({ targets: await platformTargets(env, post) });
 			if (action === 'history') {
 				stage = 'load_history';
 				return json((await statement(env, 'SELECT * FROM social_events WHERE post_id = ? ORDER BY id DESC', post.id).all()).results);
@@ -159,6 +161,7 @@ export async function handleSocial(request, env, url) {
 		check(input.revision === post.revision, 'revision_conflict_reload', 409);
 		if (request.method === 'DELETE' && !action) {
 			check([...editable, 'cancelled'].includes(post.status) && !post.remote_id, 'post_not_deletable', 409);
+			check(!(await platformTargets(env, post)).some(t => t.kind !== 'container'), 'platform_history_must_be_preserved', 409);
 			stage = 'delete_post';
 			// Both deletes share a transaction and the same guard, so a scheduler
 			// claim or concurrent edit preserves the post and its history.
@@ -192,6 +195,20 @@ export async function handleSocial(request, env, url) {
 			check(await fingerprint(await currentProperty(env, post.property_id)) === post.fingerprint, 'property_changed_reapprove', 409);
 			stage = 'save_post';
 			post = await mutate(env, post, { status: 'approved', approved_by: actor }, actor, 'approved');
+		} else if (request.method === 'POST' && action === 'platform') {
+			const target = (await platformTargets(env, post)).find(t => t.id === input.target_id);
+			check(target, 'unknown_platform_target', 404);
+			stage = 'manage_platform';
+			if (input.operation === 'refresh') await refreshPlatform(env, post, target, actor);
+			else {
+				check(reviewers(env).includes(actor.toLowerCase()), 'approver_required', 403);
+				await changeFacebook(env, post, target, input, actor, async detail => {
+					post = await mutate(env, post, {}, actor, 'platform_started', JSON.stringify(detail));
+					return post;
+				});
+				if (input.operation === 'delete' && post.remote_id === target.id) post = await mutate(env, post, { status: 'cancelled', scheduled_at: null }, actor, 'platform_removed');
+			}
+			return json({ targets: await platformTargets(env, post) });
 		} else if (request.method === 'POST' && action === 'test') {
 			check(reviewers(env).includes(actor.toLowerCase()), 'approver_required', 403);
 			check(metaReady(env), 'meta_not_configured', 503);
