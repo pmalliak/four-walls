@@ -14,7 +14,16 @@ async function call(env, path, method = 'GET', body, headers = {}) {
 	const request = new Request(`${origin}/api/social${path}`, { method, headers: { Origin: origin, 'Content-Type': 'application/json', ...headers }, body: body ? JSON.stringify(body) : undefined });
 	return handleSocial(request, env, new URL(request.url));
 }
-async function create(env, channel = 'instagram') { return (await call(env, '/posts', 'POST', { property_id: '123', channel, template: 'square', creative: { preset: 'classic', version: 1, includeFacts: false, includeCta: false } })).json(); }
+async function confirmPhotos(env, post) {
+	return (await call(env, `/posts/${post.id}`, 'PATCH', {
+		revision: post.revision, channel: post.channel, template: post.template, caption: post.caption,
+		photos: post.photos, creative: post.creative, photos_confirmed_clean: true,
+	})).json();
+}
+async function create(env, channel = 'instagram') {
+	const post = await (await call(env, '/posts', 'POST', { property_id: '123', channel, template: 'square', creative: { preset: 'classic', version: 1, includeFacts: false, includeCta: false } })).json();
+	return confirmPhotos(env, post);
+}
 async function action(env, post, name, extra = {}) { return call(env, `/posts/${post.id}/${name}`, 'POST', { revision: post.revision, ...extra }); }
 function mockPhotos(t) { t.mock.method(globalThis, 'fetch', async () => new Response('photo', { headers: { 'Content-Type': 'image/jpeg' } })); }
 async function approved(t, env, channel) {
@@ -33,7 +42,7 @@ async function legacyPost(env, { watermarked = false, status = 'approved', chann
 	delete snapshot.photoSource;
 	const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(snapshot)));
 	const hash = [...new Uint8Array(digest)].map(v => v.toString(16).padStart(2, '0')).join('');
-	await env.SOCIAL_DB.prepare('UPDATE social_posts SET snapshot=?,fingerprint=?,photos=?,status=?,approved_by=?,scheduled_at=?,assets=? WHERE id=?')
+	await env.SOCIAL_DB.prepare('UPDATE social_posts SET snapshot=?,fingerprint=?,photos=?,status=?,approved_by=?,scheduled_at=?,assets=?,photos_confirmed_clean=0 WHERE id=?')
 		.bind(JSON.stringify(snapshot), hash, JSON.stringify(snapshot.images.slice(0, 1)), status, 'local-developer',
 			status === 'scheduled' ? new Date().toISOString() : null,
 			JSON.stringify([`social/${post.id}/${crypto.randomUUID()}/0.jpg`]), post.id).run();
@@ -186,7 +195,7 @@ test('draft editing, rendering, role approval, stale revision, and approval inva
 	const edited = await call(env, `/posts/${post.id}`, 'PATCH', { revision: post.revision, channel: post.channel, template: 'portrait', caption: 'Νέα λεζάντα', photos: [property.images[1]] });
 	post = await edited.json(); assert.equal(post.status, 'draft'); assert.equal(post.approved_by, null); assert.deepEqual(post.assets, []);
 	const history = await (await call(env, `/posts/${post.id}/history`)).json();
-	assert.deepEqual(history.map(e => e.kind), ['edited', 'approved', 'submitted', 'draft']);
+	assert.deepEqual(history.map(e => e.kind), ['edited', 'approved', 'submitted', 'edited', 'draft']);
 });
 
 test('image submission uses Workers-supported fetch options and rejects redirects', async t => {
@@ -209,6 +218,79 @@ test('image submission uses Workers-supported fetch options and rejects redirect
 	post = await (await action(env, post, 'submit')).json();
 	assert.equal(post.status, 'pending');
 	assert.equal(post.assets.length, 1);
+});
+
+test('new drafts cannot render until the selected photos are explicitly reviewed and saved', async t => {
+	const env = environment(); let fetches = 0;
+	t.mock.method(globalThis, 'fetch', async () => { fetches++; return new Response('photo', { headers: { 'Content-Type': 'image/jpeg' } }); });
+	const response = await call(env, '/posts', 'POST', {
+		property_id: property.id, channel: 'instagram', template: 'square',
+		creative: { preset: 'classic', version: 1, includeFacts: false, includeCta: false },
+		// Creating a draft cannot attest that its newly shown photos were checked.
+		photos_confirmed_clean: true,
+	});
+	assert.equal(response.status, 201);
+	let post = await response.json();
+	assert.equal(post.photos_confirmed_clean, false);
+	assert.equal((await getPost(env, post.id)).photos_confirmed_clean, 0);
+	const rejected = await action(env, post, 'submit');
+	assert.ok(rejected.status >= 400 && rejected.status < 500);
+	assert.equal((await rejected.json()).error, 'clean_photos_confirmation_required');
+	assert.equal(fetches, 0);
+	for (const invalid of ['true', 1, null]) {
+		const invalidSave = await call(env, `/posts/${post.id}`, 'PATCH', {
+			revision: post.revision, channel: post.channel, template: post.template, caption: post.caption,
+			photos: post.photos, creative: post.creative, photos_confirmed_clean: invalid,
+		});
+		assert.equal(invalidSave.status, 400);
+	}
+	post = await confirmPhotos(env, post);
+	assert.equal(post.photos_confirmed_clean, true);
+	assert.equal((await getPost(env, post.id)).photos_confirmed_clean, 1);
+	post = await (await action(env, post, 'submit')).json();
+	assert.equal(post.status, 'pending');
+	assert.equal(fetches, 1);
+});
+
+test('editing selected photos without a new confirmation resets the review', async t => {
+	const env = environment(); let fetches = 0;
+	t.mock.method(globalThis, 'fetch', async () => { fetches++; return new Response('photo', { headers: { 'Content-Type': 'image/jpeg' } }); });
+	const original = await create(env);
+	assert.equal(original.photos_confirmed_clean, true);
+	const changed = await call(env, `/posts/${original.id}`, 'PATCH', {
+		revision: original.revision, channel: original.channel, template: original.template, caption: original.caption,
+		photos: [property.images[1]], creative: original.creative,
+	});
+	assert.equal(changed.status, 200);
+	let post = await changed.json();
+	assert.equal(post.photos_confirmed_clean, false);
+	const rejected = await action(env, post, 'submit');
+	assert.equal((await rejected.json()).error, 'clean_photos_confirmation_required');
+	assert.equal(fetches, 0);
+	post = await confirmPhotos(env, post);
+	assert.equal((await action(env, post, 'submit')).status, 200);
+	assert.equal(fetches, 1);
+});
+
+test('scheduler blocks an unreviewed source before contacting Meta', async t => {
+	const env = environment(); let post = await approved(t, env, 'facebook');
+	post = await (await action(env, post, 'schedule', { at: new Date().toISOString() })).json();
+	// A migrated or otherwise stale approved record has no manual review proof.
+	await env.SOCIAL_DB.prepare('UPDATE social_posts SET photos_confirmed_clean=0 WHERE id=?').bind(post.id).run();
+	env.SOCIAL_LIVE_PUBLISH = '1';
+	let crmCalls = 0;
+	t.mock.method(globalThis, 'fetch', async url => {
+		assert.match(String(url), /estateprime/);
+		crmCalls++;
+		return Response.json({ data: rawProperty });
+	});
+	await runSocialPublisher(env);
+	const blocked = await getPost(env, post.id);
+	assert.equal(blocked.status, 'blocked');
+	assert.equal(blocked.error, 'clean_photos_confirmation_required');
+	assert.equal(crmCalls, 1);
+	await runSocialPublisher(env);
+	assert.equal(crmCalls, 1);
 });
 
 test('rendering fetches the chosen original and never retries with a watermark', async t => {
@@ -282,7 +364,7 @@ test('old watermark approvals become blocked and recover only through save rende
 	assert.equal(post.approved_by, null);
 	assert.equal(post.scheduled_at, null);
 	const saved = await call(env, `/posts/${post.id}`, 'PATCH', {
-		revision: post.revision, channel: post.channel, template: post.template, caption: post.caption, photos: [property.images[1]],
+		revision: post.revision, channel: post.channel, template: post.template, caption: post.caption, photos: [property.images[1]], photos_confirmed_clean: true,
 	});
 	assert.equal(saved.status, 200);
 	post = await saved.json();
@@ -319,7 +401,7 @@ test('two concurrent changes have one winner and one audit event', async () => {
 	const env = environment(), post = await create(env);
 	const results = await Promise.all([action(env, post, 'cancel'), action(env, post, 'cancel')]);
 	assert.deepEqual(results.map(r => r.status).sort(), [200, 409]);
-	assert.equal((await (await call(env, `/posts/${post.id}/history`)).json()).length, 2);
+	assert.equal((await (await call(env, `/posts/${post.id}/history`)).json()).length, 3);
 });
 test('feed removals invalidate approvals and never auto-reactivate them', async t => {
 	const env = environment(), post = await approved(t, env);

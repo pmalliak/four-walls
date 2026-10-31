@@ -29,7 +29,8 @@ test('image failures identify the submit stage without exposing provider text or
 	t.mock.method(console, 'error', (...args) => logs.push(args));
 	t.mock.method(globalThis, 'fetch', async () => new Response('photo', { headers: { 'Content-Type': 'image/jpeg' } }));
 	const env = environment();
-	const post = await (await call(env, '/posts', 'POST', { property_id: '123', channel: 'instagram', template: 'square' })).json();
+	let post = await (await call(env, '/posts', 'POST', { property_id: '123', channel: 'instagram', template: 'square' })).json();
+	post = await (await call(env, `/posts/${post.id}`, 'PATCH', { revision: post.revision, channel: post.channel, template: post.template, caption: post.caption, photos: post.photos, creative: post.creative, photos_confirmed_clean: true })).json();
 	env.IMAGES.input = () => { throw Object.assign(new Error('PRIVATE_URL PRIVATE_TOKEN PRIVATE_CRM'), { code: 9524 }); };
 	const response = await call(env, `/posts/${post.id}/submit`, 'POST', { revision: post.revision });
 	const data = await response.json();

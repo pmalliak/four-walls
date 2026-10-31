@@ -2,6 +2,7 @@ import { json, requireAccess } from './access.mjs';
 import { apiConfig, mapListing } from './estateprime.mjs';
 import { publicProperty, fingerprint, greekCaption, validateDraft, check, SocialError, liveReady } from './social-model.mjs';
 import { renderSocialImages } from './social-media.mjs';
+import { websiteDestination } from './social-creative.mjs';
 import { marketplacePackage } from './social-package.mjs';
 import { logSocialFailure } from './social-diagnostics.mjs';
 
@@ -46,12 +47,13 @@ export async function verifyLiveProperty(env, post) {
 	check(raw && !Array.isArray(raw) && String(raw.id) === post.property_id && raw.status === 'active', 'property_unavailable', 409);
 	const p = publicProperty(mapListing(raw));
 	check(await fingerprint(p) === post.fingerprint, 'property_changed_reapprove', 409);
+	check(post.photos_confirmed_clean === 1, 'clean_photos_confirmation_required', 409);
 	validateDraft({ ...post, photos: JSON.parse(post.photos), creative: JSON.parse(post.creative) }, p);
 	return p;
 }
 
 function serialize(post) {
-	return { ...post, creative: JSON.parse(post.creative), photos: JSON.parse(post.photos), snapshot: JSON.parse(post.snapshot), assets: JSON.parse(post.assets).map((_, i) => `/api/social/posts/${post.id}/image/${i}`) };
+	return { ...post, websiteLink: websiteDestination(post), photos_confirmed_clean: post.photos_confirmed_clean === 1, creative: JSON.parse(post.creative), photos: JSON.parse(post.photos), snapshot: JSON.parse(post.snapshot), assets: JSON.parse(post.assets).map((_, i) => `/api/social/posts/${post.id}/image/${i}`) };
 }
 function reviewers(env) { return (env.SOCIAL_APPROVERS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean); }
 
@@ -110,8 +112,10 @@ export async function handleSocial(request, env, url) {
 			const input = await bodyJSON(request);
 			stage = 'load_feed';
 			const p = await currentProperty(env, String(input.property_id));
-			const draft = validateDraft({ ...input, creative: input.creative ?? { preset: 'architectural', version: 1, includeFacts: true, includeCta: true }, caption: input.caption ?? greekCaption(p), photos: input.photos ?? p.images.slice(0, 1) }, p);
 			const id = crypto.randomUUID(), stamp = now();
+			const creative = input.creative ?? { preset: 'architectural', version: 1, includeFacts: true, includeCta: true, destination: 'property' };
+			const link = websiteDestination({ id, channel: input.channel, snapshot: p, creative });
+			const draft = validateDraft({ ...input, creative, caption: input.caption ?? greekCaption(p, link), photos: input.photos ?? p.images.slice(0, 1) }, p);
 			stage = 'create_draft';
 			await statement(env, `INSERT INTO social_posts(id,property_id,channel,template,caption,photos,creative,snapshot,fingerprint,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
 				id, p.id, draft.channel, draft.template, draft.caption, JSON.stringify(draft.photos), JSON.stringify(draft.creative), JSON.stringify(p), await fingerprint(p), actor, stamp, stamp).run();
@@ -152,11 +156,13 @@ export async function handleSocial(request, env, url) {
 			const p = await currentProperty(env, post.property_id);
 			const draft = validateDraft(input, p);
 			stage = 'save_post';
-			post = await mutate(env, post, { ...draft, creative: JSON.stringify(draft.creative), photos: JSON.stringify(draft.photos), snapshot: JSON.stringify(p), fingerprint: await fingerprint(p), assets: '[]', status: 'draft', approved_by: null, scheduled_at: null, error: null }, actor, 'edited');
+			check(input.photos_confirmed_clean === undefined || typeof input.photos_confirmed_clean === 'boolean', 'invalid_photo_confirmation');
+			post = await mutate(env, post, { ...draft, photos_confirmed_clean: input.photos_confirmed_clean === true ? 1 : 0, creative: JSON.stringify(draft.creative), photos: JSON.stringify(draft.photos), snapshot: JSON.stringify(p), fingerprint: await fingerprint(p), assets: '[]', status: 'draft', approved_by: null, scheduled_at: null, error: null }, actor, 'edited');
 		} else if (request.method === 'POST' && action === 'submit') {
 			check(post.status === 'draft', 'draft_required', 409);
 			const p = await currentProperty(env, post.property_id);
 			check(await fingerprint(p) === post.fingerprint, 'property_changed_save_again', 409);
+			check(post.photos_confirmed_clean === 1, 'clean_photos_confirmation_required', 409);
 			validateDraft({ ...post, photos: JSON.parse(post.photos), creative: JSON.parse(post.creative) }, p);
 			stage = 'render_images';
 			const assets = await renderSocialImages(env, post);
@@ -166,11 +172,13 @@ export async function handleSocial(request, env, url) {
 			check(reviewers(env).includes(actor.toLowerCase()), 'approver_required', 403);
 			check(post.status === 'pending', 'pending_required', 409);
 			check(await fingerprint(await currentProperty(env, post.property_id)) === post.fingerprint, 'property_changed_reapprove', 409);
+			check(post.photos_confirmed_clean === 1, 'clean_photos_confirmation_required', 409);
 			stage = 'save_post';
 			post = await mutate(env, post, { status: 'approved', approved_by: actor }, actor, 'approved');
 		} else if (request.method === 'POST' && action === 'schedule') {
 			check(post.status === 'approved' && post.channel !== 'marketplace', 'approved_social_post_required', 409);
 			check(await fingerprint(await currentProperty(env, post.property_id)) === post.fingerprint, 'property_changed_reapprove', 409);
+			check(post.photos_confirmed_clean === 1, 'clean_photos_confirmation_required', 409);
 			check(typeof input.at === 'string' && /Z$/.test(input.at) && Number.isFinite(Date.parse(input.at)) && Date.parse(input.at) >= Date.now() - 60000, 'future_utc_time_required');
 			stage = 'save_post';
 			post = await mutate(env, post, { status: 'scheduled', scheduled_at: new Date(input.at).toISOString() }, actor, 'scheduled');

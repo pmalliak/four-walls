@@ -1,15 +1,41 @@
 // Versioned design choices are saved with the draft and therefore covered by
 // its revision/approval. Keep this module independent of request/storage code.
 export const SOCIAL_PRESETS = ['classic', 'editorial', 'architectural', 'neighbourhood'];
+export const SOCIAL_DESTINATIONS = ['property', 'request', 'sell', 'message'];
 
 export function normalizeCreative(input) {
 	if (input == null) return { preset: 'classic', version: 1, includeFacts: false, includeCta: false };
 	if (typeof input !== 'object' || Array.isArray(input) ||
 		!SOCIAL_PRESETS.includes(input.preset) || input.version !== 1 ||
 		typeof input.includeFacts !== 'boolean' || typeof input.includeCta !== 'boolean' ||
-		Object.keys(input).some(key => !['preset', 'version', 'includeFacts', 'includeCta'].includes(key)) ||
+		Object.keys(input).some(key => !['preset', 'version', 'includeFacts', 'includeCta', 'destination'].includes(key)) ||
+		('destination' in input && !SOCIAL_DESTINATIONS.includes(input.destination)) ||
 		(input.preset === 'classic' && (input.includeFacts || input.includeCta))) return null;
-	return { preset: input.preset, version: 1, includeFacts: input.includeFacts, includeCta: input.includeCta };
+	return { preset: input.preset, version: 1, includeFacts: input.includeFacts, includeCta: input.includeCta,
+		...('destination' in input ? { destination: input.destination } : {}) };
+}
+
+// All destinations belong to the public marketing site. No editable URL,
+// private CRM record, contact field or authentication material enters a link.
+// Keep the original descriptor unchanged when destination was not saved yet.
+export function websiteDestination(post) {
+	const creative = normalizeCreative(typeof post.creative === 'string' ? JSON.parse(post.creative) : post.creative);
+	if (!creative || !creative.destination || creative.destination === 'message') return null;
+	const property = typeof post.snapshot === 'string' ? JSON.parse(post.snapshot) : post.snapshot;
+	const code = String(property?.code || property?.id || '');
+	if (!code || code === '.' || code === '..') return null;
+	const paths = {
+		property: { label: 'Σελίδα ακινήτου', path: `/properties/${encodeURIComponent(code)}` },
+		request: { label: 'Αίτημα αναζήτησης ακινήτου', path: '/request' },
+		sell: { label: 'Αίτημα πώλησης ακινήτου', path: '/list-property' },
+	};
+	const { label, path } = paths[creative.destination];
+	const url = new URL(path, 'https://four-walls.gr');
+	url.searchParams.set('utm_source', ['instagram', 'facebook', 'marketplace'].includes(post.channel) ? post.channel : 'social');
+	url.searchParams.set('utm_medium', 'social');
+	url.searchParams.set('utm_campaign', `property_${code}`);
+	url.searchParams.set('utm_content', String(post.id || ''));
+	return { label, url: url.href, shortUrl: `four-walls.gr${path}` };
 }
 
 export function buildSlidePlan(post) {

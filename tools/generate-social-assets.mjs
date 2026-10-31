@@ -17,9 +17,9 @@ function keyArt(x = 700, y = 100, scale = 1) {
 function streetArt(height) {
 	return `<g fill="none" stroke="${navy}" stroke-width="3" stroke-linecap="round"><path d="M870 330 1080 220M870 350 1080 240M910 330V${height-290}M1044 250V${height-330}M950 340V440H1028V302M950 475V575H1028V438M950 610V710H1028V573"/><path d="M932 443H1044M932 456H1044M932 578H1044M932 591H1044M932 713H1044M932 726H1044"/><path d="M941 443V468M957 443V468M973 443V468M989 443V468M1005 443V468M1021 443V468M1037 443V468M941 578V603M957 578V603M973 578V603M989 578V603M1005 578V603M1021 578V603M1037 578V603"/><path d="M860 ${height-285}Q830 ${height-410}840 ${height-540}M840 ${height-440} 800 ${height-480}M840 ${height-470} 881 ${height-520}M840 ${height-500} 817 ${height-545}"/><path stroke="${pink}" stroke-width="18" opacity=".22" d="M802 ${height-535}Q825 ${height-600}870 ${height-550}M794 ${height-480}Q835 ${height-580}886 ${height-495}"/><path d="M834 ${height-290}H886L877 ${height-250}H844Z M916 ${height-250} 1080 ${height-330}"/></g>`;
 }
-function doorArt(height) {
+function doorArt(height, x = 735) {
 	const y = height - 760;
-	return `<g transform="translate(735 ${y})" fill="none" stroke="${navy}" stroke-width="4"><path fill="${navy}" d="M20 80 240 0V600L20 660Z"/><path stroke="${pink}" stroke-width="12" d="M14 665V70L250 -10"/><path stroke="#fff" opacity=".55" d="M50 104 208 50V570L50 616Z M128 80V596M51 335 209 289"/><path stroke="#fff" d="M186 332V361"/><path d="M-25 682 278 610M-45 704 300 629"/><path d="M279 573Q249 494 278 398M278 487Q239 476 230 447Q264 450 278 487M278 458Q309 442 308 411Q282 430 278 458M273 527Q237 522 231 491Q260 496 273 527M279 511Q309 496 317 468Q285 475 279 511"/><path fill="#fffaf0" d="M250 573H310L299 634H262Z"/></g>`;
+	return `<g transform="translate(${x} ${y})" fill="none" stroke="${navy}" stroke-width="4"><path fill="${navy}" d="M20 80 240 0V600L20 660Z"/><path stroke="${pink}" stroke-width="12" d="M14 665V70L250 -10"/><path stroke="#fff" opacity=".55" d="M50 104 208 50V570L50 616Z M128 80V596M51 335 209 289"/><path stroke="#fff" d="M186 332V361"/><path d="M-25 682 278 610M-45 704 300 629"/><path d="M279 573Q249 494 278 398M278 487Q239 476 230 447Q264 450 278 487M278 458Q309 442 308 411Q282 430 278 458M273 527Q237 522 231 491Q260 496 273 527M279 511Q309 496 317 468Q285 475 279 511"/><path fill="#fffaf0" d="M250 573H310L299 634H262Z"/></g>`;
 }
 function frame(preset, kind, height) {
 	const bg = preset === 'neighbourhood' ? '#FBF5EA' : '#FCFBF8';
@@ -41,7 +41,9 @@ function frame(preset, kind, height) {
 	} else {
 		body += `<rect width="1080" height="${height}" fill="${dark ? navy : bg}"/>`;
 		if (kind === 'facts') {
-			body += keyArt(670, 58, .9);
+			if (preset === 'architectural') body += keyArt(670, 58, .9);
+			else if (preset === 'neighbourhood') body += `<g transform="translate(880 44) scale(.4)">${doorArt(760, 0)}</g>`;
+			else body += `<g fill="none" stroke="${navy}" stroke-width="3" opacity=".65"><path d="M780 -10V175Q780 265 870 265H1090M860 -10V100Q860 190 950 190H1090"/><path stroke="${pink}" stroke-width="5" d="M960 -10V265Q960 340 1035 340H1090"/></g>`;
 			for (let i=0;i<4;i++) body += `<path d="M64 ${(height === 1350 ? 435 : 350)+i*(height === 1350 ? 160 : 150)}H1016" stroke="${navy}" opacity=".2"/>`;
 		} else if (preset === 'neighbourhood') body += doorArt(height);
 		else body += `<g fill="none" stroke="${dark ? '#6A809E' : navy}" stroke-width="3" opacity=".65"><path d="M780 -20V290Q780 380 870 380H1120M890 0V${height-220}Q890 ${height-120}990 ${height-120}H1100M720 ${height}V${height-260}Q720 ${height-350}810 ${height-350}H1080"/><path d="M920 -20V180Q920 250 990 250H1100M820 ${height}V${height-340}Q820 ${height-440}920 ${height-440}H1100" stroke="${pink}" stroke-width="5"/></g>`;

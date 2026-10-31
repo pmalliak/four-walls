@@ -40,11 +40,11 @@ export async function fingerprint(p) {
 	return [...new Uint8Array(bytes)].map(v => v.toString(16).padStart(2, '0')).join('');
 }
 
-export function greekCaption(p) {
+export function greekCaption(p, link = null) {
 	const transaction = { sale: 'Πωλείται', rent: 'Ενοικιάζεται', shortterm: 'Βραχυχρόνια μίσθωση', auction: 'Δημοπρασία' }[p.transaction] || 'Ακίνητο';
 	const price = p.price == null ? 'Τιμή κατόπιν επικοινωνίας' :
 		`€${Number(p.price).toLocaleString('el-GR')}${p.transaction === 'rent' ? '/μήνα' : ''}`;
-	return `${transaction} · ${socialTitle(p)}\n${[p.location?.area, p.location?.city].filter(Boolean).join(', ')}\n${p.area ? `${p.area} τ.μ. · ` : ''}${price}\n\nΚωδικός: ${p.code}\nΑνακαλύψτε το με τη Four Walls.\nhttps://four-walls.gr/properties/${encodeURIComponent(p.code || p.id)}\n\n#FourWalls #Ακίνητα #Θεσσαλονίκη`;
+	return `${transaction} · ${socialTitle(p)}\n${[p.location?.area, p.location?.city].filter(Boolean).join(', ')}\n${p.area ? `${p.area} τ.μ. · ` : ''}${price}\n\nΚωδικός: ${p.code}\n${link?.label || 'Ανακαλύψτε το με τη Four Walls.'}\n${link?.url || `https://four-walls.gr/properties/${encodeURIComponent(p.code || p.id)}`}\n\n#FourWalls #Ακίνητα #Θεσσαλονίκη`;
 }
 
 export class SocialError extends Error {

@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync } from 'node:fs';
-import { normalizeCreative, buildSlidePlan } from '../worker/lib/social-creative.mjs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { normalizeCreative, buildSlidePlan, websiteDestination } from '../worker/lib/social-creative.mjs';
 import { validateDraft, publicProperty } from '../worker/lib/social-model.mjs';
 import { handleSocial, getPost } from '../worker/lib/social.mjs';
 import { renderSocialImages } from '../worker/lib/social-media.mjs';
@@ -37,6 +37,55 @@ test('creative normalization preserves legacy defaults and rejects unsupported c
 		creative('architectural', { customSource: 'https://untrusted.example/asset.png' }),
 		creative('classic'), { ...classic, includeFacts: true }, { ...classic, includeCta: true },
 	]) assert.equal(normalizeCreative(invalid), null, JSON.stringify(invalid));
+});
+
+test('website destinations allow only the saved public choices and preserve legacy omission', () => {
+	assert.equal('destination' in normalizeCreative(creative()), false);
+	for (const destination of ['property', 'request', 'sell', 'message']) {
+		assert.equal(normalizeCreative(creative('architectural', { destination })).destination, destination);
+	}
+	for (const destination of [null, '', 'https://evil.example/', '/api/social', 'owner', 1, true, {}]) {
+		assert.equal(normalizeCreative(creative('architectural', { destination })), null);
+	}
+	for (const choice of [creative(), classic, creative('architectural', { destination: 'message' })]) {
+		assert.equal(websiteDestination({ id: 'post-id', channel: 'instagram', snapshot: property, creative: choice }), null);
+	}
+});
+
+test('public destination links use expected paths and campaign tags without private fields', () => {
+	const paths = { property: '/properties/4W-123', request: '/request', sell: '/list-property' };
+	for (const [destination, path] of Object.entries(paths)) {
+		for (const channel of ['instagram', 'facebook', 'marketplace']) {
+			const post = { id: 'saved-post-id', channel, snapshot: property, creative: creative('architectural', { destination }) };
+			const link = websiteDestination(post), url = new URL(link.url);
+			assert.equal(url.origin, 'https://four-walls.gr');
+			assert.equal(url.pathname, path);
+			assert.equal(url.username, '');
+			assert.equal(url.password, '');
+			assert.equal(url.hash, '');
+			assert.deepEqual(Object.fromEntries(url.searchParams), { utm_source: channel, utm_medium: 'social', utm_campaign: 'property_4W-123', utm_content: 'saved-post-id' });
+			assert.equal(link.shortUrl, `four-walls.gr${path}`);
+			assert.equal(JSON.stringify(link).includes('PRIVATE'), false);
+			assert.deepEqual(websiteDestination({ ...post, creative: JSON.stringify(post.creative), snapshot: JSON.stringify(property) }), link);
+		}
+	}
+	const fallback = websiteDestination({ id: 'saved-post-id', channel: 'unknown', snapshot: property, creative: creative('architectural', { destination: 'property' }) });
+	assert.equal(new URL(fallback.url).searchParams.get('utm_source'), 'social');
+});
+
+test('hostile listing codes remain one encoded property path segment', () => {
+	for (const code of ['//evil.example/steal', '../api/social', '..\\..\\admin', 'https://evil.example/#token', 'code?next=https://evil.example&secret=1', '%2e%2e', 'ΑΘ 12/#']) {
+		const link = websiteDestination({ id: 'post-id', channel: 'facebook', snapshot: { ...property, code }, creative: creative('architectural', { destination: 'property' }) });
+		const url = new URL(link.url);
+		assert.equal(url.origin, 'https://four-walls.gr');
+		assert.equal(url.pathname, `/properties/${encodeURIComponent(code)}`);
+		assert.equal(url.searchParams.get('utm_campaign'), `property_${code}`);
+		assert.equal([...url.searchParams].length, 4);
+		assert.equal(url.hash, '');
+	}
+	for (const code of ['.', '..']) {
+		assert.equal(websiteDestination({ snapshot: { ...property, code }, creative: creative('architectural', { destination: 'property' }) }), null);
+	}
 });
 
 test('carousel plans keep selected photo order with facts after the opening and CTA last', () => {
@@ -75,8 +124,12 @@ test('new API drafts default to Architectural and preserve explicit preset choic
 	const response = await api(env, '/posts', 'POST', { property_id: property.id, channel: 'instagram', template: 'portrait' });
 	assert.equal(response.status, 201);
 	const post = await response.json();
-	assert.deepEqual(post.creative, creative());
-	assert.deepEqual(JSON.parse((await getPost(env, post.id)).creative), creative());
+	const defaultCreative = creative('architectural', { destination: 'property' });
+	assert.deepEqual(post.creative, defaultCreative);
+	assert.equal(post.photos_confirmed_clean, false);
+	assert.deepEqual(JSON.parse((await getPost(env, post.id)).creative), defaultCreative);
+	assert.equal(post.websiteLink.url, websiteDestination(post).url);
+	assert.ok(post.caption.includes(post.websiteLink.url));
 	for (const preset of ['editorial', 'neighbourhood', 'classic']) {
 		const choice = preset === 'classic' ? classic : creative(preset, { includeFacts: false });
 		const chosen = await api(env, '/posts', 'POST', { property_id: property.id, channel: 'facebook', template: 'square', creative: choice });
@@ -84,15 +137,41 @@ test('new API drafts default to Architectural and preserve explicit preset choic
 		assert.deepEqual((await chosen.json()).creative, choice);
 	}
 	const fetched = await (await api(env, `/posts/${post.id}`)).json();
-	assert.deepEqual(fetched.creative, creative());
+	assert.deepEqual(fetched.creative, defaultCreative);
 	const listed = await (await api(env, '/posts')).json();
-	assert.deepEqual(listed.posts.find(p => p.id === post.id).creative, creative());
+	assert.deepEqual(listed.posts.find(p => p.id === post.id).creative, defaultCreative);
+});
+
+test('generated captions use the chosen website link while authored captions remain unchanged', async () => {
+	const env = environment();
+	for (const destination of ['property', 'request', 'sell']) {
+		const choice = creative('editorial', { destination });
+		const generated = await (await api(env, '/posts', 'POST', { property_id: property.id, channel: 'facebook', template: 'portrait', creative: choice })).json();
+		assert.equal(generated.websiteLink.url, websiteDestination(generated).url);
+		assert.ok(generated.caption.includes(generated.websiteLink.url));
+		const customCaption = 'Η δική μας λεζάντα. Επικοινωνήστε μαζί μας.';
+		const authored = await (await api(env, '/posts', 'POST', { property_id: property.id, channel: 'facebook', template: 'portrait', creative: choice, caption: customCaption })).json();
+		assert.equal(authored.caption, customCaption);
+		assert.equal(authored.websiteLink.url, websiteDestination(authored).url);
+		const edited = await api(env, `/posts/${authored.id}`, 'PATCH', {
+			revision: authored.revision, channel: authored.channel, template: authored.template, photos: authored.photos,
+			caption: customCaption, creative: creative('architectural', { destination: 'request' }), photos_confirmed_clean: true,
+		});
+		assert.equal(edited.status, 200);
+		const saved = await edited.json();
+		assert.equal(saved.caption, customCaption);
+		assert.equal(new URL(saved.websiteLink.url).pathname, '/request');
+	}
+	const invalid = await api(env, '/posts', 'POST', { property_id: property.id, channel: 'facebook', template: 'portrait', creative: creative('architectural', { destination: 'https://evil.example/' }) });
+	assert.equal(invalid.status, 400);
+	assert.equal((await invalid.json()).error, 'invalid_creative');
 });
 
 test('changing an approved creative clears its approval and rendered images', async t => {
 	const env = environment();
 	t.mock.method(globalThis, 'fetch', async () => new Response('photo', { headers: { 'Content-Type': 'image/jpeg' } }));
 	let post = await (await api(env, '/posts', 'POST', { property_id: property.id, channel: 'instagram', template: 'portrait', creative: classic })).json();
+	post = await (await api(env, `/posts/${post.id}`, 'PATCH', { revision: post.revision, channel: post.channel, template: post.template, caption: post.caption, photos: post.photos, creative: post.creative, photos_confirmed_clean: true })).json();
 	post = await (await action(env, post, 'submit')).json();
 	post = await (await action(env, post, 'approve')).json();
 	assert.equal(post.status, 'approved');
@@ -106,11 +185,12 @@ test('changing an approved creative clears its approval and rendered images', as
 	assert.equal(saved.approved_by, null);
 	assert.equal(saved.scheduled_at, null);
 	assert.deepEqual(saved.assets, []);
+	assert.equal(saved.photos_confirmed_clean, false);
 	assert.equal(saved.revision, post.revision + 1);
 	assert.equal((await action(env, saved, 'schedule', { at: new Date().toISOString() })).status, 409);
 });
 
-test('creative migration leaves existing audit records and designs intact as Classic', () => {
+test('migrations preserve existing records as Classic while requiring a fresh photo review', () => {
 	const db = new DatabaseSync(':memory:');
 	try {
 		db.exec(readFileSync(new URL('../worker/migrations/0001_social.sql', import.meta.url), 'utf8'));
@@ -119,10 +199,15 @@ test('creative migration leaves existing audit records and designs intact as Cla
 			.run('old', property.id, 'instagram', 'square', 'Existing caption', saved.photos, saved.snapshot, 'old-hash', saved.assets, 'approved', 7, 'author', 'approver', '2026-10-01', '2026-10-02');
 		const before = db.prepare('SELECT * FROM social_posts WHERE id=?').get('old');
 		const history = db.prepare('SELECT * FROM social_events').all();
-		db.exec(readFileSync(new URL('../worker/migrations/0002_social_creative.sql', import.meta.url), 'utf8'));
+		const migrations = new URL('../worker/migrations/', import.meta.url);
+		for (const name of readdirSync(migrations).filter(name => /^\d+.*\.sql$/.test(name) && name > '0001_social.sql').sort()) {
+			db.exec(readFileSync(new URL(name, migrations), 'utf8'));
+		}
 		const after = db.prepare('SELECT * FROM social_posts WHERE id=?').get('old');
 		assert.deepEqual(JSON.parse(after.creative), classic);
+		assert.equal(after.photos_confirmed_clean, 0);
 		delete after.creative;
+		delete after.photos_confirmed_clean;
 		assert.deepEqual(after, before);
 		assert.deepEqual(db.prepare('SELECT * FROM social_events').all(), history);
 	} finally { db.close(); }
@@ -133,15 +218,22 @@ test('creative migration leaves existing audit records and designs intact as Cla
 // that a stub can validate Cloudflare's rasterisation or Greek font support.
 function imageRecorder() {
 	const texts = [], outputs = [];
+	const dimensions = new WeakMap();
 	function image(kind, content, options) {
-		const record = { kind, content, options, transforms: [], overlays: [] };
+		const record = { kind, content, options, transforms: [], overlays: [], dimensions: typeof content === 'object' && content !== null ? dimensions.get(content) : undefined };
 		const chain = {
 			record,
 			transform(value) { record.transforms.push(value); return chain; },
 			draw(overlay, position) { record.overlays.push({ record: overlay.record, position }); return chain; },
 			async output(options) {
+				assert.ok(graphOperations(record) <= 10, `Images graph exceeded ten transformations: ${graphOperations(record)}`);
 				outputs.push({ record, options });
-				return { response: () => new Response(new Uint8Array([255, 216, 255, 217])) };
+				return { response: () => {
+					const bytes = options.format === 'image/png' ? [137, 80, 78, 71, 13, 10, 26, 10] : [255, 216, 255, 217];
+					const response = new Response(new Uint8Array(bytes));
+					dimensions.set(response.body, outputDimensions(record));
+					return response;
+				} };
 			},
 		};
 		return chain;
@@ -155,7 +247,7 @@ function imageRecorder() {
 	};
 }
 function outputDimensions(record) {
-	let width = 0, height = 0;
+	let width = record.dimensions?.width || 0, height = record.dimensions?.height || 0;
 	for (const transform of record.transforms) {
 		if (transform.width) width = transform.width;
 		if (transform.height) height = transform.height;
@@ -165,6 +257,9 @@ function outputDimensions(record) {
 		}
 	}
 	return { width, height };
+}
+function graphOperations(record) {
+	return record.transforms.length + record.overlays.reduce((count, overlay) => count + 1 + graphOperations(overlay.record), 0);
 }
 
 test('each preset renders ordered JPEGs at both sizes using only selected originals and public text', async t => {
@@ -189,16 +284,21 @@ test('each preset renders ordered JPEGs at both sizes using only selected origin
 			};
 			const keys = await renderSocialImages(env, post);
 			const count = preset === 'classic' ? 2 : 4;
+			const finalOutputs = recorder.outputs.filter(output => output.options.format === 'image/jpeg');
 			assert.equal(keys.length, count, `${preset} ${template}`);
-			assert.equal(recorder.outputs.length, count);
+			assert.equal(finalOutputs.length, count);
 			assert.equal(stored.length, count);
 			assert.deepEqual(requestedPhotos.slice(start), property.images);
 			for (let i = 0; i < count; i++) {
 				assert.match(keys[i], new RegExp(`^social/${post.id}/[a-f0-9-]{36}/${i}\\.jpg$`));
 				assert.equal(stored[i].key, keys[i]);
 				assert.equal(stored[i].options.httpMetadata.contentType, 'image/jpeg');
-				assert.equal(recorder.outputs[i].options.format, 'image/jpeg');
-				assert.deepEqual(outputDimensions(recorder.outputs[i].record), { width: 1080, height: template === 'portrait' ? 1350 : 1080 });
+				assert.deepEqual(Array.from(new Uint8Array(stored[i].bytes).slice(0, 2)), [255, 216]);
+				assert.deepEqual(outputDimensions(finalOutputs[i].record), { width: 1080, height: template === 'portrait' ? 1350 : 1080 });
+			}
+			for (const output of recorder.outputs) {
+				assert.ok(['image/png', 'image/jpeg'].includes(output.options.format));
+				assert.deepEqual(outputDimensions(output.record), { width: 1080, height: template === 'portrait' ? 1350 : 1080 });
 			}
 			const printed = recorder.texts.map(item => item.content).join('\n');
 			assert.equal(printed.includes('PRIVATE'), false);
@@ -226,4 +326,23 @@ test('facts cards omit missing measurements and never invent a price or expose p
 	const printed = recorder.texts.map(item => item.content).join('\n');
 	assert.match(printed, /Τιμή κατόπιν επικοινωνίας/);
 	assert.doesNotMatch(printed, /PRIVATE|ΕΜΒΑΔΟΝ|τ\.μ\.|€0|undefined|NaN/);
+});
+
+test('CTA cards display the selected destination with an Instagram message fallback and no bio claim', async t => {
+	t.mock.method(globalThis, 'fetch', async () => new Response('photo', { headers: { 'Content-Type': 'image/jpeg' } }));
+	for (const channel of ['instagram', 'facebook']) for (const destination of ['property', 'request', 'sell', 'message']) {
+		const env = environment(), recorder = imageRecorder();
+		env.IMAGES = recorder.binding;
+		const post = {
+			id: crypto.randomUUID(), channel, template: 'square', photos: JSON.stringify(property.images.slice(0, 1)),
+			creative: JSON.stringify(creative('architectural', { destination })), snapshot: JSON.stringify(property),
+		};
+		await renderSocialImages(env, post);
+		const printed = recorder.texts.map(item => item.content).join('\n');
+		assert.doesNotMatch(printed, /bio|βιογραφικό/i);
+		const link = websiteDestination(post);
+		if (link) assert.ok(printed.includes(link.shortUrl));
+		else assert.match(printed, /Στείλτε μας μήνυμα/);
+		assert.equal(printed.includes('Ή ζητήστε τον σύνδεσμο'), channel === 'instagram' && destination === 'property');
+	}
 });

@@ -64,6 +64,26 @@ fallback behavior. Social never falls back to `watermark_image`, including after
 a failed download, and never guesses a clean URL or removes a watermark with AI.
 `original_image` is source metadata, not image detection: if the original upload
 already includes a watermark, replace it with a clean photograph in EstatePrime.
+The editor additionally requires an explicit, saved confirmation that the selected
+photographs have no watermark or logo. It never checks this box automatically;
+changing the photo selection clears it. This is staff review of the actual pixels,
+not a claim of automatic watermark detection. Rendering and publication fail closed
+without the confirmation.
+
+The closing slide/caption can direct visitors to the property page, `/request`
+(buyer/tenant enquiry), or `/list-property` (owner enquiry), or retain a direct-message
+call to action. Links are restricted to these public Four Walls destinations and
+carry `utm_source`, `utm_medium=social`, `utm_campaign` and `utm_content` tags.
+New captions contain the selected link; later changes offer an explicit insert-link
+action that preserves edited text. The selected destination and its final graphic
+are part of the saved, approved revision.
+
+Facebook Page captions can carry the URL in their post text. This module does not
+assume that a URL in an Instagram API caption is clickable: staff can copy it for
+their profile or manually use a Story link sticker. It never changes a profile or
+publishes a Story automatically. A website address drawn on a JPEG is not an
+interactive button. UTM tags support attribution in an analytics tool that records
+them; this release does not add a click-counting dashboard or change enquiry forms.
 
 After the first deployment, wait for the next successful 15-minute feed refresh
 to populate originals metadata. Until then the dashboard reports that photo
@@ -194,7 +214,7 @@ check, not a claimed live integration test.
 Run with Node 24+:
 
 ```sh
-node --test tests/social.test.mjs tests/social-diagnostics.test.mjs
+node --test tests/social.test.mjs tests/social-diagnostics.test.mjs tests/social-creative.test.mjs
 node --check worker/index.mjs
 node --check forms/social.fw.js
 git diff --check
@@ -212,6 +232,14 @@ projection, invalid photos, captions, stale feed/revisions, approvals, concurren
 mutations/cron claims, availability checks before and after media preparation,
 Meta payloads, interrupted/ambiguous results, signed URLs and ZIP contents.
 Cloudflare Images and external network responses are stubbed in tests.
+
+Preset validation on 2026-10-31 also exercised the real Cloudflare Images binding
+in an isolated temporary preview with no D1, R2 or Meta access. All three presets
+produced 1080×1080 and 1080×1350 JPEGs; Greek long-title wrapping, missing-price
+text and website CTA cards were checked visually. Text/art composition is flattened
+into intermediate PNG batches to respect the service's ten-transform graph limit;
+only the final JPEGs are saved to production R2. The explicit photo-review flag
+is required even when EstatePrime labels a source as an original.
 
 The MVP trusts fixed domains: the dashboard/API accepts `forms.four-walls.gr`
 (plus localhost for development), and signed media URLs are generated and served
