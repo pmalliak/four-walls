@@ -54,7 +54,7 @@ function propertyPreview() {
 	const property = bootstrap?.feed.listings.find(p => p.id === $('property').value);
 	const image = $('featured-image');
 	image.hidden = true; $('property-art').hidden = false;
-	$('featured-title').textContent = property ? propertyTitle(property) : 'Ο χώρος σας. Η ιστορία σας.';
+	$('featured-title').textContent = property ? propertyTitle(property) : 'Δεν έχει επιλεγεί ακίνητο';
 	image.onload = () => { image.hidden = false; $('property-art').hidden = true; };
 	image.onerror = () => { image.hidden = true; $('property-art').hidden = false; };
 	if (property?.images?.[0]) { image.alt = propertyTitle(property); image.referrerPolicy = 'no-referrer'; image.src = property.images[0]; }
