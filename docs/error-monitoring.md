@@ -101,9 +101,19 @@ account → Personal auth tokens). Χωρίς αυτό ο server ξεκινά κ
 ## Θόρυβος που φιλτράρεται
 
 Το site ([js/bugsnag.fw.js](../js/bugsnag.fw.js), `onError`) **δεν στέλνει**
-σφάλματα των οποίων όλα τα frames δείχνουν στο URL της σελίδας χωρίς αριθμό
-γραμμής. Αυτά είναι scripts που βάζει ο ίδιος ο browser (μετάφραση σελίδας
-του Chrome σε iOS, extensions), όχι δικός μας κώδικας: τα δικά μας αρχεία
-έχουν πάντα γραμμή. Πρώτη περίπτωση: 28/10/2026, `RangeError: Maximum call
-stack size exceeded` στο `/properties/2400013` από Chrome iOS με τη σελίδα
-μεταφρασμένη στα αγγλικά (`FONT > FONT` στα breadcrumbs).
+σφάλματα των οποίων όλα τα frames δείχνουν στο URL της ίδιας της σελίδας
+(και κανένα σε αρχείο `/js/*.js`). Το site δεν έχει inline scripts (μόνο
+`application/ld+json`), οπότε τέτοιο stack είναι πάντα script που βάζει ο
+ίδιος ο browser: μετάφραση σελίδας και autofill του Chrome σε iOS,
+extensions. **Αν μπει ποτέ inline `<script>` σε σελίδα του site, το φίλτρο
+θέλει ξανακοίταγμα**, αλλιώς τα σφάλματά του θα χάνονται.
+
+Περιπτώσεις: 28/10/2026 `RangeError: Maximum call stack size exceeded` στο
+`/properties/2400013` και 29/10/2026 `Error: Ma` στο `/properties/2400014`,
+και τα δύο από Chrome iOS (locale en-US, σελίδα `lang="el"`), με minified
+ονόματα (`Fk`, `Dk`, `Ni`) και στήλες (έως 409) που δεν χωράνε σε καμία
+γραμμή του `property.html`.
+
+Προσοχή όταν διαβάζεις events από το Data Access API: τα frames έχουν
+`line_number`/`column_number` (snake_case). Ένα `.lineNumber` στο jq
+βγάζει πάντα `null` και δείχνει ψευδώς «χωρίς γραμμή».

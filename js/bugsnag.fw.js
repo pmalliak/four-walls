@@ -15,14 +15,17 @@
 		releaseStage: prod ? 'production' : 'development',
 		enabledReleaseStages: ['production'],
 		collectUserIp: false,
-		/* Browser-injected scripts (Chrome iOS page translation, extensions)
-		   report frames that point at the page URL with no line numbers.
-		   Our own code always has line numbers, so drop those events. */
+		/* The site has no inline scripts: all our code lives in /js/*.js.
+		   A stack whose every frame points at the page itself therefore comes
+		   from a script the browser injects (Chrome iOS translation, password
+		   and autofill helpers, extensions), so drop it. Adding an inline
+		   <script> to a page means revisiting this filter. */
 		onError: function (event) {
 			var frames = (event.errors && event.errors[0] && event.errors[0].stacktrace) || [];
-			var page = location.href.split('#')[0];
+			var bare = function (u) { return String(u || '').split(/[?#]/)[0]; };
+			var page = bare(location.href);
 			var injected = frames.length && frames.every(function (f) {
-				return !f.lineNumber && (!f.file || f.file.split('#')[0] === page);
+				return !f.file || bare(f.file) === page;
 			});
 			if (injected) return false;
 		},

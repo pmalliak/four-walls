@@ -91,6 +91,9 @@ virtual_tour_url, …` and arrays `features` / `view` / `flooring` /
 - **`photos`**: `[{ original_image, watermark_image, is_public }]` —
   absolute URLs on `files.estateprime.gr`; publish `original_image ||
   watermark_image` (clean photos on our own site), only where `is_public`.
+  Social publishing uses only `original_image`, with no watermarked fallback;
+  `mapListing().originalImages` preserves this distinction in KV. An original
+  uploaded with a watermark already in its pixels still needs a clean CRM replacement.
 - **`has_hidden_price`**: when true the feed publishes `price: null`.
 
 ## Portals / publication state (NOT exposed)

@@ -27,7 +27,7 @@ const MAX_PAGES = 200; // hard stop against pagination bugs
 /* Build the complete feed object that gets stored in KV / data/listings.json. */
 export async function buildFeed(env) {
 	const sample = env.SAMPLE_DATA === "1";
-	const raw = sample ? SAMPLE_LISTINGS : await fetchAllListings(env);
+	const raw = sample ? SAMPLE_LISTINGS.map(p => ({ ...p, originalImages: p.images })) : await fetchAllListings(env);
 	const listings = withListedRank(raw);
 	return {
 		generatedAt: new Date().toISOString(),
@@ -258,6 +258,12 @@ export function mapListing(raw) {
 			.filter((p) => p.is_public !== false)
 			.map((p) => p.original_image || p.watermark_image)
 			.filter(Boolean),
+		// Social layouts add their own branding. Preserve source provenance in KV
+		// so they never fall back to EstatePrime's watermarked derivative.
+		originalImages: (raw.photos || [])
+			.filter((p) => p.is_public !== false)
+			.map((p) => p.original_image)
+			.filter((url) => typeof url === 'string' && url.trim().length > 0),
 		features: Array.isArray(raw.features) ? raw.features : [],
 		updatedAt: raw.date_updated ?? raw.date_created ?? null,
 		// Πότε μπήκε στην αγορά. Το date_updated κουνιέται σε κάθε
